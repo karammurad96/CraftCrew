@@ -74,6 +74,24 @@ label.btn{margin:0!important;cursor:pointer}
 .project-card .supplier-meta{display:flex;justify-content:space-between;gap:10px;padding-top:10px;border-top:1px solid var(--ui-line);font-size:12px;color:var(--ui-muted)}
 .project-card .project-open{align-self:flex-start;margin:0!important}
 
+/* ---------- Document explorer: fills the window like the chat ---------- */
+.app-shell:has(.ff-documents-content) .dashboard-content{height:100dvh;display:flex!important;flex-direction:column;padding:16px 20px!important;overflow:hidden}
+.ff-documents-content>*{max-width:none!important;width:100%;margin-left:0!important;margin-right:0!important;box-sizing:border-box}
+.ff-documents-content>.cc-explorer{flex:1 1 auto;min-height:0;margin-top:12px!important;display:flex;flex-direction:column}
+.ff-documents-content .cc-explorer-shell{flex:1 1 auto;height:auto!important;min-height:0!important}
+.ff-documents-content .cc-folder-tree{overflow-y:auto;min-height:0}
+.ff-documents-content .cc-file-browser{display:flex;flex-direction:column;min-height:0}
+.ff-documents-content .cc-file-list{flex:1 1 auto;min-height:0!important;overflow-y:auto}
+/* Header columns line up with the file rows (the name heading spans the icon column) */
+.cc-file-columns>span:first-child{grid-column:1/span 2}
+.cc-file-columns{position:sticky;top:0;z-index:1}
+/* One clean search field and an equally tall filter */
+.cc-file-search{display:flex;align-items:center;gap:8px;height:38px;padding:0 12px;border:1px solid #d8e0eb;border-radius:9px;background:#fff}
+.cc-file-search:focus-within{border-color:#93b4f5;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.cc-file-search input{flex:1;min-width:0;height:34px!important;padding:0!important;border:0!important;box-shadow:none!important;background:transparent;font-size:13px}
+.cc-file-toolbar select{height:38px;padding:0 30px 0 12px;border:1px solid #d8e0eb;border-radius:9px;font-size:13px}
+@media(max-width:650px){.app-shell:has(.ff-documents-content) .dashboard-content{height:auto;overflow:visible;padding:12px!important}}
+
 /* Forms inside panels */
 .dashboard-content .modal-form,.dashboard-content form.modal-form{gap:14px!important}
 .modal .modal-form{gap:14px}
