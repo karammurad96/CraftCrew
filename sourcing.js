@@ -56,6 +56,7 @@ module.exports = function createSourcing(ctx) {
     if (app?.verification?.riskLevel && ['Medium', 'High'].includes(app.verification.riskLevel)) risks.push({level: app.verification.riskLevel.toLowerCase(), text: `Vetting risk assessment: ${app.verification.riskLevel}`});
     if (late) risks.push({level: late > 2 ? 'high' : 'medium', text: `${late} work item(s) overdue`});
     if (!(s.certifications || []).length) risks.push({level: 'low', text: 'No certifications listed'});
+    if (ctx.extraRisks) risks.push(...ctx.extraRisks(s.id));
     if (s.availability === 'Busy') risks.push({level: 'low', text: 'Currently marked as busy'});
     const pct = (a, b) => b ? Math.round(a / b * 100) : null;
     const metrics = {rating: s.rating || null, quality: avg('quality'), schedule: avg('schedule'), communication: avg('communication'), reviews: reviews.length, onTimeRate: pct(done, done + late), completed: done, overdue: late, firstTimeRightRate: pct(firstTime, decided.length), invoices: invoices.length, responseRate: pct(answered.length, invited.length), invitations: invited.length, winRate: pct(won, won + lost)};

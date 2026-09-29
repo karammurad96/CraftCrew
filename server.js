@@ -21,7 +21,9 @@ const PORT = Number(process.env.PORT || 3000);
 const DEMO_MODE = process.env.NODE_ENV !== 'production';
 const mailer = require('./mailer');
 // Strategic sourcing module (contracts, scorecards, bid evaluation helpers).
-const sourcing = require('./sourcing')({getDb:()=>db,save:()=>save(),send:(...a)=>send(...a),body:r=>body(r),id:p=>id(p),now:()=>now(),notify:(...a)=>notify(...a),projectFor:(...a)=>projectFor(...a),supplierForUser:u=>supplierForUser(u)});
+const sourcing = require('./sourcing')({getDb:()=>db,save:()=>save(),send:(...a)=>send(...a),body:r=>body(r),id:p=>id(p),now:()=>now(),notify:(...a)=>notify(...a),projectFor:(...a)=>projectFor(...a),supplierForUser:u=>supplierForUser(u),extraRisks:sid=>compliance.supplierRisk(sid)});
+// On-site contractor compliance (sites, workers, certificates, briefings, access and permits).
+const compliance = require('./compliance')({getDb:()=>db,save:()=>save(),send:(...a)=>send(...a),body:r=>body(r),id:p=>id(p),now:()=>now(),notify:(...a)=>notify(...a),projectFor:(...a)=>projectFor(...a)});
 // Public base URL used in email links.
 const APP_URL = (process.env.APP_URL || (process.env.DOMAIN ? `https://${process.env.DOMAIN}` : `http://localhost:${PORT}`)).replace(/\/$/, '');
 
@@ -204,6 +206,25 @@ function ensureDemoApplicationEvidenceV1(){
   db.meta ||= {};db.meta.demoApplicationEvidenceV1=true;
 }
 if(DEMO_MODE)ensureDemoApplicationEvidenceV1();
+// Demo: a customer site with requirements, workers, certificates and an open access request.
+function ensureComplianceDemoV1(){
+  if(db.meta?.complianceDemoV1)return;
+  const customer=db.users.find(u=>u.email==='customer.demo@craftcrew.local'),supplierUser=db.users.find(u=>u.email==='supplier.demo@craftcrew.local'),project=db.projects.find(p=>p.id==='prj_demo_line4');
+  if(!customer||!supplierUser||!project){db.meta||={};db.meta.complianceDemoV1=true;return;}
+  const day=n=>new Date(Date.now()+n*86400000).toISOString().slice(0,10),sid=supplierUser.supplierId;
+  db.sites||=[];db.workers||=[];db.complianceDocs||=[];db.briefingAcks||=[];db.siteVisits||=[];
+  const site={id:'site_demo_regensburg',customerId:customer.id,name:'Werk Regensburg',address:'Franz-Mayer-Straße 12, 93053 Regensburg',contactName:'Maya Hartmann',contactPhone:'+49 941 555 0180',emergencyNumber:'+49 941 555 0112',requirements:['insurance','bgCertificate','minimumWage','electrician','heightFitness'],permitTypes:['hotWork','electrical','height'],briefing:{content:'# Before you start\nReport to the gate and collect your visitor badge. Safety shoes, safety glasses and hi-vis vest are mandatory in all production halls.\n\n# Emergencies\nAssembly point: car park P2 next to gate 2. Emergency number: +49 941 555 0112. First aid kits hang at every hall entrance.\n\n# Hazardous areas\nHall 3 (presses): hearing protection required. Robot cells may only be entered with the cell locked out and your own padlock applied.\n\n# Hot work and electrical work\nWelding, cutting and grinding need a hot-work permit and a fire watch. Electrical work only after isolation (LOTO) by a qualified electrician.',version:1,updatedAt:now()},createdAt:now(),updatedAt:now()};
+  db.sites.push(site);project.siteId=site.id;
+  const w1={id:'wrk_demo_keller',supplierId:sid,name:'Marta Keller',role:'Project lead',phone:'+49 170 555 0101',postedFromAbroad:false,active:true,createdAt:now()},w2={id:'wrk_demo_weber',supplierId:sid,name:'Jonas Weber',role:'PLC & safety engineer',phone:'+49 170 555 0102',postedFromAbroad:false,active:true,createdAt:now()};
+  db.workers.push(w1,w2);
+  const doc=(key,workerId,file,expiresAt,accepted)=>{const stored=`compliance_demo_${key}_${workerId||'company'}.pdf`;createDemoPdf(stored,file,[`Supplier: Keller Automation Systems`,workerId?`Worker: ${[w1,w2].find(w=>w.id===workerId).name}`:'Company document',expiresAt?`Valid until ${expiresAt}`:'No expiry','CraftCrew demo compliance document.']);db.complianceDocs.push({id:id('cdoc'),supplierId:sid,workerId,requirementKey:key,filename:file,url:'/uploads/'+stored,issuedAt:day(-200),expiresAt,uploadedAt:now(),uploadedBy:supplierUser.id,reviews:accepted?{[customer.id]:{status:'Accepted',note:'',by:customer.id,at:now()}}:{}});};
+  doc('insurance',null,'Liability-insurance-2026.pdf',day(240),true);doc('bgCertificate',null,'BG-good-standing.pdf',day(21),true);doc('minimumWage',null,'MiLoG-declaration.pdf','',false);
+  doc('electrician','wrk_demo_weber','Elektrofachkraft-Weber.pdf','',true);doc('heightFitness','wrk_demo_weber','G41-Weber.pdf',day(300),true);doc('heightFitness','wrk_demo_keller','G41-Keller.pdf',day(180),true);
+  db.briefingAcks.push({id:id('ack'),siteId:site.id,workerId:'wrk_demo_weber',supplierId:sid,version:1,signatureName:'Jonas Weber',acknowledgedAt:now(),expiresAt:day(365),recordedBy:supplierUser.id});
+  db.siteVisits.unshift({id:'visit_demo_1',siteId:site.id,projectId:project.id,taskId:'tsk_demo_fabrication',supplierId:sid,workerIds:['wrk_demo_weber'],date:day(1),endDate:day(2),permitType:'electrical',checklist:['Isolated and secured against reconnection','Absence of voltage verified','Earthed and short-circuited','Adjacent live parts covered'].map(item=>({item,confirmed:true})),description:'Wire the safety PLC cabinet in hall 3 and test the light curtains.',status:'Requested',requestedBy:supplierUser.id,createdAt:now(),events:[{status:'Requested',by:supplierUser.id,at:now()}],readinessAtRequest:false});
+  db.meta||={};db.meta.complianceDemoV1=true;
+}
+if(DEMO_MODE)ensureComplianceDemoV1();
 // Repair: early showcase messages stored their text in taskId; move it back and link the right task.
 function repairShowcaseMessagesV1(){
   if(db.meta?.showcaseMessagesRepairV1)return;
@@ -462,7 +483,7 @@ async function api(req,res,url){
       const doc=(db.documents||[]).find(x=>x.id===parts[2]),p=doc&&projectFor(user,doc.projectId);if(!doc||!p)return send(res,404,{error:'Document not found'}),true;if(user.role!=='customer')return send(res,403,{error:'Only project customers can review documents'}),true;const b=await body(req);if(!['Approved','Changes requested','Rejected'].includes(b.status))return send(res,400,{error:'Choose an approval decision'}),true;doc.status=b.status;doc.reviewNote=String(b.reviewNote||'').slice(0,2000);doc.reviewedBy=user.id;doc.reviewedAt=now();notify(doc.uploadedBy,`Document ${doc.filename}: ${doc.status}`);save();return send(res,200,{document:doc}),true;
     }
     if(parts[1]==='projects'&&parts[2]&&method==='PUT'){
-      const p=projectFor(user,parts[2]);if(!p||user.role!=='customer')return send(res,403,{error:'Not allowed'}),true;const b=await body(req);Object.assign(p,{name:b.name??p.name,description:b.description??p.description,requirements:b.requirements??p.requirements,location:b.location??p.location,budget:b.budget!==undefined?Number(b.budget):p.budget,startDate:b.startDate??p.startDate,dueDate:b.dueDate??p.dueDate,status:b.status??p.status,updatedAt:now()});activity(user,`Updated project ${p.name}`);save();return send(res,200,{project:p}),true;
+      const p=projectFor(user,parts[2]);if(!p||user.role!=='customer')return send(res,403,{error:'Not allowed'}),true;const b=await body(req);if(b.siteId!==undefined&&b.siteId&&!(db.sites||[]).some(s=>s.id===b.siteId&&s.customerId===user.id))return send(res,400,{error:'Choose one of your sites'}),true;if(b.siteId!==undefined)p.siteId=b.siteId||null;Object.assign(p,{name:b.name??p.name,description:b.description??p.description,requirements:b.requirements??p.requirements,location:b.location??p.location,budget:b.budget!==undefined?Number(b.budget):p.budget,startDate:b.startDate??p.startDate,dueDate:b.dueDate??p.dueDate,status:b.status??p.status,updatedAt:now()});activity(user,`Updated project ${p.name}`);save();return send(res,200,{project:p}),true;
     }
     if(parts[1]==='projects'&&parts[2]&&method==='DELETE'){
       const p=projectFor(user,parts[2]);if(!p||user.role!=='customer')return send(res,403,{error:'Not allowed'}),true;db.projects=db.projects.filter(x=>x.id!==p.id);db.invoices=db.invoices.filter(x=>x.projectId!==p.id);activity(user,`Deleted project ${p.name}`);save();return send(res,200,{ok:true}),true;
@@ -750,6 +771,7 @@ async function api(req,res,url){
       const supplierIds=projectSupplierIds(p);
       return send(res,200,{suppliers:supplierIds.map(sid=>{const s=db.suppliers.find(x=>x.id===sid);return {id:sid,company:s?.company||'Supplier',review:(s?.reviews||[]).find(r=>r.projectId===p.id&&r.authorId===user.id)||null};})}),true;
     }
+    if(await compliance.handle(req,res,url,parts,user))return true;
     if(await sourcing.handle(req,res,url,parts,user))return true;
     return send(res,404,{error:'API route not found'}),true;
   }catch(e){console.error('Request failed:',e);return send(res,500,{error:'Server error'}),true;}
@@ -771,7 +793,7 @@ const AUDIT_ACTIONS=[
   [/^POST disputes$/,'Opened escalation'],[/^PATCH admin\/disputes\//,'Updated escalation'],[/^POST reviews$/,'Reviewed supplier'],[/^POST applications$/,'Submitted supplier application'],
   [/^PATCH admin\/applications\//,'Vetting decision'],[/^PATCH admin\/users\//,'Changed account status'],[/^PATCH admin\/suppliers\//,'Changed supplier badge'],[/^PUT admin\/settings$/,'Updated platform settings'],
   [/^PUT profile$/,'Updated profile'],[/^POST account\/password$/,'Changed password'],[/^DELETE account\/sessions$/,'Signed out other sessions'],[/^PUT account\/preferences$/,'Updated notification preferences'],[/^PUT account\/payout$/,'Updated payout details'],
-  [/^GET backup/,null],[/^POST contracts$/,'Created contract'],[/^PATCH contracts\//,'Updated contract'],[/^POST backup\/import$/,'Imported backup']
+  [/^GET backup/,null],[/^POST contracts$/,'Created contract'],[/^POST sites$/,'Created site'],[/^PATCH sites\//,'Updated site'],[/^POST sites\/[^/]+\/briefings$/,'Completed safety briefing'],[/^POST workers$/,'Added worker'],[/^PATCH workers\//,'Updated worker'],[/^POST compliance\/documents$/,'Uploaded compliance document'],[/^PATCH compliance\/documents\//,'Reviewed compliance document'],[/^POST site-visits$/,'Requested site access'],[/^PATCH site-visits\//,'Site access decision'],[/^PATCH contracts\//,'Updated contract'],[/^POST backup\/import$/,'Imported backup']
 ];
 function trackAudit(req,res,url){
   const actor=auth(req),route=url.pathname.replace(/^\/api\//,'').replace(/\/$/,''),key=`${req.method} ${route}`,match=AUDIT_ACTIONS.find(([re])=>re.test(key));
@@ -811,7 +833,7 @@ const server=http.createServer(async(req,res)=>{
     const user=auth(req),stored=path.basename(url.pathname.slice('/uploads/'.length));
     if(!user)return send(res,404,{error:'File not found'});
     const linked=(db.projects||[]).some(p=>projectFor(user||{},p.id)&&p.phases.some(ph=>(ph.deliverables||[]).some(d=>d.url===`/uploads/${stored}`)))||(db.documents||[]).some(d=>d.url===`/uploads/${stored}`&&projectFor(user||{},d.projectId)&&(user.role!=='supplier'||!d.supplierId||d.supplierId===user.supplierId))||(user?.role==='admin'&&(db.applications||[]).some(a=>(a.proofUploads||[]).some(f=>f.url===`/uploads/${stored}`)))||(user&& (db.applications||[]).some(a=>String(a.email).toLowerCase()===String(user.email).toLowerCase()&&(a.proofUploads||[]).some(f=>f.url===`/uploads/${stored}`)));
-    if(!linked)return send(res,404,{error:'File not found'});
+    if(!linked&&!compliance.canAccessFile(user,'/uploads/'+stored))return send(res,404,{error:'File not found'});
     const up=path.join(UPLOAD_DIR,stored);if(!up.startsWith(UPLOAD_DIR))return send(res,403,{error:'Forbidden'});
     const fileType={'.pdf':'application/pdf','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg'}[path.extname(stored).toLowerCase()]||'application/octet-stream';
     return fs.readFile(up,(err,data)=>{if(err){res.writeHead(404);return res.end('Not found')}res.writeHead(200,{'Content-Type':fileType,'Content-Disposition':'attachment','X-Content-Type-Options':'nosniff','Cache-Control':'private, no-store'});res.end(data)});

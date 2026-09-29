@@ -1,7 +1,7 @@
 FROM node:20-alpine
 ENV NODE_ENV=production PORT=3000 DATA_DIR=/var/lib/craftcrew
 WORKDIR /app
-COPY package.json server.js mailer.js sourcing.js ./
+COPY package.json server.js mailer.js sourcing.js compliance.js ./
 COPY public ./public
 RUN mkdir -p /var/lib/craftcrew/uploads && chown -R node:node /app /var/lib/craftcrew
 USER node
