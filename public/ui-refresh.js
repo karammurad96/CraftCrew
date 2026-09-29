@@ -220,8 +220,26 @@ function uiSearchButton() {
   top.insertAdjacentHTML('afterend', `<button type="button" class="ui-search-btn" onclick="uiSearchIndex=null;uiOpenSearch()">${uiIcon('search')}<span>Search</span><kbd>Ctrl K</kbd></button>`);
 }
 
+/* ---------- Constant layout: panel bodies scroll instead of growing ---------- */
+function uiScrollAreas() {
+  const wrap = (panel, keep, cls = 'ui-scroll') => {
+    if (panel.querySelector(':scope > .' + cls)) return;
+    const body = [...panel.children].filter(ch => !keep(ch));
+    if (!body.length) return;
+    const box = document.createElement('div');
+    box.className = cls;
+    body[0].before(box); body.forEach(ch => box.appendChild(ch));
+    if (cls === 'ui-scroll') {
+      const fade = () => box.classList.toggle('ui-fade', box.scrollHeight - box.scrollTop - box.clientHeight > 4);
+      box.addEventListener('scroll', fade, {passive: true}); requestAnimationFrame(fade);
+    }
+  };
+  document.querySelectorAll('.pa-grid>.panel, .dashboard-grid>.panel, .in-grid>.panel:not(.in-wide)').forEach(p => wrap(p, ch => ch.matches('.panel-title, h3, .in-legend')));
+  document.querySelectorAll('.pa-project-activity, .pa-updates').forEach(p => wrap(p, ch => ch.matches('summary, .panel-title'), 'pa-list'));
+}
+
 /* Re-apply after every render: pages replace the shell wholesale. */
 let uiPending = false;
-function uiEnhanceAll() { uiEnhanceSidebar(); uiSearchButton(); uiCountPills(); uiDropZones(document); uiSortablePanels(); }
+function uiEnhanceAll() { uiEnhanceSidebar(); uiSearchButton(); uiCountPills(); uiDropZones(document); uiSortablePanels(); uiScrollAreas(); }
 new MutationObserver(() => { if (uiPending) return; uiPending = true; requestAnimationFrame(() => { uiPending = false; uiEnhanceAll(); }); }).observe(document.body, {childList: true, subtree: true});
 uiEnhanceAll();

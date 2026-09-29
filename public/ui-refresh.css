@@ -238,3 +238,21 @@ footer .legal-footer-links a:hover{color:var(--ui-blue)}
 .legal-admin textarea{width:100%;font-family:inherit}
 .legal-force-note{margin-bottom:12px;padding:12px 14px;border-radius:10px;background:#fff7df;color:#8a5a00;font-size:13px;font-weight:600}
 .auth-forgot{display:block;margin:6px 0 0;text-align:right;font-size:12.5px;font-weight:600}.pa-outbox summary .mail-test{margin-left:auto}.pa-outbox summary::after{margin-left:10px}
+
+/* ================= Constant layout: long lists, tables and charts scroll inside their panel ================= */
+/* Tables: bounded height with a sticky header row */
+.dashboard-content .cc-table-wrap{max-height:min(560px,70vh);overflow:auto;overscroll-behavior:contain;border-radius:10px}
+.dashboard-content .cc-table-wrap thead th{position:sticky;top:0;z-index:2;background:#fafbfd;box-shadow:inset 0 -1px 0 var(--ui-line)}
+/* Panels in dashboard/analytics grids share a row height; their body scrolls */
+.pa-grid,.dashboard-grid,.in-grid{align-items:stretch!important}
+.pa-grid>.panel,.dashboard-grid>.panel,.in-grid>.panel:not(.in-wide){display:flex;flex-direction:column;min-height:0;max-height:460px}
+.ui-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;margin-right:-8px;padding-right:8px;scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent}
+.ui-scroll::-webkit-scrollbar{width:6px}.ui-scroll::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+.ui-scroll.ui-fade{-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 28px),transparent)}
+/* Charts with many rows */
+.in-hbars{max-height:380px;overflow-y:auto;padding-right:6px;scrollbar-width:thin}
+.in-donut ul{max-height:220px;overflow-y:auto;padding-right:4px;scrollbar-width:thin}
+/* Other long lists */
+.cc-chat-threads,.msg-list{overflow-y:auto}
+.pa-project-activity[open]>div,.pa-project-activity[open]{max-height:none}
+.pa-project-activity .pa-list,.pa-updates .pa-list{max-height:420px;overflow-y:auto}
