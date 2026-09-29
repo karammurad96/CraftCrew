@@ -48,6 +48,28 @@ label.btn{margin:0!important;cursor:pointer}
 .cc-actions,.action-row,.ff-filter-actions,.pa-filter-actions,.in-toolbar,.ob-cta-actions,.ff-time-actions,.wf-filter-actions,.review-filter-actions,.ff-docs-toolbar{gap:10px!important}
 .btn.full{display:flex;width:100%}
 
+/* One button language: filled blue = main action, outline = secondary, red = destructive */
+.btn{border-radius:9px!important;font-weight:700!important;line-height:1.1}
+.btn:not(.small):not(.lg){padding:0 16px!important;font-size:13px!important}
+.btn.small{padding:0 12px!important;font-size:12px!important}
+.btn.success{background:var(--ui-blue)!important;border-color:var(--ui-blue)!important;color:#fff!important}
+.btn.success:hover{background:var(--ui-blue-dark)!important;border-color:var(--ui-blue-dark)!important}
+.btn.outline,.btn.ghost{background:#fff;color:var(--ui-ink)}
+/* Row actions in tables stay on one line */
+.cc-table td .cc-actions{flex-wrap:nowrap!important;margin-top:0!important}
+.cc-table td:has(> .cc-actions),.cc-table td:has(> .btn){white-space:nowrap}
+
+/* ---------- Sidebar footer: calm and compact ---------- */
+.sidebar .help{display:flex!important;flex-wrap:wrap;align-items:center;gap:8px;margin-top:auto;padding:14px 4px 0!important;border-top:1px solid var(--ui-line);font-size:0!important;color:transparent}
+.sidebar .help>br{display:none}
+.sidebar .help .i18n-switch{order:1;margin:0!important}
+.sidebar .help .btn.ghost{order:2;margin-left:auto!important;min-height:32px!important;padding:0 10px!important;font-size:12.5px!important;border:0!important;background:transparent!important;color:#5b6879!important}
+.sidebar .help .btn.ghost:hover{background:#f1f5fb!important;color:var(--ui-ink)!important}
+.sidebar .help .ob-reopen{order:3;flex-basis:100%;margin:2px 0 0!important;padding:4px 2px!important;text-align:left;font-size:12.5px!important;font-weight:600;color:var(--ui-blue)}
+.sidebar .help .btn.danger{order:4;flex-basis:100%;width:100%!important;margin-top:4px!important;min-height:36px!important;font-size:12.5px!important;background:#fff!important;border:1px solid var(--ui-line)!important;color:#b91c1c!important}
+.sidebar .help .btn.danger:hover{background:#fff1f2!important;border-color:#fecdd3!important}
+@media(max-width:650px){.sidebar .help{display:none!important}}
+
 /* ---------- Status badges: one pill design everywhere ---------- */
 .status,.tag,.sr-risk,.in-card .status{display:inline-flex!important;align-items:center;gap:6px;height:24px;padding:0 10px!important;border-radius:999px!important;font-size:11px!important;font-weight:700!important;line-height:1!important;letter-spacing:.01em;white-space:nowrap!important;flex:0 0 auto;vertical-align:middle;max-width:100%;background:#f1f5f9;color:#475569;border:0}
 .status::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85;flex:0 0 6px}
