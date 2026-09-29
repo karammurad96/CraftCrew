@@ -1,0 +1,16 @@
+# Runtime data: accounts, sessions, password hashes, uploaded files. Never commit.
+data/
+uploads/
+*.tmp
+
+# Local secrets
+.env
+.env.*
+!.env.example
+
+# Scratch and previews
+work/
+node_modules/
+*.log
+.DS_Store
+Thumbs.db

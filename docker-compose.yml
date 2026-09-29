@@ -1,0 +1,42 @@
+services:
+  craftcrew:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATA_DIR: /var/lib/craftcrew
+      TRUST_PROXY: "1"
+    expose:
+      - "3000"
+    volumes:
+      - craftcrew-data:/var/lib/craftcrew
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # Public entry point: HTTPS with automatic Let's Encrypt certificates.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - craftcrew
+    env_file: .env
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  craftcrew-data:
+  caddy-data:
+  caddy-config:

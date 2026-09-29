@@ -1,0 +1,4 @@
+# Linux line endings everywhere: the app is deployed on Linux (Docker, Caddyfile).
+* text=auto eol=lf
+*.png binary
+*.woff2 binary
