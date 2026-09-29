@@ -50,7 +50,7 @@ function legalResetButtons() {
 }
 async function legalResetPassword(userId, btn) {
   const email = btn.closest('tr')?.children[1]?.textContent || 'this user';
-  if (!confirm(`Reset the password for ${email}? They will be signed out everywhere and must choose a new password after signing in.`)) return;
+  if (!await uiConfirm(`Reset the password for ${email}? They will be signed out everywhere and must choose a new password after signing in.`)) return;
   try {
     const {temporaryPassword} = await api(`/admin/users/${encodeURIComponent(userId)}/reset-password`, {method: 'POST', body: {}});
     modal('Temporary password', `<p>Give this temporary password to <b>${esc(email)}</b> through a secure channel (e.g. by phone). It is shown only once.</p><div class="legal-temp"><code id="legalTemp">${esc(temporaryPassword)}</code><button type="button" class="btn small outline" onclick="navigator.clipboard.writeText(document.getElementById('legalTemp').textContent).then(()=>toast('Copied'))">Copy</button></div><p class="subtle">They will be asked to set a new password right after signing in.</p><button class="btn primary" onclick="closeModal()">Done</button>`);

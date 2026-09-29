@@ -109,12 +109,12 @@ async function srEvent(bidId) {
 }
 async function srAward(bidId, offerId) {
   const {bids = []} = await api('/bids'), bid = bids.find(b => b.id === bidId), offer = bid?.offers.find(o => o.id === offerId);
-  if (!offer || !confirm(`Award "${bid.title}" to ${offer.supplierCompany} for ${money(offer.amount)}?\n\nThe task is assigned to them, other bidders are notified, and a draft contract is created.`)) return;
+  if (!offer || !await uiConfirm(`Award "${bid.title}" to ${offer.supplierCompany} for ${money(offer.amount)}?\n\nThe task is assigned to them, other bidders are notified, and a draft contract is created.`)) return;
   try { await api(`/bids/${bidId}`, {method: 'PATCH', body: {action: 'Accept offer', offerId}}); toast('Awarded — draft contract created'); navigate('/customer/contracts'); }
   catch (x) { toast(x.message, 'error'); }
 }
 async function srCloseEvent(bidId) {
-  if (!confirm('Close this event without an award? Open offers are marked as not selected.')) return;
+  if (!await uiConfirm('Close this event without an award? Open offers are marked as not selected.')) return;
   try { await api(`/bids/${bidId}`, {method: 'PATCH', body: {action: 'Close bid'}}); toast('Event closed'); srEvent(bidId); } catch (x) { toast(x.message, 'error'); }
 }
 

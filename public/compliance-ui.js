@@ -30,14 +30,14 @@ function cmDocReviewRow(d) {
 }
 async function cmDecideVisit(id, action, ready = true) {
   const body = {action};
-  if (action === 'reject') { const note = prompt('Reason for rejecting this access request:'); if (!note) return; body.note = note; }
-  if (action === 'approve' && !ready) { const reason = prompt('Compliance is incomplete for this request. Enter a reason to approve anyway (e.g. documents checked on paper at the gate):'); if (!reason) return; body.overrideReason = reason; }
+  if (action === 'reject') { const note = await uiPrompt('Reason for rejecting this access request:'); if (!note) return; body.note = note; }
+  if (action === 'approve' && !ready) { const reason = await uiPrompt('Compliance is incomplete for this request. Enter a reason to approve anyway (e.g. documents checked on paper at the gate):'); if (!reason) return; body.overrideReason = reason; }
   try { await api(`/site-visits/${id}`, {method: 'PATCH', body}); toast({approve: 'Access approved', reject: 'Access rejected', checkin: 'Checked in', checkout: 'Checked out'}[action]); route(); }
   catch (x) { toast(x.message, 'error'); }
 }
 async function cmReviewDoc(id, status) {
   const body = {status};
-  if (status === 'Rejected') { const note = prompt('Tell the supplier why this document is rejected:'); if (!note) return; body.note = note; }
+  if (status === 'Rejected') { const note = await uiPrompt('Tell the supplier why this document is rejected:'); if (!note) return; body.note = note; }
   try { await api(`/compliance/documents/${id}`, {method: 'PATCH', body}); toast(`Document ${status.toLowerCase()}`); route(); } catch (x) { toast(x.message, 'error'); }
 }
 async function cmSiteForm(id) {

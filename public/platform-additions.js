@@ -166,7 +166,7 @@ async function paProjectExtras(pid) {
 }
 const paBaseCompleteProject = completeProject;
 completeProject = async function (id) {
-  if (!confirm('Close this project? All phases are complete; suppliers are notified and the project is closed for new work.')) return;
+  if (!await uiConfirm('Close this project? All phases are complete; suppliers are notified and the project is closed for new work.')) return;
   try { await api(`/projects/${id}/complete`, {method: 'POST'}); toast('Project completed and closed'); await route(); paReviewSuppliers(id); }
   catch (e) { toast(e.message, 'error'); }
 };

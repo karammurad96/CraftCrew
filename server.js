@@ -239,7 +239,7 @@ if(DEMO_MODE)repairShowcaseMessagesV1();
 function save(){const temp=DB_FILE+'.tmp';fs.writeFileSync(temp,JSON.stringify(db,null,2),{mode:0o600});fs.renameSync(temp,DB_FILE);}
 save();
 
-function publicUser(u){const {passwordHash,salt,payoutDetails,notificationPrefs,...safe}=u;return safe;}
+function publicUser(u){const {passwordHash,salt,payoutDetails,notificationPrefs,layouts,...safe}=u;return safe;}
 // The signed-in user's own record, including private settings.
 function selfUser(u){const {passwordHash,salt,...safe}=u;return safe;}
 function send(res,status,data,headers={}){const body=JSON.stringify(data);res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','Referrer-Policy':'strict-origin-when-cross-origin','Cache-Control':'no-store',...headers});res.end(body);}
@@ -732,6 +732,15 @@ async function api(req,res,url){
       if(['de','en'].includes(b.language))user.language=b.language;
       save();return send(res,200,{user:publicUser(user)}),true;
     }
+    // Personal page layouts (card order, hidden cards, section order), stored per user and page.
+    if(parts[1]==='account'&&parts[2]==='layout'&&method==='PUT'){
+      const b=await body(req),page=String(b.page||'').slice(0,80);
+      if(!/^\/[a-z/-]+$/.test(page))return send(res,400,{error:'Invalid page'}),true;
+      user.layouts ||= {};
+      if(b.layout===null)delete user.layouts[page];
+      else{const json=JSON.stringify(b.layout||{});if(json.length>20000)return send(res,400,{error:'Layout too large'}),true;user.layouts[page]=JSON.parse(json);}
+      save();return send(res,200,{layouts:user.layouts}),true;
+    }
     if(parts[1]==='account'&&parts[2]==='payout'&&method==='PUT'){
       if(user.role!=='supplier')return send(res,403,{error:'Only suppliers have payout details'}),true;
       const b=await body(req),iban=String(b.iban||'').replace(/\s+/g,'').toUpperCase();
@@ -792,7 +801,7 @@ const AUDIT_ACTIONS=[
   [/^POST rfqs$/,'Sent quote request'],[/^PATCH rfqs\//,'Answered quote request'],[/^POST chats$/,'Started conversation'],[/^POST (chats\/[^/]+\/)?messages$/,'Sent message'],
   [/^POST disputes$/,'Opened escalation'],[/^PATCH admin\/disputes\//,'Updated escalation'],[/^POST reviews$/,'Reviewed supplier'],[/^POST applications$/,'Submitted supplier application'],
   [/^PATCH admin\/applications\//,'Vetting decision'],[/^PATCH admin\/users\//,'Changed account status'],[/^PATCH admin\/suppliers\//,'Changed supplier badge'],[/^PUT admin\/settings$/,'Updated platform settings'],
-  [/^PUT profile$/,'Updated profile'],[/^POST account\/password$/,'Changed password'],[/^DELETE account\/sessions$/,'Signed out other sessions'],[/^PUT account\/preferences$/,'Updated notification preferences'],[/^PUT account\/payout$/,'Updated payout details'],
+  [/^PUT profile$/,'Updated profile'],[/^POST account\/password$/,'Changed password'],[/^DELETE account\/sessions$/,'Signed out other sessions'],[/^PUT account\/preferences$/,'Updated notification preferences'],[/^PUT account\/payout$/,'Updated payout details'],[/^PUT account\/layout$/,null],
   [/^GET backup/,null],[/^POST contracts$/,'Created contract'],[/^POST sites$/,'Created site'],[/^PATCH sites\//,'Updated site'],[/^POST sites\/[^/]+\/briefings$/,'Completed safety briefing'],[/^POST workers$/,'Added worker'],[/^PATCH workers\//,'Updated worker'],[/^POST compliance\/documents$/,'Uploaded compliance document'],[/^PATCH compliance\/documents\//,'Reviewed compliance document'],[/^POST site-visits$/,'Requested site access'],[/^PATCH site-visits\//,'Site access decision'],[/^PATCH contracts\//,'Updated contract'],[/^POST backup\/import$/,'Imported backup']
 ];
 function trackAudit(req,res,url){

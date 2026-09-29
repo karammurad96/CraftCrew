@@ -70,6 +70,37 @@ label.btn{margin:0!important;cursor:pointer}
 .sidebar .help .btn.danger:hover{background:#fff1f2!important;border-color:#fecdd3!important}
 @media(max-width:650px){.sidebar .help{display:none!important}}
 
+/* Row actions stay visible: the actions column is pinned to the right edge of scrolling tables */
+.cc-table tr>td:last-child:has(.cc-actions),.cc-table tr>td:last-child:has(> .btn){position:sticky;right:0;z-index:1;background:#fff;box-shadow:-10px 0 12px -12px rgba(13,27,50,.35)}
+.cc-table tbody tr:hover>td:last-child:has(.cc-actions){background:#fafcff}
+.cc-table thead th:last-child{position:sticky;right:0;z-index:3}
+
+/* ---------- In-app dialogs ---------- */
+.ui-dialog-backdrop{position:fixed;inset:0;z-index:600;display:grid;place-items:center;padding:16px;background:rgba(13,27,50,.4);animation:uiPop .12s ease-out}
+.ui-dialog{width:min(460px,100%);display:grid;gap:12px;padding:22px 24px;background:#fff;border-radius:14px;box-shadow:0 30px 80px rgba(13,27,50,.3)}
+.ui-dialog h2{margin:0;font-size:17px;color:var(--ui-ink);line-height:1.35}
+.ui-dialog p{margin:0;font-size:14px;line-height:1.55;color:var(--ui-text)}
+.ui-dialog textarea{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d8e0eb;border-radius:9px;font:inherit;font-size:14px;resize:vertical}
+.ui-dialog .cc-actions{justify-content:flex-end;margin-top:4px!important}
+
+/* ---------- Layout editor (Customize) ---------- */
+.lc-hidden{display:none!important}
+.lc-editing .lc-hidden{display:revert!important;opacity:.4;filter:grayscale(1)}
+.lc-editing .stats>.lc-hidden,.lc-editing .in-kpis>.lc-hidden,.lc-editing .pa-earnings>.lc-hidden{display:block!important}
+.lc-editing .pa-grid>.lc-hidden,.lc-editing .dashboard-grid>.lc-hidden,.lc-editing .in-grid>.lc-hidden{display:flex!important}
+.lc-bar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:14px 18px;border:1px solid #bfd4ff;border-radius:12px;background:#eef4ff;box-shadow:0 8px 24px rgba(37,99,235,.12)}
+.lc-bar b{display:block;color:var(--ui-ink);font-size:14px}.lc-bar small{color:#4a5a70;font-size:12.5px}
+.lc-bar .cc-actions{margin:0!important}
+.lc-editing [data-lc-section]{position:relative;outline:1.5px dashed #c3d2e8;outline-offset:6px;border-radius:12px}
+.lc-section-tools{position:absolute;top:-15px;left:12px;z-index:5;display:flex;gap:4px}
+.lc-card{position:relative;cursor:grab;outline:1.5px dashed #93b4f5;outline-offset:-1px}
+.lc-card:hover{box-shadow:0 8px 22px rgba(37,99,235,.15)!important}
+.lc-card-tools{position:absolute;top:6px;right:6px;z-index:4;display:flex;align-items:center;gap:4px}
+.lc-grip{display:grid;place-items:center;width:26px;height:26px;border-radius:7px;background:#fff;border:1px solid var(--ui-line);color:#64748b;font-size:14px;cursor:grab}
+.lc-tool{display:grid;place-items:center;min-width:26px;height:26px;padding:0 6px;border-radius:7px;border:1px solid var(--ui-line);background:#fff;color:#334155;font-size:12px;cursor:pointer}
+.lc-tool:hover{border-color:var(--ui-blue);color:var(--ui-blue)}
+.lc-toggle span{font-size:14px}
+
 /* ---------- Status badges: one pill design everywhere ---------- */
 .status,.tag,.sr-risk,.in-card .status{display:inline-flex!important;align-items:center;gap:6px;height:24px;padding:0 10px!important;border-radius:999px!important;font-size:11px!important;font-weight:700!important;line-height:1!important;letter-spacing:.01em;white-space:nowrap!important;flex:0 0 auto;vertical-align:middle;max-width:100%;background:#f1f5f9;color:#475569;border:0}
 .status::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85;flex:0 0 6px}
