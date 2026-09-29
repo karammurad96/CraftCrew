@@ -33,6 +33,7 @@ function srScoreOffers(bid, cards, suppliers, weights) {
   }).sort((a, b) => b.score - a.score);
 }
 function srSummary(bid, ranked) {
+  if (typeof i18nLang !== 'undefined' && i18nLang === 'de') return srSummaryDe(bid, ranked);
   if (!ranked.length) return 'No offers received yet.';
   if (ranked.length === 1) return `One offer so far from ${ranked[0].o.supplierCompany}: ${money(ranked[0].o.amount)} in ${ranked[0].o.deliveryDays} days${bid.baseline ? `, ${money(Math.abs(ranked[0].savings))} ${ranked[0].savings >= 0 ? 'under' : 'over'} the baseline` : ''}. Consider inviting more suppliers for a competitive comparison.`;
   const [best, next] = ranked, cheapest = [...ranked].sort((a, b) => a.o.amount - b.o.amount)[0], fastest = [...ranked].sort((a, b) => a.o.deliveryDays - b.o.deliveryDays)[0];
@@ -43,6 +44,21 @@ function srSummary(bid, ranked) {
   if (spread > 25) lines.push(`Prices differ by ${spread}% — check that all offers cover the same scope.`);
   if (bid.baseline) lines.push(best.savings >= 0 ? `Awarding the leader saves ${money(best.savings)} against the ${money(bid.baseline)} baseline.` : `The leader is ${money(-best.savings)} over the ${money(bid.baseline)} baseline.`);
   if (best.card?.riskLevel === 'High') lines.push(`⚠ ${best.o.supplierCompany} has high-risk flags: ${best.card.risks.filter(r => r.level === 'high').map(r => r.text).join('; ')}.`);
+  return lines.join(' ');
+}
+
+function srSummaryDe(bid, ranked) {
+  const eur = n => `${Math.round(Math.abs(n)).toLocaleString('de-DE')} €`;
+  if (!ranked.length) return 'Noch keine Angebote eingegangen.';
+  if (ranked.length === 1) return `Bisher ein Angebot von ${ranked[0].o.supplierCompany}: ${eur(ranked[0].o.amount)} in ${ranked[0].o.deliveryDays} Tagen${bid.baseline ? `, ${eur(ranked[0].savings)} ${ranked[0].savings >= 0 ? 'unter' : 'über'} dem Referenzbudget` : ''}. Laden Sie für einen echten Vergleich weitere Lieferanten ein.`;
+  const [best, next] = ranked, cheapest = [...ranked].sort((a, b) => a.o.amount - b.o.amount)[0], fastest = [...ranked].sort((a, b) => a.o.deliveryDays - b.o.deliveryDays)[0];
+  const lines = [`${best.o.supplierCompany} liegt mit ${best.score}/100 vorn (${best.score - next.score} Punkte vor ${next.o.supplierCompany}).`];
+  if (cheapest !== best) lines.push(`${cheapest.o.supplierCompany} ist mit ${eur(cheapest.o.amount)} am günstigsten (${Math.round((best.o.amount - cheapest.o.amount) / best.o.amount * 100)} % unter dem Erstplatzierten).`);
+  if (fastest !== best) lines.push(`${fastest.o.supplierCompany} liefert am schnellsten (${fastest.o.deliveryDays} statt ${best.o.deliveryDays} Tage).`);
+  const spread = Math.round((Math.max(...ranked.map(r => r.o.amount)) / Math.min(...ranked.map(r => r.o.amount)) - 1) * 100);
+  if (spread > 25) lines.push(`Die Preise weichen um ${spread} % voneinander ab – prüfen Sie, ob alle Angebote denselben Umfang abdecken.`);
+  if (bid.baseline) lines.push(best.savings >= 0 ? `Ein Zuschlag an den Erstplatzierten spart ${eur(best.savings)} gegenüber dem Referenzbudget von ${eur(bid.baseline)}.` : `Der Erstplatzierte liegt ${eur(best.savings)} über dem Referenzbudget von ${eur(bid.baseline)}.`);
+  if (best.card?.riskLevel === 'High') lines.push(`⚠ ${best.o.supplierCompany} hat Hinweise mit hohem Risiko.`);
   return lines.join(' ');
 }
 

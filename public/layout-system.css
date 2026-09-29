@@ -37,6 +37,32 @@
 /* Tables breathe a little more */
 .dashboard-content .cc-table th,.dashboard-content .cc-table td{padding:12px 14px}
 
+/* ---------- Status badges: one pill design everywhere ---------- */
+.status,.tag,.sr-risk,.in-card .status{display:inline-flex!important;align-items:center;gap:6px;height:24px;padding:0 10px!important;border-radius:999px!important;font-size:11px!important;font-weight:700!important;line-height:1!important;letter-spacing:.01em;white-space:nowrap!important;flex:0 0 auto;vertical-align:middle;max-width:100%;background:#f1f5f9;color:#475569;border:0}
+.status::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85;flex:0 0 6px}
+.status:empty{display:none!important}
+/* green: finished / positive */
+.status.completed,.status.approved,.status.paid,.status.accepted,.status.awarded,.status.sent,.status.reviewed,.status.live,.sr-risk.low{background:#e8f8ee!important;color:#15803d!important}
+/* blue: in motion */
+.status.in-progress,.status.active,.status.open,.status.shared,.status.shortlist,.status.second-round,.status.final-round,.status.new{background:#eaf2ff!important;color:#1d4ed8!important}
+/* amber: waiting for someone */
+.status.submitted,.status.pending,.status.pending-approval,.status.on-hold,.status.changes-requested,.status.expiring,.status.queued,.status.reviewing,.sr-risk.medium{background:#fff4dc!important;color:#a16207!important}
+/* red: negative / blocked */
+.status.rejected,.status.declined,.status.failed,.status.expired,.status.suspended,.status.overdue,.status.not-selected,.sr-risk.high{background:#fff1f2!important;color:#b91c1c!important}
+/* grey: not started / closed */
+.status.not-started,.status.draft,.status.closed,.status.terminated,.status.refunded{background:#f1f5f9!important;color:#475569!important}
+
+/* ---------- Project cards: equal height, footer aligned at the bottom ---------- */
+.cc-grid{align-items:stretch!important}
+.cc-grid>.cc-card{height:100%}
+.project-card{display:flex!important;flex-direction:column;gap:12px;padding:20px 22px!important;min-width:0}
+.project-card-head{display:flex!important;align-items:flex-start;justify-content:space-between;gap:12px;margin:0!important}
+.project-card-head b{font-size:15px;line-height:1.35;color:var(--ui-ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:calc(2 * 1.35em)}
+.project-card>p{margin:0!important;font-size:13.5px!important;line-height:1.55;color:var(--ui-text);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:calc(3 * 1.55em)}
+.project-card .timeline-line{margin-top:auto!important}
+.project-card .supplier-meta{display:flex;justify-content:space-between;gap:10px;padding-top:10px;border-top:1px solid var(--ui-line);font-size:12px;color:var(--ui-muted)}
+.project-card .project-open{align-self:flex-start;margin:0!important}
+
 /* Forms inside panels */
 .dashboard-content .modal-form,.dashboard-content form.modal-form{gap:14px!important}
 .modal .modal-form{gap:14px}
