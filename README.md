@@ -65,7 +65,18 @@ Keep `.env` private. Store backups of the `craftcrew-data` Docker volume off-hos
 - Analytics pages for customers (budget vs. spend, monthly spend, supplier spend, work status, overdue work) and suppliers (revenue, pipeline, bid win rate, invoice approval rate, on-time delivery, hours per team member), with period/project filters and CSV export; admin reports add 12-month volume, account growth and vetting-funnel charts.
 - Drag & drop: task board per project (move cards between Not Started / In Progress / On Hold / Completed; arrow keys also work), phase reordering, file drop zones on every upload field, and rearrangeable dashboard panels (remembered per user).
 - Quick search (Ctrl/⌘+K or the sidebar search box) across pages, projects, tasks, invoices and suppliers; notification bell with unread badge; page loading indicator.
-- The page shell is served with versioned asset URLs, so browsers always load the latest scripts and styles after an update.
+- The page shell is served with versioned asset URLs, so browsers always load the latest scripts and styles after an update. Assets are gzip-compressed and cached for a year per file version, so returning visitors download nothing until a file changes.
+- Strategic sourcing (inspired by enterprise source-to-pay suites): RFQ/RFP/RFI events with supplier questionnaires, weighted evaluation with an automatic summary and award, contracts with notice deadlines and renewal alerts, an approvals inbox, supplier scorecards with risk flags, and spend by category.
+- First-run experience: a self-completing getting-started checklist per role, and a landing page with real directory numbers and featured suppliers.
+- German/English interface switch (remembered per user); account emails and invoice PDFs follow the user's language.
+
+## Tests
+
+```powershell
+npm test
+```
+
+Runs the API and static test suites against a throwaway production-mode server (no real data is touched). GitHub Actions runs the same suite on every push (`.github/workflows/test.yml`).
 - Docker image, health endpoint, persistent volume, read-only application filesystem, and non-root container.
 
 ## Pilot readiness and release boundary

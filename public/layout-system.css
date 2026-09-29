@@ -37,6 +37,17 @@
 /* Tables breathe a little more */
 .dashboard-content .cc-table th,.dashboard-content .cc-table td{padding:12px 14px}
 
+/* ---------- Buttons: same height and alignment, standard gap when side by side ---------- */
+.btn[hidden]{display:none}
+.btn{display:inline-flex}
+.btn{align-items:center;justify-content:center;gap:6px;vertical-align:middle;box-sizing:border-box}
+.btn:not(.small):not(.lg){min-height:40px}
+.btn.small{min-height:32px}
+label.btn{margin:0!important;cursor:pointer}
+.btn.ui-btn-gap,label.btn.ui-btn-gap{margin-left:10px!important}
+.cc-actions,.action-row,.ff-filter-actions,.pa-filter-actions,.in-toolbar,.ob-cta-actions,.ff-time-actions,.wf-filter-actions,.review-filter-actions,.ff-docs-toolbar{gap:10px!important}
+.btn.full{display:flex;width:100%}
+
 /* ---------- Status badges: one pill design everywhere ---------- */
 .status,.tag,.sr-risk,.in-card .status{display:inline-flex!important;align-items:center;gap:6px;height:24px;padding:0 10px!important;border-radius:999px!important;font-size:11px!important;font-weight:700!important;line-height:1!important;letter-spacing:.01em;white-space:nowrap!important;flex:0 0 auto;vertical-align:middle;max-width:100%;background:#f1f5f9;color:#475569;border:0}
 .status::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85;flex:0 0 6px}

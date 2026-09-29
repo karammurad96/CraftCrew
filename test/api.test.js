@@ -20,6 +20,15 @@ describe('production start-up and security', () => {
     assert.match(page.headers.get('strict-transport-security'), /max-age=/);
     assert.match(await page.text(), /app\.js\?v=/, 'assets are versioned');
   });
+  it('serves versioned assets compressed and cacheable for a year', async () => {
+    const html = await (await fetch(app.base + '/')).text(), asset = html.match(/src="(app\.js\?v=[\w]+)"/)[1];
+    const r = await fetch(`${app.base}/${asset}`, {headers: {'Accept-Encoding': 'gzip'}});
+    assert.equal(r.status, 200);
+    assert.equal(r.headers.get('content-encoding'), 'gzip');
+    assert.match(r.headers.get('cache-control'), /max-age=31536000.*immutable/);
+    assert.match(await r.text(), /function api/, 'decompresses to the real script');
+    assert.equal((await fetch(app.base + '/')).headers.get('cache-control'), 'no-store', 'the page shell is never cached');
+  });
   it('contains no demo accounts or demo data', async () => {
     for (const [email, pw] of [['admin@craftcrew.demo', 'admin123'], ['customer.demo@craftcrew.local', 'CraftCrew2026!'], ['alex@craftcrew.demo', 'demo123']])
       assert.equal((await app.call('POST', '/auth/login', {email, password: pw})).status, 401, email);

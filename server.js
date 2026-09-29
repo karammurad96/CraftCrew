@@ -792,6 +792,16 @@ function trackAudit(req,res,url){
 /* Browser security headers for pages and assets. HSTS is sent once the site is reached over HTTPS. */
 const CSP=["default-src 'self'","script-src 'self' 'unsafe-inline'","style-src 'self' 'unsafe-inline'","font-src 'self'","img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.openstreetmap.org","frame-src 'self' blob:","connect-src 'self'","object-src 'none'","base-uri 'self'","form-action 'self'","frame-ancestors 'none'"].join('; ');
 function pageHeaders(req){const https=req.headers['x-forwarded-proto']==='https'||req.socket.encrypted;return {'Content-Security-Policy':CSP,'X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','Referrer-Policy':'strict-origin-when-cross-origin','Permissions-Policy':'camera=(), microphone=(), geolocation=(), payment=()','Cross-Origin-Opener-Policy':'same-origin',...(https?{'Strict-Transport-Security':'max-age=31536000; includeSubDomains'}:{})};}
+/* In-memory cache of static files with a pre-compressed copy, invalidated when the file changes. */
+const zlib=require('zlib'),assetCache=new Map();
+function staticAsset(file){
+  let stat;try{stat=fs.statSync(file);}catch{return null;}
+  if(!stat.isFile())return null;
+  const hit=assetCache.get(file);if(hit&&hit.mtime===stat.mtimeMs)return hit;
+  const raw=fs.readFileSync(file),text=/\.(js|css|html|svg|json)$/.test(file);
+  const entry={mtime:stat.mtimeMs,raw,gzip:text&&raw.length>1024?zlib.gzipSync(raw,{level:9}):null};
+  assetCache.set(file,entry);return entry;
+}
 function mime(file){return {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json','.woff2':'font/woff2','.png':'image/png','.svg':'image/svg+xml','.ico':'image/x-icon'}[path.extname(file)]||'application/octet-stream';}
 const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,`http://${req.headers.host||'localhost'}`);
@@ -808,10 +818,13 @@ const server=http.createServer(async(req,res)=>{
   }if(!file.startsWith(PUBLIC))return send(res,403,{error:'Forbidden'});
   // The page shell is versioned by the newest asset change so browsers never keep stale scripts or styles.
   if(file===path.join(PUBLIC,'index.html')||!path.extname(file)){
-    try{const version=fs.readdirSync(PUBLIC).filter(f=>/\.(css|js)$/.test(f)).reduce((m,f)=>Math.max(m,Math.floor(fs.statSync(path.join(PUBLIC,f)).mtimeMs)),0).toString(36).slice(0,9);
-      const html=fs.readFileSync(path.join(PUBLIC,'index.html'),'utf8').replace(/(href|src)="([\w.-]+\.(?:css|js))"/g,`$1="$2?v=${version}"`);
+    // Each asset carries its own version (its modification time), so an update only re-downloads changed files.
+    try{const stamp=f=>{try{return Math.floor(fs.statSync(path.join(PUBLIC,f)).mtimeMs).toString(36);}catch{return '0';}};
+      const html=fs.readFileSync(path.join(PUBLIC,'index.html'),'utf8').replace(/(href|src)="([\w./-]+\.(?:css|js))"/g,(_,attr,f)=>`${attr}="${f}?v=${stamp(f)}"`);
       res.writeHead(200,{...pageHeaders(req),'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});return res.end(html);}catch{}
   }
+  // Versioned assets (?v=…) never change under the same URL: cache them for a year and compress text.
+  if(url.searchParams.has('v')||url.pathname.startsWith('/vendor/')){const asset=staticAsset(file);if(asset){const gz=/\bgzip\b/.test(req.headers['accept-encoding']||'')&&asset.gzip;res.writeHead(200,{...pageHeaders(req),'Content-Type':mime(file),'Cache-Control':'public, max-age=31536000, immutable','Vary':'Accept-Encoding',...(gz?{'Content-Encoding':'gzip'}:{}),'Content-Length':(gz||asset.raw).length});return res.end(gz||asset.raw);}}
   fs.readFile(file,(err,data)=>{if(err){fs.readFile(path.join(PUBLIC,'index.html'),(e,d)=>{if(e){res.writeHead(404);res.end('Not found')}else{res.writeHead(200,{...pageHeaders(req),'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-cache'});res.end(d)}})}else{res.writeHead(200,{...pageHeaders(req),'Content-Type':mime(file),'Cache-Control':'no-cache'});res.end(data)}});
 });
 server.listen(PORT,()=>console.log(`CraftCrew running at http://localhost:${PORT}`));

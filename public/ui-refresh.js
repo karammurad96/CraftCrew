@@ -238,8 +238,18 @@ function uiScrollAreas() {
   document.querySelectorAll('.pa-project-activity, .pa-updates').forEach(p => wrap(p, ch => ch.matches('summary, .panel-title'), 'pa-list'));
 }
 
+/* Buttons placed next to each other outside a flex/grid row get the standard gap. */
+function uiButtonGaps() {
+  for (const btn of document.querySelectorAll('#app .btn, #modalRoot .btn')) {
+    const prev = btn.previousElementSibling;
+    if (!prev || !prev.classList.contains('btn') || btn.classList.contains('ui-btn-gap')) continue;
+    const d = getComputedStyle(btn.parentElement).display;
+    if (!/flex|grid/.test(d)) btn.classList.add('ui-btn-gap');
+  }
+}
+
 /* Re-apply after every render: pages replace the shell wholesale. */
 let uiPending = false;
-function uiEnhanceAll() { uiEnhanceSidebar(); uiSearchButton(); uiCountPills(); uiDropZones(document); uiSortablePanels(); uiScrollAreas(); }
+function uiEnhanceAll() { uiEnhanceSidebar(); uiSearchButton(); uiCountPills(); uiDropZones(document); uiSortablePanels(); uiScrollAreas(); uiButtonGaps(); }
 new MutationObserver(() => { if (uiPending) return; uiPending = true; requestAnimationFrame(() => { uiPending = false; uiEnhanceAll(); }); }).observe(document.body, {childList: true, subtree: true});
 uiEnhanceAll();
