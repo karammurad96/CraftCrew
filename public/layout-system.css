@@ -1,0 +1,45 @@
+/* Layout system — loaded LAST so every page follows one spacing scale.
+   --sp-section  between page sections   --sp-grid  between cards in a grid
+   --sp-panel    inside panels            --sp-title under panel headings */
+:root{--sp-section:24px;--sp-grid:20px;--sp-panel:22px;--sp-title:14px;--sp-row:12px}
+@media(max-width:650px){:root{--sp-section:18px;--sp-grid:14px;--sp-panel:16px;--sp-title:12px}}
+
+/* Vertical rhythm: every block on a page is separated by the same space. */
+.app-shell .dashboard-content>*,.app-shell .dashboard-content>.cc-page>*{margin-top:0!important;margin-bottom:0!important}
+.app-shell .dashboard-content>*+*,.app-shell .dashboard-content>.cc-page>*+*{margin-top:var(--sp-section)!important}
+.app-shell .dashboard-content>.breadcrumb+*,.app-shell .dashboard-content>.cc-page>.breadcrumb+*{margin-top:8px!important}
+.app-shell .dashboard-content .dash-top{margin-bottom:0!important}
+/* Content that sits inside wrappers keeps the same rhythm */
+.pa-attention>*+*,.pa-settings>*+*,.pa-reports>*+*,.ob-home>*+*{margin-top:var(--sp-section)}
+.pa-reports,.pa-settings{gap:var(--sp-section)!important}
+
+/* Grids: one gap everywhere */
+.stats,.wf-stat-grid,.cc-grid,.cc-grid4,.in-kpis,.pa-earnings,.pa-grid,.in-grid,.dashboard-grid,.sr-weights{gap:var(--sp-grid)!important}
+.stats,.wf-stat-grid,.in-kpis,.pa-earnings{margin-bottom:0!important}
+
+/* Panels: same inner padding, same heading spacing */
+.dashboard-content .panel{padding:var(--sp-panel)!important}
+.dashboard-content .panel-title{margin:0 0 var(--sp-title)!important;min-height:28px}
+.dashboard-content .panel>h3:first-child{margin:0 0 var(--sp-title)!important}
+.dashboard-content .panel>p:last-child{margin-bottom:0}
+.dashboard-content .cc-card,.dashboard-content .stats>div,.in-kpi,.pa-earnings>div{padding:18px 20px!important}
+
+/* Rows inside lists */
+.pa-row{padding:var(--sp-row) 0!important}
+.pa-row:first-child{padding-top:2px!important}
+.ui-scroll>.pa-row:last-child{padding-bottom:4px!important}
+
+/* Action rows */
+.dashboard-content .cc-actions,.dashboard-content .action-row{gap:10px!important}
+.dashboard-content .cc-actions{margin-top:14px}
+.panel-title .cc-actions{margin-top:0}
+
+/* Tables breathe a little more */
+.dashboard-content .cc-table th,.dashboard-content .cc-table td{padding:12px 14px}
+
+/* Forms inside panels */
+.dashboard-content .modal-form,.dashboard-content form.modal-form{gap:14px!important}
+.modal .modal-form{gap:14px}
+.modal{padding:26px!important}
+.modal-head{margin-bottom:16px}
+@media(max-width:650px){.modal{padding:18px!important}}
