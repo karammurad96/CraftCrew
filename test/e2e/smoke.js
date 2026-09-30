@@ -147,6 +147,51 @@ async function supplierStatusChecks(base) {
   return failures;
 }
 
+// Deleting a project never happens with one click: the header has no delete button, and the "More" menu asks
+// first (T56).
+async function safeActionChecks(base) {
+  const { chromium } = require(process.env.PW || "playwright");
+  const login = await (
+    await fetch(base + "/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "customer.demo@craftcrew.local", password: "CraftCrew2026!" }),
+    })
+  ).json();
+  const browser = await chromium.launch(),
+    failures = [],
+    route = "/customer/projects/prj_demo_line4",
+    fail = (problem) => failures.push({ view: "desktop", role: "customer", route, problem });
+  try {
+    const context = await browser.newContext();
+    await context.addInitScript((s) => {
+      localStorage.setItem("cc_lang", "en");
+      localStorage.setItem("cc_token", s.token);
+      localStorage.setItem("cc_user", JSON.stringify(s.user));
+    }, login);
+    const page = await context.newPage();
+    await page.goto(base + "/#" + route);
+    await page.waitForTimeout(1500);
+    if (await page.$(".dash-top > .cc-actions > .btn.danger"))
+      fail("one-click delete button in the project header");
+    if (!(await page.$(".sa-more"))) fail('no "More" menu for delete or archive');
+    else {
+      await page.click(".sa-more > summary");
+      await page.click(".sa-more-list button");
+      await page.waitForTimeout(1200);
+      if (!(await page.$("#uiDialog"))) fail("delete ran without a confirmation dialog");
+      const { project } = await fetch(base + "/api/projects/prj_demo_line4", {
+        headers: { Authorization: "Bearer " + login.token },
+      }).then((r) => r.json());
+      const status = project?.status;
+      if (status === "Archived") fail("project archived before confirming");
+    }
+  } finally {
+    await browser.close();
+  }
+  return failures;
+}
+
 async function main() {
   const dataDir = mkdtempSync(path.join(os.tmpdir(), "craftcrew-e2e-")),
     out = path.join(dataDir, "crawl.json"),
@@ -201,6 +246,7 @@ async function main() {
     }
     failures.push(...(await notFoundChecks(base)));
     failures.push(...(await supplierStatusChecks(base)));
+    failures.push(...(await safeActionChecks(base)));
     const total = totals.reduce((a, b) => a + b, 0);
     if (failures.length) {
       console.table(failures);

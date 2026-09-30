@@ -1301,6 +1301,27 @@ Object.assign(I18N_DE, {
   "Complete your application": "Bewerbung abschließen",
   "View application status": "Bewerbungsstatus ansehen",
   "Available once your company is verified.": "Verfügbar, sobald Ihr Unternehmen verifiziert ist.",
+  // Safer destructive actions (T56)
+  "Archive project?": "Projekt archivieren?",
+  "Archive project": "Projekt archivieren",
+  "Delete project for good?": "Projekt endgültig löschen?",
+  "Delete project": "Projekt löschen",
+  "Delete phase?": "Phase löschen?",
+  "Delete phase": "Phase löschen",
+  "Delete task?": "Aufgabe löschen?",
+  "Delete task": "Aufgabe löschen",
+  "This phase cannot be deleted": "Diese Phase kann nicht gelöscht werden",
+  "It has supplier assignments or invoices. Remove the assignments and resolve the invoices first.":
+    "Sie hat Lieferantenzuweisungen oder Rechnungen. Entfernen Sie zuerst die Zuweisungen und klären Sie die Rechnungen.",
+  "This task cannot be deleted": "Diese Aufgabe kann nicht gelöscht werden",
+  "It has a supplier assignment or invoices. Remove the assignment and resolve the invoices first.":
+    "Sie hat eine Lieferantenzuweisung oder Rechnungen. Entfernen Sie zuerst die Zuweisung und klären Sie die Rechnungen.",
+  "The name does not match. Nothing was deleted.": "Der Name stimmt nicht überein. Es wurde nichts gelöscht.",
+  "Delete or archive project…": "Projekt löschen oder archivieren …",
+  "More actions": "Weitere Aktionen",
+  "Sign out all your other sessions? Other browsers and devices will need to sign in again.":
+    "Alle anderen Sitzungen abmelden? Andere Browser und Geräte müssen sich erneut anmelden.",
+  "Sign out others": "Andere abmelden",
   // Dashboard action queue (T53)
   "Action queue": "Zu erledigen",
   "You're all caught up": "Alles erledigt",
@@ -1570,6 +1591,22 @@ const I18N_PATTERNS = [
   [/^(\d+)% left$/, "$1 % übrig"],
   [/^Showing the latest (\d+)$/, "Die neuesten $1"],
   [/^Overdue: (.+)$/, "Überfällig: $1"],
+  [
+    /^This project has (\d+) invoice\(s\), (\d+) document\(s\) and (\d+) supplier\(s\)\. It will be archived, not deleted\.$/,
+    "Dieses Projekt hat $1 Rechnung(en), $2 Dokument(e) und $3 Lieferant(en). Es wird archiviert, nicht gelöscht.",
+  ],
+  [
+    /^"(.+)" has no invoices, documents or suppliers, so it will be deleted for good\. Type the project name to confirm\.$/,
+    "„$1“ hat keine Rechnungen, Dokumente oder Lieferanten und wird endgültig gelöscht. Geben Sie zur Bestätigung den Projektnamen ein.",
+  ],
+  [
+    /^"(.+)" and its (\d+) task\(s\) will be deleted for good\. Type the phase name to confirm\.$/,
+    "„$1“ und die $2 Aufgabe(n) darin werden endgültig gelöscht. Geben Sie zur Bestätigung den Phasennamen ein.",
+  ],
+  [
+    /^"(.+)" will be deleted for good\. Type the task name to confirm\.$/,
+    "„$1“ wird endgültig gelöscht. Geben Sie zur Bestätigung den Aufgabennamen ein.",
+  ],
   [/^Review invoice (.+)$/, "Rechnung $1 prüfen"],
   [/^Decide on offers for (.+)$/, "Über Angebote für $1 entscheiden"],
   [/^Approve (\d+) time entr(?:y|ies)$/, "$1 Zeiteintrag/-einträge freigeben"],
