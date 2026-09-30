@@ -429,7 +429,7 @@ async function reviewInvoiceList(role) {
       .map((i) => {
         const p = projectMap.get(i.projectId),
           ph = p?.phases.find((x) => x.id === i.phaseId);
-        return `<tr><td><b><a href="#${reviewInvoiceUrl(role, i.id)}">${reviewEsc(invNo(i))}</a></b><small>${date(i.createdAt)}</small></td><td>${reviewEsc(i.partyName)}<small>${role === "customer" ? reviewEsc(i.supplierEmail || "Supplier") : "Customer account"}</small></td><td>${reviewEsc(i.projectName)}<small>${reviewEsc(ph?.name || i.phaseId)} · ${reviewEsc(i.taskName || "Phase invoice")}</small></td><td>${(i.lineItems || []).length || "—"}</td><td>${money(i.amount)}${i.orderedAmount ? `<small class="${i.exceedsOrder ? "danger-text" : "success-text"}">${i.exceedsOrder ? "Over by " + money(i.amount - i.orderedAmount) : "of " + money(i.orderedAmount)}</small>` : ""}</td><td><span class="status ${i.status.toLowerCase().replaceAll(" ", "-")}">${reviewEsc(i.status)}</span></td><td><div class="cc-actions"><a class="btn small outline" href="#${reviewInvoiceUrl(role, i.id)}">View</a>${role === "customer" && i.status === "Submitted" ? `<button class="btn small success" onclick="reviewInvoice('${i.id}')">Review</button>` : ""}${role === "supplier" && ["Changes Requested", "Rejected"].includes(i.status) ? `<button class="btn small primary" onclick="rvFixInvoice('${i.id}')">Fix & resubmit</button>` : ""}<button class="btn small outline" onclick="wfInvoicePrint('${i.id}')">PDF</button><button class="btn small outline" onclick="wfInvoiceEmail('${i.id}')">Email</button></div></td></tr>`;
+        return `<tr><td><b><a href="#${reviewInvoiceUrl(role, i.id)}">${reviewEsc(invNo(i))}</a></b><small>${date(i.createdAt)}</small></td><td>${reviewEsc(i.partyName)}<small>${role === "customer" ? reviewEsc(i.supplierEmail || "Supplier") : "Customer account"}</small></td><td>${reviewEsc(i.projectName)}<small>${reviewEsc(ph?.name || i.phaseId)} · ${reviewEsc(i.taskName || "Phase invoice")}</small></td><td>${(i.lineItems || []).length || "—"}</td><td>${money(i.amount)}${i.orderedAmount ? `<small class="${i.exceedsOrder ? "danger-text" : "success-text"}">${i.exceedsOrder ? "Over by " + money(i.amount - i.orderedAmount) : "of " + money(i.orderedAmount)}</small>` : ""}</td><td><span class="status ${i.status.toLowerCase().replaceAll(" ", "-")}">${reviewEsc(i.status)}</span>${rvInvoiceTiming(i, role)}</td><td><div class="cc-actions"><a class="btn small outline" href="#${reviewInvoiceUrl(role, i.id)}">View</a>${role === "customer" && i.status === "Submitted" ? `<button class="btn small success" onclick="reviewInvoice('${i.id}')">Review</button>` : ""}${role === "supplier" && ["Changes Requested", "Rejected"].includes(i.status) ? `<button class="btn small primary" onclick="rvFixInvoice('${i.id}')">Fix & resubmit</button>` : ""}<button class="btn small outline" onclick="wfInvoicePrint('${i.id}')">PDF</button><button class="btn small outline" onclick="wfInvoiceEmail('${i.id}')">Email</button></div></td></tr>`;
       })
       .join("") || '<tr><td colspan="7">No invoices match these filters.</td></tr>'
   }</tbody></table></div></section>`;
@@ -443,6 +443,13 @@ async function reviewInvoice(id) {
   const { invoice: i } = await api("/invoices/" + encodeURIComponent(id));
   location.hash = "#" + reviewInvoiceUrl(state.user.role, id);
   invoiceDetailPage(id);
+}
+// Suppliers see how long an invoice has waited for review; approved invoices past their payment date are overdue.
+function rvInvoiceTiming(i, role) {
+  if (i.status === "Approved" && i.overdue) return ` <span class="status overdue">Overdue</span>`;
+  if (role !== "supplier" || i.status !== "Submitted") return "";
+  const days = Math.floor((Date.now() - Date.parse(i.resubmittedAt || i.createdAt)) / 86400000);
+  return `<small>${days < 1 ? "Waiting for review since today" : `Waiting for review since ${days} day${days === 1 ? "" : "s"}`}</small>`;
 }
 async function invoiceDetailPage(id) {
   const [d, pd] = await Promise.all([api("/invoices/" + encodeURIComponent(id)), reviewProjects()]),
