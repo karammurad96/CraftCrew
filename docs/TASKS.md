@@ -124,7 +124,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 
 **Wave 1 — security and data integrity (P0)**
 - [x] T10 Hide other suppliers' invoices, prices and the customer budget from suppliers · S
-- [ ] T11 Enforce the invoice status flow and stop duplicate payments · S
+- [x] T11 Enforce the invoice status flow and stop duplicate payments · S
 - [ ] T12 Lock down public supplier applications and approval · M
 - [ ] T13 Normalise email addresses everywhere · S
 - [ ] T14 Validate statuses, dates and dependencies on projects, phases and tasks · M
@@ -310,8 +310,8 @@ Also check the admin route `parts[1] === "admin" && parts[2] === "invoices"`.
 - `Request Changes` from `Submitted` still works, and the supplier can resubmit.
 
 **Done when.**
-- [ ] The tests pass.
-- [ ] `bugcheck.js` reports "not reproduced" for the duplicate-payment line.
+- [x] The tests pass.
+- [x] `bugcheck.js` reports "not reproduced" for the duplicate-payment line.
 
 ### T12 · Lock down public supplier applications and approval
 `P0 · M · cheap model OK`
