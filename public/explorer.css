@@ -59,8 +59,11 @@ body.xp-max .app-shell:has(.xp-page) .dashboard-content {
   background: var(--xp-soft);
   border-bottom: 1px solid var(--xp-line);
 }
-.xp-titlebar b {
+.xp-titlebar b,
+.xp-titlebar .xp-title-h1 {
   flex: 1;
+  margin: 0;
+  font-size: inherit;
   font-weight: 600;
 }
 .xp-back-link {

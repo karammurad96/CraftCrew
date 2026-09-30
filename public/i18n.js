@@ -1293,6 +1293,12 @@ Object.assign(I18N_DE, {
     "Dieses Projekt löschen? Projekte mit Rechnungen, Dokumenten oder angenommenen Lieferanten werden stattdessen archiviert.",
   "Project archived": "Projekt archiviert",
   "Please choose a new password first.": "Bitte wählen Sie zuerst ein neues Passwort.",
+  // Accessibility labels (T57)
+  "Filter by read state": "Nach Lesestatus filtern",
+  "Filter by type": "Nach Typ filtern",
+  "Bar chart": "Balkendiagramm",
+  Table: "Tabelle",
+  "Service categories, one per line": "Leistungskategorien, eine pro Zeile",
   // Suppliers not yet verified (T55)
   "Not yet verified": "Noch nicht verifiziert",
   Verified: "Verifiziert",
