@@ -46,6 +46,106 @@ const cleanSubtasks = (list) =>
       return { id: itemId, name, text: name, done: x?.done === true };
     })
     .filter((x) => x.name);
+// Supplier profile fields: allowed values and shapes (see cleanSupplierProfile).
+const AVAILABILITY = ["Available", "Busy", "Unavailable"];
+const CATALOG_UNITS = ["hour", "day", "project", "unit", "fixed"];
+const UNIT_ALIASES = {
+  h: "hour",
+  hours: "hour",
+  days: "day",
+  projects: "project",
+  units: "unit",
+  item: "unit",
+};
+// Text list: up to `max` unique non-empty strings of up to `len` characters, or null when invalid.
+function cleanTextList(list, max, len) {
+  if (!Array.isArray(list) || list.length > max) return null;
+  if (list.some((x) => typeof x !== "string" || x.trim().length > len)) return null;
+  return [...new Set(list.map((x) => x.trim()).filter(Boolean))];
+}
+// Validates the supplier fields of PUT /profile. Returns {error} or {fields} with only the fields sent.
+function cleanSupplierProfile(b) {
+  const out = {},
+    rate = (v) => Number(v === "" || v === null ? 0 : v);
+  for (const key of ["services", "certifications"])
+    if (b[key] !== undefined) {
+      const list = cleanTextList(b[key], 30, 80);
+      if (!list)
+        return {
+          error: `${key === "services" ? "Services" : "Certifications"}: up to 30 entries of up to 80 characters each.`,
+        };
+      out[key] = list;
+    }
+  if (b.availability !== undefined) {
+    if (!oneOf(b.availability, AVAILABILITY))
+      return { error: "Availability must be Available, Busy or Unavailable." };
+    out.availability = b.availability;
+  }
+  for (const key of ["hourlyRate", "projectRate"])
+    if (b[key] !== undefined) {
+      const n = rate(b[key]);
+      if (!Number.isFinite(n) || n < 0)
+        return {
+          error: `${key === "hourlyRate" ? "Hourly rate" : "Project rate"} must be a number of at least 0.`,
+        };
+      out[key] = n;
+    }
+  if (b.teamMembers !== undefined) {
+    if (!Array.isArray(b.teamMembers) || b.teamMembers.length > 50)
+      return { error: "Team members: up to 50 people." };
+    const team = [];
+    for (const m of b.teamMembers) {
+      if (!m || typeof m !== "object") return { error: "Team members: each entry needs a name." };
+      const fields = ["name", "role", "experience", "certifications", "availability"];
+      if (fields.some((k) => m[k] !== undefined && typeof m[k] !== "string" && typeof m[k] !== "number"))
+        return { error: "Team members: name, role and experience must be text." };
+      if (fields.some((k) => String(m[k] ?? "").length > 120))
+        return { error: "Team members: each field can have up to 120 characters." };
+      const person = Object.fromEntries(fields.map((k) => [k, cleanStr(m[k], 120)]));
+      if (!person.name) return { error: "Team members: each entry needs a name." };
+      team.push(person);
+    }
+    out.teamMembers = team;
+  }
+  if (b.serviceCatalog !== undefined) {
+    if (!Array.isArray(b.serviceCatalog) || b.serviceCatalog.length > 50)
+      return { error: "Service catalog: up to 50 services." };
+    const catalog = [];
+    for (const x of b.serviceCatalog) {
+      if (!x || typeof x !== "object") return { error: "Service catalog: each service needs a name." };
+      const texts = {
+        name: 80,
+        category: 80,
+        description: 1000,
+        capacity: 120,
+        leadTime: 120,
+        qualifications: 300,
+        status: 40,
+      };
+      for (const [k, max] of Object.entries(texts)) {
+        if (x[k] !== undefined && x[k] !== null && typeof x[k] !== "string" && typeof x[k] !== "number")
+          return { error: `Service catalog: ${k} must be text.` };
+        if (String(x[k] ?? "").length > max)
+          return { error: `Service catalog: ${k} can have up to ${max} characters.` };
+      }
+      const unitRaw = String(x.unit ?? "hour")
+          .trim()
+          .toLowerCase(),
+        unit = UNIT_ALIASES[unitRaw] || unitRaw,
+        r = rate(x.rate);
+      if (!oneOf(unit, CATALOG_UNITS))
+        return { error: "Service catalog: unit must be hour, day, project, unit or fixed." };
+      if (!Number.isFinite(r) || r < 0)
+        return { error: "Service catalog: rate must be a number of at least 0." };
+      const item = Object.fromEntries(Object.keys(texts).map((k) => [k, cleanStr(x[k], texts[k])]));
+      if (!item.name) return { error: "Service catalog: each service needs a name." };
+      if (!item.status) delete item.status;
+      catalog.push({ ...item, rate: r, unit });
+    }
+    out.serviceCatalog = catalog;
+  }
+  return { fields: out };
+}
 // Strategic sourcing module (contracts, scorecards, bid evaluation helpers).
 const sourcing = require("./sourcing")({
   getDb: () => db,
@@ -565,6 +665,11 @@ function normaliseStoredEmails() {
 }
 normaliseStoredEmails();
 ensureSupplierAccounts();
+// Start-up repair: older supplier records may hold non-text services or certifications.
+for (const s of db.suppliers || [])
+  for (const key of ["services", "certifications"])
+    if (Array.isArray(s[key]) && s[key].some((x) => typeof x !== "string"))
+      s[key] = s[key].filter((x) => typeof x === "string");
 function ensureDemoApplicationSamples() {
   if (
     process.env.NODE_ENV === "production" ||
@@ -3078,10 +3183,14 @@ async function api(req, res, url) {
         (s) =>
           s.live &&
           (!q ||
-            s.company.toLowerCase().includes(q) ||
-            s.location.toLowerCase().includes(q) ||
-            s.services.some((x) => x.toLowerCase().includes(q))) &&
-          (!service || s.services.includes(service)) &&
+            String(s.company ?? "")
+              .toLowerCase()
+              .includes(q) ||
+            String(s.location ?? "")
+              .toLowerCase()
+              .includes(q) ||
+            (s.services || []).some((x) => String(x).toLowerCase().includes(q))) &&
+          (!service || (s.services || []).includes(service)) &&
           (!location || s.location === location) &&
           (!badge || s.badge === badge) &&
           (!availability || s.availability === availability),
@@ -5748,6 +5857,13 @@ async function api(req, res, url) {
     }
     if (parts[1] === "profile" && method === "PUT") {
       const b = await body(req);
+      // Supplier fields are checked before anything is saved, so an invalid request changes nothing.
+      let supplierFields = {};
+      if (user.supplierId) {
+        const checked = cleanSupplierProfile(b);
+        if (checked.error) return (send(res, 400, { error: checked.error }), true);
+        supplierFields = checked.fields;
+      }
       // Company data lives on the main account; a team member cannot rename the account holder.
       const acct = db.users.find((x) => x.id === user.id) || user;
       if (user.isMember) delete b.name;
@@ -5769,15 +5885,9 @@ async function api(req, res, url) {
           company: b.company ?? s.company,
           location: b.location ?? s.location,
           description: b.description ?? s.description,
-          services: Array.isArray(b.services) ? b.services : s.services,
-          serviceCatalog: Array.isArray(b.serviceCatalog) ? b.serviceCatalog : s.serviceCatalog,
-          certifications: Array.isArray(b.certifications) ? b.certifications : s.certifications,
-          teamMembers: Array.isArray(b.teamMembers) ? b.teamMembers : s.teamMembers,
+          ...supplierFields,
           employees: b.employees !== undefined ? Math.max(0, Number(b.employees) || 0) : s.employees,
           experience: b.experience !== undefined ? Math.max(0, Number(b.experience) || 0) : s.experience,
-          availability: b.availability ?? s.availability,
-          hourlyRate: b.hourlyRate !== undefined ? Number(b.hourlyRate) : s.hourlyRate,
-          projectRate: b.projectRate !== undefined ? Number(b.projectRate) : s.projectRate,
           companyProfile: user.companyProfile,
           profileImage: user.profileImage,
         });

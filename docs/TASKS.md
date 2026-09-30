@@ -133,7 +133,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T17 Enforce "must change password" on the server · S
 - [x] T18 Session hygiene: purge expired sessions, cap per user, idle timeout · S
 - [x] T19 Per-account sign-in lockout across networks · S
-- [ ] T20 Validate supplier profile fields and make directory search robust · S
+- [x] T20 Validate supplier profile fields and make directory search robust · S
 - [ ] T21 Upload safety: file type allowlist and ownership of attached files · M
 - [ ] T22 Email safety: validate application emails, sanitise mail headers, clickable links · S
 - [ ] T23 Record the real client IP in the audit log · S
@@ -583,8 +583,8 @@ service makes `GET /api/suppliers?q=…` fail with error 500 **for everyone** (c
 supplier record contains a number (write it straight into `db.json` before start-up in the test).
 
 **Done when.**
-- [ ] The tests pass.
-- [ ] `bugcheck.js` reports "not reproduced" for the directory line.
+- [x] The tests pass.
+- [x] `bugcheck.js` reports "not reproduced" for the directory line.
 
 ### T21 · Upload safety: file type allowlist and ownership of attached files
 `P0 · M · cheap model OK`
