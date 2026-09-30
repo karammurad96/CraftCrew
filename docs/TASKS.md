@@ -155,7 +155,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 
 **Wave 4 — UX and UI (P1)**
 - [x] T50 Readable type sizes and WCAG contrast · M
-- [ ] T51 Phone navigation drawer and phone-friendly tables · M
+- [x] T51 Phone navigation drawer and phone-friendly tables · M
 - [ ] T52 Group the sidebar menu and show counts · S
 - [ ] T53 "Needs your attention" first on dashboards · M
 - [ ] T54 Proper 404, not-found and session-expired handling · S

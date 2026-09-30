@@ -1293,6 +1293,10 @@ Object.assign(I18N_DE, {
     "Dieses Projekt löschen? Projekte mit Rechnungen, Dokumenten oder angenommenen Lieferanten werden stattdessen archiviert.",
   "Project archived": "Projekt archiviert",
   "Please choose a new password first.": "Bitte wählen Sie zuerst ein neues Passwort.",
+  // Phone navigation (T51)
+  More: "Mehr",
+  Vetting: "Prüfung",
+  Payments: "Zahlungen",
   // XRechnung e-invoices (T43)
   "Download e-invoice (XRechnung)": "E-Rechnung herunterladen (XRechnung)",
   "Order reference (for e-invoices)": "Bestellreferenz (für E-Rechnungen)",
