@@ -1293,6 +1293,14 @@ Object.assign(I18N_DE, {
     "Dieses Projekt löschen? Projekte mit Rechnungen, Dokumenten oder angenommenen Lieferanten werden stattdessen archiviert.",
   "Project archived": "Projekt archiviert",
   "Please choose a new password first.": "Bitte wählen Sie zuerst ein neues Passwort.",
+  // Backup import (T24)
+  "Import backup?": "Sicherung importieren?",
+  "Import backup": "Sicherung importieren",
+  "Backup imported": "Sicherung importiert",
+  "This is not a CraftCrew backup: users, projects, invoices and suppliers are missing.":
+    "Dies ist keine CraftCrew-Sicherung: Benutzer, Projekte, Rechnungen und Lieferanten fehlen.",
+  "The backup has no active admin account, so nobody could sign in.":
+    "Die Sicherung enthält kein aktives Admin-Konto, daher könnte sich niemand anmelden.",
   "Your password was reset by an administrator. Please choose a new password to continue.":
     "Ihr Passwort wurde von einem Administrator zurückgesetzt. Bitte wählen Sie ein neues Passwort, um fortzufahren.",
   "The new passwords do not match": "Die neuen Passwörter stimmen nicht überein",

@@ -137,7 +137,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T21 Upload safety: file type allowlist and ownership of attached files · M
 - [ ] T22 Email safety: validate application emails, sanitise mail headers, clickable links · S
 - [ ] T23 Record the real client IP in the audit log · S
-- [ ] T24 Safer backup export and import · S
+- [x] T24 Safer backup export and import · S
 - [ ] T25 Escalations reach admins and have valid values · S
 
 **Wave 2 — reliability and performance (P1, one agent at a time: all touch `save()`)**
@@ -681,7 +681,7 @@ login has `ip: "9.9.9.9"`.
 the pre-import file.
 
 **Done when.**
-- [ ] The tests pass.
+- [x] The tests pass.
 
 ### T25 · Escalations reach admins and have valid values
 `P0 · S · cheap model OK`
