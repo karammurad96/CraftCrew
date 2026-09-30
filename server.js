@@ -2928,6 +2928,7 @@ const PDF_LABELS = {
     copy: "Generated invoice copy",
     service: "Service",
     units: "units",
+    page: "Page",
     locale: "en-GB",
   },
   de: {
@@ -2947,46 +2948,109 @@ const PDF_LABELS = {
     cap: "Auftragsobergrenze",
     notSpecified: "Nicht festgelegt",
     terms: "Zahlungsbedingungen",
-    termsDefault: "Gemaess Projektauftrag",
+    termsDefault: "Gemäß Projektauftrag",
     payTo: "Zahlung an",
     reference: "Referenz",
     note: "Hinweis",
-    thanks: "Vielen Dank fuer Ihren Auftrag.",
-    footer: "CraftCrew · Marktplatz fuer Industriedienstleistungen",
+    thanks: "Vielen Dank für Ihren Auftrag.",
+    footer: "CraftCrew · Marktplatz für Industriedienstleistungen",
     copy: "Erstellte Rechnungskopie",
     service: "Leistung",
     units: "Einheiten",
+    page: "Seite",
     locale: "de-DE",
   },
 };
+// Characters outside Latin-1 that Windows-1252 (WinAnsiEncoding) still has, mapped to their byte.
+const WIN_ANSI_EXTRA = {
+  "€": 0x80,
+  "‚": 0x82,
+  "„": 0x84,
+  "…": 0x85,
+  "‘": 0x91,
+  "’": 0x92,
+  "“": 0x93,
+  "”": 0x94,
+  "•": 0x95,
+  "–": 0x96,
+  "—": 0x97,
+  "™": 0x99,
+};
+// Text for a PDF string in WinAnsiEncoding: one byte per character (as a latin1 string), escaped.
+// Characters Windows-1252 cannot show are dropped.
+function pdfText(value) {
+  let out = "";
+  for (const ch of String(value ?? "").normalize("NFC")) {
+    const code = ch.codePointAt(0);
+    if (WIN_ANSI_EXTRA[ch]) out += String.fromCharCode(WIN_ANSI_EXTRA[ch]);
+    else if ((code >= 0x20 && code <= 0x7e) || (code >= 0xa0 && code <= 0xff)) out += ch;
+    else if (/\s/.test(ch)) out += " ";
+  }
+  return out.replace(/[\\()]/g, "\\$&");
+}
+// Splits text into lines of at most `size`-point Helvetica fitting `width` points (approximate widths).
+function wrapPdfText(value, width, size, maxLines = Infinity) {
+  const maxChars = Math.max(8, Math.floor(width / (size * 0.52))),
+    lines = [];
+  let current = "";
+  for (let word of String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(" ")) {
+    while (word.length > maxChars) {
+      if (current) lines.push(current);
+      current = "";
+      lines.push(word.slice(0, maxChars));
+      word = word.slice(maxChars);
+    }
+    if (!current) current = word;
+    else if ((current + " " + word).length <= maxChars) current += " " + word;
+    else {
+      lines.push(current);
+      current = word;
+    }
+  }
+  if (current) lines.push(current);
+  if (lines.length > maxLines) {
+    lines.length = maxLines;
+    lines[maxLines - 1] = lines[maxLines - 1].slice(0, maxChars - 1) + "…";
+  }
+  return lines.length ? lines : [""];
+}
 function invoicePdf(inv, lang = "en") {
   const L = PDF_LABELS[lang] || PDF_LABELS.en,
     parties = invoiceParties(inv),
     project = db.projects.find((x) => x.id === inv.projectId),
     phase = project?.phases.find((x) => x.id === inv.phaseId),
     task = phase?.tasks?.find((x) => x.id === inv.taskId),
-    items = (inv.lineItems || []).slice(0, 12),
-    commands = [];
-  const escPdf = (s) =>
-      String(s ?? "")
-        .replace(/ä/g, "ae")
-        .replace(/ö/g, "oe")
-        .replace(/ü/g, "ue")
-        .replace(/Ä/g, "Ae")
-        .replace(/Ö/g, "Oe")
-        .replace(/Ü/g, "Ue")
-        .normalize("NFKD")
-        .replace(/ß/g, "ss")
-        .replace(/[–—]/g, "-")
-        .replace(/[^\x20-\x7E]/g, " ")
-        .replace(/[\\()]/g, "\\$&")
-        .slice(0, 92),
+    items = inv.lineItems || [],
+    pages = [];
+  let commands;
+  const newPage = () => pages.push((commands = [])),
     text = (x, y, size, value, font = "F1", color = "0.09 0.17 0.28") =>
-      commands.push(`${color} rg BT /${font} ${size} Tf ${x} ${y} Td (${escPdf(value)}) Tj ET`),
+      commands.push(`${color} rg BT /${font} ${size} Tf ${x} ${y} Td (${pdfText(value)}) Tj ET`),
     line = (x1, y1, x2, y2, color = "0.86 0.89 0.93") =>
       commands.push(`${color} RG 0.7 w ${x1} ${y1} m ${x2} ${y2} l S`),
     rect = (x, y, w, h, color) => commands.push(`${color} rg ${x} ${y} ${w} ${h} re f`),
-    eur = (n) => `EUR ${Number(n || 0).toFixed(2)}`;
+    eur = (n) =>
+      "€ " + Number(n || 0).toLocaleString(L.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    tableHeader = (y) => {
+      rect(42, y - 8, 528, 24, "0.07 0.17 0.33");
+      text(54, y, 8, L.desc, "F2", "1 1 1");
+      text(354, y, 8, L.qty, "F2", "1 1 1");
+      text(432, y, 8, L.unitPrice, "F2", "1 1 1");
+      text(514, y, 8, L.total, "F2", "1 1 1");
+      return y - 25;
+    },
+    // Later pages: a slim band with the invoice number, then the repeated table header.
+    continuationPage = () => {
+      newPage();
+      rect(0, 800, 612, 42, "0.07 0.17 0.33");
+      text(42, 816, 11, "CRAFTCREW", "F2", "0.68 0.79 1");
+      text(425, 816, 10, `${L.invoice} ${invoiceNo(inv)}`, "F2", "1 1 1");
+      return 770;
+    };
+  newPage();
   rect(0, 752, 612, 90, "0.07 0.17 0.33");
   text(42, 806, 11, "CRAFTCREW", "F2", "0.68 0.79 1");
   text(42, 773, 23, L.invoice, "F2", "1 1 1");
@@ -2995,58 +3059,59 @@ function invoicePdf(inv, lang = "en") {
   text(425, 768, 9, `${L.issued} ${new Date(inv.createdAt).toLocaleDateString(L.locale)}`, "F1", "1 1 1");
   text(42, 724, 8, L.from, "F2", "0.38 0.45 0.56");
   text(315, 724, 8, L.billTo, "F2", "0.38 0.45 0.56");
-  text(42, 705, 12, parties.supplierCompany, "F2");
-  text(315, 705, 12, parties.customerCompany, "F2");
-  text(42, 689, 9, parties.supplierAddress || parties.supplierName);
-  text(315, 689, 9, parties.customerAddress || parties.customerName);
+  text(42, 705, 12, wrapPdfText(parties.supplierCompany, 250, 12, 1)[0], "F2");
+  text(315, 705, 12, wrapPdfText(parties.customerCompany, 250, 12, 1)[0], "F2");
+  text(42, 689, 9, wrapPdfText(parties.supplierAddress || parties.supplierName, 260, 9, 1)[0]);
+  text(315, 689, 9, wrapPdfText(parties.customerAddress || parties.customerName, 255, 9, 1)[0]);
   text(42, 675, 8, `${L.tax}: ${parties.supplierTaxId || "—"}`, "F1", "0.38 0.45 0.56");
   text(315, 675, 8, `${L.tax}: ${parties.customerTaxId || "—"}`, "F1", "0.38 0.45 0.56");
   text(42, 661, 8, parties.supplierEmail, "F1", "0.38 0.45 0.56");
   text(315, 661, 8, parties.customerEmail, "F1", "0.38 0.45 0.56");
   rect(42, 602, 528, 36, "0.94 0.96 0.98");
   text(54, 616, 8, L.work, "F2", "0.38 0.45 0.56");
-  text(54, 587, 10, project?.name || inv.projectId, "F2");
+  text(54, 587, 10, wrapPdfText(project?.name || inv.projectId, 320, 10, 1)[0], "F2");
   text(
     54,
     572,
     8,
-    [phase?.name, task?.name || inv.taskName].filter(Boolean).join(" / "),
+    wrapPdfText([phase?.name, task?.name || inv.taskName].filter(Boolean).join(" / "), 320, 8, 1)[0],
     "F1",
     "0.38 0.45 0.56",
   );
   text(390, 616, 8, L.status, "F2", "0.38 0.45 0.56");
   text(390, 587, 10, inv.status, "F2");
-  rect(42, 532, 528, 24, "0.07 0.17 0.33");
-  text(54, 540, 8, L.desc, "F2", "1 1 1");
-  text(354, 540, 8, L.qty, "F2", "1 1 1");
-  text(432, 540, 8, L.unitPrice, "F2", "1 1 1");
-  text(514, 540, 8, L.total, "F2", "1 1 1");
-  let y = 515;
-  for (const [i, item] of items.entries()) {
-    if (i % 2 === 0) rect(42, y - 5, 528, 24, "0.98 0.99 1");
-    text(54, y + 3, 9, item.service || L.service);
-    text(354, y + 3, 8, `${item.quantity || 1} ${item.unit || L.units}`, "F1", "0.25 0.33 0.43");
-    text(432, y + 3, 8, eur(item.unitPrice || item.rate), "F1", "0.25 0.33 0.43");
-    text(
-      514,
-      y + 3,
-      8,
-      eur(item.total ?? Number(item.quantity || 0) * Number(item.unitPrice || item.rate || 0)),
-      "F2",
-      "0.09 0.17 0.28",
-    );
-    line(42, y - 6, 570, y - 6);
-    y -= 26;
-    if (y < 170) break;
+  let y = tableHeader(540);
+  const rows = items.length
+    ? items
+    : [{ service: inv.description || "Professional services delivered for the linked project task" }];
+  // Rows continue on a new page (with the header repeated) when they reach the footer area.
+  for (const [i, item] of rows.entries()) {
+    const lines = wrapPdfText(item.service || L.service, 290, 9),
+      height = 26 + (lines.length - 1) * 11;
+    if (y - height < 72) y = tableHeader(continuationPage());
+    if (i % 2 === 0) rect(42, y - height + 21, 528, height, "0.98 0.99 1");
+    lines.forEach((l, n) => text(54, y + 3 - n * 11, 9, l));
+    if (items.length) {
+      text(354, y + 3, 8, `${item.quantity || 1} ${item.unit || L.units}`, "F1", "0.25 0.33 0.43");
+      text(432, y + 3, 8, eur(item.unitPrice || item.rate), "F1", "0.25 0.33 0.43");
+      text(
+        514,
+        y + 3,
+        8,
+        eur(item.total ?? Number(item.quantity || 0) * Number(item.unitPrice || item.rate || 0)),
+        "F2",
+        "0.09 0.17 0.28",
+      );
+    }
+    line(42, y - height + 20, 570, y - height + 20);
+    y -= height;
   }
-  if (!items.length) {
-    text(54, y + 3, 9, inv.description || "Professional services delivered for the linked project task");
-    line(42, y - 6, 570, y - 6);
-    y -= 28;
-  }
-  const totalY = Math.max(128, y - 22);
+  // Totals, reference, note and bank details go on the last page.
+  const note = wrapPdfText(`${L.note}: ${inv.description || L.thanks}`, 528, 8, 3);
+  if (y < 190 + note.length * 12) y = continuationPage();
+  const totalY = y - 40;
   text(348, totalY + 34, 9, L.invoiceTotal, "F2");
-  text(470, totalY + 30, 18, eur(inv.amount), "F2", "0.07 0.32 0.78");
+  text(460, totalY + 30, 18, eur(inv.amount), "F2", "0.07 0.32 0.78");
   line(348, totalY + 18, 570, totalY + 18, "0.75 0.81 0.88");
   text(
     348,
@@ -3056,34 +3121,66 @@ function invoicePdf(inv, lang = "en") {
     "F1",
     "0.38 0.45 0.56",
   );
-  text(348, totalY - 14, 8, `${L.terms}: ${inv.paymentTerms || L.termsDefault}`, "F1", "0.38 0.45 0.56");
-  if (parties.supplierPayout)
-    text(42, 68, 8, `${L.payTo}: ${parties.supplierPayout}`, "F2", "0.25 0.33 0.43");
-  text(42, 96, 8, `${L.reference}: ${inv.reference || invoiceNo(inv)}`, "F1", "0.38 0.45 0.56");
-  text(42, 82, 8, `${L.note}: ${inv.description || L.thanks}`, "F1", "0.38 0.45 0.56");
-  line(42, 60, 570, 60);
-  text(42, 43, 8, L.footer, "F1", "0.48 0.55 0.65");
-  text(450, 43, 8, L.copy, "F1", "0.48 0.55 0.65");
-  const stream = commands.join("\n"),
-    objects = [
-      `<< /Type /Catalog /Pages 2 0 R >>`,
-      `<< /Type /Pages /Kids [3 0 R] /Count 1 >>`,
-      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>`,
-      `<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>`,
-      `<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>`,
-      `<< /Length ${Buffer.byteLength(stream, "ascii")} >>\nstream\n${stream}\nendstream`,
-    ];
-  let pdf = "%PDF-1.4\n",
-    offsets = [0];
-  for (let i = 0; i < objects.length; i++) {
-    offsets.push(Buffer.byteLength(pdf, "ascii"));
-    pdf += `${i + 1} 0 obj\n${objects[i]}\nendobj\n`;
+  text(
+    348,
+    totalY - 14,
+    8,
+    wrapPdfText(`${L.terms}: ${inv.paymentTerms || L.termsDefault}`, 222, 8, 1)[0],
+    "F1",
+    "0.38 0.45 0.56",
+  );
+  let infoY = 82 + note.length * 12;
+  if (parties.supplierPayout) {
+    text(42, infoY, 8, `${L.payTo}: ${parties.supplierPayout}`, "F2", "0.25 0.33 0.43");
+    infoY -= 14;
   }
-  const xref = Buffer.byteLength(pdf, "ascii");
-  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-  for (let i = 1; i < offsets.length; i++) pdf += `${String(offsets[i]).padStart(10, "0")} 00000 n \n`;
-  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
-  return Buffer.from(pdf, "ascii");
+  text(42, infoY, 8, `${L.reference}: ${inv.reference || invoiceNo(inv)}`, "F1", "0.38 0.45 0.56");
+  note.forEach((l, n) => text(42, infoY - 14 - n * 12, 8, l, "F1", "0.38 0.45 0.56"));
+  // Footer with page numbers on every page.
+  pages.forEach((page, n) => {
+    commands = page;
+    line(42, 60, 570, 60);
+    text(42, 43, 8, L.footer, "F1", "0.48 0.55 0.65");
+    text(390, 43, 8, L.copy, "F1", "0.48 0.55 0.65");
+    text(530, 43, 8, `${L.page} ${n + 1}/${pages.length}`, "F1", "0.48 0.55 0.65");
+  });
+  // Objects: 1 catalog, 2 page tree, 3-4 fonts, then a page and its content stream per page.
+  const font = (name) => `<< /Type /Font /Subtype /Type1 /BaseFont /${name} /Encoding /WinAnsiEncoding >>`,
+    objects = [
+      Buffer.from(`<< /Type /Catalog /Pages 2 0 R >>`),
+      Buffer.from(
+        `<< /Type /Pages /Kids [${pages.map((_, n) => `${5 + n * 2} 0 R`).join(" ")}] /Count ${pages.length} >>`,
+      ),
+      Buffer.from(font("Helvetica")),
+      Buffer.from(font("Helvetica-Bold")),
+    ];
+  pages.forEach((page, n) => {
+    const stream = Buffer.from(page.join("\n"), "latin1");
+    objects.push(
+      Buffer.from(
+        `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${6 + n * 2} 0 R >>`,
+      ),
+      Buffer.concat([
+        Buffer.from(`<< /Length ${stream.length} >>\nstream\n`),
+        stream,
+        Buffer.from("\nendstream"),
+      ]),
+    );
+  });
+  const parts = [Buffer.from("%PDF-1.4\n%\xe2\xe3\xcf\xd3\n", "latin1")],
+    offsets = [];
+  let size = parts[0].length;
+  objects.forEach((object, i) => {
+    const chunk = Buffer.concat([Buffer.from(`${i + 1} 0 obj\n`), object, Buffer.from("\nendobj\n")]);
+    offsets.push(size);
+    parts.push(chunk);
+    size += chunk.length;
+  });
+  let tail = `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  for (const offset of offsets) tail += `${String(offset).padStart(10, "0")} 00000 n \n`;
+  tail += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${size}\n%%EOF`;
+  parts.push(Buffer.from(tail));
+  return Buffer.concat(parts);
 }
 
 /* ---------- Abuse protection ----------
