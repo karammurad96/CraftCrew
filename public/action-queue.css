@@ -1,0 +1,74 @@
+/* Dashboard action queue (see action-queue.js) and the one-line getting-started card. */
+.aq-panel {
+  margin-bottom: 18px;
+}
+.aq-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.aq-head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.aq-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.aq-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 12px;
+  border: 1px solid #e6eaf0;
+  border-left: 4px solid #1d4ed8;
+  border-radius: 10px;
+  background: #fff;
+}
+.aq-item > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.aq-item small {
+  color: var(--text-muted);
+}
+.aq-item .btn {
+  flex: none;
+}
+.aq-overdue,
+.aq-dispute,
+.aq-compliance {
+  border-left-color: #b91c1c;
+}
+.aq-invoice,
+.aq-payment,
+.aq-time,
+.aq-document {
+  border-left-color: #b45309;
+}
+.aq-more,
+.aq-calm {
+  margin: 10px 0 0;
+  color: var(--text-muted);
+}
+.aq-empty .aq-head {
+  margin-bottom: 4px;
+}
+.ob-checklist.ob-compact:not(.ob-open) .ob-steps {
+  display: none;
+}
+.ob-checklist.ob-compact .ob-check-head {
+  flex-wrap: wrap;
+}
+@media (max-width: 640px) {
+  .aq-item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
