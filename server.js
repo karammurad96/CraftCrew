@@ -20,6 +20,11 @@ const PORT = Number(process.env.PORT || 3000);
 // Demo/showcase data and demo logins exist only outside production.
 const DEMO_MODE = process.env.NODE_ENV !== "production";
 const mailer = require("./mailer");
+// One spelling per email address: trimmed and lower-case, for every lookup and every stored email.
+const normEmail = (s) =>
+  String(s || "")
+    .trim()
+    .toLowerCase();
 // Strategic sourcing module (contracts, scorecards, bid evaluation helpers).
 const sourcing = require("./sourcing")({
   getDb: () => db,
@@ -47,6 +52,7 @@ const team = require("./team")({
   issueAuthToken: (...a) => issueAuthToken(...a),
   appUrl: () => APP_URL,
   mailEnabled: () => mailer.enabled,
+  normEmail,
 });
 const compliance = require("./compliance")({
   getDb: () => db,
@@ -487,7 +493,7 @@ function ensureSupplierAccounts() {
   for (const u of db.users.filter((x) => x.role === "supplier" && x.emailVerified !== false)) {
     let s = db.suppliers.find((x) => x.id === u.supplierId);
     const approved = db.applications.find(
-      (a) => a.email?.toLowerCase() === u.email.toLowerCase() && a.status === "Approved" && a.supplierId,
+      (a) => normEmail(a.email) === normEmail(u.email) && a.status === "Approved" && a.supplierId,
     );
     if (!s && approved) s = db.suppliers.find((x) => x.id === approved.supplierId);
     if (!s) {
@@ -519,6 +525,24 @@ function ensureSupplierAccounts() {
     u.supplierId = s.id;
   }
 }
+// Stored emails from before normalisation: fix the spelling, report addresses now shared by two accounts.
+function normaliseStoredEmails() {
+  const seen = new Map();
+  for (const u of db.users || []) {
+    u.email = normEmail(u.email);
+    const other = seen.get(u.email);
+    if (other) {
+      console.warn(`Accounts ${other.id} and ${u.id} share the email ${u.email}`);
+      for (const admin of db.users.filter((x) => x.role === "admin"))
+        notify(
+          admin.id,
+          `Two accounts share the email ${u.email} (${other.id}, ${u.id}). Please review them.`,
+          "/admin/users",
+        );
+    } else seen.set(u.email, u);
+  }
+}
+normaliseStoredEmails();
 ensureSupplierAccounts();
 function ensureDemoApplicationSamples() {
   if (
@@ -2465,7 +2489,7 @@ function sendVerification(u) {
 function linkApprovedSupplier(u) {
   if (u.role !== "supplier") return;
   const approved = db.applications.find(
-      (a) => a.email?.toLowerCase() === u.email && a.status === "Approved" && a.supplierId,
+      (a) => normEmail(a.email) === normEmail(u.email) && a.status === "Approved" && a.supplierId,
     ),
     s = approved && db.suppliers.find((x) => x.id === approved.supplierId);
   if (!s || db.users.some((x) => x.id !== u.id && x.supplierId === s.id)) return;
@@ -2743,12 +2767,12 @@ async function api(req, res, url) {
         return (send(res, 400, { error: "Name, email, password and role are required" }), true);
       if (String(b.password).length < 12)
         return (send(res, 400, { error: "Use a password with at least 12 characters" }), true);
-      if (db.users.some((u) => u.email.toLowerCase() === b.email.toLowerCase()))
+      const email = normEmail(b.email);
+      if (db.users.some((u) => normEmail(u.email) === email))
         return (send(res, 409, { error: "Email already registered" }), true);
       if (!["customer", "supplier"].includes(b.role))
         return (send(res, 400, { error: "Invalid role" }), true);
-      const hp = hashPassword(b.password),
-        email = String(b.email).trim().toLowerCase();
+      const hp = hashPassword(b.password);
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
         return (send(res, 400, { error: "Enter a valid email address" }), true);
       if (!b.legalConsent && db.settings?.legal?.terms)
@@ -2826,12 +2850,10 @@ async function api(req, res, url) {
     }
     if (parts[1] === "auth" && parts[2] === "resend-verification" && method === "POST") {
       const b = await body(req),
-        email = String(b.email || "")
-          .trim()
-          .toLowerCase();
+        email = normEmail(b.email);
       if (rateLimited("resend:" + clientIp(req), 5, 3600000) || rateLimited("resend:" + email, 3, 3600000))
         return (send(res, 429, { error: "Please wait before requesting another email." }), true);
-      const u = db.users.find((x) => x.email === email && x.emailVerified === false);
+      const u = db.users.find((x) => normEmail(x.email) === email && x.emailVerified === false);
       if (u) {
         sendVerification(u);
         save();
@@ -2840,9 +2862,7 @@ async function api(req, res, url) {
     }
     if (parts[1] === "auth" && parts[2] === "forgot" && method === "POST") {
       const b = await body(req),
-        email = String(b.email || "")
-          .trim()
-          .toLowerCase();
+        email = normEmail(b.email);
       if (rateLimited("forgot:" + clientIp(req), 5, 3600000) || rateLimited("forgot:" + email, 3, 3600000))
         return (send(res, 429, { error: "Please wait before requesting another email." }), true);
       if (!mailer.enabled)
@@ -2852,7 +2872,7 @@ async function api(req, res, url) {
           }),
           true
         );
-      const u = db.users.find((x) => x.email === email && x.status !== "Suspended");
+      const u = db.users.find((x) => normEmail(x.email) === email && x.status !== "Suspended");
       if (u) {
         const token = issueAuthToken(u.id, "reset", 3600000),
           link = `${APP_URL}/#/reset?token=${token}`;
@@ -2901,14 +2921,14 @@ async function api(req, res, url) {
     if (parts[1] === "auth" && parts[2] === "login" && method === "POST") {
       const b = await body(req),
         ip = clientIp(req),
-        loginKey = "login:" + ip + ":" + String(b.email || "").toLowerCase();
+        loginKey = "login:" + ip + ":" + normEmail(b.email);
       // Max 8 failed attempts per account and network, and 60 attempts per network, in 15 minutes.
       if (
         (rateBuckets.get(loginKey) || []).filter((x) => Date.now() - x < 900000).length >= 8 ||
         rateLimited("login-ip:" + ip, 60, 900000)
       )
         return (send(res, 429, { error: "Too many sign-in attempts. Wait 15 minutes and try again." }), true);
-      const u = db.users.find((x) => x.email.toLowerCase() === (b.email || "").toLowerCase());
+      const u = db.users.find((x) => normEmail(x.email) === normEmail(b.email));
       if (!u || !verifyPassword(b.password || "", u)) {
         rateLimited(loginKey, 1000, 900000);
         return (send(res, 401, { error: "Invalid email or password" }), true);
@@ -3034,7 +3054,7 @@ async function api(req, res, url) {
           .slice(0, 30)
           .map((x) => text(x, 80))
           .filter(Boolean);
-      if (b.email) b.email = b.email.toLowerCase();
+      if (b.email) b.email = normEmail(b.email);
       const required = [
         "company",
         "email",
@@ -3051,7 +3071,7 @@ async function api(req, res, url) {
         return (send(res, 400, { error: "Enter valid company and reference email addresses" }), true);
       // Link to a supplier account only when that supplier is signed in with the same email.
       const sender = auth(req),
-        owner = sender?.role === "supplier" && String(sender.email).toLowerCase() === b.email ? sender : null;
+        owner = sender?.role === "supplier" && normEmail(sender.email) === b.email ? sender : null;
       const uploads = Array.isArray(raw.proofUploads) ? raw.proofUploads : [];
       if (uploads.length > 5)
         return (send(res, 400, { error: "Upload up to five verification documents" }), true);
@@ -4377,7 +4397,7 @@ async function api(req, res, url) {
         return (send(res, 400, { error: "Choose New, On Hold, Approved or Rejected" }), true);
       if (b.badge && !["Bronze", "Silver", "Gold"].includes(b.badge))
         return (send(res, 400, { error: "Choose a Bronze, Silver or Gold badge" }), true);
-      const applicantUser = db.users.find((x) => x.email.toLowerCase() === String(a.email).toLowerCase());
+      const applicantUser = db.users.find((x) => normEmail(x.email) === normEmail(a.email));
       if ((b.status || a.status) === "Approved" && applicantUser && applicantUser.role !== "supplier")
         return (
           send(res, 409, {
@@ -4494,7 +4514,7 @@ async function api(req, res, url) {
         }
       }
       if (b.status && b.status !== previousStatus) {
-        const applicant = db.users.find((x) => x.email.toLowerCase() === String(a.email).toLowerCase()),
+        const applicant = db.users.find((x) => normEmail(x.email) === normEmail(a.email)),
           greeting = `Hello ${a.contactName || a.directorName || a.company},\n\n`;
         a.decisionHistory ||= [];
         a.decisionHistory.push({ status: a.status, note: a.decisionNote || "", by: user.id, at: now() });
@@ -5616,7 +5636,7 @@ async function api(req, res, url) {
     // A supplier's own vetting status (matched by account email), for onboarding.
     if (parts[1] === "applications" && parts[2] === "mine" && method === "GET") {
       const mine = (db.applications || [])
-        .filter((a) => String(a.email).toLowerCase() === user.email.toLowerCase())
+        .filter((a) => normEmail(a.email) === normEmail(user.email))
         .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0];
       return (
         send(res, 200, {
@@ -6047,7 +6067,7 @@ const server = http.createServer(async (req, res) => {
       (user &&
         (db.applications || []).some(
           (a) =>
-            String(a.email).toLowerCase() === String(user.email).toLowerCase() &&
+            normEmail(a.email) === normEmail(user.email) &&
             (a.proofUploads || []).some((f) => f.url === `/uploads/${stored}`),
         ));
     // Files attached to invoices, offers and quote requests open for both parties; uploaders always see their own files.

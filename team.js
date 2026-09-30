@@ -135,13 +135,11 @@ module.exports = function createTeam(ctx) {
       );
     if (method === "POST" && parts.length === 2) {
       const b = await body(req),
-        email = String(b.email || "")
-          .trim()
-          .toLowerCase(),
+        email = ctx.normEmail(b.email),
         name = String(b.name || "").trim();
       if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
         return (send(res, 400, { error: "Enter a name and a valid email address" }), true);
-      if (db.users.some((u) => u.email.toLowerCase() === email))
+      if (db.users.some((u) => ctx.normEmail(u.email) === email))
         return (send(res, 409, { error: "This email already has a CraftCrew account" }), true);
       if (db.users.filter((u) => u.orgOwnerId === user.id && u.status !== "Suspended").length >= 50)
         return (send(res, 400, { error: "Team limit reached (50 members)" }), true);
