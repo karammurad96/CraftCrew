@@ -427,7 +427,7 @@ module.exports = function createCompliance(ctx) {
         !db.workers.some((w) => w.id === b.workerId && w.supplierId === user.supplierId)
       )
         return (send(res, 400, { error: "Choose the worker this document belongs to" }), true);
-      if (!b.url || !String(b.url).startsWith("/uploads/"))
+      if (!b.url || !ctx.ownUpload(user, String(b.url)))
         return (send(res, 400, { error: "Upload the document file" }), true);
       if (r.expires && !/^\d{4}-\d{2}-\d{2}$/.test(String(b.expiresAt || "")))
         return (send(res, 400, { error: "Enter the expiry date" }), true);

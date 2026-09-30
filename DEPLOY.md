@@ -56,6 +56,7 @@ Browsers pick up new scripts automatically (versioned asset URLs).
 - Sign-in lockout for 15 minutes after 8 failed attempts on one account from one network, or 20 failed attempts on one account from any networks; at most 60 sign-in attempts per network in 15 minutes. Rate limits on sign-up, applications and uploads.
 - Uploaded files are only served to signed-in project participants.
 - Complete audit log of changes (Admin → Audit log).
+- Client addresses (audit log, rate limits) come from the last `X-Forwarded-For` entry, the one Caddy adds, because `TRUST_PROXY=1` is set in `docker-compose.yml`. Without a proxy in front, leave `TRUST_PROXY` unset.
 - Admin password reset issues a one-time temporary password and forces a change.
 - With SMTP configured: new accounts must confirm their email address before signing in, "Forgot password?" sends a one-hour reset link, and supplier accounts are linked to an approved application only after the email address is confirmed.
 

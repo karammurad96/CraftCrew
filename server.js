@@ -46,6 +46,106 @@ const cleanSubtasks = (list) =>
       return { id: itemId, name, text: name, done: x?.done === true };
     })
     .filter((x) => x.name);
+// Supplier profile fields: allowed values and shapes (see cleanSupplierProfile).
+const AVAILABILITY = ["Available", "Busy", "Unavailable"];
+const CATALOG_UNITS = ["hour", "day", "project", "unit", "fixed"];
+const UNIT_ALIASES = {
+  h: "hour",
+  hours: "hour",
+  days: "day",
+  projects: "project",
+  units: "unit",
+  item: "unit",
+};
+// Text list: up to `max` unique non-empty strings of up to `len` characters, or null when invalid.
+function cleanTextList(list, max, len) {
+  if (!Array.isArray(list) || list.length > max) return null;
+  if (list.some((x) => typeof x !== "string" || x.trim().length > len)) return null;
+  return [...new Set(list.map((x) => x.trim()).filter(Boolean))];
+}
+// Validates the supplier fields of PUT /profile. Returns {error} or {fields} with only the fields sent.
+function cleanSupplierProfile(b) {
+  const out = {},
+    rate = (v) => Number(v === "" || v === null ? 0 : v);
+  for (const key of ["services", "certifications"])
+    if (b[key] !== undefined) {
+      const list = cleanTextList(b[key], 30, 80);
+      if (!list)
+        return {
+          error: `${key === "services" ? "Services" : "Certifications"}: up to 30 entries of up to 80 characters each.`,
+        };
+      out[key] = list;
+    }
+  if (b.availability !== undefined) {
+    if (!oneOf(b.availability, AVAILABILITY))
+      return { error: "Availability must be Available, Busy or Unavailable." };
+    out.availability = b.availability;
+  }
+  for (const key of ["hourlyRate", "projectRate"])
+    if (b[key] !== undefined) {
+      const n = rate(b[key]);
+      if (!Number.isFinite(n) || n < 0)
+        return {
+          error: `${key === "hourlyRate" ? "Hourly rate" : "Project rate"} must be a number of at least 0.`,
+        };
+      out[key] = n;
+    }
+  if (b.teamMembers !== undefined) {
+    if (!Array.isArray(b.teamMembers) || b.teamMembers.length > 50)
+      return { error: "Team members: up to 50 people." };
+    const team = [];
+    for (const m of b.teamMembers) {
+      if (!m || typeof m !== "object") return { error: "Team members: each entry needs a name." };
+      const fields = ["name", "role", "experience", "certifications", "availability"];
+      if (fields.some((k) => m[k] !== undefined && typeof m[k] !== "string" && typeof m[k] !== "number"))
+        return { error: "Team members: name, role and experience must be text." };
+      if (fields.some((k) => String(m[k] ?? "").length > 120))
+        return { error: "Team members: each field can have up to 120 characters." };
+      const person = Object.fromEntries(fields.map((k) => [k, cleanStr(m[k], 120)]));
+      if (!person.name) return { error: "Team members: each entry needs a name." };
+      team.push(person);
+    }
+    out.teamMembers = team;
+  }
+  if (b.serviceCatalog !== undefined) {
+    if (!Array.isArray(b.serviceCatalog) || b.serviceCatalog.length > 50)
+      return { error: "Service catalog: up to 50 services." };
+    const catalog = [];
+    for (const x of b.serviceCatalog) {
+      if (!x || typeof x !== "object") return { error: "Service catalog: each service needs a name." };
+      const texts = {
+        name: 80,
+        category: 80,
+        description: 1000,
+        capacity: 120,
+        leadTime: 120,
+        qualifications: 300,
+        status: 40,
+      };
+      for (const [k, max] of Object.entries(texts)) {
+        if (x[k] !== undefined && x[k] !== null && typeof x[k] !== "string" && typeof x[k] !== "number")
+          return { error: `Service catalog: ${k} must be text.` };
+        if (String(x[k] ?? "").length > max)
+          return { error: `Service catalog: ${k} can have up to ${max} characters.` };
+      }
+      const unitRaw = String(x.unit ?? "hour")
+          .trim()
+          .toLowerCase(),
+        unit = UNIT_ALIASES[unitRaw] || unitRaw,
+        r = rate(x.rate);
+      if (!oneOf(unit, CATALOG_UNITS))
+        return { error: "Service catalog: unit must be hour, day, project, unit or fixed." };
+      if (!Number.isFinite(r) || r < 0)
+        return { error: "Service catalog: rate must be a number of at least 0." };
+      const item = Object.fromEntries(Object.keys(texts).map((k) => [k, cleanStr(x[k], texts[k])]));
+      if (!item.name) return { error: "Service catalog: each service needs a name." };
+      if (!item.status) delete item.status;
+      catalog.push({ ...item, rate: r, unit });
+    }
+    out.serviceCatalog = catalog;
+  }
+  return { fields: out };
+}
 // Strategic sourcing module (contracts, scorecards, bid evaluation helpers).
 const sourcing = require("./sourcing")({
   getDb: () => db,
@@ -84,6 +184,7 @@ const compliance = require("./compliance")({
   now: () => now(),
   notify: (...a) => notify(...a),
   projectFor: (...a) => projectFor(...a),
+  ownUpload: (...a) => ownUpload(...a),
 });
 const documents = require("./documents")({
   getDb: () => db,
@@ -94,6 +195,7 @@ const documents = require("./documents")({
   now: () => now(),
   compliance,
   projectFor: (...a) => projectFor(...a),
+  ownUpload: (...a) => ownUpload(...a),
 });
 const planning = require("./planning")({
   getDb: () => db,
@@ -208,6 +310,58 @@ function createDemoPdf(filename, title, lines) {
   for (const off of offsets.slice(1)) pdf += `${String(off).padStart(10, "0")} 00000 n \n`;
   pdf += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${start}\n%%EOF`;
   fs.writeFileSync(path.join(UPLOAD_DIR, filename), pdf, { mode: 0o600 });
+}
+// Uploads: allowed file types, and the check that a stored file URL is the caller's own upload.
+const UPLOAD_TYPES = [
+  "pdf",
+  "png",
+  "jpg",
+  "jpeg",
+  "webp",
+  "gif",
+  "txt",
+  "csv",
+  "xlsx",
+  "docx",
+  "xls",
+  "doc",
+  "dxf",
+  "dwg",
+  "step",
+  "stp",
+  "zip",
+];
+const FILE_SIGNATURES = {
+  pdf: [[0x25, 0x50, 0x44, 0x46]],
+  png: [[0x89, 0x50, 0x4e, 0x47]],
+  jpg: [[0xff, 0xd8, 0xff]],
+  jpeg: [[0xff, 0xd8, 0xff]],
+};
+function uploadTypeError(filename, buf) {
+  const ext = path.extname(filename).slice(1).toLowerCase();
+  if (!UPLOAD_TYPES.includes(ext)) return "This file type is not allowed";
+  const sigs = FILE_SIGNATURES[ext];
+  if (sigs && !sigs.some((sig) => sig.every((byte, i) => buf[i] === byte)))
+    return "This file type is not allowed";
+  return null;
+}
+const attachmentUrl = (v) => (typeof v === "string" ? v : v && typeof v === "object" ? v.url : null);
+// True when url is /uploads/<file> uploaded by this account (team members share their account's uploads).
+function ownUpload(user, url) {
+  if (typeof url !== "string" || !/^\/uploads\/[^/]+$/.test(url)) return false;
+  const stored = path.basename(url);
+  return !!user && db.uploadOwners?.[stored] === user.id && fs.existsSync(path.join(UPLOAD_DIR, stored));
+}
+const NOT_OWN_FILE = "Upload the file first, then attach it.";
+// Deletes an uploaded file once no record points to it any more.
+function removeUnusedUpload(url) {
+  if (typeof url !== "string" || !url.startsWith("/uploads/")) return;
+  const stored = path.basename(url);
+  if (JSON.stringify(db).includes(`"/uploads/${stored}"`)) return;
+  try {
+    fs.unlinkSync(path.join(UPLOAD_DIR, stored));
+  } catch {}
+  if (db.uploadOwners) delete db.uploadOwners[stored];
 }
 function now() {
   return new Date().toISOString();
@@ -565,6 +719,11 @@ function normaliseStoredEmails() {
 }
 normaliseStoredEmails();
 ensureSupplierAccounts();
+// Start-up repair: older supplier records may hold non-text services or certifications.
+for (const s of db.suppliers || [])
+  for (const key of ["services", "certifications"])
+    if (Array.isArray(s[key]) && s[key].some((x) => typeof x !== "string"))
+      s[key] = s[key].filter((x) => typeof x === "string");
 function ensureDemoApplicationSamples() {
   if (
     process.env.NODE_ENV === "production" ||
@@ -2435,7 +2594,9 @@ function notify(userId, text, link = "") {
       recipient.email,
       "notification",
       `CraftCrew: ${String(text).slice(0, 120)}`,
-      `${text}\n\nOpen CraftCrew to review: #${link}`,
+      recipient.language === "de"
+        ? `${text}\n\nIn CraftCrew öffnen: ${APP_URL}/#${link}`
+        : `${text}\n\nOpen CraftCrew: ${APP_URL}/#${link}`,
     );
 }
 function projectSupplierIds(p) {
@@ -2811,11 +2972,14 @@ function invoicePdf(inv, lang = "en") {
 /* ---------- Abuse protection ----------
    In-memory, per-instance limits (the app runs as a single instance). Behind a
    reverse proxy set TRUST_PROXY=1 so the client address comes from X-Forwarded-For. */
+// With TRUST_PROXY=1 the LAST X-Forwarded-For entry is used: the one our proxy (Caddy) added.
+// Earlier entries come from the client and can be faked.
 function clientIp(req) {
   const fwd =
     process.env.TRUST_PROXY === "1" &&
     String(req.headers["x-forwarded-for"] || "")
-      .split(",")[0]
+      .split(",")
+      .at(-1)
       .trim();
   return fwd || String(req.socket.remoteAddress || "").replace(/^::ffff:/, "");
 }
@@ -3078,10 +3242,14 @@ async function api(req, res, url) {
         (s) =>
           s.live &&
           (!q ||
-            s.company.toLowerCase().includes(q) ||
-            s.location.toLowerCase().includes(q) ||
-            s.services.some((x) => x.toLowerCase().includes(q))) &&
-          (!service || s.services.includes(service)) &&
+            String(s.company ?? "")
+              .toLowerCase()
+              .includes(q) ||
+            String(s.location ?? "")
+              .toLowerCase()
+              .includes(q) ||
+            (s.services || []).some((x) => String(x).toLowerCase().includes(q))) &&
+          (!service || (s.services || []).includes(service)) &&
           (!location || s.location === location) &&
           (!badge || s.badge === badge) &&
           (!availability || s.availability === availability),
@@ -3871,6 +4039,7 @@ async function api(req, res, url) {
       const p = projectFor(user, parts[2]),
         b = await body(req);
       if (!p || !b.filename) return (send(res, 400, { error: "Project and file name are required" }), true);
+      if (b.url && !ownUpload(user, b.url)) return (send(res, 400, { error: NOT_OWN_FILE }), true);
       const phase = p.phases.find((x) => x.id === b.phaseId),
         task = phase?.tasks?.find((x) => x.id === b.taskId);
       if ((b.phaseId && !phase) || (b.taskId && !task))
@@ -3924,6 +4093,7 @@ async function api(req, res, url) {
             true
           );
         db.documents = db.documents.filter((x) => x !== doc);
+        removeUnusedUpload(doc.url);
         activity(user, `Deleted ${doc.filename} from ${p.name}`);
         save();
         return (send(res, 200, { ok: true }), true);
@@ -4219,8 +4389,15 @@ async function api(req, res, url) {
       if (!ph) return (send(res, 404, { error: "Phase not found" }), true);
       if (user.role === "supplier" && ph.supplierId !== user.supplierId)
         return (send(res, 403, { error: "Only the assigned supplier can upload to this phase" }), true);
+      if (b.url && !ownUpload(user, b.url)) return (send(res, 400, { error: NOT_OWN_FILE }), true);
       const file = b.filename
-        ? { id: id("file"), filename: b.filename, size: b.size || 0, url: b.url || null, uploadedAt: now() }
+        ? {
+            id: id("file"),
+            filename: String(b.filename).slice(0, 255),
+            size: Number(b.size) || 0,
+            url: b.url || null,
+            uploadedAt: now(),
+          }
         : null;
       if (!file) return (send(res, 400, { error: "Filename required" }), true);
       ph.deliverables = ph.deliverables || [];
@@ -4236,7 +4413,7 @@ async function api(req, res, url) {
           true
         );
       const b = await body(req);
-      if (!b.filename || !b.content)
+      if (typeof b.filename !== "string" || !b.filename.trim() || typeof b.content !== "string" || !b.content)
         return (send(res, 400, { error: "Filename and content required" }), true);
       const raw = String(b.content).replace(/^data:[^;]+;base64,/, "");
       const buf = Buffer.from(raw, "base64"),
@@ -4247,6 +4424,8 @@ async function api(req, res, url) {
           true
         );
       const safe = path.basename(b.filename).replace(/[^a-zA-Z0-9._-]/g, "_");
+      const typeError = uploadTypeError(safe, buf);
+      if (typeError) return (send(res, 400, { error: typeError }), true);
       const stored = id("file") + "_" + safe;
       fs.writeFileSync(path.join(UPLOAD_DIR, stored), buf);
       db.uploadOwners ||= {};
@@ -4341,6 +4520,8 @@ async function api(req, res, url) {
       if (!Number.isFinite(amount) || amount <= 0)
         return (send(res, 400, { error: "Invoice total must be greater than zero" }), true);
       const orderedAmount = Number(task?.orderAmount || ph.orderAmount) || null;
+      if (b.attachment && !ownUpload(user, attachmentUrl(b.attachment)))
+        return (send(res, 400, { error: NOT_OWN_FILE }), true);
       const inv = {
         id: id("inv"),
         projectId: p.id,
@@ -4497,6 +4678,12 @@ async function api(req, res, url) {
           lines && lines.length ? lines.reduce((a, x) => a + x.total, 0) : Number(b.amount ?? i.amount);
         if (!Number.isFinite(amount) || amount <= 0)
           return (send(res, 400, { error: "Enter a valid invoice amount" }), true);
+        if (
+          b.attachment &&
+          attachmentUrl(b.attachment) !== attachmentUrl(i.attachment) &&
+          !ownUpload(user, attachmentUrl(b.attachment))
+        )
+          return (send(res, 400, { error: NOT_OWN_FILE }), true);
         i.revisions ||= [];
         i.revisions.push({
           amount: i.amount,
@@ -5304,7 +5491,7 @@ async function api(req, res, url) {
         r.validUntil = String(b.validUntil || "").slice(0, 10);
         r.attachments = (Array.isArray(b.attachments) ? b.attachments : [])
           .slice(0, 5)
-          .filter((x) => x && String(x.url || "").startsWith("/uploads/"))
+          .filter((x) => x && ownUpload(user, String(x.url || "")))
           .map((x) => ({
             filename: String(x.filename || "file").slice(0, 180),
             url: String(x.url),
@@ -5403,6 +5590,11 @@ async function api(req, res, url) {
         deliveryDays = Number(b.deliveryDays);
       if (!Number.isFinite(amount) || amount <= 0 || !Number.isFinite(deliveryDays) || deliveryDays < 1)
         return (send(res, 400, { error: "Enter a valid offer amount and delivery schedule" }), true);
+      if (b.attachment) {
+        const prior = bid.offers.find((x) => x.supplierId === user.supplierId)?.attachment;
+        if (attachmentUrl(b.attachment) !== prior && !ownUpload(user, attachmentUrl(b.attachment)))
+          return (send(res, 400, { error: NOT_OWN_FILE }), true);
+      }
       let offer = bid.offers.find((x) => x.supplierId === user.supplierId);
       if (!offer) {
         offer = {
@@ -5748,6 +5940,13 @@ async function api(req, res, url) {
     }
     if (parts[1] === "profile" && method === "PUT") {
       const b = await body(req);
+      // Supplier fields are checked before anything is saved, so an invalid request changes nothing.
+      let supplierFields = {};
+      if (user.supplierId) {
+        const checked = cleanSupplierProfile(b);
+        if (checked.error) return (send(res, 400, { error: checked.error }), true);
+        supplierFields = checked.fields;
+      }
       // Company data lives on the main account; a team member cannot rename the account holder.
       const acct = db.users.find((x) => x.id === user.id) || user;
       if (user.isMember) delete b.name;
@@ -5769,15 +5968,9 @@ async function api(req, res, url) {
           company: b.company ?? s.company,
           location: b.location ?? s.location,
           description: b.description ?? s.description,
-          services: Array.isArray(b.services) ? b.services : s.services,
-          serviceCatalog: Array.isArray(b.serviceCatalog) ? b.serviceCatalog : s.serviceCatalog,
-          certifications: Array.isArray(b.certifications) ? b.certifications : s.certifications,
-          teamMembers: Array.isArray(b.teamMembers) ? b.teamMembers : s.teamMembers,
+          ...supplierFields,
           employees: b.employees !== undefined ? Math.max(0, Number(b.employees) || 0) : s.employees,
           experience: b.experience !== undefined ? Math.max(0, Number(b.experience) || 0) : s.experience,
-          availability: b.availability ?? s.availability,
-          hourlyRate: b.hourlyRate !== undefined ? Number(b.hourlyRate) : s.hourlyRate,
-          projectRate: b.projectRate !== undefined ? Number(b.projectRate) : s.projectRate,
           companyProfile: user.companyProfile,
           profileImage: user.profileImage,
         });
@@ -6193,7 +6386,7 @@ function trackAudit(req, res, url) {
       status: record.status || "",
       projectId: project ? project.id : null,
       projectName: project?.name || "",
-      ip: (req.socket.remoteAddress || "").replace(/^::ffff:/, ""),
+      ip: clientIp(req),
     });
     db.auditLog = db.auditLog.slice(0, 5000);
     save();
