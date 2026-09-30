@@ -126,4 +126,126 @@ async function startApp({ smtp, env = {} } = {}) {
   return { base, port, call, login, signup, stop, stderr: () => stderr };
 }
 
-module.exports = { startApp, fakeSmtp };
+// Shared fixtures for regression tests. Each throws with the API error when a step fails.
+const VETTING_CHECKS = {
+  registration: "Passed",
+  vat: "Passed",
+  insurance: "Passed",
+  certifications: "Passed",
+  references: "Passed",
+  sanctions: "Passed",
+};
+function expectStatus(r, status, step) {
+  if (r.status !== status) throw new Error(`${step} failed: ${r.status} ${r.error || ""}`);
+  return r;
+}
+
+// Signs up a supplier, applies for vetting and approves it as admin; returns {token, supplierId, user}.
+async function vettedSupplier(app, adminToken, email, company) {
+  const s = expectStatus(await app.signup("supplier", email, { company }), 201, "supplier signup");
+  const a = expectStatus(
+    await app.call("POST", "/applications", {
+      company,
+      email,
+      phone: "1",
+      yearsInBusiness: 8,
+      portfolio: "Robot cells",
+      referenceName: "Ref",
+      referenceEmail: "ref@test.local",
+      services: ["PLC programming", "Commissioning"],
+      proofUploads: [
+        {
+          filename: "insurance.pdf",
+          content: "data:application/pdf;base64," + Buffer.from("%PDF-1.4 insurance").toString("base64"),
+          category: "Insurance evidence",
+        },
+      ],
+    }),
+    201,
+    "supplier application",
+  );
+  expectStatus(
+    await app.call(
+      "PATCH",
+      `/admin/applications/${a.application.id}`,
+      { status: "Approved", badge: "Silver", verification: { checks: VETTING_CHECKS, riskLevel: "Low" } },
+      adminToken,
+    ),
+    200,
+    "application approval",
+  );
+  return { token: s.token, supplierId: s.user.supplierId, user: s.user };
+}
+
+// Creates a project with one phase holding the given tasks; returns {project, phase, tasks}.
+async function projectWithTasks(app, customerToken, { tasks = ["Task A", "Task B"] } = {}) {
+  const dueDate = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10);
+  const r = expectStatus(
+    await app.call(
+      "POST",
+      "/projects",
+      {
+        name: "Test project",
+        description: "Created by test helpers",
+        budget: 50000,
+        dueDate,
+        phases: [{ name: "Phase 1", tasks }],
+      },
+      customerToken,
+    ),
+    201,
+    "project creation",
+  );
+  const phase = r.project.phases[0];
+  return { project: r.project, phase, tasks: phase.tasks };
+}
+
+// Invites the supplier to the task as customer and accepts it as supplier; returns the accepted task.
+async function assignAndAccept(app, customerToken, supplierToken, project, task) {
+  const { supplier } = await app.call("GET", "/profile", undefined, supplierToken);
+  expectStatus(
+    await app.call(
+      "POST",
+      `/projects/${project.id}/tasks/${task.id}/assign`,
+      { supplierId: supplier.id },
+      customerToken,
+    ),
+    200,
+    "task assignment",
+  );
+  const r = expectStatus(
+    await app.call(
+      "POST",
+      `/projects/${project.id}/tasks/${task.id}/accept`,
+      { accept: true },
+      supplierToken,
+    ),
+    200,
+    "task acceptance",
+  );
+  return r.task;
+}
+
+// Submits a one-line invoice for the task using the supplier's first catalog service; returns the invoice.
+async function submitInvoice(app, supplierToken, project, phase, task, amount) {
+  const { supplier } = await app.call("GET", "/profile", undefined, supplierToken);
+  const r = expectStatus(
+    await app.call(
+      "POST",
+      "/invoices",
+      {
+        projectId: project.id,
+        phaseId: phase.id,
+        taskId: task.id,
+        description: `Invoice for ${task.name}`,
+        lineItems: [{ service: supplier.services[0], quantity: 1, unit: "units", unitPrice: amount }],
+      },
+      supplierToken,
+    ),
+    201,
+    "invoice submission",
+  );
+  return r.invoice;
+}
+
+module.exports = { startApp, fakeSmtp, vettedSupplier, projectWithTasks, assignAndAccept, submitInvoice };
