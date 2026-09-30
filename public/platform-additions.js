@@ -120,7 +120,7 @@ customerDashboard = async function () {
         .slice(0, 5)
         .map(
           (i) =>
-            `<a class="pa-row" href="#/customer/invoice/${encodeURIComponent(i.id)}"><span><b>${paEsc(i.supplierCompany || i.id)}</b><small>${paEsc(i.taskName || i.description || i.id)}</small></span><b>${money(i.amount)}</b></a>`,
+            `<a class="pa-row" href="#/customer/invoice/${encodeURIComponent(i.id)}"><span><b>${paEsc(i.supplierCompany || invNo(i))}</b><small>${paEsc(i.taskName || i.description || invNo(i))}</small></span><b>${money(i.amount)}</b></a>`,
         )
         .join(""),
       "No invoices are waiting for you.",
@@ -214,7 +214,7 @@ adminDashboard = async function () {
       .filter((i) => i.status === "Submitted" && String(i.createdAt).slice(0, 10) < weekAgo)
       .map((i) => ({
         tone: "orange",
-        text: `Invoice waiting > 7 days: ${i.id}`,
+        text: `Invoice waiting > 7 days: ${invNo(i)}`,
         sub: `${i.supplierCompany || ""} · ${money(i.amount)}`,
         link: "/admin/billing",
       })),

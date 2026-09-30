@@ -451,7 +451,7 @@ describe("full project workflow across customer, supplier and admin", () => {
       ).status,
       200,
     );
-    assert.match(await notes(supplier), new RegExp(`Invoice ${invoice.id}: Changes Requested`));
+    assert.match(await notes(supplier), new RegExp(`Invoice ${invoice.number}: Changes Requested`));
     const fixed = await app.call(
       "PATCH",
       `/invoices/${invoice.id}`,

@@ -1,6 +1,8 @@
 /* CraftCrew frontend. Business data is server-persisted; localStorage stores only session token/user and UI preferences. */
 const API = "/api";
 let apiBusy = 0;
+// Invoices show their sequential number to people; the id stays for links and the API.
+const invNo = (i) => i?.number || i?.id || "";
 const state = {
   user: JSON.parse(localStorage.getItem("cc_user") || "null"),
   token: localStorage.getItem("cc_token") || "",
@@ -258,7 +260,7 @@ async function customerDashboard() {
         .slice(0, 6)
         .map(
           (i) =>
-            `<div class="project-row" style="grid-template-columns:1fr auto"><div><b>${esc(i.id)}</b><small>${money(i.amount)}</small></div><span class="status ${i.status.toLowerCase().replaceAll(" ", "-")}">${esc(i.status)}</span></div>`,
+            `<div class="project-row" style="grid-template-columns:1fr auto"><div><b>${esc(invNo(i))}</b><small>${money(i.amount)}</small></div><span class="status ${i.status.toLowerCase().replaceAll(" ", "-")}">${esc(i.status)}</span></div>`,
         )
         .join("") || '<div class="empty">No invoices.</div>'
     }</div></div>`,
@@ -486,7 +488,7 @@ async function customerInvoices() {
     `<div class="dash-top"><div><h1>Invoices & payments</h1><p>Review submitted invoices before payment is scheduled.</p></div></div><div class="panel"><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Invoice</th><th>Project / Phase</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody>${d.invoices
       .map((i) => {
         const p = state.cache.projects?.find((x) => x.id === i.projectId);
-        return `<tr><td><b>${i.id}</b><small>${date(i.createdAt)}</small></td><td>${esc(p?.name || i.projectId)}<small>${i.phaseId}</small></td><td>${money(i.amount)}</td><td><span class="status ${i.status.toLowerCase().replaceAll(" ", "-")}">${esc(i.status)}</span></td><td><button class="btn small outline" onclick="reviewInvoice('${i.id}')">${i.status === "Submitted" ? "Review" : "View"}</button></td></tr>`;
+        return `<tr><td><b>${esc(invNo(i))}</b><small>${date(i.createdAt)}</small></td><td>${esc(p?.name || i.projectId)}<small>${i.phaseId}</small></td><td>${money(i.amount)}</td><td><span class="status ${i.status.toLowerCase().replaceAll(" ", "-")}">${esc(i.status)}</span></td><td><button class="btn small outline" onclick="reviewInvoice('${i.id}')">${i.status === "Submitted" ? "Review" : "View"}</button></td></tr>`;
       })
       .join("")}</tbody></table></div></div>`,
   );
@@ -495,7 +497,7 @@ async function customerInvoices() {
 async function reviewInvoice(id) {
   const { invoice: i } = await api("/invoices/" + id);
   modal(
-    "Invoice " + i.id,
+    "Invoice " + invNo(i),
     `<div class="detail-grid"><div class="detail-box"><small>Amount</small><b>${money(i.amount)}</b></div><div class="detail-box"><small>Status</small><b>${esc(i.status)}</b></div></div><p>${esc(i.description)}</p>${i.comments ? `<div class="notice">${esc(i.comments)}</div>` : ""}${i.status === "Submitted" ? `<div class="action-row"><button class="btn success" onclick="invoiceAction('${id}','Approve')">Approve & schedule payment</button><button class="btn outline" onclick="invoiceAction('${id}','Request Changes')">Request changes</button><button class="btn danger" onclick="invoiceReject('${id}')">Reject</button></div>` : ""}`,
   );
 }
@@ -527,7 +529,7 @@ async function supplierDashboard() {
   app.innerHTML = dashboardShell(
     "supplier",
     "dashboard",
-    `<div class="dash-top"><div><h1>Supplier dashboard</h1><p>${esc(s?.company || "Supplier workspace")} · ${esc(s?.badge || "")}</p></div><button class="btn primary" onclick="navigate('/supplier/invoices')">+ Create invoice</button></div><div class="stats"><div><span class="cc-label">Assigned projects</span><strong>${d.projects.length}</strong></div><div><span class="cc-label">Pending invitations</span><strong>${pending.length}</strong></div><div><span class="cc-label">Invoices</span><strong>${d.invoices.length}</strong></div><div><span class="cc-label">Paid</span><strong>${d.invoices.filter((i) => i.status === "Paid").length}</strong></div></div><div class="dashboard-grid"><div class="panel"><div class="panel-title"><h3>Pending invitations</h3></div>${pending.map((x) => `<div class="project-row" style="grid-template-columns:1fr auto"><div><b>${esc(x.ph.name)}</b><small>${esc(x.p.name)} · due ${date(x.ph.dueDate)}</small></div><div class="cc-actions"><button class="btn small success" onclick="acceptPhase('${x.p.id}','${x.ph.id}',true)">Accept</button><button class="btn small danger" onclick="acceptPhase('${x.p.id}','${x.ph.id}',false)">Decline</button></div></div>`).join("") || '<div class="empty">No pending invitations.</div>'}</div><div class="panel"><div class="panel-title"><h3>Invoice status</h3></div>${d.invoices.map((i) => `<div class="project-row" style="grid-template-columns:1fr auto"><div><b>${i.id}</b><small>${money(i.amount)}</small></div><span class="status ${i.status.toLowerCase().replaceAll(" ", "-")}">${i.status}</span></div>`).join("")}</div></div>`,
+    `<div class="dash-top"><div><h1>Supplier dashboard</h1><p>${esc(s?.company || "Supplier workspace")} · ${esc(s?.badge || "")}</p></div><button class="btn primary" onclick="navigate('/supplier/invoices')">+ Create invoice</button></div><div class="stats"><div><span class="cc-label">Assigned projects</span><strong>${d.projects.length}</strong></div><div><span class="cc-label">Pending invitations</span><strong>${pending.length}</strong></div><div><span class="cc-label">Invoices</span><strong>${d.invoices.length}</strong></div><div><span class="cc-label">Paid</span><strong>${d.invoices.filter((i) => i.status === "Paid").length}</strong></div></div><div class="dashboard-grid"><div class="panel"><div class="panel-title"><h3>Pending invitations</h3></div>${pending.map((x) => `<div class="project-row" style="grid-template-columns:1fr auto"><div><b>${esc(x.ph.name)}</b><small>${esc(x.p.name)} · due ${date(x.ph.dueDate)}</small></div><div class="cc-actions"><button class="btn small success" onclick="acceptPhase('${x.p.id}','${x.ph.id}',true)">Accept</button><button class="btn small danger" onclick="acceptPhase('${x.p.id}','${x.ph.id}',false)">Decline</button></div></div>`).join("") || '<div class="empty">No pending invitations.</div>'}</div><div class="panel"><div class="panel-title"><h3>Invoice status</h3></div>${d.invoices.map((i) => `<div class="project-row" style="grid-template-columns:1fr auto"><div><b>${esc(invNo(i))}</b><small>${money(i.amount)}</small></div><span class="status ${i.status.toLowerCase().replaceAll(" ", "-")}">${i.status}</span></div>`).join("")}</div></div>`,
   );
 }
 async function acceptPhase(pid, phid, accept) {
@@ -572,7 +574,7 @@ async function supplierInvoices() {
   app.innerHTML = dashboardShell(
     "supplier",
     "invoices",
-    `<div class="dash-top"><div><h1>Invoices</h1><p>Submit invoices and resubmit changes requested by customers.</p></div><button class="btn primary" onclick="navigate('/supplier/invoices/new')">+ Create invoice</button></div><div class="panel"><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Invoice</th><th>Amount</th><th>Status</th><th>Comments</th><th>Action</th></tr></thead><tbody>${d.invoices.map((i) => `<tr><td><b>${i.id}</b><small>${date(i.createdAt)}</small></td><td>${money(i.amount)}</td><td><span class="status ${i.status.toLowerCase().replaceAll(" ", "-")}">${i.status}</span></td><td>${esc(i.comments || "—")}</td><td>${["Changes Requested", "Rejected"].includes(i.status) ? `<button class="btn small primary" onclick="resubmitInvoice('${i.id}')">Modify & resubmit</button>` : ""}</td></tr>`).join("")}</tbody></table></div></div>`,
+    `<div class="dash-top"><div><h1>Invoices</h1><p>Submit invoices and resubmit changes requested by customers.</p></div><button class="btn primary" onclick="navigate('/supplier/invoices/new')">+ Create invoice</button></div><div class="panel"><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Invoice</th><th>Amount</th><th>Status</th><th>Comments</th><th>Action</th></tr></thead><tbody>${d.invoices.map((i) => `<tr><td><b>${esc(invNo(i))}</b><small>${date(i.createdAt)}</small></td><td>${money(i.amount)}</td><td><span class="status ${i.status.toLowerCase().replaceAll(" ", "-")}">${i.status}</span></td><td>${esc(i.comments || "—")}</td><td>${["Changes Requested", "Rejected"].includes(i.status) ? `<button class="btn small primary" onclick="resubmitInvoice('${i.id}')">Modify & resubmit</button>` : ""}</td></tr>`).join("")}</tbody></table></div></div>`,
   );
 }
 async function newInvoice() {
@@ -804,7 +806,7 @@ async function adminBilling() {
   app.innerHTML = dashboardShell(
     "admin",
     "billing",
-    `<div class="dash-top"><div><h1>Payments & billing</h1><p>Platform-wide invoice state and scheduled payments.</p></div></div><div class="panel"><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Invoice</th><th>Customer</th><th>Supplier</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody>${d.invoices.map((i) => `<tr><td>${i.id}</td><td>${i.customerId}</td><td>${i.supplierId}</td><td>${money(i.amount)}</td><td><span class="status ${i.status.toLowerCase().replaceAll(" ", "-")}">${i.status}</span></td><td>${i.status === "Approved" ? `<button class="btn small success" onclick="markPaid('${i.id}')">Mark paid</button>` : ""}</td></tr>`).join("")}</tbody></table></div></div>`,
+    `<div class="dash-top"><div><h1>Payments & billing</h1><p>Platform-wide invoice state and scheduled payments.</p></div></div><div class="panel"><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Invoice</th><th>Customer</th><th>Supplier</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody>${d.invoices.map((i) => `<tr><td>${esc(invNo(i))}</td><td>${i.customerId}</td><td>${i.supplierId}</td><td>${money(i.amount)}</td><td><span class="status ${i.status.toLowerCase().replaceAll(" ", "-")}">${i.status}</span></td><td>${i.status === "Approved" ? `<button class="btn small success" onclick="markPaid('${i.id}')">Mark paid</button>` : ""}</td></tr>`).join("")}</tbody></table></div></div>`,
   );
 }
 async function adminDisputes() {
