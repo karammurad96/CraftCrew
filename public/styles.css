@@ -1472,3 +1472,10 @@ body.authenticated .cc-shell {
 body.authenticated .dashboard-content {
   min-height: 100vh;
 }
+/* Saving: block repeat clicks on submit buttons until the request finishes. */
+.cc-busy form button[type="submit"],
+.cc-busy form button:not([type]),
+.cc-busy .modal .btn.primary {
+  pointer-events: none;
+  opacity: 0.6;
+}

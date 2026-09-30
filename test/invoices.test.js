@@ -53,4 +53,24 @@ describe("invoice status flow", () => {
     assert.equal(re.invoice.status, "Submitted");
     assert.equal((await decide(inv, "Approve")).status, 200);
   });
+
+  it("refuses the same invoice sent twice within 10 seconds", async () => {
+    const inv = await submitInvoice(app, supplier, project, phase, task, 3100);
+    const again = await app.call(
+      "POST",
+      "/invoices",
+      {
+        projectId: project.id,
+        phaseId: phase.id,
+        taskId: task.id,
+        description: inv.description,
+        lineItems: inv.lineItems,
+      },
+      supplier,
+    );
+    assert.equal(again.status, 409);
+    assert.match(again.error, /just submitted/);
+    // A different amount is a different invoice.
+    await submitInvoice(app, supplier, project, phase, task, 3200);
+  });
 });

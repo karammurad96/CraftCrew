@@ -1,5 +1,6 @@
 /* CraftCrew frontend. Business data is server-persisted; localStorage stores only session token/user and UI preferences. */
 const API = "/api";
+let apiBusy = 0;
 const state = {
   user: JSON.parse(localStorage.getItem("cc_user") || "null"),
   token: localStorage.getItem("cc_token") || "",
@@ -36,13 +37,28 @@ async function api(path, opts = {}) {
     opts.headers["Content-Type"] = "application/json";
     opts.body = JSON.stringify(opts.body);
   }
-  const r = await fetch(API + path, opts);
-  let d = {};
+  // While a change is being saved, submit buttons are blocked so a double click can't send it twice.
+  const busy = opts.method && opts.method !== "GET",
+    button = busy && document.activeElement?.tagName === "BUTTON" ? document.activeElement : null;
+  if (busy) {
+    apiBusy++;
+    document.body.classList.add("cc-busy");
+    if (button) button.disabled = true;
+  }
   try {
-    d = await r.json();
-  } catch {}
-  if (!r.ok) throw new Error(d.error || "Request failed");
-  return d;
+    const r = await fetch(API + path, opts);
+    let d = {};
+    try {
+      d = await r.json();
+    } catch {}
+    if (!r.ok) throw new Error(d.error || "Request failed");
+    return d;
+  } finally {
+    if (busy) {
+      if (!--apiBusy) document.body.classList.remove("cc-busy");
+      if (button) button.disabled = false;
+    }
+  }
 }
 async function uploadFile(file) {
   return new Promise((resolve, reject) => {
