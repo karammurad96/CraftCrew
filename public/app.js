@@ -321,10 +321,19 @@ async function editProject(id) {
   };
 }
 async function deleteProject(id) {
-  if (!(await uiConfirm("Delete this project and its invoices?"))) return;
-  await api("/projects/" + id, { method: "DELETE" });
-  toast("Project deleted");
-  navigate("/customer/projects");
+  if (
+    !(await uiConfirm(
+      "Delete this project? Projects with invoices, documents or accepted suppliers are archived instead.",
+    ))
+  )
+    return;
+  try {
+    const r = await api("/projects/" + id, { method: "DELETE" });
+    toast(r.archived ? "Project archived" : "Project deleted");
+    navigate("/customer/projects");
+  } catch (e) {
+    toast(e.message, "error");
+  }
 }
 async function addPhase(pid) {
   modal(
@@ -363,9 +372,13 @@ async function editPhase(pid, phid) {
 }
 async function deletePhase(pid, phid) {
   if (!(await uiConfirm("Delete phase?"))) return;
-  await api(`/projects/${pid}/phases/${phid}`, { method: "DELETE" });
-  toast("Phase deleted");
-  projectDetail(pid);
+  try {
+    await api(`/projects/${pid}/phases/${phid}`, { method: "DELETE" });
+    toast("Phase deleted");
+    projectDetail(pid);
+  } catch (e) {
+    toast(e.message, "error");
+  }
 }
 async function assignSupplier(pid, phid) {
   const d = await api("/projects/" + pid);

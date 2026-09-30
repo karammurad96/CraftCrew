@@ -26,7 +26,8 @@ const normEmail = (s) =>
     .trim()
     .toLowerCase();
 // Input checks for projects, phases and tasks.
-const PROJECT_STATUSES = ["Not Started", "In Progress", "On Hold", "Completed"];
+const PROJECT_STATUSES = ["Not Started", "In Progress", "On Hold", "Completed", "Archived"];
+const ARCHIVED_ERROR = "This project is archived and can no longer be changed.";
 const WORK_STATUSES = ["Not Started", "In Progress", "Under Review", "Completed", "On Hold"];
 const SUPPLIER_TASK_STATUSES = ["In Progress", "Under Review", "Completed", "On Hold"];
 const oneOf = (value, list) => list.includes(value);
@@ -3218,6 +3219,11 @@ async function api(req, res, url) {
     const teamDenied = team.denied(user, parts, method);
     if (teamDenied) return (send(res, 403, { error: teamDenied }), true);
     if (await team.handle(req, res, url, parts, user)) return true;
+    // Archived projects are read-only for everyone who can see them.
+    if (method !== "GET" && parts[1] === "projects" && parts[2]) {
+      const p = projectFor(user, parts[2]);
+      if (p?.status === "Archived") return (send(res, 409, { error: ARCHIVED_ERROR }), true);
+    }
 
     // Dashboard aggregate
     if (parts[1] === "dashboard" && method === "GET") {
@@ -3246,10 +3252,9 @@ async function api(req, res, url) {
       }
       return (
         send(res, 200, {
-          projects:
-            user.role === "supplier"
-              ? projects.map((p) => projectForSupplierView(p, user.supplierId))
-              : projects,
+          projects: projects
+            .filter((p) => p.status !== "Archived")
+            .map((p) => (user.role === "supplier" ? projectForSupplierView(p, user.supplierId) : p)),
           invoices,
           notifications,
           activities: db.activities.slice(0, 20),
@@ -3319,6 +3324,7 @@ async function api(req, res, url) {
         p = projectFor(user, b.projectId),
         ph = p?.phases.find((x) => x.id === b.phaseId),
         task = ph?.tasks?.find((x) => x.id === b.taskId);
+      if (p?.status === "Archived") return (send(res, 409, { error: ARCHIVED_ERROR }), true);
       if (!p || !task || task.assignedSupplierId !== user.supplierId || task.acceptanceStatus !== "Accepted")
         return (
           send(res, 403, { error: "Time can only be logged against work accepted by your company" }),
@@ -3462,7 +3468,12 @@ async function api(req, res, url) {
                   },
                 }))
             : db.projects;
-      return (send(res, 200, { projects }), true);
+      // Archived projects are listed only on request (?archived=1).
+      const showArchived = url.searchParams.get("archived") === "1";
+      return (
+        send(res, 200, { projects: projects.filter((p) => showArchived || p.status !== "Archived") }),
+        true
+      );
     }
     if (parts[1] === "projects" && parts.length === 2 && method === "POST") {
       if (user.role !== "customer")
@@ -3700,6 +3711,8 @@ async function api(req, res, url) {
         return (send(res, 403, { error: "Only customer can remove tasks" }), true);
       const t = ph.tasks?.find((x) => x.id === parts[6]);
       if (!t) return (send(res, 404, { error: "Task not found" }), true);
+      if (db.invoices.some((i) => i.taskId === t.id))
+        return (send(res, 409, { error: "This task has invoices, so it cannot be deleted." }), true);
       if (t.assignedSupplierId)
         return (
           send(res, 409, { error: "Remove or decline the supplier assignment before deleting the task" }),
@@ -3707,7 +3720,6 @@ async function api(req, res, url) {
         );
       ph.tasks = ph.tasks.filter((x) => x.id !== t.id);
       for (const other of ph.tasks) other.dependencies = (other.dependencies || []).filter((x) => x !== t.id);
-      db.invoices = db.invoices.filter((i) => i.taskId !== t.id);
       db.bids = (db.bids || []).filter((b) => b.taskId !== t.id);
       save();
       return (send(res, 200, { ok: true }), true);
@@ -3938,6 +3950,7 @@ async function api(req, res, url) {
         amountError(b.budget, "The budget");
       if (invalid) return (send(res, 400, { error: invalid }), true);
       if (b.siteId !== undefined) p.siteId = b.siteId || null;
+      if (b.status === "Archived") Object.assign(p, { archivedAt: now(), archivedBy: user.id });
       Object.assign(p, {
         name: b.name !== undefined ? cleanStr(b.name, 160) : p.name,
         description: b.description ?? p.description,
@@ -3956,11 +3969,25 @@ async function api(req, res, url) {
     if (parts[1] === "projects" && parts[2] && parts.length === 3 && method === "DELETE") {
       const p = projectFor(user, parts[2]);
       if (!p || user.role !== "customer") return (send(res, 403, { error: "Not allowed" }), true);
+      // Invoices must be kept (§147 AO, §14b UStG): projects with records are archived, not deleted.
+      const hasRecords =
+        db.invoices.some((x) => x.projectId === p.id) ||
+        (db.documents || []).some((x) => x.projectId === p.id) ||
+        p.phases.some(
+          (ph) =>
+            (ph.supplierId && ph.acceptanceStatus === "Accepted") ||
+            (ph.tasks || []).some((t) => t.assignedSupplierId && t.acceptanceStatus === "Accepted"),
+        );
+      if (hasRecords) {
+        Object.assign(p, { status: "Archived", archivedAt: now(), archivedBy: user.id, updatedAt: now() });
+        activity(user, `Archived project ${p.name}`);
+        save();
+        return (send(res, 200, { ok: true, archived: true }), true);
+      }
       db.projects = db.projects.filter((x) => x.id !== p.id);
-      db.invoices = db.invoices.filter((x) => x.projectId !== p.id);
       activity(user, `Deleted project ${p.name}`);
       save();
-      return (send(res, 200, { ok: true }), true);
+      return (send(res, 200, { ok: true, archived: false }), true);
     }
     // Phases
     if (parts[1] === "projects" && parts[3] === "phases" && method === "POST") {
@@ -4040,6 +4067,19 @@ async function api(req, res, url) {
     if (parts[1] === "projects" && parts[3] === "phases" && parts[4] && method === "DELETE") {
       const p = projectFor(user, parts[2]);
       if (!p || user.role !== "customer") return (send(res, 403, { error: "Not allowed" }), true);
+      const ph = p.phases.find((x) => x.id === parts[4]);
+      if (
+        ph &&
+        (ph.supplierId ||
+          (ph.tasks || []).some((t) => t.assignedSupplierId) ||
+          db.invoices.some((i) => i.phaseId === ph.id))
+      )
+        return (
+          send(res, 409, {
+            error: "Remove supplier assignments and resolve invoices before deleting this phase.",
+          }),
+          true
+        );
       p.phases = p.phases.filter((x) => x.id !== parts[4]);
       p.updatedAt = now();
       save();
@@ -5240,6 +5280,7 @@ async function api(req, res, url) {
         p = projectFor(user, b.projectId),
         ph = p?.phases.find((x) => x.id === b.phaseId),
         task = ph?.tasks?.find((x) => x.id === b.taskId);
+      if (p?.status === "Archived") return (send(res, 409, { error: ARCHIVED_ERROR }), true);
       if (!p || !task || !b.title || !b.dueDate)
         return (send(res, 400, { error: "Project task, title and bid deadline are required" }), true);
       const invited = [

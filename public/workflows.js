@@ -387,11 +387,12 @@ async function supplierBids() {
   await wfOffers();
 }
 async function customerProjects() {
-  const d = await api("/projects");
+  const showArchived = new URLSearchParams(location.hash.split("?")[1] || "").get("archived") === "1",
+    d = await api("/projects" + (showArchived ? "?archived=1" : ""));
   app.innerHTML = dashboardShell(
     "customer",
     "projects",
-    `<div class="dash-top"><div><h1>Projects</h1><p>Plan phases and tasks, manage supplier offers, documents and delivery.</p></div><div class="cc-actions"><button class="btn outline" onclick="navigate('/customer/offers')">Offers overview</button><button class="btn primary" onclick="navigate('/customer/projects/new')">+ New project</button></div></div><div class="cc-grid">${d.projects.map(customerProjectCard).join("") || '<div class="empty">No projects yet.</div>'}</div>`,
+    `<div class="dash-top"><div><h1>Projects</h1><p>Plan phases and tasks, manage supplier offers, documents and delivery.</p></div><div class="cc-actions"><label class="btn outline"><input type="checkbox" ${showArchived ? "checked" : ""} onchange="navigate('/customer/projects' + (this.checked ? '?archived=1' : ''))"> Show archived</label><button class="btn outline" onclick="navigate('/customer/offers')">Offers overview</button><button class="btn primary" onclick="navigate('/customer/projects/new')">+ New project</button></div></div><div class="cc-grid">${d.projects.map(customerProjectCard).join("") || '<div class="empty">No projects yet.</div>'}</div>`,
   );
 }
 async function supplierDetail(id) {
