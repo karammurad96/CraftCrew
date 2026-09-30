@@ -3215,6 +3215,16 @@ async function api(req, res, url) {
 
     const user = requireAuth(req, res);
     if (!user) return true;
+    // After an admin reset or a team invite, the temporary password only allows choosing a new one.
+    // (GET /auth/me, POST /auth/logout and GET /platform-config are answered above.)
+    if (
+      (user.self || user).mustChangePassword &&
+      !(parts[1] === "account" && parts[2] === "password" && parts.length === 3 && method === "POST")
+    )
+      return (
+        send(res, 403, { error: "Please choose a new password first.", code: "MUST_CHANGE_PASSWORD" }),
+        true
+      );
     // Team members: the main account decides which areas they may view or change.
     const teamDenied = team.denied(user, parts, method);
     if (teamDenied) return (send(res, 403, { error: teamDenied }), true);

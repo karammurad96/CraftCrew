@@ -130,7 +130,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T14 Validate statuses, dates and dependencies on projects, phases and tasks · M
 - [x] T15 Never delete financial records: archive projects, guard phase and task deletion · M
 - [x] T16 Fix phase re-ordering data loss · S
-- [ ] T17 Enforce "must change password" on the server · S
+- [x] T17 Enforce "must change password" on the server · S
 - [ ] T18 Session hygiene: purge expired sessions, cap per user, idle timeout · S
 - [ ] T19 Per-account sign-in lockout across networks · S
 - [ ] T20 Validate supplier profile fields and make directory search robust · S
@@ -510,7 +510,7 @@ password form.
 code, and `POST /account/password` works. Afterwards `GET /projects` → 200.
 
 **Done when.**
-- [ ] The tests pass.
+- [x] The tests pass.
 
 ### T18 · Session hygiene: purge expired sessions, cap per user, idle timeout
 `P0 · S · cheap model OK`

@@ -1292,6 +1292,10 @@ Object.assign(I18N_DE, {
   "Delete this project? Projects with invoices, documents or accepted suppliers are archived instead.":
     "Dieses Projekt löschen? Projekte mit Rechnungen, Dokumenten oder angenommenen Lieferanten werden stattdessen archiviert.",
   "Project archived": "Projekt archiviert",
+  "Please choose a new password first.": "Bitte wählen Sie zuerst ein neues Passwort.",
+  "Your password was reset by an administrator. Please choose a new password to continue.":
+    "Ihr Passwort wurde von einem Administrator zurückgesetzt. Bitte wählen Sie ein neues Passwort, um fortzufahren.",
+  "The new passwords do not match": "Die neuen Passwörter stimmen nicht überein",
   "Send phaseIds as a list of this project's phase ids, each once.":
     "Senden Sie phaseIds als Liste der Phasen-IDs dieses Projekts, jede nur einmal.",
   "Project deleted": "Projekt gelöscht",
