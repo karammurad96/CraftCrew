@@ -131,7 +131,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T15 Never delete financial records: archive projects, guard phase and task deletion · M
 - [x] T16 Fix phase re-ordering data loss · S
 - [x] T17 Enforce "must change password" on the server · S
-- [ ] T18 Session hygiene: purge expired sessions, cap per user, idle timeout · S
+- [x] T18 Session hygiene: purge expired sessions, cap per user, idle timeout · S
 - [ ] T19 Per-account sign-in lockout across networks · S
 - [ ] T20 Validate supplier profile fields and make directory search robust · S
 - [ ] T21 Upload safety: file type allowlist and ownership of attached files · M
@@ -533,7 +533,7 @@ the database forever. Every login adds one, and there is no limit or idle timeou
 test-only environment variable for the idle limit.
 
 **Done when.**
-- [ ] The tests pass.
+- [x] The tests pass.
 
 ### T19 · Per-account sign-in lockout across networks
 `P0 · S · cheap model OK`
