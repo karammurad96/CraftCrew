@@ -1293,6 +1293,32 @@ Object.assign(I18N_DE, {
     "Dieses Projekt löschen? Projekte mit Rechnungen, Dokumenten oder angenommenen Lieferanten werden stattdessen archiviert.",
   "Project archived": "Projekt archiviert",
   "Please choose a new password first.": "Bitte wählen Sie zuerst ein neues Passwort.",
+  // Supplier profile validation (T20)
+  "Services: up to 30 entries of up to 80 characters each.":
+    "Leistungen: bis zu 30 Einträge mit je bis zu 80 Zeichen.",
+  "Certifications: up to 30 entries of up to 80 characters each.":
+    "Zertifizierungen: bis zu 30 Einträge mit je bis zu 80 Zeichen.",
+  "Availability must be Available, Busy or Unavailable.":
+    "Verfügbarkeit muss Verfügbar, Ausgelastet oder Nicht verfügbar sein.",
+  "Hourly rate must be a number of at least 0.": "Der Stundensatz muss eine Zahl von mindestens 0 sein.",
+  "Project rate must be a number of at least 0.": "Der Projektpreis muss eine Zahl von mindestens 0 sein.",
+  "Team members: up to 50 people.": "Teammitglieder: bis zu 50 Personen.",
+  "Team members: each entry needs a name.": "Teammitglieder: Jeder Eintrag braucht einen Namen.",
+  "Team members: name, role and experience must be text.":
+    "Teammitglieder: Name, Rolle und Erfahrung müssen Text sein.",
+  "Team members: each field can have up to 120 characters.":
+    "Teammitglieder: Jedes Feld darf bis zu 120 Zeichen haben.",
+  "Service catalog: up to 50 services.": "Leistungskatalog: bis zu 50 Leistungen.",
+  "Service catalog: each service needs a name.": "Leistungskatalog: Jede Leistung braucht einen Namen.",
+  "Service catalog: unit must be hour, day, project, unit or fixed.":
+    "Leistungskatalog: Einheit muss Stunde, Tag, Projekt, Einheit oder Pauschal sein.",
+  "Service catalog: rate must be a number of at least 0.":
+    "Leistungskatalog: Der Preis muss eine Zahl von mindestens 0 sein.",
+  hour: "Stunde",
+  day: "Tag",
+  project: "Projekt",
+  unit: "Einheit",
+  fixed: "Pauschal",
   "Your password was reset by an administrator. Please choose a new password to continue.":
     "Ihr Passwort wurde von einem Administrator zurückgesetzt. Bitte wählen Sie ein neues Passwort, um fortzufahren.",
   "The new passwords do not match": "Die neuen Passwörter stimmen nicht überein",

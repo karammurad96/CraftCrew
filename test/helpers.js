@@ -69,8 +69,9 @@ function freePort() {
   });
 }
 
-async function startApp({ smtp, env = {} } = {}) {
-  const dataDir = mkdtempSync(path.join(tmpdir(), "craftcrew-test-"));
+// Pass `dataDir` to reuse a data folder (for example to restart on the same data); it is then kept on stop.
+async function startApp({ smtp, env = {}, dataDir: keepDir } = {}) {
+  const dataDir = keepDir || mkdtempSync(path.join(tmpdir(), "craftcrew-test-"));
   let proc,
     port,
     base,
@@ -117,7 +118,7 @@ async function startApp({ smtp, env = {} } = {}) {
     }
   }
   if (!base) {
-    rmSync(dataDir, { recursive: true, force: true });
+    if (!keepDir) rmSync(dataDir, { recursive: true, force: true });
     throw new Error("The test server did not start:\n" + stderr);
   }
   const call = async (method, url, body, token) => {
@@ -150,9 +151,9 @@ async function startApp({ smtp, env = {} } = {}) {
   const stop = async () => {
     proc.kill();
     await new Promise((r) => proc.once("exit", r));
-    rmSync(dataDir, { recursive: true, force: true });
+    if (!keepDir) rmSync(dataDir, { recursive: true, force: true });
   };
-  return { base, port, call, login, signup, stop, stderr: () => stderr };
+  return { base, port, dataDir, call, login, signup, stop, stderr: () => stderr };
 }
 
 // Shared fixtures for regression tests. Each throws with the API error when a step fails.

@@ -20,7 +20,11 @@ describe("sign-in lockout across networks", () => {
     await app.signup("customer", "target@test.local");
     for (let i = 0; i < 20; i++)
       assert.equal(await login("target@test.local", "wrong-" + i, `10.0.${i}.1`), 401, `attempt ${i + 1}`);
-    assert.equal(await login("target@test.local", "wrong", "10.9.9.9"), 429, "21st attempt from a new network");
+    assert.equal(
+      await login("target@test.local", "wrong", "10.9.9.9"),
+      429,
+      "21st attempt from a new network",
+    );
     assert.equal(
       await login("target@test.local", "Test-Password-2026", "10.9.9.10"),
       429,
@@ -33,7 +37,11 @@ describe("sign-in lockout across networks", () => {
     for (let i = 0; i < 5; i++) await login("other@test.local", "wrong", `10.1.${i}.1`);
     assert.equal(await login("other@test.local", "Test-Password-2026", "10.1.99.1"), 200);
     for (let i = 0; i < 19; i++) await login("other@test.local", "wrong", `10.2.${i}.1`);
-    assert.equal(await login("other@test.local", "Test-Password-2026", "10.2.99.1"), 200, "counter was reset");
+    assert.equal(
+      await login("other@test.local", "Test-Password-2026", "10.2.99.1"),
+      200,
+      "counter was reset",
+    );
   });
 
   it("answers unknown emails with the same 401", async () => {
