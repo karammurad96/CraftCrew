@@ -23,6 +23,7 @@ const mailer = require('./mailer');
 // Strategic sourcing module (contracts, scorecards, bid evaluation helpers).
 const sourcing = require('./sourcing')({getDb:()=>db,save:()=>save(),send:(...a)=>send(...a),body:r=>body(r),id:p=>id(p),now:()=>now(),notify:(...a)=>notify(...a),projectFor:(...a)=>projectFor(...a),supplierForUser:u=>supplierForUser(u),extraRisks:sid=>compliance.supplierRisk(sid)});
 // On-site contractor compliance (sites, workers, certificates, briefings, access and permits).
+const team = require('./team')({getDb:()=>db,save:()=>save(),send:(...a)=>send(...a),body:r=>body(r),id:p=>id(p),now:()=>now(),hashPassword:(...a)=>hashPassword(...a),crypto,queueEmail:(...a)=>queueEmail(...a),issueAuthToken:(...a)=>issueAuthToken(...a),appUrl:()=>APP_URL,mailEnabled:()=>mailer.enabled});
 const compliance = require('./compliance')({getDb:()=>db,save:()=>save(),send:(...a)=>send(...a),body:r=>body(r),id:p=>id(p),now:()=>now(),notify:(...a)=>notify(...a),projectFor:(...a)=>projectFor(...a)});
 // Public base URL used in email links.
 const APP_URL = (process.env.APP_URL || (process.env.DOMAIN ? `https://${process.env.DOMAIN}` : `http://localhost:${PORT}`)).replace(/\/$/, '');
@@ -239,11 +240,11 @@ if(DEMO_MODE)repairShowcaseMessagesV1();
 function save(){const temp=DB_FILE+'.tmp';fs.writeFileSync(temp,JSON.stringify(db,null,2),{mode:0o600});fs.renameSync(temp,DB_FILE);}
 save();
 
-function publicUser(u){const {passwordHash,salt,payoutDetails,notificationPrefs,layouts,...safe}=u;return safe;}
+function publicUser(u){const {passwordHash,salt,payoutDetails,notificationPrefs,layouts,self,...safe}=u;return safe;}
 // The signed-in user's own record, including private settings.
-function selfUser(u){const {passwordHash,salt,...safe}=u;return safe;}
+function selfUser(u){const {passwordHash,salt,self,...safe}=u;return safe;}
 function send(res,status,data,headers={}){const body=JSON.stringify(data);res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','Referrer-Policy':'strict-origin-when-cross-origin','Cache-Control':'no-store',...headers});res.end(body);}
-function auth(req){const h=req.headers.authorization||''; const token=h.startsWith('Bearer ')?h.slice(7):null; const tokenHash=token&&crypto.createHash('sha256').update(token).digest('hex'); const session=tokenHash&&(db.sessions||[]).find(x=>x.tokenHash===tokenHash&&Date.parse(x.expiresAt)>Date.now()); const userId=session?.userId,user=db.users.find(u=>u.id===userId)||null; return user?.status==='Suspended'?null:user;}
+function auth(req){const h=req.headers.authorization||''; const token=h.startsWith('Bearer ')?h.slice(7):null; const tokenHash=token&&crypto.createHash('sha256').update(token).digest('hex'); const session=tokenHash&&(db.sessions||[]).find(x=>x.tokenHash===tokenHash&&Date.parse(x.expiresAt)>Date.now()); const userId=session?.userId,user=db.users.find(u=>u.id===userId)||null; return user?.status==='Suspended'?null:team.resolve(user);}
 function requireAuth(req,res,roles){const u=auth(req);if(!u){send(res,401,{error:'Authentication required'});return null;}if(roles&& !roles.includes(u.role)){send(res,403,{error:'Forbidden'});return null;}return u;}
 async function body(req){return await new Promise((resolve,reject)=>{let chunks=[];req.on('data',c=>{chunks.push(c);if(chunks.reduce((a,b)=>a+b.length,0)>8e6) req.destroy();});req.on('end',()=>{const b=Buffer.concat(chunks);const type=req.headers['content-type']||'';if(type.includes('application/json')){try{resolve(JSON.parse(b.toString()||'{}'));}catch(e){reject(e)}}else resolve(b);});req.on('error',reject);});}
 function activity(actor,text){db.activities.unshift({id:id('act'),actorId:actor?.id||null,text,createdAt:now()});db.activities=db.activities.slice(0,100);}
@@ -364,9 +365,10 @@ async function api(req,res,url){
       if((rateBuckets.get(loginKey)||[]).filter(x=>Date.now()-x<900000).length>=8||rateLimited('login-ip:'+ip,60,900000))return send(res,429,{error:'Too many sign-in attempts. Wait 15 minutes and try again.'}),true;
       const u=db.users.find(x=>x.email.toLowerCase()===(b.email||'').toLowerCase());
       if(!u||!verifyPassword(b.password||'',u)){rateLimited(loginKey,1000,900000);return send(res,401,{error:'Invalid email or password'}),true;}
-      clearRate(loginKey);if(u.status==='Suspended')return send(res,403,{error:'This account is suspended. Contact CraftCrew support.'}),true;
+      clearRate(loginKey);const acting=u.status==='Suspended'?null:team.resolve(u);
+      if(!acting)return send(res,403,{error:u.orgOwnerId?'Your access to this company account has been removed. Contact your account owner.':'This account is suspended. Contact CraftCrew support.'}),true;
       if(u.emailVerified===false&&mailer.enabled)return send(res,403,{error:'Please confirm your email address first — we sent you a link.',code:'EMAIL_UNVERIFIED'}),true;
-      const token=newSession(u);save();send(res,200,{token,user:publicUser(u)});return true;
+      u.lastLoginAt=now();const token=newSession(u);save();send(res,200,{token,user:publicUser(acting)});return true;
     }
     if(parts[1]==='auth'&&parts[2]==='me'&&method==='GET'){const u=requireAuth(req,res);if(!u)return true;return send(res,200,{user:publicUser(u)}),true;}
     if(parts[1]==='auth'&&parts[2]==='logout'&&method==='POST'){const h=req.headers.authorization||'';if(h.startsWith('Bearer ')){const tokenHash=crypto.createHash('sha256').update(h.slice(7)).digest('hex');db.sessions=db.sessions.filter(x=>x.tokenHash!==tokenHash);save();}return send(res,200,{ok:true}),true;}
@@ -392,6 +394,9 @@ async function api(req,res,url){
     if(parts[1]==='platform-config'&&method==='GET')return send(res,200,{serviceCategories:db.settings?.serviceCategories||services,supportEmail:db.settings?.supportEmail||'support@craftcrew.local',faqContent:db.settings?.faqContent||'',mailEnabled:mailer.enabled,legal:{imprint:db.settings?.legal?.imprint||'',privacy:db.settings?.legal?.privacy||'',terms:db.settings?.legal?.terms||''}}),true;
 
     const user=requireAuth(req,res); if(!user)return true;
+    // Team members: the main account decides which areas they may view or change.
+    const teamDenied=team.denied(user,parts,method);if(teamDenied)return send(res,403,{error:teamDenied}),true;
+    if(await team.handle(req,res,url,parts,user))return true;
 
     // Dashboard aggregate
     if(parts[1]==='dashboard'&&method==='GET'){
@@ -686,7 +691,10 @@ async function api(req,res,url){
     if(parts[1]==='disputes'&&method==='POST'){const b=await body(req),p=b.projectId&&projectFor(user,b.projectId);if(!p)return send(res,404,{error:'Project not found'}),true;const d={id:id('dsp'),projectId:p.id,customerId:p.customerId,supplierId:b.supplierId||null,createdBy:user.id,type:b.type||'Support',description:b.description||'',status:'Open',createdAt:now(),updatedAt:now()};db.disputes=db.disputes||[];db.disputes.unshift(d);notify(p.customerId,'A support escalation was opened for '+p.name);save();return send(res,201,{dispute:d}),true;}
     if(parts[1]==='admin'&&parts[2]==='disputes'&&parts[3]&&method==='PATCH'){if(user.role!=='admin')return send(res,403,{error:'Admin only'}),true;const d=(db.disputes||[]).find(x=>x.id===parts[3]);if(!d)return send(res,404,{error:'Dispute not found'}),true;const b=await body(req);d.status=b.status||d.status;d.resolution=b.resolution||d.resolution||'';d.updatedAt=now();save();return send(res,200,{dispute:d}),true;}
     if(parts[1]==='profile'&&method==='GET'){return send(res,200,{user:selfUser(user),supplier:user.supplierId?supplierForUser(user):null,companyProfile:user.companyProfile||{}}),true;}
-    if(parts[1]==='profile'&&method==='PUT'){const b=await body(req);Object.assign(user,{name:b.name??user.name,company:b.company??user.company,profileImage:b.profileImage??user.profileImage});user.companyProfile=Object.assign(user.companyProfile||{},b.companyProfile||{});if(user.supplierId){const s=supplierForUser(user);if(!s)return send(res,404,{error:'Supplier profile not found'}),true;Object.assign(s,{company:b.company??s.company,location:b.location??s.location,description:b.description??s.description,services:Array.isArray(b.services)?b.services:s.services,serviceCatalog:Array.isArray(b.serviceCatalog)?b.serviceCatalog:s.serviceCatalog,certifications:Array.isArray(b.certifications)?b.certifications:s.certifications,teamMembers:Array.isArray(b.teamMembers)?b.teamMembers:s.teamMembers,employees:b.employees!==undefined?Math.max(0,Number(b.employees)||0):s.employees,experience:b.experience!==undefined?Math.max(0,Number(b.experience)||0):s.experience,availability:b.availability??s.availability,hourlyRate:b.hourlyRate!==undefined?Number(b.hourlyRate):s.hourlyRate,projectRate:b.projectRate!==undefined?Number(b.projectRate):s.projectRate,companyProfile:user.companyProfile,profileImage:user.profileImage});}save();return send(res,200,{user:publicUser(user),supplier:user.supplierId?supplierForUser(user):null,companyProfile:user.companyProfile}),true;}
+    if(parts[1]==='profile'&&method==='PUT'){const b=await body(req);
+      // Company data lives on the main account; a team member cannot rename the account holder.
+      const acct=db.users.find(x=>x.id===user.id)||user;if(user.isMember)delete b.name;
+      Object.assign(acct,{name:b.name??acct.name,company:b.company??acct.company,profileImage:b.profileImage??acct.profileImage});acct.companyProfile=Object.assign(acct.companyProfile||{},b.companyProfile||{});Object.assign(user,{company:acct.company,companyProfile:acct.companyProfile,profileImage:acct.profileImage});if(user.supplierId){const s=supplierForUser(user);if(!s)return send(res,404,{error:'Supplier profile not found'}),true;Object.assign(s,{company:b.company??s.company,location:b.location??s.location,description:b.description??s.description,services:Array.isArray(b.services)?b.services:s.services,serviceCatalog:Array.isArray(b.serviceCatalog)?b.serviceCatalog:s.serviceCatalog,certifications:Array.isArray(b.certifications)?b.certifications:s.certifications,teamMembers:Array.isArray(b.teamMembers)?b.teamMembers:s.teamMembers,employees:b.employees!==undefined?Math.max(0,Number(b.employees)||0):s.employees,experience:b.experience!==undefined?Math.max(0,Number(b.experience)||0):s.experience,availability:b.availability??s.availability,hourlyRate:b.hourlyRate!==undefined?Number(b.hourlyRate):s.hourlyRate,projectRate:b.projectRate!==undefined?Number(b.projectRate):s.projectRate,companyProfile:user.companyProfile,profileImage:user.profileImage});}save();return send(res,200,{user:publicUser(user),supplier:user.supplierId?supplierForUser(user):null,companyProfile:user.companyProfile}),true;}
     // Backup
     if(parts[1]==='backup'&&parts[2]==='export'&&method==='GET'){if(user.role!=='admin')return send(res,403,{error:'Admin only'}),true;return send(res,200,{exportedAt:now(),data:db}),true;}
     if(parts[1]==='backup'&&parts[2]==='import'&&method==='POST'){if(user.role!=='admin')return send(res,403,{error:'Admin only'}),true;const b=await body(req);if(!b.data||!b.data.users||!b.data.projects)return send(res,400,{error:'Invalid backup'}),true;db=b.data;save();return send(res,200,{ok:true}),true;}
@@ -712,41 +720,44 @@ async function api(req,res,url){
       const mine=(db.applications||[]).filter(a=>String(a.email).toLowerCase()===user.email.toLowerCase()).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))[0];
       return send(res,200,{application:mine?{id:mine.id,company:mine.company,status:mine.status,stage:mine.stage,decisionNote:mine.status==='Approved'||mine.status==='Rejected'||mine.status==='On Hold'?mine.decisionNote||'':'',createdAt:mine.createdAt,updatedAt:mine.updatedAt}:null}),true;
     }
+    // Personal account settings always apply to the signed-in person (a team member's own record).
+    const me=user.self||user;
     if(parts[1]==='account'&&parts[2]==='password'&&method==='POST'){
       const b=await body(req),next=String(b.newPassword||'');
-      if(!verifyPassword(String(b.currentPassword||''),user))return send(res,400,{error:'Your current password is incorrect'}),true;
+      if(!verifyPassword(String(b.currentPassword||''),me))return send(res,400,{error:'Your current password is incorrect'}),true;
       if(next.length<10||!/[A-Za-z]/.test(next)||!/\d/.test(next))return send(res,400,{error:'Use at least 10 characters including letters and numbers'}),true;
-      const hp=hashPassword(next);user.salt=hp.salt;user.passwordHash=hp.hash;user.passwordChangedAt=now();delete user.mustChangePassword;
+      const hp=hashPassword(next);me.salt=hp.salt;me.passwordHash=hp.hash;me.passwordChangedAt=now();delete me.mustChangePassword;
       const current=crypto.createHash('sha256').update((req.headers.authorization||'').slice(7)).digest('hex');
-      db.sessions=(db.sessions||[]).filter(x=>x.userId!==user.id||x.tokenHash===current);
+      db.sessions=(db.sessions||[]).filter(x=>x.userId!==me.id||x.tokenHash===current);
       save();return send(res,200,{ok:true}),true;
     }
     if(parts[1]==='account'&&parts[2]==='sessions'&&method==='DELETE'){
       const current=crypto.createHash('sha256').update((req.headers.authorization||'').slice(7)).digest('hex');
-      const before=(db.sessions||[]).length;db.sessions=(db.sessions||[]).filter(x=>x.userId!==user.id||x.tokenHash===current);
+      const before=(db.sessions||[]).length;db.sessions=(db.sessions||[]).filter(x=>x.userId!==me.id||x.tokenHash===current);
       save();return send(res,200,{revoked:before-db.sessions.length}),true;
     }
     if(parts[1]==='account'&&parts[2]==='preferences'&&method==='PUT'){
       const b=await body(req),keys=['messages','invoices','documents','bids','projects','time'];
-      user.notificationPrefs=Object.fromEntries(keys.map(k=>[k,!!(b.notificationPrefs||{})[k]]));
-      if(['de','en'].includes(b.language))user.language=b.language;
-      save();return send(res,200,{user:publicUser(user)}),true;
+      me.notificationPrefs=Object.fromEntries(keys.map(k=>[k,!!(b.notificationPrefs||{})[k]]));
+      if(['de','en'].includes(b.language))me.language=b.language;
+      save();return send(res,200,{user:publicUser(me)}),true;
     }
     // Personal page layouts (card order, hidden cards, section order), stored per user and page.
     if(parts[1]==='account'&&parts[2]==='layout'&&method==='PUT'){
       const b=await body(req),page=String(b.page||'').slice(0,80);
       if(!/^\/[a-z/-]+$/.test(page))return send(res,400,{error:'Invalid page'}),true;
-      user.layouts ||= {};
-      if(b.layout===null)delete user.layouts[page];
-      else{const json=JSON.stringify(b.layout||{});if(json.length>20000)return send(res,400,{error:'Layout too large'}),true;user.layouts[page]=JSON.parse(json);}
-      save();return send(res,200,{layouts:user.layouts}),true;
+      me.layouts ||= {};
+      if(b.layout===null)delete me.layouts[page];
+      else{const json=JSON.stringify(b.layout||{});if(json.length>20000)return send(res,400,{error:'Layout too large'}),true;me.layouts[page]=JSON.parse(json);}
+      save();return send(res,200,{layouts:me.layouts}),true;
     }
     if(parts[1]==='account'&&parts[2]==='payout'&&method==='PUT'){
       if(user.role!=='supplier')return send(res,403,{error:'Only suppliers have payout details'}),true;
       const b=await body(req),iban=String(b.iban||'').replace(/\s+/g,'').toUpperCase();
       if(!String(b.accountHolder||'').trim()||!/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(iban))return send(res,400,{error:'Enter the account holder and a valid IBAN'}),true;
       if(b.bic&&!/^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/i.test(String(b.bic).trim()))return send(res,400,{error:'Check the BIC / SWIFT format'}),true;
-      user.payoutDetails={accountHolder:String(b.accountHolder).trim().slice(0,140),iban,bic:String(b.bic||'').trim().toUpperCase().slice(0,11),bankName:String(b.bankName||'').trim().slice(0,140),billingEmail:String(b.billingEmail||'').trim().slice(0,200),updatedAt:now()};
+      // Payout details belong to the company account (the main account), also when a team member saves them.
+      (db.users.find(x=>x.id===user.id)||user).payoutDetails={accountHolder:String(b.accountHolder).trim().slice(0,140),iban,bic:String(b.bic||'').trim().toUpperCase().slice(0,11),bankName:String(b.bankName||'').trim().slice(0,140),billingEmail:String(b.billingEmail||'').trim().slice(0,200),updatedAt:now()};
       save();return send(res,200,{user:publicUser(user)}),true;
     }
     // Admin-issued temporary password: shown once to the admin, all sessions revoked, change forced on next sign-in.
@@ -801,7 +812,7 @@ const AUDIT_ACTIONS=[
   [/^POST rfqs$/,'Sent quote request'],[/^PATCH rfqs\//,'Answered quote request'],[/^POST chats$/,'Started conversation'],[/^POST (chats\/[^/]+\/)?messages$/,'Sent message'],
   [/^POST disputes$/,'Opened escalation'],[/^PATCH admin\/disputes\//,'Updated escalation'],[/^POST reviews$/,'Reviewed supplier'],[/^POST applications$/,'Submitted supplier application'],
   [/^PATCH admin\/applications\//,'Vetting decision'],[/^PATCH admin\/users\//,'Changed account status'],[/^PATCH admin\/suppliers\//,'Changed supplier badge'],[/^PUT admin\/settings$/,'Updated platform settings'],
-  [/^PUT profile$/,'Updated profile'],[/^POST account\/password$/,'Changed password'],[/^DELETE account\/sessions$/,'Signed out other sessions'],[/^PUT account\/preferences$/,'Updated notification preferences'],[/^PUT account\/payout$/,'Updated payout details'],[/^PUT account\/layout$/,null],
+  [/^PUT profile$/,'Updated profile'],[/^POST account\/password$/,'Changed password'],[/^DELETE account\/sessions$/,'Signed out other sessions'],[/^PUT account\/preferences$/,'Updated notification preferences'],[/^PUT account\/payout$/,'Updated payout details'],[/^PUT account\/layout$/,null],[/^POST team$/,'Invited team member'],[/^PATCH team\//,'Changed team member access'],[/^DELETE team\//,'Removed team member'],
   [/^GET backup/,null],[/^POST contracts$/,'Created contract'],[/^POST sites$/,'Created site'],[/^PATCH sites\//,'Updated site'],[/^POST sites\/[^/]+\/briefings$/,'Completed safety briefing'],[/^POST workers$/,'Added worker'],[/^PATCH workers\//,'Updated worker'],[/^POST compliance\/documents$/,'Uploaded compliance document'],[/^PATCH compliance\/documents\//,'Reviewed compliance document'],[/^POST site-visits$/,'Requested site access'],[/^PATCH site-visits\//,'Site access decision'],[/^PATCH contracts\//,'Updated contract'],[/^POST backup\/import$/,'Imported backup']
 ];
 function trackAudit(req,res,url){
@@ -816,7 +827,7 @@ function trackAudit(req,res,url){
     const record=Object.values(payload).find(v=>v&&typeof v==='object'&&!Array.isArray(v)&&v.id)||{},segs=route.split('/');
     const projectId=record.projectId||(segs[0]==='projects'&&segs[1])||(segs[0]==='projects'?record.id:null)||null,project=projectId&&db.projects.find(p=>p.id===projectId);
     db.auditLog ||= [];
-    db.auditLog.unshift({id:id('aud'),at:now(),actorId:who?.id||null,actorName:who?.name||'Public visitor',actorEmail:who?.email||'',actorRole:who?.role||'public',action:match?.[1]||`${req.method} ${route}`,method:req.method,path:'/api/'+route,entityId:record.id||segs.at(-1)||'',status:record.status||'',projectId:project?project.id:null,projectName:project?.name||'',ip:(req.socket.remoteAddress||'').replace(/^::ffff:/,'')});
+    db.auditLog.unshift({id:id('aud'),at:now(),actorId:who?.memberId||who?.id||null,actorName:who?.name||'Public visitor',actorEmail:who?.email||'',actorRole:who?.role||'public',action:match?.[1]||`${req.method} ${route}`,method:req.method,path:'/api/'+route,entityId:record.id||segs.at(-1)||'',status:record.status||'',projectId:project?project.id:null,projectName:project?.name||'',ip:(req.socket.remoteAddress||'').replace(/^::ffff:/,'')});
     db.auditLog=db.auditLog.slice(0,5000);save();
   });
 }

@@ -64,7 +64,7 @@ function legalForceChange() {
   if (location.hash.split('?')[0] !== '#' + target) { navigate(target); return; }
   const sec = document.getElementById('paSecurity');
   if (sec && !sec.querySelector('.legal-force-note')) {
-    sec.insertAdjacentHTML('afterbegin', '<div class="notice legal-force-note">Your password was reset by an administrator. Please choose a new password to continue.</div>');
+    sec.insertAdjacentHTML('afterbegin', `<div class="notice legal-force-note">${state.user.isMember ? 'Welcome to the team. Please replace your temporary password with your own to continue.' : 'Your password was reset by an administrator. Please choose a new password to continue.'}</div>`);
     sec.scrollIntoView({block: 'center'});
     sec.querySelector('input[name=currentPassword]')?.setAttribute('placeholder', 'Temporary password');
   }

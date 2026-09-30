@@ -73,6 +73,8 @@ window.route = async function () {
   const result = await obBaseRoute(), path = location.hash.replace(/^#/, '').split('?')[0] || '/';
   try {
     if (path === '/' || path === '/home') await obEnhanceHome();
+    // Company setup belongs to the main account, not to invited team members.
+    if (state.user?.isMember) return result;
     if (state.user && /^\/(customer|supplier|admin)\/dashboard$/.test(path)) await obChecklist();
     // Re-open the checklist from the sidebar help area.
     const help = document.querySelector('.sidebar .help');
