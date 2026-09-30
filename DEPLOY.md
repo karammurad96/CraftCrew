@@ -41,6 +41,9 @@ Everything is in the `craftcrew-data` Docker volume. A nightly backup, kept for 
 sudo mkdir -p /opt/craftcrew-backups
 ( crontab -l 2>/dev/null; echo '30 2 * * * docker run --rm -v craftcrew_craftcrew-data:/data -v /opt/craftcrew-backups:/backup alpine tar czf /backup/craftcrew-$(date +\%F).tgz -C /data . && find /opt/craftcrew-backups -name "*.tgz" -mtime +14 -delete' ) | crontab -
 ```
+The volume also holds `audit/audit-YYYY-MM.jsonl`: audit entries older than the newest 5,000 are moved
+there, one JSON object per line. Keep these files in the backup; they are the only copy of the older audit log.
+
 Copy the backups off the server as well (e.g. provider snapshots or `rclone` to storage). Test a restore once.
 
 ## 5. Updates

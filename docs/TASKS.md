@@ -142,7 +142,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 
 **Wave 2 — reliability and performance (P1, one agent at a time: all touch `save()`)**
 - [x] T30 Batch database writes and stop writing on reads · M
-- [ ] T31 Data retention limits · S
+- [x] T31 Data retention limits · S
 - [x] T32 Browser smoke test in CI · M
 - [ ] T33 Prevent double submission of forms · S
 
