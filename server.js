@@ -3894,6 +3894,40 @@ async function api(req, res, url) {
         true
       );
     }
+    // Badge counts for the sidebar, keyed by the page they link to.
+    if (parts[1] === "nav-counts" && method === "GET") {
+      const counts = {},
+        unreadMessages = (db.notifications || []).filter(
+          (n) => n.userId === user.id && !n.read && /\/messages/.test(n.link || ""),
+        ).length;
+      counts.messages = unreadMessages;
+      if (user.role === "customer") {
+        const mine = new Set(db.projects.filter((p) => projectFor(user, p.id)).map((p) => p.id));
+        counts.approvals =
+          db.invoices.filter((i) => i.status === "Submitted" && mine.has(i.projectId)).length +
+          (db.timeEntries || []).filter((t) => t.status === "Pending approval" && mine.has(t.projectId))
+            .length;
+      }
+      if (user.role === "supplier") {
+        let invitations = 0;
+        for (const p of db.projects)
+          for (const ph of p.phases || []) {
+            if (ph.supplierId === user.supplierId && ph.acceptanceStatus === "Pending") invitations++;
+            for (const t of ph.tasks || [])
+              if (t.assignedSupplierId === user.supplierId && t.acceptanceStatus === "Pending") invitations++;
+          }
+        counts.projects = invitations;
+      }
+      if (user.role === "admin") {
+        counts.disputes = (db.disputes || []).filter((d) =>
+          ["Open", "In progress"].includes(d.status),
+        ).length;
+        counts.applications = (db.applications || []).filter((a) =>
+          ["New", "On Hold"].includes(a.status || "New"),
+        ).length;
+      }
+      return (send(res, 200, { counts }), true);
+    }
     if (parts[1] === "notifications" && method === "GET") {
       const list = (db.notifications || [])
         .filter((n) => n.userId === user.id)
