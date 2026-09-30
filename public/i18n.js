@@ -1293,6 +1293,25 @@ Object.assign(I18N_DE, {
     "Dieses Projekt löschen? Projekte mit Rechnungen, Dokumenten oder angenommenen Lieferanten werden stattdessen archiviert.",
   "Project archived": "Projekt archiviert",
   "Please choose a new password first.": "Bitte wählen Sie zuerst ein neues Passwort.",
+  // XRechnung e-invoices (T43)
+  "Download e-invoice (XRechnung)": "E-Rechnung herunterladen (XRechnung)",
+  "Order reference (for e-invoices)": "Bestellreferenz (für E-Rechnungen)",
+  "Your purchase order or cost centre number": "Ihre Bestell- oder Kostenstellennummer",
+  "This invoice has no VAT data. E-invoices need an invoice created with a VAT mode.":
+    "Diese Rechnung enthält keine Umsatzsteuerdaten. E-Rechnungen brauchen eine Rechnung mit Umsatzsteuerangabe.",
+  "Add your company address with street, postcode and city to your company profile.":
+    "Tragen Sie Ihre Firmenanschrift mit Straße, Postleitzahl und Ort im Unternehmensprofil ein.",
+  "Add your tax number or VAT ID to your company profile.":
+    "Tragen Sie Ihre Steuernummer oder USt-IdNr. im Unternehmensprofil ein.",
+  "Add a phone number and email address to your company profile; e-invoices need a contact.":
+    "Tragen Sie Telefonnummer und E-Mail-Adresse im Unternehmensprofil ein; E-Rechnungen brauchen einen Kontakt.",
+  "Add your bank account (IBAN) under payout details; e-invoices need payment details.":
+    "Hinterlegen Sie Ihr Bankkonto (IBAN) bei den Auszahlungsdaten; E-Rechnungen brauchen Zahlungsangaben.",
+  "The customer's company address with postcode and city is missing from their company profile.":
+    "Im Unternehmensprofil des Kunden fehlt die Anschrift mit Postleitzahl und Ort.",
+  "The customer's email address is missing.": "Die E-Mail-Adresse des Kunden fehlt.",
+  "Reverse charge needs the customer's VAT ID (for example DE123456789) in their company profile.":
+    "Für Reverse Charge wird die USt-IdNr. des Kunden (zum Beispiel DE123456789) im Unternehmensprofil benötigt.",
   // Invoice reminders (T44)
   Overdue: "Überfällig",
   "Waiting for review since today": "Wartet seit heute auf Prüfung",
