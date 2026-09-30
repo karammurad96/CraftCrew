@@ -119,7 +119,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 ### Overview (tick when merged)
 
 **Wave 0 — preparation (one agent, in this order)**
-- [ ] T00 Format the code with Prettier (no behaviour change) · P0 · S · cheap model OK
+- [x] T00 Format the code with Prettier (no behaviour change) · P0 · S · cheap model OK
 - [ ] T01 Shared test helpers for suppliers, projects and invoices · P0 · S · cheap model OK
 
 **Wave 1 — security and data integrity (P0)**
