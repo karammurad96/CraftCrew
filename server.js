@@ -2375,12 +2375,43 @@ function repairShowcaseMessagesV1() {
   db.meta.showcaseMessagesRepairV1 = true;
 }
 if (DEMO_MODE) repairShowcaseMessagesV1();
-function save() {
-  const temp = DB_FILE + ".tmp";
-  fs.writeFileSync(temp, JSON.stringify(db, null, 2), { mode: 0o600 });
+// Writes are batched: save() marks the data dirty and one write follows within SAVE_DELAY_MS.
+// saveNow() writes at once (start-up, backup import, shutdown).
+// `var`, because start-up repairs call save() before these lines run.
+var SAVE_DELAY_MS = 200,
+  saveTimer = null;
+function saveNow() {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = null;
+  const temp = DB_FILE + ".tmp",
+    fd = fs.openSync(temp, "w", 0o600);
+  try {
+    fs.writeSync(fd, JSON.stringify(db));
+    fs.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
   fs.renameSync(temp, DB_FILE);
 }
-save();
+function save() {
+  if (saveTimer) return;
+  saveTimer = setTimeout(() => {
+    try {
+      saveNow();
+    } catch (e) {
+      console.error("Could not save the database:", e);
+    }
+  }, SAVE_DELAY_MS);
+}
+saveNow();
+for (const signal of ["SIGTERM", "SIGINT"])
+  process.on(signal, () => {
+    try {
+      if (saveTimer) saveNow();
+    } finally {
+      process.exit(0);
+    }
+  });
 
 function publicUser(u) {
   const { passwordHash, salt, payoutDetails, notificationPrefs, layouts, self, ...safe } = u;
@@ -2594,8 +2625,19 @@ function notify(userId, text, link = "") {
       recipient.email,
       "notification",
       `CraftCrew: ${String(text).slice(0, 120)}`,
-      `${text}\n\nOpen CraftCrew to review: #${link}`,
+      recipient.language === "de"
+        ? `${text}\n\nIn CraftCrew öffnen: ${APP_URL}/#${link}`
+        : `${text}\n\nOpen CraftCrew: ${APP_URL}/#${link}`,
     );
+}
+// Escalations: allowed values, and the people on both sides who hear about them.
+const DISPUTE_TYPES = ["Support", "Quality", "Schedule", "Payment", "Safety", "Other"];
+const DISPUTE_STATUSES = ["Open", "In progress", "Resolved", "Closed"];
+function disputeParties(d) {
+  const ids = new Set([d.customerId, d.createdBy]);
+  if (d.supplierId)
+    for (const u of db.users.filter((x) => x.supplierId === d.supplierId && !x.orgOwnerId)) ids.add(u.id);
+  return [...ids].filter(Boolean);
 }
 function projectSupplierIds(p) {
   return [
@@ -2970,11 +3012,14 @@ function invoicePdf(inv, lang = "en") {
 /* ---------- Abuse protection ----------
    In-memory, per-instance limits (the app runs as a single instance). Behind a
    reverse proxy set TRUST_PROXY=1 so the client address comes from X-Forwarded-For. */
+// With TRUST_PROXY=1 the LAST X-Forwarded-For entry is used: the one our proxy (Caddy) added.
+// Earlier entries come from the client and can be faked.
 function clientIp(req) {
   const fwd =
     process.env.TRUST_PROXY === "1" &&
     String(req.headers["x-forwarded-for"] || "")
-      .split(",")[0]
+      .split(",")
+      .at(-1)
       .trim();
   return fwd || String(req.socket.remoteAddress || "").replace(/^::ffff:/, "");
 }
@@ -5179,6 +5224,7 @@ async function api(req, res, url) {
           ].join("|"),
         ),
       );
+      let changed = false;
       for (const m of db.messages)
         if (m.projectId && !m.chatId) {
           const pair = [m.senderId, m.recipientId].filter(Boolean).sort(),
@@ -5199,6 +5245,7 @@ async function api(req, res, url) {
               };
             db.chats.push(c);
             existing.add(key);
+            changed = true;
           }
           const c = db.chats.find(
             (x) =>
@@ -5207,7 +5254,10 @@ async function api(req, res, url) {
               (x.taskId || "") === (m.taskId || "") &&
               (x.participantIds || []).slice().sort().join(",") === pair.join(","),
           );
-          if (c) m.chatId = c.id;
+          if (c) {
+            m.chatId = c.id;
+            changed = true;
+          }
         }
       const list = db.chats
         .filter((c) => chatScopeAllows(user, c))
@@ -5223,7 +5273,7 @@ async function api(req, res, url) {
             String(a.lastMessage?.createdAt || a.createdAt),
           ),
         );
-      save();
+      if (changed) save();
       return (send(res, 200, { chats: list }), true);
     }
     if (parts[1] === "chats" && parts.length === 2 && method === "POST") {
@@ -5912,23 +5962,35 @@ async function api(req, res, url) {
     }
     if (parts[1] === "disputes" && method === "POST") {
       const b = await body(req),
-        p = b.projectId && projectFor(user, b.projectId);
+        p = b.projectId && projectFor(user, String(b.projectId));
       if (!p) return (send(res, 404, { error: "Project not found" }), true);
+      if (!oneOf(b.type, DISPUTE_TYPES))
+        return (send(res, 400, { error: "Choose an issue type: " + DISPUTE_TYPES.join(", ") + "." }), true);
+      const description = cleanStr(b.description, 5000);
+      if (description.length < 10)
+        return (send(res, 400, { error: "Describe the issue in at least 10 characters." }), true);
+      // A supplier escalates about their own work; a customer may name a supplier on this project.
+      let supplierId = user.role === "supplier" ? user.supplierId : b.supplierId || null;
+      if (supplierId && !projectSupplierIds(p).includes(supplierId))
+        return (send(res, 400, { error: "Choose a supplier who works on this project." }), true);
       const d = {
         id: id("dsp"),
         projectId: p.id,
         customerId: p.customerId,
-        supplierId: b.supplierId || null,
+        supplierId,
         createdBy: user.id,
-        type: b.type || "Support",
-        description: b.description || "",
+        type: b.type,
+        description,
         status: "Open",
         createdAt: now(),
         updatedAt: now(),
       };
       db.disputes = db.disputes || [];
       db.disputes.unshift(d);
-      notify(p.customerId, "A support escalation was opened for " + p.name);
+      const text = `Escalation opened for ${p.name}: ${d.type}`;
+      for (const admin of db.users.filter((x) => x.role === "admin" && x.status !== "Suspended"))
+        notify(admin.id, text, "/admin/disputes");
+      for (const uid of disputeParties(d)) if (uid !== user.id) notify(uid, text);
       save();
       return (send(res, 201, { dispute: d }), true);
     }
@@ -5937,9 +5999,17 @@ async function api(req, res, url) {
       const d = (db.disputes || []).find((x) => x.id === parts[3]);
       if (!d) return (send(res, 404, { error: "Dispute not found" }), true);
       const b = await body(req);
+      if (b.status !== undefined && !oneOf(b.status, DISPUTE_STATUSES))
+        return (send(res, 400, { error: "Status must be " + DISPUTE_STATUSES.join(", ") + "." }), true);
+      const previous = d.status;
       d.status = b.status || d.status;
-      d.resolution = b.resolution || d.resolution || "";
+      if (b.resolution !== undefined) d.resolution = cleanStr(b.resolution, 5000);
       d.updatedAt = now();
+      if (d.status !== previous) {
+        const p = db.projects.find((x) => x.id === d.projectId);
+        for (const uid of disputeParties(d))
+          notify(uid, `Escalation for ${p?.name || "your project"} is now ${d.status}`);
+      }
       save();
       return (send(res, 200, { dispute: d }), true);
     }
@@ -6001,18 +6071,44 @@ async function api(req, res, url) {
       );
     }
     // Backup
+    // Backups never contain sign-in sessions or one-time email tokens.
     if (parts[1] === "backup" && parts[2] === "export" && method === "GET") {
       if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
-      return (send(res, 200, { exportedAt: now(), data: db }), true);
+      const { sessions, authTokens, ...data } = db;
+      return (send(res, 200, { exportedAt: now(), data }), true);
     }
     if (parts[1] === "backup" && parts[2] === "import" && method === "POST") {
       if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
-      const b = await body(req);
-      if (!b.data || !b.data.users || !b.data.projects)
-        return (send(res, 400, { error: "Invalid backup" }), true);
-      db = b.data;
-      save();
-      return (send(res, 200, { ok: true }), true);
+      const b = await body(req),
+        data = b.data;
+      const required = ["users", "projects", "invoices", "suppliers"];
+      if (!data || typeof data !== "object" || required.some((k) => !Array.isArray(data[k])))
+        return (
+          send(res, 400, {
+            error: "This is not a CraftCrew backup: users, projects, invoices and suppliers are missing.",
+          }),
+          true
+        );
+      if (!data.users.some((u) => u && u.role === "admin" && u.status !== "Suspended"))
+        return (
+          send(res, 400, { error: "The backup has no active admin account, so nobody could sign in." }),
+          true
+        );
+      // Keep a copy of the current data, then keep everyone signed in.
+      const backupDir = path.join(DATA_DIR, "backups");
+      fs.mkdirSync(backupDir, { recursive: true });
+      const copy = path.join(backupDir, `pre-import-${now().replace(/[:.]/g, "-")}.json`);
+      fs.writeFileSync(copy, JSON.stringify(db), { mode: 0o600 });
+      const sessions = db.sessions || [];
+      delete data.authTokens;
+      db = { ...data, sessions };
+      saveNow();
+      const counts = Object.fromEntries(
+        Object.entries(db)
+          .filter(([k, v]) => Array.isArray(v) && k !== "sessions")
+          .map(([k, v]) => [k, v.length]),
+      );
+      return (send(res, 200, { ok: true, counts, previousDataSavedAs: path.basename(copy) }), true);
     }
     /* ---------------------------------------------------------------
        Platform additions: audit trail, account security & preferences,
@@ -6375,7 +6471,7 @@ function trackAudit(req, res, url) {
       status: record.status || "",
       projectId: project ? project.id : null,
       projectName: project?.name || "",
-      ip: (req.socket.remoteAddress || "").replace(/^::ffff:/, ""),
+      ip: clientIp(req),
     });
     db.auditLog = db.auditLog.slice(0, 5000);
     save();

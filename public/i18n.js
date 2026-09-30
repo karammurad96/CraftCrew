@@ -1295,6 +1295,26 @@ Object.assign(I18N_DE, {
   "Please choose a new password first.": "Bitte wählen Sie zuerst ein neues Passwort.",
   "This invoice was just submitted. Check your invoices before sending it again.":
     "Diese Rechnung wurde gerade eingereicht. Prüfen Sie Ihre Rechnungen, bevor Sie sie erneut senden.",
+  // Escalations (T25)
+  "Issue type": "Art des Problems",
+  "Open escalation": "Eskalation eröffnen",
+  "Support escalation opened": "Eskalation eröffnet",
+  "Escalation resolved": "Eskalation gelöst",
+  Support: "Unterstützung",
+  Quality: "Qualität",
+  Payment: "Zahlung",
+  Safety: "Sicherheit",
+  "Describe the issue in at least 10 characters.": "Beschreiben Sie das Problem mit mindestens 10 Zeichen.",
+  "Choose a supplier who works on this project.":
+    "Wählen Sie einen Lieferanten, der an diesem Projekt arbeitet.",
+  // Backup import (T24)
+  "Import backup?": "Sicherung importieren?",
+  "Import backup": "Sicherung importieren",
+  "Backup imported": "Sicherung importiert",
+  "This is not a CraftCrew backup: users, projects, invoices and suppliers are missing.":
+    "Dies ist keine CraftCrew-Sicherung: Benutzer, Projekte, Rechnungen und Lieferanten fehlen.",
+  "The backup has no active admin account, so nobody could sign in.":
+    "Die Sicherung enthält kein aktives Admin-Konto, daher könnte sich niemand anmelden.",
   // Supplier profile validation (T20)
   "Services: up to 30 entries of up to 80 characters each.":
     "Leistungen: bis zu 30 Einträge mit je bis zu 80 Zeichen.",

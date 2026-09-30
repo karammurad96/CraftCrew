@@ -130,7 +130,7 @@ async function sendMail({ to, subject, text }) {
       .replace(/.{1,76}/g, "$&\r\n");
     const message = [
       `From: ${formatFrom(config.from)}`,
-      `To: <${to}>`,
+      `To: <${String(to).replace(/[<>\r\n]/g, "")}>`,
       `Subject: ${encodeHeader(String(subject).replace(/[\r\n]+/g, " "))}`,
       `Date: ${new Date().toUTCString()}`,
       `Message-ID: <${crypto.randomUUID()}@${fromAddress.split("@")[1] || "craftcrew"}>`,
