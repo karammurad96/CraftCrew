@@ -5986,18 +5986,44 @@ async function api(req, res, url) {
       );
     }
     // Backup
+    // Backups never contain sign-in sessions or one-time email tokens.
     if (parts[1] === "backup" && parts[2] === "export" && method === "GET") {
       if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
-      return (send(res, 200, { exportedAt: now(), data: db }), true);
+      const { sessions, authTokens, ...data } = db;
+      return (send(res, 200, { exportedAt: now(), data }), true);
     }
     if (parts[1] === "backup" && parts[2] === "import" && method === "POST") {
       if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
-      const b = await body(req);
-      if (!b.data || !b.data.users || !b.data.projects)
-        return (send(res, 400, { error: "Invalid backup" }), true);
-      db = b.data;
+      const b = await body(req),
+        data = b.data;
+      const required = ["users", "projects", "invoices", "suppliers"];
+      if (!data || typeof data !== "object" || required.some((k) => !Array.isArray(data[k])))
+        return (
+          send(res, 400, {
+            error: "This is not a CraftCrew backup: users, projects, invoices and suppliers are missing.",
+          }),
+          true
+        );
+      if (!data.users.some((u) => u && u.role === "admin" && u.status !== "Suspended"))
+        return (
+          send(res, 400, { error: "The backup has no active admin account, so nobody could sign in." }),
+          true
+        );
+      // Keep a copy of the current data, then keep everyone signed in.
+      const backupDir = path.join(DATA_DIR, "backups");
+      fs.mkdirSync(backupDir, { recursive: true });
+      const copy = path.join(backupDir, `pre-import-${now().replace(/[:.]/g, "-")}.json`);
+      fs.writeFileSync(copy, JSON.stringify(db), { mode: 0o600 });
+      const sessions = db.sessions || [];
+      delete data.authTokens;
+      db = { ...data, sessions };
       save();
-      return (send(res, 200, { ok: true }), true);
+      const counts = Object.fromEntries(
+        Object.entries(db)
+          .filter(([k, v]) => Array.isArray(v) && k !== "sessions")
+          .map(([k, v]) => [k, v.length]),
+      );
+      return (send(res, 200, { ok: true, counts, previousDataSavedAs: path.basename(copy) }), true);
     }
     /* ---------------------------------------------------------------
        Platform additions: audit trail, account security & preferences,
