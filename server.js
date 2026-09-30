@@ -4184,22 +4184,25 @@ async function api(req, res, url) {
       if (user.role === "customer") {
         if (!["Approve", "Request Changes", "Rejected"].includes(action))
           return (send(res, 400, { error: "Invalid invoice action" }), true);
+        if (i.status !== "Submitted")
+          return (send(res, 409, { error: `This invoice was already decided (status: ${i.status}).` }), true);
         if (action === "Approve") {
           i.status = "Approved";
           i.scheduledPayment = future(Number(db.settings?.defaultPaymentTermsDays ?? 3));
           const feePercent = Number(db.settings?.platformFeePercent ?? 3),
             fee = Math.round(Number(i.amount) * feePercent) / 100;
-          db.payments.push({
-            id: id("pay"),
-            invoiceId: i.id,
-            status: "Scheduled",
-            scheduledDate: i.scheduledPayment,
-            amount: i.amount,
-            platformFeePercent: feePercent,
-            platformFee: fee,
-            supplierPayout: Math.max(0, Number(i.amount) - fee),
-            createdAt: now(),
-          });
+          if (!db.payments.some((p) => p.invoiceId === i.id))
+            db.payments.push({
+              id: id("pay"),
+              invoiceId: i.id,
+              status: "Scheduled",
+              scheduledDate: i.scheduledPayment,
+              amount: i.amount,
+              platformFeePercent: feePercent,
+              platformFee: fee,
+              supplierPayout: Math.max(0, Number(i.amount) - fee),
+              createdAt: now(),
+            });
         }
         if (action === "Request Changes") {
           i.changeRequests = (Number(i.changeRequests) || 0) + 1;
