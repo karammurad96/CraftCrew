@@ -143,7 +143,7 @@ module.exports = function createDocuments(ctx) {
     if (method === "POST" && parts.length === 2) {
       const b = await body(req),
         title = String(b.title || "").trim();
-      if (!title || !String(b.url || "").startsWith("/uploads/"))
+      if (!title || !ctx.ownUpload(user, String(b.url || "")))
         return (send(res, 400, { error: "Add a title and upload the document" }), true);
       if (b.expiresAt && !/^\d{4}-\d{2}-\d{2}$/.test(b.expiresAt))
         return (send(res, 400, { error: "Enter a valid expiry date" }), true);

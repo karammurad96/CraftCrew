@@ -1305,6 +1305,40 @@ Object.assign(I18N_DE, {
   "Describe the issue in at least 10 characters.": "Beschreiben Sie das Problem mit mindestens 10 Zeichen.",
   "Choose a supplier who works on this project.":
     "Wählen Sie einen Lieferanten, der an diesem Projekt arbeitet.",
+  // Backup import (T24)
+  "Import backup?": "Sicherung importieren?",
+  "Import backup": "Sicherung importieren",
+  "Backup imported": "Sicherung importiert",
+  "This is not a CraftCrew backup: users, projects, invoices and suppliers are missing.":
+    "Dies ist keine CraftCrew-Sicherung: Benutzer, Projekte, Rechnungen und Lieferanten fehlen.",
+  "The backup has no active admin account, so nobody could sign in.":
+    "Die Sicherung enthält kein aktives Admin-Konto, daher könnte sich niemand anmelden.",
+  // Supplier profile validation (T20)
+  "Services: up to 30 entries of up to 80 characters each.":
+    "Leistungen: bis zu 30 Einträge mit je bis zu 80 Zeichen.",
+  "Certifications: up to 30 entries of up to 80 characters each.":
+    "Zertifizierungen: bis zu 30 Einträge mit je bis zu 80 Zeichen.",
+  "Availability must be Available, Busy or Unavailable.":
+    "Verfügbarkeit muss Verfügbar, Ausgelastet oder Nicht verfügbar sein.",
+  "Hourly rate must be a number of at least 0.": "Der Stundensatz muss eine Zahl von mindestens 0 sein.",
+  "Project rate must be a number of at least 0.": "Der Projektpreis muss eine Zahl von mindestens 0 sein.",
+  "Team members: up to 50 people.": "Teammitglieder: bis zu 50 Personen.",
+  "Team members: each entry needs a name.": "Teammitglieder: Jeder Eintrag braucht einen Namen.",
+  "Team members: name, role and experience must be text.":
+    "Teammitglieder: Name, Rolle und Erfahrung müssen Text sein.",
+  "Team members: each field can have up to 120 characters.":
+    "Teammitglieder: Jedes Feld darf bis zu 120 Zeichen haben.",
+  "Service catalog: up to 50 services.": "Leistungskatalog: bis zu 50 Leistungen.",
+  "Service catalog: each service needs a name.": "Leistungskatalog: Jede Leistung braucht einen Namen.",
+  "Service catalog: unit must be hour, day, project, unit or fixed.":
+    "Leistungskatalog: Einheit muss Stunde, Tag, Projekt, Einheit oder Pauschal sein.",
+  "Service catalog: rate must be a number of at least 0.":
+    "Leistungskatalog: Der Preis muss eine Zahl von mindestens 0 sein.",
+  hour: "Stunde",
+  day: "Tag",
+  project: "Projekt",
+  unit: "Einheit",
+  fixed: "Pauschal",
   "Your password was reset by an administrator. Please choose a new password to continue.":
     "Ihr Passwort wurde von einem Administrator zurückgesetzt. Bitte wählen Sie ein neues Passwort, um fortzufahren.",
   "The new passwords do not match": "Die neuen Passwörter stimmen nicht überein",

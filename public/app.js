@@ -683,8 +683,21 @@ async function importData(input) {
   const f = input.files[0];
   if (!f) return;
   try {
-    const data = JSON.parse(await f.text());
-    await api("/backup/import", { method: "POST", body: { data: data.data || data } });
+    const data = JSON.parse(await f.text()),
+      backup = data.data || data,
+      n = (k) => (Array.isArray(backup[k]) ? backup[k].length : 0),
+      de = typeof i18nLang !== "undefined" && i18nLang === "de";
+    const ok = await uiDialog({
+      title: "Import backup?",
+      message: de
+        ? `Alle aktuellen Daten werden durch die Sicherung ersetzt: ${n("users")} Benutzer, ${n("projects")} Projekte, ${n("invoices")} Rechnungen, ${n("suppliers")} Lieferanten. Eine Kopie der aktuellen Daten wird vorher gespeichert.`
+        : `All current data will be replaced by the backup: ${n("users")} users, ${n("projects")} projects, ${n("invoices")} invoices, ${n("suppliers")} suppliers. A copy of the current data is saved first.`,
+      confirmLabel: "Import backup",
+      danger: true,
+    });
+    input.value = "";
+    if (!ok) return;
+    await api("/backup/import", { method: "POST", body: { data: backup } });
     toast("Backup imported");
     adminReports();
   } catch (e) {
