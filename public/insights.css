@@ -48,8 +48,8 @@
   letter-spacing: -0.01em;
 }
 .in-kpi small {
-  color: #7b8799;
-  font-size: 11.5px;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 .in-grid {
   display: grid;
@@ -103,8 +103,8 @@
   left: 0;
   right: 0;
   text-align: center;
-  font-size: 10.5px;
-  color: #7b8799;
+  font-size: 13px;
+  color: var(--text-muted);
 }
 .in-legend {
   display: flex;
@@ -141,7 +141,7 @@
 }
 .in-donut-lbl {
   font-size: 3px;
-  fill: #7b8799;
+  fill: #5b6576;
   text-transform: uppercase;
   letter-spacing: 0.2px;
 }
@@ -176,7 +176,7 @@
 }
 .in-donut li small {
   text-align: right;
-  color: #7b8799;
+  color: var(--text-muted);
 }
 /* Horizontal bars */
 .in-hbars {
@@ -215,8 +215,8 @@
 }
 .in-hbar-track em {
   font-style: normal;
-  font-size: 10.5px;
-  color: #7b8799;
+  font-size: 13px;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 /* Task board */
@@ -281,7 +281,7 @@
   border: 1.5px dashed #cfd9e6;
   border-radius: 9px;
   text-align: center;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 12px;
 }
 .in-card {
@@ -311,8 +311,8 @@
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  font-size: 10.5px;
-  color: #7b8799;
+  font-size: 13px;
+  color: var(--text-muted);
 }
 .in-card-phase {
   overflow: hidden;
@@ -355,7 +355,7 @@
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  font-size: 11px;
+  font-size: 13px;
   color: #5b6879;
 }
 .in-card-meta span {
@@ -409,8 +409,8 @@
 .in-phase-order small {
   display: block;
   margin-top: 2px;
-  color: #7b8799;
-  font-size: 10.5px;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 .in-board-btn {
   white-space: nowrap;

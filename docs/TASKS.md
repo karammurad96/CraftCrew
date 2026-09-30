@@ -154,7 +154,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T44 Invoice review reminders and overdue tracking · S
 
 **Wave 4 — UX and UI (P1)**
-- [ ] T50 Readable type sizes and WCAG contrast · M
+- [x] T50 Readable type sizes and WCAG contrast · M
 - [ ] T51 Phone navigation drawer and phone-friendly tables · M
 - [ ] T52 Group the sidebar menu and show counts · S
 - [ ] T53 "Needs your attention" first on dashboards · M

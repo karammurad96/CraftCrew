@@ -474,7 +474,7 @@ body.xp-max .app-shell:has(.xp-page) .dashboard-content {
   height: 56px;
 }
 .xp-ficon.big i {
-  font-size: 10px;
+  font-size: 11px;
   bottom: 6px;
   padding: 0 4px;
 }
@@ -516,7 +516,7 @@ body.xp-max .app-shell:has(.xp-page) .dashboard-content {
   word-break: break-word;
 }
 .xp-tile small {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted, #64748b);
 }
 
