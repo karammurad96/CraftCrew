@@ -405,6 +405,13 @@ describe("marketplace flow: vetting → project → sourcing → contract → in
       password: r.temporaryPassword,
     });
     assert.equal(l.user.mustChangePassword, true);
+    const blocked = await app.call("GET", "/projects", undefined, l.token);
+    assert.equal(blocked.status, 403, "the temporary password only allows a password change");
+    assert.equal(blocked.code, "MUST_CHANGE_PASSWORD");
+    assert.equal(blocked.error, "Please choose a new password first.");
+    assert.equal((await app.call("PUT", "/profile", { name: "X" }, l.token)).code, "MUST_CHANGE_PASSWORD");
+    assert.equal((await app.call("GET", "/auth/me", undefined, l.token)).status, 200);
+    assert.equal((await app.call("GET", "/platform-config", undefined, l.token)).status, 200);
     assert.equal(
       (
         await app.call(
@@ -417,6 +424,7 @@ describe("marketplace flow: vetting → project → sourcing → contract → in
       200,
     );
     assert.equal((await app.call("GET", "/auth/me", undefined, l.token)).user.mustChangePassword, undefined);
+    assert.equal((await app.call("GET", "/projects", undefined, l.token)).status, 200);
   });
   it("publishes legal pages and requires consent at sign-up", async () => {
     assert.equal(

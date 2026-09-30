@@ -53,6 +53,9 @@ describe("team members with limited access", () => {
     assert.equal(me.user.company, "Owner GmbH");
     assert.equal(me.user.passwordHash, undefined);
     assert.equal(me.user.self, undefined, "no private record leaks");
+    const blocked = await app.call("GET", "/projects", undefined, member);
+    assert.equal(blocked.status, 403, "a member must replace the temporary password first");
+    assert.equal(blocked.code, "MUST_CHANGE_PASSWORD");
     assert.equal(
       (
         await app.call(
