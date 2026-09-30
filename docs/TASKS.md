@@ -127,7 +127,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T11 Enforce the invoice status flow and stop duplicate payments · S
 - [x] T12 Lock down public supplier applications and approval · M
 - [x] T13 Normalise email addresses everywhere · S
-- [ ] T14 Validate statuses, dates and dependencies on projects, phases and tasks · M
+- [x] T14 Validate statuses, dates and dependencies on projects, phases and tasks · M
 - [ ] T15 Never delete financial records: archive projects, guard phase and task deletion · M
 - [ ] T16 Fix phase re-ordering data loss · S
 - [ ] T17 Enforce "must change password" on the server · S
@@ -426,8 +426,8 @@ status to `"Totally Done!!"` (confirmed). Dates, dependencies and sub-tasks acce
 supplier trying `"Totally Done!!"`.
 
 **Done when.**
-- [ ] The tests pass.
-- [ ] `bugcheck.js` reports "not reproduced" for the task-status line.
+- [x] The tests pass.
+- [x] `bugcheck.js` reports "not reproduced" for the task-status line.
 
 ### T15 · Never delete financial records: archive projects, guard phase and task deletion
 `P0 · M · cheap model OK`

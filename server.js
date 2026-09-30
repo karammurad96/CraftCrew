@@ -25,6 +25,26 @@ const normEmail = (s) =>
   String(s || "")
     .trim()
     .toLowerCase();
+// Input checks for projects, phases and tasks.
+const PROJECT_STATUSES = ["Not Started", "In Progress", "On Hold", "Completed"];
+const WORK_STATUSES = ["Not Started", "In Progress", "Under Review", "Completed", "On Hold"];
+const SUPPLIER_TASK_STATUSES = ["In Progress", "Under Review", "Completed", "On Hold"];
+const oneOf = (value, list) => list.includes(value);
+const cleanStr = (v, max) =>
+  String(v ?? "")
+    .trim()
+    .slice(0, max);
+const isIsoDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v)) && !Number.isNaN(Date.parse(v));
+// Sub-tasks keep the id and text the checklist UI uses; name mirrors text.
+const cleanSubtasks = (list) =>
+  (Array.isArray(list) ? list : [])
+    .slice(0, 50)
+    .map((x, i) => {
+      const name = cleanStr(typeof x === "string" ? x : (x?.name ?? x?.text), 140),
+        itemId = typeof x?.id === "string" && x.id.length <= 60 ? x.id : "task_" + i;
+      return { id: itemId, name, text: name, done: x?.done === true };
+    })
+    .filter((x) => x.name);
 // Strategic sourcing module (contracts, scorecards, bid evaluation helpers).
 const sourcing = require("./sourcing")({
   getDb: () => db,
@@ -2273,6 +2293,35 @@ function activity(actor, text) {
   db.activities.unshift({ id: id("act"), actorId: actor?.id || null, text, createdAt: now() });
   db.activities = db.activities.slice(0, 100);
 }
+// Each check returns an error message for the user, or "" when the input is fine.
+const given = (v) => v !== undefined && v !== null && v !== "";
+function nameError(v, required) {
+  if (!required && v === undefined) return "";
+  const n = String(v ?? "").trim().length;
+  return n >= 1 && n <= 160 ? "" : "Names need between 1 and 160 characters.";
+}
+function datesError(start, due) {
+  if ((given(start) && !isIsoDate(start)) || (given(due) && !isIsoDate(due)))
+    return "Enter dates as YYYY-MM-DD.";
+  if (given(start) && given(due) && Date.parse(due) < Date.parse(start))
+    return "The due date cannot be before the start date.";
+  return "";
+}
+function amountError(v, label) {
+  if (!given(v)) return "";
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? "" : `${label} must be a number of zero or more.`;
+}
+function dependenciesError(list, p) {
+  if (list === undefined) return "";
+  const ids = p.phases.flatMap((ph) => [ph.id, ...(ph.tasks || []).map((t) => t.id)]);
+  return Array.isArray(list) && list.every((x) => ids.includes(x))
+    ? ""
+    : "Dependencies can only point to phases or tasks of this project.";
+}
+function statusError(v, list) {
+  return v === undefined || oneOf(v, list) ? "" : `Choose one of these statuses: ${list.join(", ")}.`;
+}
 function projectFor(user, pid) {
   const p = db.projects.find((x) => x.id === pid);
   if (!p) return null;
@@ -3425,8 +3474,8 @@ async function api(req, res, url) {
         startDate = b.startDate || now().slice(0, 10);
       if (!Number.isFinite(budget) || budget <= 0)
         return (send(res, 400, { error: "Budget must be a positive amount" }), true);
-      if (Date.parse(b.dueDate) < Date.parse(startDate))
-        return (send(res, 400, { error: "The due date must be after the start date" }), true);
+      const invalid = nameError(b.name, true) || datesError(startDate, b.dueDate);
+      if (invalid) return (send(res, 400, { error: invalid }), true);
       const p = {
         id: id("prj"),
         customerId: user.id,
@@ -3449,9 +3498,7 @@ async function api(req, res, url) {
           ? b.phases
               .slice(0, 12)
               .map((x) => ({
-                name: String(x.name || "")
-                  .trim()
-                  .slice(0, 120),
+                name: cleanStr(x.name, 160),
                 description: String(x.description || "").slice(0, 1000),
                 tasks: Array.isArray(x.tasks)
                   ? x.tasks
@@ -3535,11 +3582,18 @@ async function api(req, res, url) {
       const b = await body(req);
       if (!b.name || !b.dueDate)
         return (send(res, 400, { error: "Task name and due date are required" }), true);
+      const startDate = b.startDate || ph.startDate,
+        invalid =
+          nameError(b.name, true) ||
+          datesError(startDate, b.dueDate) ||
+          amountError(b.orderAmount, "The order amount") ||
+          dependenciesError(b.dependencies, p);
+      if (invalid) return (send(res, 400, { error: invalid }), true);
       const t = {
         id: id("tsk"),
-        name: String(b.name).slice(0, 140),
+        name: cleanStr(b.name, 160),
         description: String(b.description || "").slice(0, 3000),
-        startDate: b.startDate || ph.startDate,
+        startDate,
         dueDate: b.dueDate,
         status: "Not Started",
         assignedSupplierId: null,
@@ -3547,7 +3601,7 @@ async function api(req, res, url) {
         orderAmount: Number(b.orderAmount) || null,
         dependencies: Array.isArray(b.dependencies) ? b.dependencies : [],
         progress: 0,
-        subtasks: Array.isArray(b.subtasks) ? b.subtasks : [],
+        subtasks: cleanSubtasks(b.subtasks),
         assignmentHistory: [],
         offers: [],
       };
@@ -3569,18 +3623,32 @@ async function api(req, res, url) {
         t = ph?.tasks?.find((x) => x.id === parts[6]);
       if (!p || !ph || !t) return (send(res, 404, { error: "Task not found" }), true);
       const b = await body(req);
-      if (user.role === "customer")
+      if (user.role === "customer") {
+        const invalid =
+          nameError(b.name, false) ||
+          datesError(
+            given(b.startDate) ? b.startDate : t.startDate,
+            given(b.dueDate) ? b.dueDate : t.dueDate,
+          ) ||
+          statusError(b.status, WORK_STATUSES) ||
+          amountError(b.orderAmount, "The order amount") ||
+          dependenciesError(b.dependencies, p);
+        if (invalid) return (send(res, 400, { error: invalid }), true);
         Object.assign(t, {
-          name: b.name ?? t.name,
+          name: b.name !== undefined ? cleanStr(b.name, 160) : t.name,
           description: b.description ?? t.description,
-          startDate: b.startDate ?? t.startDate,
-          dueDate: b.dueDate ?? t.dueDate,
+          startDate: given(b.startDate) ? b.startDate : t.startDate,
+          dueDate: given(b.dueDate) ? b.dueDate : t.dueDate,
           status: b.status ?? t.status,
           orderAmount: b.orderAmount !== undefined ? Number(b.orderAmount) || null : t.orderAmount,
           dependencies: Array.isArray(b.dependencies) ? b.dependencies : t.dependencies,
-          subtasks: Array.isArray(b.subtasks) ? b.subtasks : t.subtasks,
+          subtasks: Array.isArray(b.subtasks) ? cleanSubtasks(b.subtasks) : t.subtasks,
         });
-      else if (user.role === "supplier" && t.assignedSupplierId === user.supplierId) {
+      } else if (user.role === "supplier" && t.assignedSupplierId === user.supplierId) {
+        if (t.acceptanceStatus !== "Accepted")
+          return (send(res, 403, { error: "Accept the task invitation before reporting progress." }), true);
+        const invalid = b.status === t.status ? "" : statusError(b.status, SUPPLIER_TASK_STATUSES);
+        if (invalid) return (send(res, 400, { error: invalid }), true);
         const before = { status: t.status, progress: t.progress };
         Object.assign(t, {
           status: b.status ?? t.status,
@@ -3860,15 +3928,24 @@ async function api(req, res, url) {
         !(db.sites || []).some((s) => s.id === b.siteId && s.customerId === user.id)
       )
         return (send(res, 400, { error: "Choose one of your sites" }), true);
+      const invalid =
+        nameError(b.name, false) ||
+        datesError(
+          given(b.startDate) ? b.startDate : p.startDate,
+          given(b.dueDate) ? b.dueDate : p.dueDate,
+        ) ||
+        statusError(b.status, PROJECT_STATUSES) ||
+        amountError(b.budget, "The budget");
+      if (invalid) return (send(res, 400, { error: invalid }), true);
       if (b.siteId !== undefined) p.siteId = b.siteId || null;
       Object.assign(p, {
-        name: b.name ?? p.name,
+        name: b.name !== undefined ? cleanStr(b.name, 160) : p.name,
         description: b.description ?? p.description,
         requirements: b.requirements ?? p.requirements,
         location: b.location ?? p.location,
-        budget: b.budget !== undefined ? Number(b.budget) : p.budget,
-        startDate: b.startDate ?? p.startDate,
-        dueDate: b.dueDate ?? p.dueDate,
+        budget: given(b.budget) ? Number(b.budget) : p.budget,
+        startDate: given(b.startDate) ? b.startDate : p.startDate,
+        dueDate: given(b.dueDate) ? b.dueDate : p.dueDate,
         status: b.status ?? p.status,
         updatedAt: now(),
       });
@@ -3891,11 +3968,19 @@ async function api(req, res, url) {
       if (!p || user.role !== "customer") return (send(res, 403, { error: "Not allowed" }), true);
       const b = await body(req);
       if (!b.name || !b.dueDate) return (send(res, 400, { error: "Phase name and due date required" }), true);
+      const startDate = b.startDate || p.startDate,
+        invalid =
+          nameError(b.name, true) ||
+          datesError(startDate, b.dueDate) ||
+          statusError(b.status || undefined, WORK_STATUSES) ||
+          amountError(b.orderAmount, "The order amount") ||
+          dependenciesError(b.dependencies, p);
+      if (invalid) return (send(res, 400, { error: invalid }), true);
       const ph = {
         id: id("ph"),
-        name: b.name,
+        name: cleanStr(b.name, 160),
         description: b.description || "",
-        startDate: b.startDate || p.startDate,
+        startDate,
         dueDate: b.dueDate,
         status: b.status || "Not Started",
         dependencies: Array.isArray(b.dependencies) ? b.dependencies : [],
@@ -3903,7 +3988,7 @@ async function api(req, res, url) {
         supplierId: null,
         acceptanceStatus: "Unassigned",
         orderAmount: Number(b.orderAmount) || null,
-        subtasks: Array.isArray(b.subtasks) ? b.subtasks : [],
+        subtasks: cleanSubtasks(b.subtasks),
         assignmentHistory: [],
         deliverables: [],
       };
@@ -3918,22 +4003,34 @@ async function api(req, res, url) {
       if (!p || !ph) return (send(res, 404, { error: "Phase not found" }), true);
       const b = await body(req);
       if (user.role === "customer") {
+        const invalid =
+          nameError(b.name, false) ||
+          datesError(
+            given(b.startDate) ? b.startDate : ph.startDate,
+            given(b.dueDate) ? b.dueDate : ph.dueDate,
+          ) ||
+          statusError(b.status, WORK_STATUSES) ||
+          amountError(b.orderAmount, "The order amount") ||
+          dependenciesError(b.dependencies, p);
+        if (invalid) return (send(res, 400, { error: invalid }), true);
         Object.assign(ph, {
-          name: b.name ?? ph.name,
+          name: b.name !== undefined ? cleanStr(b.name, 160) : ph.name,
           description: b.description ?? ph.description,
-          startDate: b.startDate ?? ph.startDate,
-          dueDate: b.dueDate ?? ph.dueDate,
+          startDate: given(b.startDate) ? b.startDate : ph.startDate,
+          dueDate: given(b.dueDate) ? b.dueDate : ph.dueDate,
           status: b.status ?? ph.status,
           dependencies: Array.isArray(b.dependencies) ? b.dependencies : ph.dependencies || [],
           orderAmount: b.orderAmount !== undefined ? Number(b.orderAmount) || null : ph.orderAmount,
-          subtasks: Array.isArray(b.subtasks) ? b.subtasks : ph.subtasks,
+          subtasks: Array.isArray(b.subtasks) ? cleanSubtasks(b.subtasks) : ph.subtasks,
         });
       }
       if (user.role === "supplier" && ph.supplierId === user.supplierId) {
+        const invalid = b.status === ph.status ? "" : statusError(b.status, SUPPLIER_TASK_STATUSES);
+        if (invalid) return (send(res, 400, { error: invalid }), true);
         Object.assign(ph, {
           status: b.status ?? ph.status,
           description: b.description ?? ph.description,
-          subtasks: Array.isArray(b.subtasks) ? b.subtasks : ph.subtasks,
+          subtasks: Array.isArray(b.subtasks) ? cleanSubtasks(b.subtasks) : ph.subtasks,
         });
       }
       p.updatedAt = now();
