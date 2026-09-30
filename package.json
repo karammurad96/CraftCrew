@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node --test --test-concurrency=1 test/*.test.js"
+    "test": "node --test --test-concurrency=1 test/*.test.js",
+    "format": "npx --yes prettier@3 --write \"**/*.{js,css}\""
   },
   "engines": {
     "node": ">=18"

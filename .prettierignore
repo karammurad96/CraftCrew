@@ -1,0 +1,7 @@
+public/vendor/
+data/
+docs/
+*.md
+*.html
+package-lock.json
+node_modules/
