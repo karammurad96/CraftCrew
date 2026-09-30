@@ -2599,6 +2599,15 @@ function notify(userId, text, link = "") {
         : `${text}\n\nOpen CraftCrew: ${APP_URL}/#${link}`,
     );
 }
+// Escalations: allowed values, and the people on both sides who hear about them.
+const DISPUTE_TYPES = ["Support", "Quality", "Schedule", "Payment", "Safety", "Other"];
+const DISPUTE_STATUSES = ["Open", "In progress", "Resolved", "Closed"];
+function disputeParties(d) {
+  const ids = new Set([d.customerId, d.createdBy]);
+  if (d.supplierId)
+    for (const u of db.users.filter((x) => x.supplierId === d.supplierId && !x.orgOwnerId)) ids.add(u.id);
+  return [...ids].filter(Boolean);
+}
 function projectSupplierIds(p) {
   return [
     ...new Set(
@@ -5897,23 +5906,35 @@ async function api(req, res, url) {
     }
     if (parts[1] === "disputes" && method === "POST") {
       const b = await body(req),
-        p = b.projectId && projectFor(user, b.projectId);
+        p = b.projectId && projectFor(user, String(b.projectId));
       if (!p) return (send(res, 404, { error: "Project not found" }), true);
+      if (!oneOf(b.type, DISPUTE_TYPES))
+        return (send(res, 400, { error: "Choose an issue type: " + DISPUTE_TYPES.join(", ") + "." }), true);
+      const description = cleanStr(b.description, 5000);
+      if (description.length < 10)
+        return (send(res, 400, { error: "Describe the issue in at least 10 characters." }), true);
+      // A supplier escalates about their own work; a customer may name a supplier on this project.
+      let supplierId = user.role === "supplier" ? user.supplierId : b.supplierId || null;
+      if (supplierId && !projectSupplierIds(p).includes(supplierId))
+        return (send(res, 400, { error: "Choose a supplier who works on this project." }), true);
       const d = {
         id: id("dsp"),
         projectId: p.id,
         customerId: p.customerId,
-        supplierId: b.supplierId || null,
+        supplierId,
         createdBy: user.id,
-        type: b.type || "Support",
-        description: b.description || "",
+        type: b.type,
+        description,
         status: "Open",
         createdAt: now(),
         updatedAt: now(),
       };
       db.disputes = db.disputes || [];
       db.disputes.unshift(d);
-      notify(p.customerId, "A support escalation was opened for " + p.name);
+      const text = `Escalation opened for ${p.name}: ${d.type}`;
+      for (const admin of db.users.filter((x) => x.role === "admin" && x.status !== "Suspended"))
+        notify(admin.id, text, "/admin/disputes");
+      for (const uid of disputeParties(d)) if (uid !== user.id) notify(uid, text);
       save();
       return (send(res, 201, { dispute: d }), true);
     }
@@ -5922,9 +5943,17 @@ async function api(req, res, url) {
       const d = (db.disputes || []).find((x) => x.id === parts[3]);
       if (!d) return (send(res, 404, { error: "Dispute not found" }), true);
       const b = await body(req);
+      if (b.status !== undefined && !oneOf(b.status, DISPUTE_STATUSES))
+        return (send(res, 400, { error: "Status must be " + DISPUTE_STATUSES.join(", ") + "." }), true);
+      const previous = d.status;
       d.status = b.status || d.status;
-      d.resolution = b.resolution || d.resolution || "";
+      if (b.resolution !== undefined) d.resolution = cleanStr(b.resolution, 5000);
       d.updatedAt = now();
+      if (d.status !== previous) {
+        const p = db.projects.find((x) => x.id === d.projectId);
+        for (const uid of disputeParties(d))
+          notify(uid, `Escalation for ${p?.name || "your project"} is now ${d.status}`);
+      }
       save();
       return (send(res, 200, { dispute: d }), true);
     }

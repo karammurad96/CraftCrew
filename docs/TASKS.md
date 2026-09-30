@@ -138,7 +138,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T22 Email safety: validate application emails, sanitise mail headers, clickable links · S
 - [x] T23 Record the real client IP in the audit log · S
 - [x] T24 Safer backup export and import · S
-- [ ] T25 Escalations reach admins and have valid values · S
+- [x] T25 Escalations reach admins and have valid values · S
 
 **Wave 2 — reliability and performance (P1, one agent at a time: all touch `save()`)**
 - [ ] T30 Batch database writes and stop writing on reads · M
@@ -703,7 +703,7 @@ the pre-import file.
 notifies the customer.
 
 **Done when.**
-- [ ] The tests pass.
+- [x] The tests pass.
 
 ---
 
