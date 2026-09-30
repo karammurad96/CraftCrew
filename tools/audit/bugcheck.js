@@ -48,7 +48,10 @@ const out = (name, ok, detail) =>
     const d = await call(S, "GET", "/projects/" + projects[0].id);
     const foreign = d.project.phases.flatMap((ph) =>
       (ph.tasks || [])
-        .filter((t) => t.assignedSupplierId && t.assignedSupplierId !== sup.user.supplierId)
+        .filter(
+          (t) =>
+            t.assignedSupplierId && t.assignedSupplierId !== sup.user.supplierId && t.orderAmount != null,
+        )
         .map((t) => `${t.name}: order ${t.orderAmount}`),
     );
     out(
