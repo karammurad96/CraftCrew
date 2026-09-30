@@ -125,7 +125,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 **Wave 1 — security and data integrity (P0)**
 - [x] T10 Hide other suppliers' invoices, prices and the customer budget from suppliers · S
 - [x] T11 Enforce the invoice status flow and stop duplicate payments · S
-- [ ] T12 Lock down public supplier applications and approval · M
+- [x] T12 Lock down public supplier applications and approval · M
 - [ ] T13 Normalise email addresses everywhere · S
 - [ ] T14 Validate statuses, dates and dependencies on projects, phases and tasks · M
 - [ ] T15 Never delete financial records: archive projects, guard phase and task deletion · M
@@ -364,8 +364,8 @@ sets `role = "supplier"`, which turned a customer into a supplier (confirmed).
 - An invalid email gets 400.
 
 **Done when.**
-- [ ] The tests pass.
-- [ ] `bugcheck.js` reports "not reproduced" for the role-change line.
+- [x] The tests pass.
+- [x] `bugcheck.js` reports "not reproduced" for the role-change line.
 
 ### T13 · Normalise email addresses everywhere
 `P0 · S · cheap model OK`

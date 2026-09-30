@@ -2995,7 +2995,46 @@ async function api(req, res, url) {
           send(res, 429, { error: "Too many applications from this network. Please try again later." }),
           true
         );
-      const b = await body(req);
+      const raw = await body(req),
+        b = {};
+      const text = (v, max = 300) =>
+        String(v ?? "")
+          .trim()
+          .slice(0, max);
+      for (const k of [
+        "company",
+        "email",
+        "phone",
+        "contactName",
+        "directorName",
+        "legalAddress",
+        "location",
+        "website",
+        "registrationNumber",
+        "vatId",
+        "insuranceProvider",
+        "insurancePolicy",
+        "insuranceExpiry",
+        "referenceName",
+        "referenceEmail",
+        "reference2",
+        "language",
+      ])
+        if (raw[k] !== undefined && raw[k] !== null) b[k] = text(raw[k]);
+      if (raw.portfolio !== undefined) b.portfolio = text(raw.portfolio, 5000);
+      for (const k of ["yearsInBusiness", "insuranceCoverage"])
+        if (raw[k] !== undefined && raw[k] !== "") {
+          const n = Number(raw[k]);
+          if (!Number.isFinite(n) || n < 0)
+            return (send(res, 400, { error: "Enter numbers of zero or more for years and coverage" }), true);
+          b[k] = n;
+        }
+      for (const k of ["services", "certifications"])
+        b[k] = (Array.isArray(raw[k]) ? raw[k] : [])
+          .slice(0, 30)
+          .map((x) => text(x, 80))
+          .filter(Boolean);
+      if (b.email) b.email = b.email.toLowerCase();
       const required = [
         "company",
         "email",
@@ -3005,12 +3044,15 @@ async function api(req, res, url) {
         "referenceName",
         "referenceEmail",
       ];
-      if (required.some((k) => !b[k]))
+      if (required.some((k) => b[k] === undefined || b[k] === ""))
         return (send(res, 400, { error: "Please complete all required application fields" }), true);
-      const owner = db.users.find(
-        (u) => u.role === "supplier" && u.email.toLowerCase() === String(b.email).toLowerCase(),
-      );
-      const uploads = Array.isArray(b.proofUploads) ? b.proofUploads : [];
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(b.email) || !emailPattern.test(b.referenceEmail))
+        return (send(res, 400, { error: "Enter valid company and reference email addresses" }), true);
+      // Link to a supplier account only when that supplier is signed in with the same email.
+      const sender = auth(req),
+        owner = sender?.role === "supplier" && String(sender.email).toLowerCase() === b.email ? sender : null;
+      const uploads = Array.isArray(raw.proofUploads) ? raw.proofUploads : [];
       if (uploads.length > 5)
         return (send(res, 400, { error: "Upload up to five verification documents" }), true);
       const proofUploads = [];
@@ -3033,7 +3075,6 @@ async function api(req, res, url) {
           uploadedAt: now(),
         });
       }
-      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       const a = {
         id: id("app"),
         ...b,
@@ -3050,14 +3091,10 @@ async function api(req, res, url) {
               ? "Current"
               : "Expired or missing",
           insuranceCoverage: Number(b.insuranceCoverage) > 0 ? "Provided" : "Missing",
-          referenceEmail: emailPattern.test(String(b.referenceEmail || ""))
-            ? "Format looks valid"
-            : "Invalid",
+          referenceEmail: "Format looks valid",
           evidenceFiles: proofUploads.length ? `${proofUploads.length} uploaded` : "None uploaded",
         },
         supplierId: owner?.supplierId || null,
-        services: Array.isArray(b.services) ? b.services : [],
-        certifications: Array.isArray(b.certifications) ? b.certifications : [],
         verification: {
           checks: {
             registration: "Not checked",
@@ -3088,7 +3125,7 @@ async function api(req, res, url) {
       save();
       activity(null, `New supplier application from ${a.company}`);
       save();
-      return (send(res, 201, { application: a }), true);
+      return (send(res, 201, { application: { id: a.id, status: a.status } }), true);
     }
     if (parts[1] === "platform-config" && method === "GET")
       return (
@@ -4338,6 +4375,17 @@ async function api(req, res, url) {
       const b = await body(req);
       if (b.status && !["New", "On Hold", "Approved", "Rejected"].includes(b.status))
         return (send(res, 400, { error: "Choose New, On Hold, Approved or Rejected" }), true);
+      if (b.badge && !["Bronze", "Silver", "Gold"].includes(b.badge))
+        return (send(res, 400, { error: "Choose a Bronze, Silver or Gold badge" }), true);
+      const applicantUser = db.users.find((x) => x.email.toLowerCase() === String(a.email).toLowerCase());
+      if ((b.status || a.status) === "Approved" && applicantUser && applicantUser.role !== "supplier")
+        return (
+          send(res, 409, {
+            error:
+              "This email belongs to a customer or admin account. Ask the applicant to apply with a different email.",
+          }),
+          true
+        );
       if (
         b.stage &&
         !["New", "Verified", "References", "Manual Review", "Decision & Badge"].includes(b.stage)
@@ -4387,19 +4435,24 @@ async function api(req, res, url) {
       const previousStatus = a.status;
       a.stage = b.stage || a.stage;
       a.status = b.status || a.status;
-      a.badge = b.badge || a.badge;
+      a.badgeDecision = b.badge || a.badgeDecision;
       a.decisionNote =
         b.decisionNote !== undefined ? String(b.decisionNote).slice(0, 3000) : a.decisionNote || "";
       a.updatedAt = now();
       if (a.status === "Approved") {
-        let s = a.supplierId && db.suppliers.find((x) => x.id === a.supplierId);
+        // Only a supplier account with a confirmed email is linked to the approved profile.
+        const supplierUser =
+          applicantUser?.role === "supplier" && applicantUser.emailVerified !== false ? applicantUser : null;
+        let s =
+          db.suppliers.find((x) => x.id === a.supplierId) ||
+          (supplierUser?.supplierId && db.suppliers.find((x) => x.id === supplierUser.supplierId));
         if (!s) {
           s = {
             id: id("sup"),
             company: a.company,
             location: a.location || "Germany",
             services: a.services || [],
-            badge: a.badge || "Bronze",
+            badge: a.badgeDecision || "Bronze",
             rating: 5,
             avatar: initials(a.company),
             experience: Number(a.yearsInBusiness) || 0,
@@ -4423,7 +4476,7 @@ async function api(req, res, url) {
           location: a.location || s.location,
           services: a.services || s.services,
           certifications: a.certifications || s.certifications,
-          badge: a.badge || "Bronze",
+          badge: a.badgeDecision || "Bronze",
           experience: Number(a.yearsInBusiness) || s.experience || 0,
           description: a.portfolio || s.description,
           live: true,
@@ -4431,10 +4484,8 @@ async function api(req, res, url) {
           applicationStatus: "Approved",
         });
         a.supplierId = s.id;
-        const supplierUser = db.users.find((x) => x.email.toLowerCase() === String(a.email).toLowerCase());
         if (supplierUser) {
           supplierUser.supplierId = s.id;
-          supplierUser.role = "supplier";
           supplierUser.company = a.company;
           notify(
             supplierUser.id,
@@ -4455,7 +4506,7 @@ async function api(req, res, url) {
             a.email,
             "applicationApproved",
             "Ihr Lieferantenprofil ist freigegeben",
-            `${hallo}${a.company} ist auf CraftCrew mit dem Badge „${a.badge || "Bronze"}“ freigegeben und jetzt im Lieferantenverzeichnis sichtbar.${applicant ? "\n\nMelden Sie sich an, um Leistungskatalog und Auszahlungsdaten zu vervollständigen." : "\n\nLegen Sie mit dieser E-Mail-Adresse ein Lieferantenkonto an, um Ihr Profil zu verwalten."}\n\n${a.decisionNote || ""}`,
+            `${hallo}${a.company} ist auf CraftCrew mit dem Badge „${a.badgeDecision || "Bronze"}“ freigegeben und jetzt im Lieferantenverzeichnis sichtbar.${applicant ? "\n\nMelden Sie sich an, um Leistungskatalog und Auszahlungsdaten zu vervollständigen." : "\n\nLegen Sie mit dieser E-Mail-Adresse ein Lieferantenkonto an, um Ihr Profil zu verwalten."}\n\n${a.decisionNote || ""}`,
           );
         } else if (deMail && a.status === "Rejected") {
           a.rejectedAt = now();
@@ -4492,7 +4543,7 @@ async function api(req, res, url) {
               a.email,
               "applicationApproved",
               emailSubject("applicationApproved", "Your supplier profile is approved"),
-              `${greeting}${a.company} is approved on CraftCrew with a ${a.badge || "Bronze"} badge and is now visible in the supplier directory.${applicant ? "\n\nSign in to complete your service catalog and payout details." : "\n\nCreate a supplier account with this email address to manage your profile."}\n\n${a.decisionNote || ""}`,
+              `${greeting}${a.company} is approved on CraftCrew with a ${a.badgeDecision || "Bronze"} badge and is now visible in the supplier directory.${applicant ? "\n\nSign in to complete your service catalog and payout details." : "\n\nCreate a supplier account with this email address to manage your profile."}\n\n${a.decisionNote || ""}`,
             );
           }
           if (a.status === "Rejected") {
