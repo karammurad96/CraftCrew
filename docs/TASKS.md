@@ -204,10 +204,10 @@ Exact-text edits on such lines are error-prone for AI agents and humans.
 6. Start `node server.js`, open http://localhost:3000, sign in as each demo account and click through the menu. Nothing may look different.
 
 **Done when.**
-- [ ] Every `.js` and `.css` file outside `public/vendor/` is formatted.
-- [ ] `npm test` passes.
-- [ ] `git diff --stat` shows only formatting changes. No logic, strings or file names changed.
-- [ ] The commit contains nothing else.
+- [x] Every `.js` and `.css` file outside `public/vendor/` is formatted.
+- [x] `npm test` passes.
+- [x] `git diff --stat` shows only formatting changes. No logic, strings or file names changed.
+- [x] The commit contains nothing else.
 
 ### T01 · Shared test helpers for suppliers, projects and invoices
 `P0 · S · cheap model OK · depends on T00`
@@ -238,8 +238,8 @@ them by hand in every test is slow and inconsistent.
 **Tests.** Add `test/helpers.test.js` that uses all four helpers once and checks the returned objects.
 
 **Done when.**
-- [ ] The helpers are exported and documented with one comment line each.
-- [ ] `npm test` passes.
+- [x] The helpers are exported and documented with one comment line each.
+- [x] `npm test` passes.
 
 ---
 
