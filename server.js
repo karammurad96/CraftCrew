@@ -4604,6 +4604,26 @@ async function api(req, res, url) {
       const orderedAmount = Number(task?.orderAmount || ph.orderAmount) || null;
       if (b.attachment && !ownUpload(user, attachmentUrl(b.attachment)))
         return (send(res, 400, { error: NOT_OWN_FILE }), true);
+      // A double click must not create the same invoice twice.
+      const recent = new Date(Date.now() - 10000).toISOString();
+      if (
+        db.invoices.some(
+          (x) =>
+            x.supplierId === user.supplierId &&
+            x.createdAt >= recent &&
+            x.projectId === p.id &&
+            x.phaseId === ph.id &&
+            (x.taskId || null) === (task?.id || null) &&
+            x.amount === amount &&
+            x.description === b.description,
+        )
+      )
+        return (
+          send(res, 409, {
+            error: "This invoice was just submitted. Check your invoices before sending it again.",
+          }),
+          true
+        );
       const inv = {
         id: id("inv"),
         projectId: p.id,

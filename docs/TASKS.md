@@ -144,7 +144,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T30 Batch database writes and stop writing on reads · M
 - [x] T31 Data retention limits · S
 - [x] T32 Browser smoke test in CI · M
-- [ ] T33 Prevent double submission of forms · S
+- [x] T33 Prevent double submission of forms · S
 
 **Wave 3 — German-ready invoicing (P0/P1; in this order: all touch invoices)**
 - [ ] T40 Sequential invoice numbers shown everywhere · M

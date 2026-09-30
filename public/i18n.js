@@ -1293,6 +1293,8 @@ Object.assign(I18N_DE, {
     "Dieses Projekt löschen? Projekte mit Rechnungen, Dokumenten oder angenommenen Lieferanten werden stattdessen archiviert.",
   "Project archived": "Projekt archiviert",
   "Please choose a new password first.": "Bitte wählen Sie zuerst ein neues Passwort.",
+  "This invoice was just submitted. Check your invoices before sending it again.":
+    "Diese Rechnung wurde gerade eingereicht. Prüfen Sie Ihre Rechnungen, bevor Sie sie erneut senden.",
   // Escalations (T25)
   "Issue type": "Art des Problems",
   "Open escalation": "Eskalation eröffnen",
