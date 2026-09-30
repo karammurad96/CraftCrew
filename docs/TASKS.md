@@ -134,7 +134,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T18 Session hygiene: purge expired sessions, cap per user, idle timeout · S
 - [x] T19 Per-account sign-in lockout across networks · S
 - [ ] T20 Validate supplier profile fields and make directory search robust · S
-- [ ] T21 Upload safety: file type allowlist and ownership of attached files · M
+- [x] T21 Upload safety: file type allowlist and ownership of attached files · M
 - [ ] T22 Email safety: validate application emails, sanitise mail headers, clickable links · S
 - [ ] T23 Record the real client IP in the audit log · S
 - [ ] T24 Safer backup export and import · S
@@ -615,7 +615,7 @@ supplier record contains a number (write it straight into `db.json` before start
 - Normal PDF upload and attach still work.
 
 **Done when.**
-- [ ] The tests pass.
+- [x] The tests pass.
 
 ### T22 · Email safety: validate application emails, sanitise mail headers, clickable links
 `P0 · S · cheap model OK`

@@ -84,6 +84,7 @@ const compliance = require("./compliance")({
   now: () => now(),
   notify: (...a) => notify(...a),
   projectFor: (...a) => projectFor(...a),
+  ownUpload: (...a) => ownUpload(...a),
 });
 const documents = require("./documents")({
   getDb: () => db,
@@ -94,6 +95,7 @@ const documents = require("./documents")({
   now: () => now(),
   compliance,
   projectFor: (...a) => projectFor(...a),
+  ownUpload: (...a) => ownUpload(...a),
 });
 const planning = require("./planning")({
   getDb: () => db,
@@ -208,6 +210,58 @@ function createDemoPdf(filename, title, lines) {
   for (const off of offsets.slice(1)) pdf += `${String(off).padStart(10, "0")} 00000 n \n`;
   pdf += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${start}\n%%EOF`;
   fs.writeFileSync(path.join(UPLOAD_DIR, filename), pdf, { mode: 0o600 });
+}
+// Uploads: allowed file types, and the check that a stored file URL is the caller's own upload.
+const UPLOAD_TYPES = [
+  "pdf",
+  "png",
+  "jpg",
+  "jpeg",
+  "webp",
+  "gif",
+  "txt",
+  "csv",
+  "xlsx",
+  "docx",
+  "xls",
+  "doc",
+  "dxf",
+  "dwg",
+  "step",
+  "stp",
+  "zip",
+];
+const FILE_SIGNATURES = {
+  pdf: [[0x25, 0x50, 0x44, 0x46]],
+  png: [[0x89, 0x50, 0x4e, 0x47]],
+  jpg: [[0xff, 0xd8, 0xff]],
+  jpeg: [[0xff, 0xd8, 0xff]],
+};
+function uploadTypeError(filename, buf) {
+  const ext = path.extname(filename).slice(1).toLowerCase();
+  if (!UPLOAD_TYPES.includes(ext)) return "This file type is not allowed";
+  const sigs = FILE_SIGNATURES[ext];
+  if (sigs && !sigs.some((sig) => sig.every((byte, i) => buf[i] === byte)))
+    return "This file type is not allowed";
+  return null;
+}
+const attachmentUrl = (v) => (typeof v === "string" ? v : v && typeof v === "object" ? v.url : null);
+// True when url is /uploads/<file> uploaded by this account (team members share their account's uploads).
+function ownUpload(user, url) {
+  if (typeof url !== "string" || !/^\/uploads\/[^/]+$/.test(url)) return false;
+  const stored = path.basename(url);
+  return !!user && db.uploadOwners?.[stored] === user.id && fs.existsSync(path.join(UPLOAD_DIR, stored));
+}
+const NOT_OWN_FILE = "Upload the file first, then attach it.";
+// Deletes an uploaded file once no record points to it any more.
+function removeUnusedUpload(url) {
+  if (typeof url !== "string" || !url.startsWith("/uploads/")) return;
+  const stored = path.basename(url);
+  if (JSON.stringify(db).includes(`"/uploads/${stored}"`)) return;
+  try {
+    fs.unlinkSync(path.join(UPLOAD_DIR, stored));
+  } catch {}
+  if (db.uploadOwners) delete db.uploadOwners[stored];
 }
 function now() {
   return new Date().toISOString();
@@ -3871,6 +3925,7 @@ async function api(req, res, url) {
       const p = projectFor(user, parts[2]),
         b = await body(req);
       if (!p || !b.filename) return (send(res, 400, { error: "Project and file name are required" }), true);
+      if (b.url && !ownUpload(user, b.url)) return (send(res, 400, { error: NOT_OWN_FILE }), true);
       const phase = p.phases.find((x) => x.id === b.phaseId),
         task = phase?.tasks?.find((x) => x.id === b.taskId);
       if ((b.phaseId && !phase) || (b.taskId && !task))
@@ -3924,6 +3979,7 @@ async function api(req, res, url) {
             true
           );
         db.documents = db.documents.filter((x) => x !== doc);
+        removeUnusedUpload(doc.url);
         activity(user, `Deleted ${doc.filename} from ${p.name}`);
         save();
         return (send(res, 200, { ok: true }), true);
@@ -4219,8 +4275,15 @@ async function api(req, res, url) {
       if (!ph) return (send(res, 404, { error: "Phase not found" }), true);
       if (user.role === "supplier" && ph.supplierId !== user.supplierId)
         return (send(res, 403, { error: "Only the assigned supplier can upload to this phase" }), true);
+      if (b.url && !ownUpload(user, b.url)) return (send(res, 400, { error: NOT_OWN_FILE }), true);
       const file = b.filename
-        ? { id: id("file"), filename: b.filename, size: b.size || 0, url: b.url || null, uploadedAt: now() }
+        ? {
+            id: id("file"),
+            filename: String(b.filename).slice(0, 255),
+            size: Number(b.size) || 0,
+            url: b.url || null,
+            uploadedAt: now(),
+          }
         : null;
       if (!file) return (send(res, 400, { error: "Filename required" }), true);
       ph.deliverables = ph.deliverables || [];
@@ -4236,7 +4299,7 @@ async function api(req, res, url) {
           true
         );
       const b = await body(req);
-      if (!b.filename || !b.content)
+      if (typeof b.filename !== "string" || !b.filename.trim() || typeof b.content !== "string" || !b.content)
         return (send(res, 400, { error: "Filename and content required" }), true);
       const raw = String(b.content).replace(/^data:[^;]+;base64,/, "");
       const buf = Buffer.from(raw, "base64"),
@@ -4247,6 +4310,8 @@ async function api(req, res, url) {
           true
         );
       const safe = path.basename(b.filename).replace(/[^a-zA-Z0-9._-]/g, "_");
+      const typeError = uploadTypeError(safe, buf);
+      if (typeError) return (send(res, 400, { error: typeError }), true);
       const stored = id("file") + "_" + safe;
       fs.writeFileSync(path.join(UPLOAD_DIR, stored), buf);
       db.uploadOwners ||= {};
@@ -4341,6 +4406,8 @@ async function api(req, res, url) {
       if (!Number.isFinite(amount) || amount <= 0)
         return (send(res, 400, { error: "Invoice total must be greater than zero" }), true);
       const orderedAmount = Number(task?.orderAmount || ph.orderAmount) || null;
+      if (b.attachment && !ownUpload(user, attachmentUrl(b.attachment)))
+        return (send(res, 400, { error: NOT_OWN_FILE }), true);
       const inv = {
         id: id("inv"),
         projectId: p.id,
@@ -4497,6 +4564,12 @@ async function api(req, res, url) {
           lines && lines.length ? lines.reduce((a, x) => a + x.total, 0) : Number(b.amount ?? i.amount);
         if (!Number.isFinite(amount) || amount <= 0)
           return (send(res, 400, { error: "Enter a valid invoice amount" }), true);
+        if (
+          b.attachment &&
+          attachmentUrl(b.attachment) !== attachmentUrl(i.attachment) &&
+          !ownUpload(user, attachmentUrl(b.attachment))
+        )
+          return (send(res, 400, { error: NOT_OWN_FILE }), true);
         i.revisions ||= [];
         i.revisions.push({
           amount: i.amount,
@@ -5304,7 +5377,7 @@ async function api(req, res, url) {
         r.validUntil = String(b.validUntil || "").slice(0, 10);
         r.attachments = (Array.isArray(b.attachments) ? b.attachments : [])
           .slice(0, 5)
-          .filter((x) => x && String(x.url || "").startsWith("/uploads/"))
+          .filter((x) => x && ownUpload(user, String(x.url || "")))
           .map((x) => ({
             filename: String(x.filename || "file").slice(0, 180),
             url: String(x.url),
@@ -5403,6 +5476,11 @@ async function api(req, res, url) {
         deliveryDays = Number(b.deliveryDays);
       if (!Number.isFinite(amount) || amount <= 0 || !Number.isFinite(deliveryDays) || deliveryDays < 1)
         return (send(res, 400, { error: "Enter a valid offer amount and delivery schedule" }), true);
+      if (b.attachment) {
+        const prior = bid.offers.find((x) => x.supplierId === user.supplierId)?.attachment;
+        if (attachmentUrl(b.attachment) !== prior && !ownUpload(user, attachmentUrl(b.attachment)))
+          return (send(res, 400, { error: NOT_OWN_FILE }), true);
+      }
       let offer = bid.offers.find((x) => x.supplierId === user.supplierId);
       if (!offer) {
         offer = {
