@@ -2244,13 +2244,30 @@ function send(res, status, data, headers = {}) {
   });
   res.end(body);
 }
+// Sessions end 7 days after sign-in, or after 24 hours without any request.
+const SESSION_IDLE_MS = 24 * 3600000,
+  SESSION_SEEN_EVERY_MS = 5 * 60000,
+  SESSIONS_PER_USER = 10;
+function sessionAlive(x, nowMs = Date.now()) {
+  // Sessions from before idle tracking count as seen now.
+  return Date.parse(x.expiresAt) > nowMs && nowMs - Date.parse(x.lastSeenAt || now()) <= SESSION_IDLE_MS;
+}
+function purgeSessions() {
+  const nowMs = Date.now(),
+    before = (db.sessions || []).length;
+  db.sessions = (db.sessions || []).filter((x) => sessionAlive(x, nowMs));
+  return db.sessions.length !== before;
+}
 function auth(req) {
   const h = req.headers.authorization || "";
   const token = h.startsWith("Bearer ") ? h.slice(7) : null;
   const tokenHash = token && crypto.createHash("sha256").update(token).digest("hex");
-  const session =
-    tokenHash &&
-    (db.sessions || []).find((x) => x.tokenHash === tokenHash && Date.parse(x.expiresAt) > Date.now());
+  const session = tokenHash && (db.sessions || []).find((x) => x.tokenHash === tokenHash && sessionAlive(x));
+  // Stored at most every 5 minutes, so requests do not each write the database.
+  if (session && !(Date.now() - Date.parse(session.lastSeenAt || 0) < SESSION_SEEN_EVERY_MS)) {
+    session.lastSeenAt = now();
+    save();
+  }
   const userId = session?.userId,
     user = db.users.find((u) => u.id === userId) || null;
   return user?.status === "Suspended" ? null : team.resolve(user);
@@ -2489,6 +2506,9 @@ async function processOutbox() {
   }
 }
 setInterval(() => processOutbox().catch((e) => console.error(e)), 10000).unref();
+setInterval(() => {
+  if (purgeSessions()) save();
+}, 3600000).unref();
 // One-time links for email verification and password reset (only the hash is stored).
 function issueAuthToken(userId, type, ttlMs) {
   const token = crypto.randomBytes(32).toString("base64url");
@@ -2549,13 +2569,21 @@ function linkApprovedSupplier(u) {
   if (placeholder) db.suppliers = db.suppliers.filter((x) => x !== placeholder);
 }
 function newSession(u) {
+  purgeSessions();
   const token = crypto.randomBytes(32).toString("hex");
   db.sessions.push({
     tokenHash: crypto.createHash("sha256").update(token).digest("hex"),
     userId: u.id,
     createdAt: now(),
+    lastSeenAt: now(),
     expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
   });
+  // Keep only the newest sessions of this user; the oldest sign-ins end first.
+  const mine = db.sessions.filter((x) => x.userId === u.id);
+  if (mine.length > SESSIONS_PER_USER) {
+    const drop = new Set(mine.slice(0, mine.length - SESSIONS_PER_USER));
+    db.sessions = db.sessions.filter((x) => !drop.has(x));
+  }
   return token;
 }
 function emailSubject(key, fallback) {
