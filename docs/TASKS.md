@@ -160,7 +160,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T53 "Needs your attention" first on dashboards · M
 - [x] T54 Proper 404, not-found and session-expired handling · S
 - [x] T55 Clear status for suppliers not yet verified · S
-- [ ] T56 Safer destructive actions · S
+- [x] T56 Safer destructive actions · S
 - [ ] T57 Fix the accessibility violations found by axe · S
 - [ ] T58 Complete German translation, including notifications · M
 
