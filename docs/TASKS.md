@@ -136,7 +136,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T20 Validate supplier profile fields and make directory search robust · S
 - [ ] T21 Upload safety: file type allowlist and ownership of attached files · M
 - [ ] T22 Email safety: validate application emails, sanitise mail headers, clickable links · S
-- [ ] T23 Record the real client IP in the audit log · S
+- [x] T23 Record the real client IP in the audit log · S
 - [ ] T24 Safer backup export and import · S
 - [ ] T25 Escalations reach admins and have valid values · S
 
@@ -657,7 +657,7 @@ address, so the audit log shows the same IP for everyone.
 login has `ip: "9.9.9.9"`.
 
 **Done when.**
-- [ ] The tests pass.
+- [x] The tests pass.
 
 ### T24 · Safer backup export and import
 `P0 · S · cheap model OK`

@@ -2811,11 +2811,14 @@ function invoicePdf(inv, lang = "en") {
 /* ---------- Abuse protection ----------
    In-memory, per-instance limits (the app runs as a single instance). Behind a
    reverse proxy set TRUST_PROXY=1 so the client address comes from X-Forwarded-For. */
+// With TRUST_PROXY=1 the LAST X-Forwarded-For entry is used: the one our proxy (Caddy) added.
+// Earlier entries come from the client and can be faked.
 function clientIp(req) {
   const fwd =
     process.env.TRUST_PROXY === "1" &&
     String(req.headers["x-forwarded-for"] || "")
-      .split(",")[0]
+      .split(",")
+      .at(-1)
       .trim();
   return fwd || String(req.socket.remoteAddress || "").replace(/^::ffff:/, "");
 }
@@ -6167,7 +6170,7 @@ function trackAudit(req, res, url) {
       status: record.status || "",
       projectId: project ? project.id : null,
       projectName: project?.name || "",
-      ip: (req.socket.remoteAddress || "").replace(/^::ffff:/, ""),
+      ip: clientIp(req),
     });
     db.auditLog = db.auditLog.slice(0, 5000);
     save();
