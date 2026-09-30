@@ -3928,6 +3928,171 @@ async function api(req, res, url) {
       }
       return (send(res, 200, { counts }), true);
     }
+    /* Dashboard action queue: what needs this user now, each with the page that resolves it, plus the next
+       upcoming deadline for the "all caught up" state. */
+    if (parts[1] === "action-queue" && method === "GET") {
+      const items = [],
+        today = now().slice(0, 10),
+        in30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+        add = (kind, text, sub, link, action, amount) =>
+          items.push({ kind, text, sub, link, action, amount }),
+        mine = user.role === "customer" ? db.projects.filter((p) => projectFor(user, p.id)) : [],
+        open = (x) => x.status !== "Completed" && x.dueDate,
+        tasksOf = (projects, keep) =>
+          projects.flatMap((p) =>
+            (p.phases || []).flatMap((ph) => (ph.tasks || []).filter(keep).map((t) => ({ p, ph, t }))),
+          );
+      let upcoming = [];
+      if (user.role === "customer") {
+        const ids = new Set(mine.map((p) => p.id));
+        for (const i of db.invoices.filter((i) => i.status === "Submitted" && ids.has(i.projectId)))
+          add(
+            "invoice",
+            `Review invoice ${invoiceNo(i)}`,
+            i.taskName || i.description || "",
+            `/customer/invoice/${i.id}`,
+            "Review",
+            i.amount,
+          );
+        for (const b of (db.bids || []).filter(
+          (b) =>
+            ids.has(b.projectId) &&
+            ["Open", "Shortlist", "Second round", "Final round"].includes(b.status) &&
+            (b.offers || []).length,
+        ))
+          add(
+            "offer",
+            `Decide on offers for ${b.title}`,
+            `${b.offers.length} offer(s) received`,
+            `/customer/offers?project=${b.projectId}`,
+            "Compare",
+          );
+        const pendingTime = (db.timeEntries || []).filter(
+          (t) => t.status === "Pending approval" && ids.has(t.projectId),
+        );
+        if (pendingTime.length)
+          add(
+            "time",
+            `Approve ${pendingTime.length} time entr${pendingTime.length === 1 ? "y" : "ies"}`,
+            `${pendingTime.reduce((a, t) => a + Number(t.hours || 0), 0)} h submitted`,
+            "/customer/time",
+            "Approve",
+          );
+        for (const d of (db.documents || []).filter(
+          (d) => d.status === "Pending approval" && ids.has(d.projectId),
+        ))
+          add(
+            "document",
+            `Approve document ${d.filename}`,
+            db.projects.find((p) => p.id === d.projectId)?.name || "",
+            `/customer/projects/${d.projectId}/documents`,
+            "Review",
+          );
+        for (const { p, t } of tasksOf(mine, (t) => open(t) && t.dueDate < today))
+          add(
+            "overdue",
+            `Overdue: ${t.name}`,
+            `${p.name} · due ${t.dueDate}`,
+            `/customer/projects/${p.id}`,
+            "Open",
+          );
+        upcoming = tasksOf(mine, (t) => open(t) && t.dueDate >= today);
+      }
+      if (user.role === "supplier") {
+        const sid = user.supplierId;
+        for (const p of db.projects)
+          for (const ph of p.phases || [])
+            for (const t of ph.tasks || [])
+              if (t.assignedSupplierId === sid && t.acceptanceStatus === "Pending")
+                add("invitation", `Task invitation: ${t.name}`, p.name, "/supplier/projects", "Respond");
+        for (const b of (db.bids || []).filter(
+          (b) =>
+            b.status === "Open" &&
+            (b.invitedSupplierIds || []).includes(sid) &&
+            !(b.offers || []).some((o) => o.supplierId === sid),
+        ))
+          add(
+            "bid",
+            `Bid request: ${b.title}`,
+            b.dueDate ? `Deadline ${b.dueDate}` : "",
+            "/supplier/bids",
+            "Offer",
+          );
+        for (const b of db.bids || [])
+          for (const o of (b.offers || []).filter(
+            (o) => o.supplierId === sid && o.status === "Changes requested",
+          ))
+            add(
+              "offer",
+              `Changes requested on your offer for ${b.title}`,
+              o.changeNote || "",
+              "/supplier/bids",
+              "Revise",
+            );
+        for (const i of db.invoices.filter((i) => i.supplierId === sid && i.status === "Changes Requested"))
+          add(
+            "invoice",
+            `Changes requested on invoice ${invoiceNo(i)}`,
+            i.comments || "",
+            `/supplier/invoice/${i.id}`,
+            "Fix",
+          );
+        for (const d of (db.complianceDocs || []).filter(
+          (d) => d.supplierId === sid && d.expiresAt && d.expiresAt <= in30,
+        ))
+          add(
+            "compliance",
+            `${d.expiresAt < today ? "Expired" : "Expiring"}: ${d.filename}`,
+            `Valid until ${d.expiresAt}`,
+            "/supplier/compliance",
+            "Renew",
+          );
+        upcoming = tasksOf(db.projects, (t) => t.assignedSupplierId === sid && open(t) && t.dueDate >= today);
+      }
+      if (user.role === "admin") {
+        for (const a of (db.applications || []).filter((a) => ["New", "On Hold"].includes(a.status || "New")))
+          add(
+            "application",
+            `Vet application: ${a.company}`,
+            a.status || "New",
+            "/admin/applications",
+            "Review",
+          );
+        for (const d of (db.disputes || []).filter((d) => ["Open", "In progress"].includes(d.status)))
+          add(
+            "dispute",
+            `Escalation: ${d.type}`,
+            String(d.description || "").slice(0, 80),
+            "/admin/disputes",
+            "Handle",
+          );
+        for (const i of db.invoices.filter((i) => i.status === "Approved"))
+          add(
+            "payment",
+            `Mark invoice ${invoiceNo(i)} as paid`,
+            i.scheduledPayment ? `Due ${i.scheduledPayment}` : "",
+            "/admin/billing",
+            "Record",
+            i.amount,
+          );
+      }
+      const next = upcoming.sort((a, b) => a.t.dueDate.localeCompare(b.t.dueDate))[0];
+      return (
+        send(res, 200, {
+          items: items.slice(0, 30),
+          total: items.length,
+          nextDeadline: next
+            ? {
+                name: next.t.name,
+                project: next.p.name,
+                dueDate: next.t.dueDate,
+                link: `/${user.role}/projects/${next.p.id}`,
+              }
+            : null,
+        }),
+        true
+      );
+    }
     if (parts[1] === "notifications" && method === "GET") {
       const list = (db.notifications || [])
         .filter((n) => n.userId === user.id)

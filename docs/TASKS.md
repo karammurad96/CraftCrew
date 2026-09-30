@@ -157,7 +157,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T50 Readable type sizes and WCAG contrast · M
 - [x] T51 Phone navigation drawer and phone-friendly tables · M
 - [x] T52 Group the sidebar menu and show counts · S
-- [ ] T53 "Needs your attention" first on dashboards · M
+- [x] T53 "Needs your attention" first on dashboards · M
 - [ ] T54 Proper 404, not-found and session-expired handling · S
 - [ ] T55 Clear status for suppliers not yet verified · S
 - [ ] T56 Safer destructive actions · S
