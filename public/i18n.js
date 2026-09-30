@@ -1307,6 +1307,27 @@ Object.assign(I18N_DE, {
   "Show all steps": "Alle Schritte anzeigen",
   "Show fewer": "Weniger anzeigen",
   "Next:": "Als Nächstes:",
+  // Not found and expired sessions (T54)
+  "Page not found": "Seite nicht gefunden",
+  "The page you opened does not exist. Check the link or go back.":
+    "Die aufgerufene Seite gibt es nicht. Prüfen Sie den Link oder gehen Sie zurück.",
+  "Go to dashboard": "Zur Übersicht",
+  "Go to the home page": "Zur Startseite",
+  "Project not found": "Projekt nicht gefunden",
+  "This project does not exist or you no longer have access to it.":
+    "Dieses Projekt gibt es nicht oder Sie haben keinen Zugriff mehr darauf.",
+  "Back to projects": "Zurück zu den Projekten",
+  "Invoice not found": "Rechnung nicht gefunden",
+  "This invoice does not exist or you no longer have access to it.":
+    "Diese Rechnung gibt es nicht oder Sie haben keinen Zugriff mehr darauf.",
+  "Back to invoices": "Zurück zu den Rechnungen",
+  "Supplier not found": "Lieferant nicht gefunden",
+  "This supplier profile does not exist or is no longer listed.":
+    "Dieses Lieferantenprofil gibt es nicht oder es ist nicht mehr gelistet.",
+  "Back to suppliers": "Zurück zu den Lieferanten",
+  Back: "Zurück",
+  "Your session has expired. Please sign in again.":
+    "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
   // Phone navigation (T51)
   More: "Mehr",
   Vetting: "Prüfung",

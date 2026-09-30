@@ -974,7 +974,10 @@ const wfOldRoute = async () => {
     if (parts[1] === "disputes") return adminDisputes();
     if (parts[1] === "profile") return profilePage("admin");
   }
-  return renderHome();
+  // A bare workspace link opens the dashboard; anything else unknown is a proper 404, not the home page.
+  if (state.user && parts[0] === state.user.role && !parts[1])
+    return navigate(`/${state.user.role}/dashboard`);
+  return renderNotFound();
 };
 async function route() {
   topActions();

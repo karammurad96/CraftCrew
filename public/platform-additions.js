@@ -820,13 +820,19 @@ function paNav() {
    confirmed with the server, and the identity shown always comes from the server.
    Any 401 (expired, revoked or suspended session) signs the browser out. */
 function paClearSession(message) {
+  // An ended session keeps the page the user wanted; the login form explains why (see not-found.js).
+  if (message)
+    try {
+      if (/^#\/(customer|supplier|admin)\//.test(location.hash))
+        sessionStorage.setItem("cc_return", location.hash);
+      sessionStorage.setItem("cc_expired", "1");
+    } catch {}
   state.user = null;
   state.token = "";
   localStorage.removeItem("cc_user");
   localStorage.removeItem("cc_token");
   document.body.classList.remove("authenticated");
   topActions();
-  if (message) toast(message, "error");
   if (/^#\/(customer|supplier|admin)(\/|$)/.test(location.hash)) navigate("/login");
   else route();
 }
