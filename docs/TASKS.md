@@ -123,7 +123,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T01 Shared test helpers for suppliers, projects and invoices · P0 · S · cheap model OK
 
 **Wave 1 — security and data integrity (P0)**
-- [ ] T10 Hide other suppliers' invoices, prices and the customer budget from suppliers · S
+- [x] T10 Hide other suppliers' invoices, prices and the customer budget from suppliers · S
 - [ ] T11 Enforce the invoice status flow and stop duplicate payments · S
 - [ ] T12 Lock down public supplier applications and approval · M
 - [ ] T13 Normalise email addresses everywhere · S
@@ -282,8 +282,8 @@ A on task 1 and B on task 2, each with an `orderAmount`, and B submits an invoic
 - The customer still sees both invoices and both amounts.
 
 **Done when.**
-- [ ] The tests pass.
-- [ ] `tools/audit/bugcheck.js` reports "not reproduced" for both supplier-privacy lines.
+- [x] The tests pass.
+- [x] `tools/audit/bugcheck.js` reports "not reproduced" for both supplier-privacy lines.
 
 ### T11 · Enforce the invoice status flow and stop duplicate payments
 `P0 · S · cheap model OK`

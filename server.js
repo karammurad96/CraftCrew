@@ -2265,6 +2265,25 @@ function projectFor(user, pid) {
     return null;
   return p;
 }
+// Copy of a project for a supplier: no budget, and no prices, history, offers or notes of other suppliers' work.
+function projectForSupplierView(p, supplierId) {
+  const copy = structuredClone(p);
+  delete copy.budget;
+  for (const ph of copy.phases || []) {
+    if (ph.supplierId !== supplierId) {
+      ph.orderAmount = null;
+      ph.assignmentHistory = [];
+    }
+    for (const t of ph.tasks || []) {
+      if (t.assignedSupplierId === supplierId) continue;
+      t.orderAmount = null;
+      t.assignmentHistory = [];
+      t.offers = [];
+      t.progressUpdates = [];
+    }
+  }
+  return copy;
+}
 function chatScopeAllows(user, c) {
   if (!(c.participantIds || []).includes(user.id)) return false;
   if (user.role === "admin") return true;
@@ -3121,7 +3140,10 @@ async function api(req, res, url) {
       }
       return (
         send(res, 200, {
-          projects,
+          projects:
+            user.role === "supplier"
+              ? projects.map((p) => projectForSupplierView(p, user.supplierId))
+              : projects,
           invoices,
           notifications,
           activities: db.activities.slice(0, 20),
@@ -3326,7 +3348,7 @@ async function api(req, res, url) {
                   ),
                 )
                 .map((p) => ({
-                  ...p,
+                  ...projectForSupplierView(p, user.supplierId),
                   customer: {
                     name: db.users.find((u) => u.id === p.customerId)?.name || "Customer",
                     company: db.users.find((u) => u.id === p.customerId)?.company || "",
@@ -3438,8 +3460,10 @@ async function api(req, res, url) {
       if (!p) return (send(res, 404, { error: "Project not found" }), true);
       return (
         send(res, 200, {
-          project: p,
-          invoices: db.invoices.filter((i) => i.projectId === p.id),
+          project: user.role === "supplier" ? projectForSupplierView(p, user.supplierId) : p,
+          invoices: db.invoices.filter(
+            (i) => i.projectId === p.id && (user.role !== "supplier" || i.supplierId === user.supplierId),
+          ),
           suppliers: db.suppliers.filter((s) => s.live),
         }),
         true
