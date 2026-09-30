@@ -2248,9 +2248,20 @@ function auth(req) {
   const h = req.headers.authorization || "";
   const token = h.startsWith("Bearer ") ? h.slice(7) : null;
   const tokenHash = token && crypto.createHash("sha256").update(token).digest("hex");
+  const nowMs = Date.now();
   const session =
     tokenHash &&
-    (db.sessions || []).find((x) => x.tokenHash === tokenHash && Date.parse(x.expiresAt) > Date.now());
+    (db.sessions || []).find(
+      (x) =>
+        x.tokenHash === tokenHash &&
+        Date.parse(x.expiresAt) > nowMs &&
+        !(x.lastSeenAt && nowMs - Date.parse(x.lastSeenAt) > SESSION_IDLE_MS),
+    );
+  // Record activity at most every 5 minutes, so normal requests don't rewrite the database.
+  if (session && (!session.lastSeenAt || nowMs - Date.parse(session.lastSeenAt) > SESSION_TOUCH_MS)) {
+    session.lastSeenAt = new Date(nowMs).toISOString();
+    save();
+  }
   const userId = session?.userId,
     user = db.users.find((u) => u.id === userId) || null;
   return user?.status === "Suspended" ? null : team.resolve(user);
@@ -2548,16 +2559,45 @@ function linkApprovedSupplier(u) {
   u.company = u.company || approved.company;
   if (placeholder) db.suppliers = db.suppliers.filter((x) => x !== placeholder);
 }
+// Sessions: 7 days at most, ended after 24 hours without activity, 10 per user.
+const SESSION_IDLE_MS = Number(process.env.SESSION_IDLE_MS) || 24 * 3600000,
+  SESSION_TOUCH_MS = 5 * 60000,
+  SESSIONS_PER_USER = 10;
+function sessionAlive(x, nowMs = Date.now()) {
+  return (
+    Date.parse(x.expiresAt) > nowMs && !(x.lastSeenAt && nowMs - Date.parse(x.lastSeenAt) > SESSION_IDLE_MS)
+  );
+}
+function purgeSessions() {
+  const before = (db.sessions || []).length;
+  db.sessions = (db.sessions || []).filter((x) => sessionAlive(x));
+  return before - db.sessions.length;
+}
 function newSession(u) {
   const token = crypto.randomBytes(32).toString("hex");
+  purgeSessions();
+  const stamp = now();
   db.sessions.push({
     tokenHash: crypto.createHash("sha256").update(token).digest("hex"),
     userId: u.id,
-    createdAt: now(),
+    createdAt: stamp,
+    lastSeenAt: stamp,
     expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
   });
+  const mine = db.sessions.filter((x) => x.userId === u.id);
+  if (mine.length > SESSIONS_PER_USER) {
+    const drop = new Set(
+      mine
+        .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)))
+        .slice(0, mine.length - SESSIONS_PER_USER),
+    );
+    db.sessions = db.sessions.filter((x) => !drop.has(x));
+  }
   return token;
 }
+setInterval(() => {
+  if (purgeSessions()) save();
+}, 3600000).unref();
 function emailSubject(key, fallback) {
   return db.settings?.emailTemplates?.[key] || fallback;
 }
