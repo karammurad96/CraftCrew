@@ -132,7 +132,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T16 Fix phase re-ordering data loss · S
 - [x] T17 Enforce "must change password" on the server · S
 - [x] T18 Session hygiene: purge expired sessions, cap per user, idle timeout · S
-- [ ] T19 Per-account sign-in lockout across networks · S
+- [x] T19 Per-account sign-in lockout across networks · S
 - [ ] T20 Validate supplier profile fields and make directory search robust · S
 - [ ] T21 Upload safety: file type allowlist and ownership of attached files · M
 - [ ] T22 Email safety: validate application emails, sanitise mail headers, clickable links · S
@@ -554,8 +554,8 @@ Unknown emails also answer faster, because no password hash is computed, which r
 `env: {TRUST_PROXY: '1'}` and send the header with plain `fetch`. The next attempt returns 429.
 
 **Done when.**
-- [ ] The tests pass.
-- [ ] `DEPLOY.md` states the real limits.
+- [x] The tests pass.
+- [x] `DEPLOY.md` states the real limits.
 
 ### T20 · Validate supplier profile fields and make directory search robust
 `P0 · S · cheap model OK`
