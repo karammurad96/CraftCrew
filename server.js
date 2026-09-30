@@ -2403,6 +2403,41 @@ function save() {
     }
   }, SAVE_DELAY_MS);
 }
+// Invoice numbers are sequential per supplier and year: 2026-0001, 2026-0002, … (§14 Abs. 4 UStG).
+// The internal id stays for URLs and the API; people see the number.
+function nextInvoiceNumber(supplierId, createdAt) {
+  const year = String(createdAt || now()).slice(0, 4);
+  db.counters ||= {};
+  const counters = (db.counters[supplierId || "none"] ||= {});
+  counters[year] = (counters[year] || 0) + 1;
+  return `${year}-${String(counters[year]).padStart(4, "0")}`;
+}
+function invoiceNo(i) {
+  return i?.number || i?.id || "";
+}
+// One-time migration: existing invoices get numbers in createdAt order, and stored texts that
+// mention an invoice id show its number instead.
+function numberInvoices() {
+  const missing = (db.invoices || []).filter((i) => !i.number);
+  if (!missing.length) return;
+  db.counters ||= {};
+  for (const i of db.invoices)
+    if (i.number) {
+      const [year, count] = i.number.split("-"),
+        counters = (db.counters[i.supplierId || "none"] ||= {});
+      counters[year] = Math.max(counters[year] || 0, Number(count) || 0);
+    }
+  const renamed = new Map();
+  for (const i of missing.sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)))) {
+    i.number = nextInvoiceNumber(i.supplierId, i.createdAt);
+    renamed.set(i.id, i.number);
+  }
+  const pattern = new RegExp([...renamed.keys()].map((x) => x.replace(/[^\w]/g, "\\$&")).join("|"), "g");
+  for (const list of [db.notifications, db.activities])
+    for (const x of list || [])
+      if (typeof x.text === "string") x.text = x.text.replace(pattern, (m) => renamed.get(m));
+}
+numberInvoices();
 saveNow();
 for (const signal of ["SIGTERM", "SIGINT"])
   process.on(signal, () => {
@@ -2956,7 +2991,7 @@ function invoicePdf(inv, lang = "en") {
   text(42, 806, 11, "CRAFTCREW", "F2", "0.68 0.79 1");
   text(42, 773, 23, L.invoice, "F2", "1 1 1");
   text(425, 803, 9, L.no, "F2", "0.73 0.8 0.9");
-  text(425, 786, 11, inv.id, "F2", "1 1 1");
+  text(425, 786, 11, invoiceNo(inv), "F2", "1 1 1");
   text(425, 768, 9, `${L.issued} ${new Date(inv.createdAt).toLocaleDateString(L.locale)}`, "F1", "1 1 1");
   text(42, 724, 8, L.from, "F2", "0.38 0.45 0.56");
   text(315, 724, 8, L.billTo, "F2", "0.38 0.45 0.56");
@@ -3024,7 +3059,7 @@ function invoicePdf(inv, lang = "en") {
   text(348, totalY - 14, 8, `${L.terms}: ${inv.paymentTerms || L.termsDefault}`, "F1", "0.38 0.45 0.56");
   if (parties.supplierPayout)
     text(42, 68, 8, `${L.payTo}: ${parties.supplierPayout}`, "F2", "0.25 0.33 0.43");
-  text(42, 96, 8, `${L.reference}: ${inv.reference || inv.id}`, "F1", "0.38 0.45 0.56");
+  text(42, 96, 8, `${L.reference}: ${inv.reference || invoiceNo(inv)}`, "F1", "0.38 0.45 0.56");
   text(42, 82, 8, `${L.note}: ${inv.description || L.thanks}`, "F1", "0.38 0.45 0.56");
   line(42, 60, 570, 60);
   text(42, 43, 8, L.footer, "F1", "0.48 0.55 0.65");
@@ -4626,6 +4661,7 @@ async function api(req, res, url) {
         );
       const inv = {
         id: id("inv"),
+        number: nextInvoiceNumber(user.supplierId),
         projectId: p.id,
         phaseId: ph.id,
         taskId: task?.id || null,
@@ -4644,8 +4680,8 @@ async function api(req, res, url) {
         updatedAt: now(),
       };
       db.invoices.unshift(inv);
-      notify(p.customerId, `Invoice ${inv.id} submitted for review`);
-      activity(user, `Submitted invoice ${inv.id}`);
+      notify(p.customerId, `Invoice ${inv.number} submitted for review`);
+      activity(user, `Submitted invoice ${inv.number}`);
       save();
       return (send(res, 201, { invoice: inv }), true);
     }
@@ -4665,7 +4701,7 @@ async function api(req, res, url) {
         return (send(res, 403, { error: "Forbidden" }), true);
       const parties = invoiceParties(i),
         project = db.projects.find((x) => x.id === i.projectId),
-        safeName = String(i.id).replace(/[^a-zA-Z0-9_-]/g, "_");
+        safeName = String(invoiceNo(i)).replace(/[^a-zA-Z0-9_-]/g, "_");
       const pdfLang = ["de", "en"].includes(url.searchParams.get("lang"))
         ? url.searchParams.get("lang")
         : user.language || "en";
@@ -4685,13 +4721,16 @@ async function api(req, res, url) {
           /[\r\n<>]/g,
           "",
         ),
-        subject = `CraftCrew invoice ${i.id} - ${project?.name || i.projectId}`.replace(/[\r\n]/g, " "),
+        subject = `CraftCrew invoice ${invoiceNo(i)} - ${project?.name || i.projectId}`.replace(
+          /[\r\n]/g,
+          " ",
+        ),
         boundary = `cc_${crypto.randomBytes(12).toString("hex")}`,
         pdf = invoicePdf(i, pdfLang)
           .toString("base64")
           .match(/.{1,76}/g)
           .join("\r\n"),
-        body = `Please find invoice ${i.id} for ${project?.name || i.projectId}, total EUR ${Number(i.amount).toFixed(2)}.\r\n\r\nCraftCrew invoice PDF is attached.`;
+        body = `Please find invoice ${invoiceNo(i)} for ${project?.name || i.projectId}, total EUR ${Number(i.amount).toFixed(2)}.\r\n\r\nCraftCrew invoice PDF is attached.`;
       const eml = `To: ${to}\r\nSubject: ${subject}\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n--${boundary}\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n${body}\r\n\r\n--${boundary}\r\nContent-Type: application/pdf; name="CraftCrew-${safeName}.pdf"\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename="CraftCrew-${safeName}.pdf"\r\n\r\n${pdf}\r\n--${boundary}--\r\n`;
       res.writeHead(200, {
         "Content-Type": "message/rfc822; charset=utf-8",
@@ -4756,7 +4795,7 @@ async function api(req, res, url) {
         }
         notify(
           i.supplierId ? db.users.find((u) => u.supplierId === i.supplierId)?.id : null,
-          `Invoice ${i.id}: ${i.status}`,
+          `Invoice ${invoiceNo(i)}: ${i.status}`,
         );
       } else if (user.role === "supplier") {
         if (!["Resubmit"].includes(action) || !["Changes Requested", "Rejected"].includes(i.status))
@@ -4806,12 +4845,12 @@ async function api(req, res, url) {
         i.resubmittedAt = now();
         notify(
           i.customerId,
-          `Invoice ${i.id} was corrected and resubmitted${i.resubmitNote ? ": " + i.resubmitNote : ""}`,
+          `Invoice ${invoiceNo(i)} was corrected and resubmitted${i.resubmitNote ? ": " + i.resubmitNote : ""}`,
           `/customer/invoice/${i.id}`,
         );
       } else return (send(res, 403, { error: "Not allowed" }), true);
       i.updatedAt = now();
-      activity(user, `${action} invoice ${i.id}`);
+      activity(user, `${action} invoice ${invoiceNo(i)}`);
       save();
       return (send(res, 200, { invoice: i }), true);
     }
@@ -4844,7 +4883,7 @@ async function api(req, res, url) {
         }
         notify(
           i.supplierId ? db.users.find((u) => u.supplierId === i.supplierId)?.id : null,
-          `Invoice ${i.id} has been paid`,
+          `Invoice ${invoiceNo(i)} has been paid`,
         );
         i.updatedAt = now();
         save();
@@ -4864,9 +4903,9 @@ async function api(req, res, url) {
         }
         notify(
           i.supplierId ? db.users.find((u) => u.supplierId === i.supplierId)?.id : null,
-          `Invoice ${i.id} payment was refunded`,
+          `Invoice ${invoiceNo(i)} payment was refunded`,
         );
-        activity(user, `Refund recorded for invoice ${i.id}`);
+        activity(user, `Refund recorded for invoice ${invoiceNo(i)}`);
         i.updatedAt = now();
         save();
         return (send(res, 200, { invoice: i }), true);
@@ -6144,6 +6183,7 @@ async function api(req, res, url) {
       const sessions = db.sessions || [];
       delete data.authTokens;
       db = { ...data, sessions };
+      numberInvoices();
       saveNow();
       const counts = Object.fromEntries(
         Object.entries(db)

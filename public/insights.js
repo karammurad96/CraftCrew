@@ -336,7 +336,7 @@ function inExportSupplier() {
   inCsv("craftcrew-revenue.csv", [
     ["Invoice", "Customer", "Project", "Task", "Status", "Amount", "Created"],
     ...invoices.map((i) => [
-      i.id,
+      invNo(i),
       i.customerCompany,
       i.projectName || i.projectId,
       i.taskName,

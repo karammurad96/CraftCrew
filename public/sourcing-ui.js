@@ -443,7 +443,7 @@ async function srApprovals() {
         .filter((i) => i.status === "Submitted")
         .map((i) => ({
           title: `${i.supplierCompany || ""} · ${money(i.amount)}`,
-          sub: `${i.taskName || i.description || i.id}${i.orderedAmount && i.amount > i.orderedAmount ? " · over order cap" : ""}`,
+          sub: `${i.taskName || i.description || invNo(i)}${i.orderedAmount && i.amount > i.orderedAmount ? " · over order cap" : ""}`,
           since: i.updatedAt || i.createdAt,
           link: `/customer/invoice/${encodeURIComponent(i.id)}`,
         })),

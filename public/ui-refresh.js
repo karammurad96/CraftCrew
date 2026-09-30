@@ -367,7 +367,7 @@ async function uiBuildIndex() {
   }
   for (const i of invoices)
     items.push({
-      t: `${i.id} · ${money(i.amount)}`,
+      t: `${invNo(i)} · ${money(i.amount)}`,
       s: `Invoice · ${i.status} · ${i.supplierCompany || ""}`,
       l: role === "admin" ? "/admin/billing" : `/${role}/invoice/${encodeURIComponent(i.id)}`,
     });
