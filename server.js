@@ -2776,6 +2776,58 @@ async function processOutbox() {
   }
 }
 setInterval(() => processOutbox().catch((e) => console.error(e)), 10000).unref();
+/* Invoice reminders: customers are reminded after 3 and 7 days in review (admins too at 7), and approved
+   invoices past their scheduled payment date are marked overdue. remindersSent makes each one go out once. */
+function runInvoiceReminders(at = Date.now()) {
+  const admins = db.users.filter((u) => u.role === "admin" && u.status !== "Suspended"),
+    today = new Date(at).toISOString().slice(0, 10),
+    supplierUser = (i) => db.users.find((u) => u.supplierId === i.supplierId && !u.isMember);
+  let changed = false;
+  for (const i of db.invoices || []) {
+    const sent = (i.remindersSent ||= []),
+      once = (key) => !sent.includes(key) && sent.push(key) && (changed = true);
+    if (i.status === "Submitted") {
+      const days = (at - Date.parse(i.resubmittedAt || i.createdAt)) / 86400000;
+      if (days >= 3 && once("review3"))
+        notify(
+          i.customerId,
+          `Reminder: invoice ${invoiceNo(i)} is waiting for your review`,
+          `/customer/invoice/${i.id}`,
+        );
+      if (days >= 7 && once("review7")) {
+        notify(
+          i.customerId,
+          `Second reminder: invoice ${invoiceNo(i)} has been waiting for your review for 7 days`,
+          `/customer/invoice/${i.id}`,
+        );
+        for (const a of admins)
+          notify(
+            a.id,
+            `Invoice ${invoiceNo(i)} has been waiting for customer review for 7 days`,
+            "/admin/billing",
+          );
+      }
+    }
+    if (i.status === "Approved" && i.scheduledPayment && i.scheduledPayment < today && once("overdue")) {
+      i.overdue = true;
+      notify(
+        supplierUser(i)?.id,
+        `Invoice ${invoiceNo(i)} is overdue: payment was due ${i.scheduledPayment}`,
+        `/supplier/invoice/${i.id}`,
+      );
+      for (const a of admins)
+        notify(
+          a.id,
+          `Invoice ${invoiceNo(i)} is overdue: payment was due ${i.scheduledPayment}`,
+          "/admin/billing",
+        );
+    }
+    if (!sent.length) delete i.remindersSent;
+  }
+  if (changed) save();
+}
+runInvoiceReminders();
+setInterval(() => runInvoiceReminders(), 3600000).unref();
 // One-time links for email verification and password reset (only the hash is stored).
 function issueAuthToken(userId, type, ttlMs) {
   const token = crypto.randomBytes(32).toString("base64url");
@@ -5080,6 +5132,8 @@ async function api(req, res, url) {
         i.status = "Submitted";
         i.comments = "";
         i.resubmittedAt = now();
+        // A corrected invoice waits for review again, so its review reminders start over.
+        if (i.remindersSent) i.remindersSent = i.remindersSent.filter((k) => !k.startsWith("review"));
         notify(
           i.customerId,
           `Invoice ${invoiceNo(i)} was corrected and resubmitted${i.resubmitNote ? ": " + i.resubmitNote : ""}`,
@@ -5098,6 +5152,7 @@ async function api(req, res, url) {
       const b = await body(req);
       if (b.action === "Mark Paid" && i.status === "Approved") {
         i.status = "Paid";
+        delete i.overdue;
         i.paymentDate = now();
         const pay = db.payments.find((x) => x.invoiceId === i.id);
         if (pay) {
