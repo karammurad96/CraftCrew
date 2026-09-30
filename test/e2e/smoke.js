@@ -19,6 +19,71 @@ const freePort = () =>
     });
   });
 
+// Unknown pages, missing items and expired sessions each show one clear message (T54).
+async function notFoundChecks(base) {
+  const { chromium } = require(process.env.PW || "playwright");
+  const login = await (
+    await fetch(base + "/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "customer.demo@craftcrew.local", password: "CraftCrew2026!" }),
+    })
+  ).json();
+  const browser = await chromium.launch(),
+    failures = [],
+    check = (route, ok, problem) =>
+      ok || failures.push({ view: "desktop", role: "customer", route, problem });
+  try {
+    const context = await browser.newContext();
+    await context.addInitScript((s) => {
+      if (sessionStorage.getItem("seeded")) return;
+      sessionStorage.setItem("seeded", "1");
+      localStorage.setItem("cc_lang", "en");
+      localStorage.setItem("cc_token", s.token);
+      localStorage.setItem("cc_user", JSON.stringify(s.user));
+    }, login);
+    const page = await context.newPage(),
+      heading = async (route) => {
+        await page.goto(base + "/#" + route);
+        await page.waitForTimeout(1500);
+        return page.evaluate(() => document.querySelector("#app .nf-card h1")?.textContent || "");
+      };
+    check(
+      "/customer/does-not-exist",
+      (await heading("/customer/does-not-exist")) === "Page not found",
+      "no 404 page",
+    );
+    check(
+      "/customer/projects/prj_missing",
+      (await heading("/customer/projects/prj_missing")) === "Project not found",
+      "no project-not-found card",
+    );
+    await fetch(base + "/api/auth/logout", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + login.token },
+    });
+    await page.goto(base + "/#/customer/invoices");
+    await page.waitForTimeout(1500);
+    check(
+      "/customer/invoices",
+      !!(await page.$(".nf-expired")),
+      "no session-expired notice on the login page",
+    );
+    await page.fill("input[type=email]", "customer.demo@craftcrew.local");
+    await page.fill("input[type=password]", "CraftCrew2026!");
+    await page.click("form button.primary");
+    await page.waitForTimeout(2000);
+    check(
+      "/customer/invoices",
+      page.url().endsWith("#/customer/invoices"),
+      "no return to the page after signing in",
+    );
+  } finally {
+    await browser.close();
+  }
+  return failures;
+}
+
 async function main() {
   const dataDir = mkdtempSync(path.join(os.tmpdir(), "craftcrew-e2e-")),
     out = path.join(dataDir, "crawl.json"),
@@ -71,6 +136,7 @@ async function main() {
             });
         }
     }
+    failures.push(...(await notFoundChecks(base)));
     const total = totals.reduce((a, b) => a + b, 0);
     if (failures.length) {
       console.table(failures);

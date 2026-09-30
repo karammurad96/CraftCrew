@@ -130,11 +130,13 @@ async function login(email, password) {
         const bodyText = document.body.innerText;
         // The app catches render errors and shows one of these headings instead of the page.
         const errorScreen =
+          document.querySelector("#app .nf-card h1")?.textContent.trim() ||
           [...document.querySelectorAll("#app h2")]
             .map((el) => el.textContent.trim())
             .find((t) =>
               /^(We could not open this page|Something went wrong|Could not load this page)$/.test(t),
-            ) || null;
+            ) ||
+          null;
         return {
           h1,
           errorScreen,

@@ -737,8 +737,10 @@ window.addEventListener("DOMContentLoaded", async () => {
       state.user = d.user;
       localStorage.setItem("cc_user", JSON.stringify(d.user));
       document.body.classList.add("authenticated");
-    } catch {
-      logout();
+    } catch (e) {
+      // An expired session keeps the page the user wanted and says why they must sign in again.
+      if (e.status === 401) sessionExpired();
+      else logout();
       return;
     }
   }
