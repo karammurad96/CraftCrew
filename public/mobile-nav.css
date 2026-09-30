@@ -1,0 +1,269 @@
+/* Phone navigation (see mobile-nav.js). Loaded last, so these rules win over the older mobile sidebar styles. */
+.mnav-menu-btn,
+.mnav-bottom {
+  display: none;
+}
+@media (max-width: 899px) {
+  /* Top bar: the collapsed sidebar shows only the logo, the bell and the menu button. */
+  body .app-shell {
+    display: block !important;
+    padding-bottom: 76px;
+  }
+  body .app-shell > .sidebar:not(.mnav-open) {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 60;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    height: 56px !important;
+    min-height: 0 !important;
+    padding: 0 12px !important;
+    overflow: visible !important;
+    background: #fff !important;
+    border: 0 !important;
+    border-bottom: 1px solid #e6eaf0 !important;
+  }
+  body .app-shell > .sidebar:not(.mnav-open) > :not(.ui-side-top):not(.mnav-menu-btn) {
+    display: none !important;
+  }
+  body .app-shell > .sidebar > .ui-side-top {
+    position: static !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    flex: 1;
+    min-width: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  body .app-shell > .sidebar .ui-side-top {
+    justify-content: space-between !important;
+  }
+  body .app-shell > .sidebar .ui-side-top .side-brand {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    margin: 0 !important;
+  }
+  body .app-shell > .sidebar .ui-side-top .brand-word,
+  body .app-shell > .sidebar.mnav-open .user-mini > div:last-child {
+    display: block !important;
+  }
+  .mnav-menu-btn {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border: 1px solid #e6eaf0;
+    border-radius: 10px;
+    background: #fff;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .mnav-menu-btn svg,
+  .mnav-bottom svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+  .mnav-bottom button svg circle {
+    fill: currentColor;
+    stroke: none;
+  }
+
+  /* Drawer: the full sidebar slides in from the left over a backdrop. */
+  body .app-shell.mnav-drawer-open {
+    padding-top: 56px;
+  }
+  body .app-shell > .sidebar.mnav-open {
+    position: fixed !important;
+    inset: 0 auto 0 0 !important;
+    z-index: 1001;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+    width: min(320px, 86vw) !important;
+    height: 100dvh !important;
+    max-height: none !important;
+    padding: 12px 14px 20px !important;
+    overflow-y: auto !important;
+    background: #fff !important;
+    box-shadow: 0 20px 60px #0d1b3240;
+    animation: mnav-in 0.18s ease-out;
+  }
+  body .app-shell > .sidebar.mnav-open > * {
+    display: revert !important;
+    flex: none !important;
+  }
+  body .app-shell > .sidebar.mnav-open > .ui-side-top,
+  body .app-shell > .sidebar.mnav-open > .help {
+    display: flex !important;
+  }
+  /* The close button sits top right; the logo and bell make room for it. */
+  body .app-shell > .sidebar.mnav-open .mnav-menu-btn {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    display: grid !important;
+  }
+  body .app-shell > .sidebar.mnav-open > .ui-side-top {
+    min-height: 48px;
+    padding-right: 56px !important;
+  }
+  body .app-shell > .sidebar.mnav-open .ui-search-btn {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0 0 !important;
+  }
+  body .app-shell > .sidebar.mnav-open .user-mini {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+  }
+  body .app-shell > .sidebar.mnav-open nav {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+    overflow: visible !important;
+  }
+  body .app-shell > .sidebar.mnav-open nav a {
+    display: flex !important;
+    white-space: normal !important;
+    min-height: 44px;
+    align-items: center;
+  }
+  .mnav-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: #0d1b3266;
+  }
+  body.mnav-locked {
+    overflow: hidden;
+  }
+
+  /* Bottom bar with the most used pages and "More". */
+  .mnav-bottom {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 50;
+    display: grid;
+    grid-auto-columns: 1fr;
+    grid-auto-flow: column;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    background: #fff;
+    border-top: 1px solid #e6eaf0;
+    box-shadow: 0 -6px 20px #0d1b320f;
+  }
+  .mnav-bottom a,
+  .mnav-bottom button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    min-width: 0;
+    min-height: 48px;
+    padding: 4px 2px;
+    border: 0;
+    border-radius: 10px;
+    background: none;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .mnav-bottom a.active {
+    color: #1d4ed8;
+    background: #eef4ff;
+  }
+  .mnav-bottom span {
+    overflow: hidden;
+    max-width: 100%;
+    text-overflow: ellipsis;
+  }
+}
+@keyframes mnav-in {
+  from {
+    transform: translateX(-100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  body .app-shell > .sidebar.mnav-open {
+    animation: none;
+  }
+}
+
+/* Tables become stacked cards; each cell shows its column name. */
+@media (max-width: 639px) {
+  table.mnav-cards,
+  table.mnav-cards tbody,
+  table.mnav-cards tr,
+  table.mnav-cards td {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  table.mnav-cards thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  table.mnav-cards tr {
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    border: 1px solid #e6eaf0;
+    border-radius: 12px;
+    background: #fff;
+  }
+  /* The column name sits in a left column; everything in the cell stays on the right. */
+  table.mnav-cards td {
+    position: relative;
+    min-height: 30px;
+    padding: 6px 0 6px 38% !important;
+    border: 0 !important;
+    text-align: left !important;
+    overflow-wrap: anywhere;
+  }
+  table.mnav-cards td::before {
+    content: attr(data-label);
+    position: absolute;
+    top: 6px;
+    left: 0;
+    width: calc(38% - 10px);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.35;
+    white-space: normal;
+  }
+  table.mnav-cards td[data-label=""] {
+    padding-left: 0 !important;
+  }
+  table.mnav-cards td[data-label=""]::before {
+    content: none;
+  }
+  /* Panels that scroll their table on wide screens grow with the cards instead. */
+  .cc-table-wrap:has(table.mnav-cards),
+  .ui-scroll:has(table.mnav-cards) {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}
