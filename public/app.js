@@ -445,14 +445,19 @@ async function reviewProjectSuppliers(pid) {
 async function openSupport(pid) {
   modal(
     "Escalate / support",
-    `<form id="sf" class="modal-form"><label>Issue type<select name="type"><option>Supplier delivery</option><option>Invoice / payment</option><option>Quality</option><option>Timeline</option><option>Other</option></select></label><label>Description<textarea name="description" required></textarea></label><button class="btn primary">Open escalation</button></form>`,
+    `<form id="sf" class="modal-form"><label>Issue type<select name="type">${["Support", "Quality", "Schedule", "Payment", "Safety", "Other"].map((x) => `<option value="${x}">${x}</option>`).join("")}</select></label><label>Description<textarea name="description" required minlength="10" maxlength="5000"></textarea></label><button class="btn primary">Open escalation</button></form>`,
   );
   document.getElementById("sf").onsubmit = async (e) => {
     e.preventDefault();
-    await api("/disputes", {
-      method: "POST",
-      body: { projectId: pid, ...Object.fromEntries(new FormData(e.target)) },
-    });
+    try {
+      await api("/disputes", {
+        method: "POST",
+        body: { projectId: pid, ...Object.fromEntries(new FormData(e.target)) },
+      });
+    } catch (err) {
+      toast(err.message, "error");
+      return;
+    }
     closeModal();
     toast("Support escalation opened");
   };

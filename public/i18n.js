@@ -1293,6 +1293,18 @@ Object.assign(I18N_DE, {
     "Dieses Projekt löschen? Projekte mit Rechnungen, Dokumenten oder angenommenen Lieferanten werden stattdessen archiviert.",
   "Project archived": "Projekt archiviert",
   "Please choose a new password first.": "Bitte wählen Sie zuerst ein neues Passwort.",
+  // Escalations (T25)
+  "Issue type": "Art des Problems",
+  "Open escalation": "Eskalation eröffnen",
+  "Support escalation opened": "Eskalation eröffnet",
+  "Escalation resolved": "Eskalation gelöst",
+  Support: "Unterstützung",
+  Quality: "Qualität",
+  Payment: "Zahlung",
+  Safety: "Sicherheit",
+  "Describe the issue in at least 10 characters.": "Beschreiben Sie das Problem mit mindestens 10 Zeichen.",
+  "Choose a supplier who works on this project.":
+    "Wählen Sie einen Lieferanten, der an diesem Projekt arbeitet.",
   "Your password was reset by an administrator. Please choose a new password to continue.":
     "Ihr Passwort wurde von einem Administrator zurückgesetzt. Bitte wählen Sie ein neues Passwort, um fortzufahren.",
   "The new passwords do not match": "Die neuen Passwörter stimmen nicht überein",
