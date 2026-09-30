@@ -1296,6 +1296,47 @@ Object.assign(I18N_DE, {
   // Invoice reminders (T44)
   Overdue: "Überfällig",
   "Waiting for review since today": "Wartet seit heute auf Prüfung",
+  // VAT on invoices (T41)
+  "Net amounts – VAT not recorded": "Nettobeträge – Umsatzsteuer nicht erfasst",
+  "Net amount": "Nettobetrag",
+  "Value added tax": "Umsatzsteuer",
+  Subtotal: "Zwischensumme",
+  "Tax / VAT": "Steuer / USt.",
+  "Total due": "Fälliger Betrag",
+  "Service period": "Leistungszeitraum",
+  "Service date": "Leistungsdatum",
+  "VAT *": "Umsatzsteuer *",
+  "Service from *": "Leistung von *",
+  "Service to *": "Leistung bis *",
+  "Invoice total (gross)": "Rechnungsbetrag (brutto)",
+  "19 % VAT (standard rate)": "19 % USt. (Regelsteuersatz)",
+  "7 % VAT (reduced rate)": "7 % USt. (ermäßigter Steuersatz)",
+  "Reverse charge (§13b UStG)": "Steuerschuldnerschaft des Leistungsempfängers (§13b UStG)",
+  "Small business (§19 UStG)": "Kleinunternehmer (§19 UStG)",
+  "Intra-EU service (reverse charge)": "Innergemeinschaftliche Leistung (Reverse Charge)",
+  "Standard rate: 19 % VAT is added to the net amount.":
+    "Regelsteuersatz: 19 % Umsatzsteuer werden auf den Nettobetrag aufgeschlagen.",
+  "Reduced rate: 7 % VAT, only for goods and services that qualify for it.":
+    "Ermäßigter Steuersatz: 7 % Umsatzsteuer, nur für begünstigte Waren und Leistungen.",
+  "Reverse charge (§13b UStG): no VAT on the invoice; the business customer pays the VAT. Common for construction and installation work between companies.":
+    "Steuerschuldnerschaft des Leistungsempfängers (§13b UStG): keine Umsatzsteuer auf der Rechnung, der Unternehmer als Kunde schuldet die Steuer. Üblich bei Bau- und Montageleistungen zwischen Unternehmen.",
+  "Small-business rule (§19 UStG): you charge no VAT because your turnover is below the limit.":
+    "Kleinunternehmerregelung (§19 UStG): Sie berechnen keine Umsatzsteuer, weil Ihr Umsatz unter der Grenze liegt.",
+  "Intra-EU service: no German VAT; the business customer in another EU country pays the VAT. Both VAT IDs must be on the invoice.":
+    "Innergemeinschaftliche Leistung: keine deutsche Umsatzsteuer, der Unternehmer als Kunde in einem anderen EU-Land schuldet die Steuer. Beide USt-IdNrn. müssen auf der Rechnung stehen.",
+  "Reverse charge: the recipient of the service is liable for VAT (§13b UStG).":
+    "Steuerschuldnerschaft des Leistungsempfängers (§13b UStG).",
+  "No VAT is charged under the small-business rule (§19 UStG).":
+    "Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.",
+  "Reverse charge: intra-EU service, VAT is payable by the recipient.":
+    "Steuerschuldnerschaft des Leistungsempfängers (innergemeinschaftliche Leistung).",
+  "Add your legal company name, address and tax number or VAT ID to your company profile before creating an invoice.":
+    "Tragen Sie Ihren rechtlichen Firmennamen, Ihre Anschrift und Ihre Steuernummer oder USt-IdNr. im Unternehmensprofil ein, bevor Sie eine Rechnung erstellen.",
+  "Open company profile": "Unternehmensprofil öffnen",
+  "Choose a VAT mode: 19 %, 7 %, reverse charge (§13b), small business (§19) or intra-EU.":
+    "Wählen Sie die Umsatzsteuer: 19 %, 7 %, Reverse Charge (§13b), Kleinunternehmer (§19) oder innergemeinschaftlich.",
+  "Enter the service date or period as dates, with the end on or after the start.":
+    "Geben Sie das Leistungsdatum oder den Leistungszeitraum als Datum an, das Ende am oder nach dem Beginn.",
   "This invoice was just submitted. Check your invoices before sending it again.":
     "Diese Rechnung wurde gerade eingereicht. Prüfen Sie Ihre Rechnungen, bevor Sie sie erneut senden.",
   // Escalations (T25)

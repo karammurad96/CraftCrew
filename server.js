@@ -2932,10 +2932,65 @@ function emailSubject(key, fallback) {
   return db.settings?.emailTemplates?.[key] || fallback;
 }
 
+/* ---------- VAT ----------
+   Line items are net. VAT is computed once per invoice and rounded to cents. `amount` keeps the gross
+   total for older code; fees, payouts and the order-cap check use the net amount. */
+const VAT_MODES = { standard: 19, reduced: 7, reverseCharge13b: 0, smallBusiness19: 0, intraEU: 0 };
+// Legal notes printed on the invoice. Have them checked by a tax adviser before relying on them.
+const VAT_NOTES = {
+  reverseCharge13b: {
+    de: "Steuerschuldnerschaft des Leistungsempfängers (§ 13b UStG).",
+    en: "Reverse charge: the recipient of the service is liable for VAT (Steuerschuldnerschaft des Leistungsempfängers, § 13b UStG).",
+  },
+  smallBusiness19: {
+    de: "Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.",
+    en: "No VAT is charged under the small-business rule (§ 19 UStG).",
+  },
+  intraEU: {
+    de: "Steuerschuldnerschaft des Leistungsempfängers (innergemeinschaftliche Leistung).",
+    en: "Reverse charge: intra-EU service, VAT is payable by the recipient.",
+  },
+};
+const cents = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+function vatTotals(net, vatMode) {
+  const vatRate = VAT_MODES[vatMode],
+    netAmount = cents(net),
+    vatAmount = cents((netAmount * vatRate) / 100);
+  return { vatMode, vatRate, netAmount, vatAmount, grossAmount: cents(netAmount + vatAmount) };
+}
+// Older invoices have no VAT data; their amount is the net amount.
+function invoiceNet(inv) {
+  return Number(inv.netAmount ?? inv.amount) || 0;
+}
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+const validDay = (x) => ISO_DAY.test(x) && !Number.isNaN(Date.parse(x + "T00:00:00Z"));
+// The account whose company profile appears on the supplier's invoices.
+function supplierAccount(supplierId) {
+  return (
+    db.users.find((x) => x.supplierId === supplierId && !x.isMember) ||
+    db.users.find((x) => x.supplierId === supplierId)
+  );
+}
+function missingTaxDetails(supplierId) {
+  const cp = supplierAccount(supplierId)?.companyProfile || {};
+  return ["legalName", "address", "taxId"].filter((k) => !String(cp[k] || "").trim());
+}
+// Plain-text amount breakdown for emails: net, VAT and gross, plus the legal note when one applies.
+function invoiceAmountLines(inv, lang = "en") {
+  const L = PDF_LABELS[lang] || PDF_LABELS.en,
+    eur = (n) => `EUR ${Number(n || 0).toFixed(2)}`;
+  if (!inv.vatMode) return [`${L.invoiceTotal}: ${eur(inv.amount)} (${L.vatNotRecorded})`];
+  return [
+    `${L.net}: ${eur(inv.netAmount)}`,
+    `${L.vat} ${inv.vatRate} %: ${eur(inv.vatAmount)}`,
+    `${L.gross}: ${eur(inv.grossAmount)}`,
+    ...(VAT_NOTES[inv.vatMode] ? [VAT_NOTES[inv.vatMode][lang === "de" ? "de" : "en"]] : []),
+  ];
+}
 function invoiceParties(inv) {
   const customer = db.users.find((x) => x.id === inv.customerId),
     supplier = db.suppliers.find((x) => x.id === inv.supplierId),
-    supplierUser = db.users.find((x) => x.supplierId === inv.supplierId);
+    supplierUser = supplierAccount(inv.supplierId);
   return {
     customerName: customer?.name || "Customer",
     customerCompany: customer?.companyProfile?.legalName || customer?.company || "Customer",
@@ -2981,6 +3036,12 @@ const PDF_LABELS = {
     service: "Service",
     units: "units",
     page: "Page",
+    net: "Net amount",
+    vat: "VAT",
+    gross: "Total (gross)",
+    servicePeriod: "Service period",
+    serviceDate: "Service date",
+    vatNotRecorded: "Net amounts – VAT not recorded",
     locale: "en-GB",
   },
   de: {
@@ -3010,6 +3071,12 @@ const PDF_LABELS = {
     service: "Leistung",
     units: "Einheiten",
     page: "Seite",
+    net: "Nettobetrag",
+    vat: "USt.",
+    gross: "Gesamtbetrag (brutto)",
+    servicePeriod: "Leistungszeitraum",
+    serviceDate: "Leistungsdatum",
+    vatNotRecorded: "Nettobeträge – Umsatzsteuer nicht erfasst",
     locale: "de-DE",
   },
 };
@@ -3132,6 +3199,20 @@ function invoicePdf(inv, lang = "en") {
   );
   text(390, 616, 8, L.status, "F2", "0.38 0.45 0.56");
   text(390, 587, 10, inv.status, "F2");
+  if (inv.serviceDateFrom) {
+    const day = (x) => new Date(x + "T00:00:00Z").toLocaleDateString(L.locale, { timeZone: "UTC" }),
+      period = inv.serviceDateTo && inv.serviceDateTo !== inv.serviceDateFrom;
+    text(
+      390,
+      572,
+      8,
+      period
+        ? `${L.servicePeriod}: ${day(inv.serviceDateFrom)} – ${day(inv.serviceDateTo)}`
+        : `${L.serviceDate}: ${day(inv.serviceDateFrom)}`,
+      "F1",
+      "0.38 0.45 0.56",
+    );
+  }
   let y = tableHeader(540);
   const rows = items.length
     ? items
@@ -3159,10 +3240,18 @@ function invoicePdf(inv, lang = "en") {
     y -= height;
   }
   // Totals, reference, note and bank details go on the last page.
-  const note = wrapPdfText(`${L.note}: ${inv.description || L.thanks}`, 528, 8, 3);
-  if (y < 190 + note.length * 12) y = continuationPage();
-  const totalY = y - 40;
-  text(348, totalY + 34, 9, L.invoiceTotal, "F2");
+  const note = wrapPdfText(`${L.note}: ${inv.description || L.thanks}`, 528, 8, 3),
+    legal = VAT_NOTES[inv.vatMode] ? wrapPdfText(VAT_NOTES[inv.vatMode][lang], 528, 8, 2) : [];
+  if (y < 220 + (note.length + legal.length) * 12) y = continuationPage();
+  const totalY = y - 70;
+  // Net, VAT and gross; older invoices without VAT data say so instead.
+  if (inv.vatMode) {
+    text(348, totalY + 64, 9, L.net, "F1", "0.25 0.33 0.43");
+    text(480, totalY + 64, 9, eur(inv.netAmount), "F1", "0.25 0.33 0.43");
+    text(348, totalY + 50, 9, `${L.vat} ${inv.vatRate} %`, "F1", "0.25 0.33 0.43");
+    text(480, totalY + 50, 9, eur(inv.vatAmount), "F1", "0.25 0.33 0.43");
+  } else text(348, totalY + 50, 8, L.vatNotRecorded, "F1", "0.38 0.45 0.56");
+  text(348, totalY + 34, 9, inv.vatMode ? L.gross : L.invoiceTotal, "F2");
   text(460, totalY + 30, 18, eur(inv.amount), "F2", "0.07 0.32 0.78");
   line(348, totalY + 18, 570, totalY + 18, "0.75 0.81 0.88");
   text(
@@ -3181,7 +3270,11 @@ function invoicePdf(inv, lang = "en") {
     "F1",
     "0.38 0.45 0.56",
   );
-  let infoY = 82 + note.length * 12;
+  let infoY = 82 + (note.length + legal.length) * 12;
+  if (legal.length) {
+    legal.forEach((l, n) => text(42, infoY + 14 - n * 12, 8, l, "F2", "0.09 0.17 0.28"));
+    infoY -= legal.length * 12;
+  }
   if (parties.supplierPayout) {
     text(42, infoY, 8, `${L.payTo}: ${parties.supplierPayout}`, "F2", "0.25 0.33 0.43");
     infoY -= 14;
@@ -4745,6 +4838,33 @@ async function api(req, res, url) {
           send(res, 400, { error: "Project, assigned phase or task and description are required" }),
           true
         );
+      if (missingTaxDetails(user.supplierId).length)
+        return (
+          send(res, 400, {
+            error:
+              "Add your legal company name, address and tax number or VAT ID to your company profile before creating an invoice.",
+            profileLink: "/supplier/profile",
+          }),
+          true
+        );
+      const vatMode = b.vatMode === undefined ? "standard" : String(b.vatMode);
+      if (!Object.hasOwn(VAT_MODES, vatMode))
+        return (
+          send(res, 400, {
+            error: "Choose a VAT mode: 19 %, 7 %, reverse charge (§13b), small business (§19) or intra-EU.",
+          }),
+          true
+        );
+      const today = now().slice(0, 10),
+        serviceDateFrom = b.serviceDateFrom || today,
+        serviceDateTo = b.serviceDateTo || serviceDateFrom;
+      if (!validDay(serviceDateFrom) || !validDay(serviceDateTo) || serviceDateTo < serviceDateFrom)
+        return (
+          send(res, 400, {
+            error: "Enter the service date or period as dates, with the end on or after the start.",
+          }),
+          true
+        );
       let lineItems = [];
       if (Array.isArray(b.lineItems))
         lineItems = b.lineItems.map((x) => {
@@ -4785,6 +4905,7 @@ async function api(req, res, url) {
         : Number(b.amount);
       if (!Number.isFinite(amount) || amount <= 0)
         return (send(res, 400, { error: "Invoice total must be greater than zero" }), true);
+      const totals = vatTotals(amount, vatMode);
       const orderedAmount = Number(task?.orderAmount || ph.orderAmount) || null;
       if (b.attachment && !ownUpload(user, attachmentUrl(b.attachment)))
         return (send(res, 400, { error: NOT_OWN_FILE }), true);
@@ -4798,7 +4919,7 @@ async function api(req, res, url) {
             x.projectId === p.id &&
             x.phaseId === ph.id &&
             (x.taskId || null) === (task?.id || null) &&
-            x.amount === amount &&
+            x.amount === totals.grossAmount &&
             x.description === b.description,
         )
       )
@@ -4817,10 +4938,13 @@ async function api(req, res, url) {
         taskName: task?.name || "",
         supplierId: user.supplierId,
         customerId: p.customerId,
-        amount,
+        amount: totals.grossAmount,
+        ...totals,
+        serviceDateFrom,
+        serviceDateTo,
         orderedAmount,
         lineItems,
-        exceedsOrder: orderedAmount !== null && amount > orderedAmount,
+        exceedsOrder: orderedAmount !== null && totals.netAmount > orderedAmount,
         description: b.description,
         status: "Submitted",
         attachment: b.attachment || null,
@@ -4879,7 +5003,7 @@ async function api(req, res, url) {
           .toString("base64")
           .match(/.{1,76}/g)
           .join("\r\n"),
-        body = `Please find invoice ${invoiceNo(i)} for ${project?.name || i.projectId}, total EUR ${Number(i.amount).toFixed(2)}.\r\n\r\nCraftCrew invoice PDF is attached.`;
+        body = `Please find invoice ${invoiceNo(i)} for ${project?.name || i.projectId}.\r\n\r\n${invoiceAmountLines(i, pdfLang).join("\r\n")}\r\n\r\nCraftCrew invoice PDF is attached.`;
       const eml = `To: ${to}\r\nSubject: ${subject}\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n--${boundary}\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n${body}\r\n\r\n--${boundary}\r\nContent-Type: application/pdf; name="CraftCrew-${safeName}.pdf"\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename="CraftCrew-${safeName}.pdf"\r\n\r\n${pdf}\r\n--${boundary}--\r\n`;
       res.writeHead(200, {
         "Content-Type": "message/rfc822; charset=utf-8",
@@ -4919,7 +5043,7 @@ async function api(req, res, url) {
           i.status = "Approved";
           i.scheduledPayment = future(Number(db.settings?.defaultPaymentTermsDays ?? 3));
           const feePercent = Number(db.settings?.platformFeePercent ?? 3),
-            fee = Math.round(Number(i.amount) * feePercent) / 100;
+            fee = Math.round(invoiceNet(i) * feePercent) / 100;
           if (!db.payments.some((p) => p.invoiceId === i.id))
             db.payments.push({
               id: id("pay"),
@@ -4927,6 +5051,7 @@ async function api(req, res, url) {
               status: "Scheduled",
               scheduledDate: i.scheduledPayment,
               amount: i.amount,
+              netAmount: invoiceNet(i),
               platformFeePercent: feePercent,
               platformFee: fee,
               supplierPayout: Math.max(0, Number(i.amount) - fee),
@@ -4968,6 +5093,13 @@ async function api(req, res, url) {
           lines && lines.length ? lines.reduce((a, x) => a + x.total, 0) : Number(b.amount ?? i.amount);
         if (!Number.isFinite(amount) || amount <= 0)
           return (send(res, 400, { error: "Enter a valid invoice amount" }), true);
+        if (b.vatMode !== undefined && !Object.hasOwn(VAT_MODES, String(b.vatMode)))
+          return (
+            send(res, 400, {
+              error: "Choose a VAT mode: 19 %, 7 %, reverse charge (§13b), small business (§19) or intra-EU.",
+            }),
+            true
+          );
         if (
           b.attachment &&
           attachmentUrl(b.attachment) !== attachmentUrl(i.attachment) &&
@@ -4977,6 +5109,9 @@ async function api(req, res, url) {
         i.revisions ||= [];
         i.revisions.push({
           amount: i.amount,
+          netAmount: i.netAmount,
+          vatMode: i.vatMode,
+          vatAmount: i.vatAmount,
           description: i.description,
           lineItems: i.lineItems || null,
           attachment: i.attachment || null,
@@ -4984,7 +5119,12 @@ async function api(req, res, url) {
           reviewNote: i.comments || "",
           at: now(),
         });
-        i.amount = Math.round(amount * 100) / 100;
+        // Invoices with VAT data get their totals recomputed; older ones stay net-only.
+        if (i.vatMode || b.vatMode !== undefined) {
+          Object.assign(i, vatTotals(amount, String(b.vatMode ?? i.vatMode)));
+          i.amount = i.grossAmount;
+        } else i.amount = Math.round(amount * 100) / 100;
+        if (i.orderedAmount) i.exceedsOrder = invoiceNet(i) > i.orderedAmount;
         i.description = String(b.description ?? i.description).slice(0, 3000);
         i.attachment = b.attachment ?? i.attachment;
         if (lines && lines.length) i.lineItems = lines;
@@ -5020,13 +5160,14 @@ async function api(req, res, url) {
           pay.paidAt = now();
         } else {
           const feePercent = Number(db.settings?.platformFeePercent ?? 3),
-            fee = Math.round(Number(i.amount) * feePercent) / 100;
+            fee = Math.round(invoiceNet(i) * feePercent) / 100;
           db.payments.push({
             id: id("pay"),
             invoiceId: i.id,
             status: "Paid",
             paidAt: now(),
             amount: i.amount,
+            netAmount: invoiceNet(i),
             platformFeePercent: feePercent,
             platformFee: fee,
             supplierPayout: Math.max(0, Number(i.amount) - fee),
