@@ -5,7 +5,7 @@
   --ui-blue-soft: #eef4ff;
   --ui-ink: #0d1b32;
   --ui-text: #40516a;
-  --ui-muted: #7b8799;
+  --ui-muted: #5b6576;
   --ui-line: #e6ebf2;
   --ui-radius: 12px;
   --ui-shadow: 0 1px 2px rgba(13, 27, 50, 0.04), 0 4px 14px rgba(13, 27, 50, 0.04);
@@ -237,7 +237,7 @@ textarea:focus {
   border-radius: 9px;
   background: #dc2626;
   color: #fff;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   line-height: 18px;
   text-align: center;
@@ -323,7 +323,7 @@ textarea:focus {
   display: block;
   margin-top: 4px;
   color: var(--ui-muted);
-  font-size: 11px;
+  font-size: 13px;
 }
 .ui-notif-dot {
   flex: 0 0 8px;
@@ -419,8 +419,8 @@ textarea:focus {
 }
 .cc-table th,
 table th {
-  color: #6b7789;
-  font-size: 10.5px;
+  color: var(--text-muted);
+  font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -637,7 +637,7 @@ details + .panel {
 .ui-drop small {
   flex-basis: 100%;
   color: var(--ui-muted);
-  font-size: 11px;
+  font-size: 13px;
   overflow-wrap: anywhere;
 }
 .ui-drop:hover,
@@ -732,7 +732,7 @@ details + .panel {
   border-radius: 5px;
   background: #f7f9fc;
   font: inherit;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--ui-muted);
 }
 .ui-search-backdrop {
@@ -801,7 +801,7 @@ details + .panel {
 .ui-search-item small {
   display: block;
   margin-top: 2px;
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--ui-muted);
 }
 .ui-search-item.active,
@@ -1047,7 +1047,7 @@ details + .panel {
   border-radius: 10px;
   background: #eef2f7;
   color: #4a5a70;
-  font-size: 11px;
+  font-size: 13px;
 }
 #ccChatSearch {
   height: 38px;
@@ -1063,7 +1063,7 @@ details + .panel {
   color: var(--ui-ink);
 }
 .cc-chat-thread small {
-  font-size: 11px !important;
+  font-size: 13px !important;
   color: var(--ui-muted);
 }
 .cc-chat-thread p {
@@ -1088,7 +1088,7 @@ details + .panel {
   margin: 4px 0;
 }
 .cc-chat-bubble small {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--ui-muted);
 }
 .cc-chat-compose textarea {

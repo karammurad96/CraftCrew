@@ -45,7 +45,7 @@
 }
 .ff-intro {
   max-width: 760px;
-  color: #66768c;
+  color: var(--text-muted);
   line-height: 1.7;
   margin: 8px 0 30px;
 }
@@ -85,7 +85,7 @@
   font-weight: 700;
 }
 .ff-step-number {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 1.2px;
   color: #2563eb;
@@ -168,7 +168,7 @@
   position: absolute;
   top: 21px;
   right: 20px;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.8px;
   color: #2563eb;
@@ -185,12 +185,12 @@
 }
 .ff-price-card > p {
   min-height: 50px;
-  color: #718096;
+  color: var(--text-muted);
   font-size: 12px;
   line-height: 1.6;
 }
 .ff-price-card h3 {
-  font-size: 11px;
+  font-size: 13px;
   margin: 20px 0 8px;
 }
 .ff-check-list,
@@ -208,7 +208,7 @@
   gap: 9px;
   align-items: flex-start;
   color: #506178;
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.5;
 }
 .ff-check-list li span {
@@ -226,9 +226,9 @@
   margin: 20px 0;
   padding: 13px 15px;
   background: #f6f8fb;
-  color: #738198;
+  color: var(--text-muted);
   border-radius: 9px;
-  font-size: 10px;
+  font-size: 13px;
   line-height: 1.6;
 }
 .ff-flow-graphic {
@@ -252,7 +252,7 @@
   padding-top: 12px;
   border-top: 1px solid #30435f;
   color: #aabbd1;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 600;
 }
 .ff-task-time-details {
@@ -277,7 +277,7 @@
 }
 .ff-task-time-details summary small {
   font-weight: 500;
-  color: #7d8998;
+  color: var(--text-muted);
 }
 .ff-task-time-details summary > span:first-child {
   color: #17345c;
@@ -303,7 +303,7 @@
 .ff-task-time-head {
   padding: 8px 0;
   color: #8592a4;
-  font-size: 9px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -312,14 +312,14 @@
   border-top: 1px solid #edf0f4;
   color: #354761;
   text-decoration: none;
-  font-size: 11px;
+  font-size: 13px;
 }
 .ff-task-time-row:hover {
   background: #f8fbff;
 }
 .ff-task-time-row small {
   display: block;
-  color: #8994a4;
+  color: var(--text-muted);
   margin-top: 4px;
 }
 .ff-project-explorer {
@@ -353,7 +353,7 @@
   display: grid;
   gap: 5px;
   color: #596a80;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 700;
 }
 .ff-time-filters input,
@@ -402,7 +402,7 @@
   border-radius: 9px;
 }
 .ff-hours-calc span {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
 }
 .ff-hours-calc strong {
@@ -411,8 +411,8 @@
 }
 .ff-hours-calc small {
   margin-left: auto;
-  color: #718096;
-  font-size: 10px;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 .ff-rfq-context {
   display: flex;
@@ -432,8 +432,8 @@
 }
 .ff-rfq-context small {
   margin-top: 4px;
-  color: #758297;
-  font-size: 10px;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 .ff-quote-head {
   display: flex;
@@ -448,8 +448,8 @@
 }
 .ff-quote-head p {
   margin: 4px 0;
-  color: #718096;
-  font-size: 10px;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 .ff-quote-item {
   display: grid;
@@ -466,10 +466,10 @@
   margin: 0 !important;
   display: grid;
   gap: 5px;
-  font-size: 9px;
+  font-size: 12px;
 }
 .ff-file-list {
-  font-size: 10px;
+  font-size: 13px;
   color: #4e617a;
 }
 .ff-quote-total {
@@ -479,7 +479,7 @@
   padding: 13px 15px;
   background: #edf4ff;
   border-radius: 9px;
-  font-size: 11px;
+  font-size: 13px;
 }
 .ff-quote-total b {
   font-size: 17px;
@@ -488,7 +488,7 @@
 .ff-rfq-form label small {
   display: block;
   margin-top: 5px;
-  color: #8490a0;
+  color: var(--text-muted);
   font-weight: 500;
 }
 .ff-rfq-form textarea {
@@ -676,7 +676,7 @@
     display: block !important;
     flex: 0 0 auto;
     padding: 9px 11px;
-    font-size: 11px;
+    font-size: 13px;
     text-align: left;
   }
   .dashboard-content {
@@ -848,7 +848,7 @@
     font-size: 0;
   }
   .sidebar .help .btn {
-    font-size: 11px;
+    font-size: 13px;
   }
   .sidebar .side-brand {
     margin-bottom: 12px;
@@ -932,7 +932,7 @@ label > select {
   background: #fff;
   color: #17345c;
   font: inherit;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   text-align: left;
   cursor: pointer;
@@ -940,7 +940,7 @@ label > select {
 }
 .ff-evidence-file small {
   font-weight: 500;
-  color: #7d8998;
+  color: var(--text-muted);
 }
 .ff-evidence-file:hover,
 .ff-evidence-file.active {
@@ -950,7 +950,7 @@ label > select {
 .ff-evidence-open {
   margin-left: auto;
   color: #2563eb;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 800;
 }
 .ff-evidence-preview {
@@ -969,7 +969,7 @@ label > select {
   padding: 8px 10px;
   background: #fff;
   border-bottom: 1px solid #e6ebf2;
-  font-size: 11px;
+  font-size: 13px;
 }
 .ff-evidence-bar span {
   display: flex;

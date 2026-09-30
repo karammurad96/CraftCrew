@@ -26,7 +26,7 @@
   border-radius: 10px;
   background: #eaf2ff;
   color: #2563eb;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
 }
 .pa-count.red {
@@ -35,7 +35,7 @@
 }
 .pa-count.orange {
   background: #fff7df;
-  color: #b77900;
+  color: var(--warn-text);
 }
 .pa-row {
   display: flex;
@@ -67,8 +67,8 @@ a.pa-row:hover {
 .pa-row small {
   display: block;
   margin-top: 3px;
-  color: #8190a3;
-  font-size: 10px;
+  color: var(--text-muted);
+  font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -77,7 +77,7 @@ a.pa-row:hover {
   flex: 0 0 auto;
   padding: 4px 8px;
   border-radius: 12px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   background: #eaf2ff;
   color: #2563eb;
@@ -105,13 +105,13 @@ a.pa-row:hover {
 }
 .pa-empty {
   margin: 6px 0;
-  color: #8190a3;
+  color: var(--text-muted);
   font-size: 12px;
 }
 .pa-note {
   margin: 10px 0 0;
-  color: #718096;
-  font-size: 11px;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 .pa-earnings {
   display: grid;
@@ -132,8 +132,8 @@ a.pa-row:hover {
   color: #0d1b32;
 }
 .pa-earnings small {
-  color: #8190a3;
-  font-size: 10px;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 .pa-bars {
   display: flex;
@@ -159,8 +159,8 @@ a.pa-row:hover {
   background: #2563eb;
 }
 .pa-bars small {
-  font-size: 10px;
-  color: #718096;
+  font-size: 13px;
+  color: var(--text-muted);
 }
 .pa-reports {
   display: grid;
@@ -170,13 +170,13 @@ a.pa-row:hover {
 .pa-kpis .cc-card small {
   display: block;
   margin-top: 6px;
-  color: #8190a3;
-  font-size: 10px;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 .pa-table td small {
   display: block;
-  color: #8190a3;
-  font-size: 10px;
+  color: var(--text-muted);
+  font-size: 13px;
   margin-top: 3px;
 }
 .pa-table td,
@@ -193,9 +193,9 @@ a.pa-row:hover {
 .pa-filters label {
   display: grid;
   gap: 5px;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 700;
-  color: #627086;
+  color: var(--text-muted);
   margin: 0;
 }
 .pa-filters input,
@@ -269,8 +269,8 @@ a.pa-row:hover {
   line-height: 1.5;
 }
 .pa-update small {
-  color: #8190a3;
-  font-size: 10px;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 .pa-settings {
   display: grid;
@@ -301,7 +301,7 @@ a.pa-row:hover {
   font-size: 12px;
 }
 .pa-kv span {
-  color: #8190a3;
+  color: var(--text-muted);
 }
 .pa-kv b {
   overflow-wrap: anywhere;
@@ -317,13 +317,13 @@ a.pa-row:hover {
   border: 1px dashed #c9d6ea;
   border-radius: 9px;
   background: #f8fbff;
-  font-size: 11px;
+  font-size: 13px;
 }
 .pa-template-preview small {
   display: block;
   margin-top: 4px;
-  color: #718096;
-  font-size: 10px;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 .pa-new-project textarea {
   width: 100%;
@@ -355,7 +355,7 @@ label output {
   display: grid;
   gap: 5px;
   margin: 0;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   color: #596a80;
 }
@@ -377,7 +377,7 @@ label output {
   margin: 0 0 4px;
 }
 .pa-settings .subtle {
-  font-size: 11px;
+  font-size: 13px;
 }
 .pa-kpis {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)) !important;
@@ -399,13 +399,13 @@ label output {
   border-radius: 10px;
   background: #eaf2ff;
   color: #2563eb;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 #topActions > .subtle {
-  font-size: 11px;
+  font-size: 13px;
   white-space: nowrap;
 }
 @media (max-width: 1000px) {

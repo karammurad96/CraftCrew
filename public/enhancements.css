@@ -46,7 +46,7 @@
   gap: 10px;
   flex-wrap: wrap;
   color: #64748b;
-  font-size: 10px;
+  font-size: 13px;
 }
 .supplier-facts span {
   background: #f5f7fb;
@@ -65,7 +65,7 @@
 }
 .supplier-profile-head p {
   margin: 0;
-  color: #718096;
+  color: var(--text-muted);
   font-size: 12px;
 }
 .supplier-avatar.large {
@@ -92,7 +92,7 @@
   gap: 4px;
   padding: 10px 0;
   border-bottom: 1px solid #eef1f5;
-  font-size: 11px;
+  font-size: 13px;
 }
 .team-row span {
   color: #59677a;
@@ -100,7 +100,7 @@
 }
 .team-row small {
   grid-column: 1/-1;
-  color: #8792a2;
+  color: var(--text-muted);
 }
 .project-card {
   transition:
@@ -134,8 +134,8 @@
   grid-template-columns: 90px 1fr 90px;
   gap: 10px;
   align-items: center;
-  color: #748195;
-  font-size: 9px;
+  color: var(--text-muted);
+  font-size: 12px;
   margin: 12px 0;
 }
 .gantt-track {
@@ -164,8 +164,8 @@
 .project-timeline .panel-title small {
   display: block;
   margin-top: 4px;
-  color: #8792a2;
-  font-size: 10px;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 .gantt-head,
 .gantt-row {
@@ -175,18 +175,18 @@
   align-items: center;
 }
 .gantt-head {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  color: #8792a2;
+  color: var(--text-muted);
   padding: 10px 4px;
   border-bottom: 1px solid #edf0f4;
 }
 .gantt-row {
   padding: 10px 4px;
   border-bottom: 1px solid #f0f2f5;
-  font-size: 10px;
+  font-size: 13px;
 }
 .project-task-panel {
   margin-bottom: 24px;
@@ -208,18 +208,18 @@
   border-radius: 8px;
 }
 .subtask-list > b {
-  font-size: 10px;
+  font-size: 13px;
 }
 .subtask {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: 13px;
   color: #475569;
 }
 .assignment-history {
   margin-top: 12px;
-  font-size: 10px;
+  font-size: 13px;
 }
 .assignment-history summary {
   cursor: pointer;
@@ -235,7 +235,7 @@
 }
 .history-row small {
   text-align: right;
-  color: #8792a2;
+  color: var(--text-muted);
 }
 .deliverable-list {
   display: flex;
@@ -293,7 +293,7 @@
   border-radius: 8px;
   background: #eef2f7;
   color: #475569;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
 }
 .order-check.within {
@@ -330,8 +330,8 @@
 .project-task-panel .panel-title small {
   display: block;
   margin-top: 4px;
-  color: #8792a2;
-  font-size: 10px;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 .wf-stat-grid {
   display: grid;
@@ -347,7 +347,7 @@
   font-size: 18px;
 }
 .wf-stat-grid small {
-  font-size: 10px;
+  font-size: 13px;
   color: #64748b;
   line-height: 1.4;
 }
@@ -384,8 +384,8 @@
 .wf-phase-title p,
 .wf-task-head p {
   margin: 4px 0 8px;
-  color: #718096;
-  font-size: 11px;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 .wf-task-list {
   display: grid;
@@ -407,11 +407,11 @@
   flex-wrap: wrap;
   margin: 8px 0;
   color: #64748b;
-  font-size: 10px;
+  font-size: 13px;
 }
 .wf-task > small {
   color: #64748b;
-  font-size: 10px;
+  font-size: 13px;
 }
 .wf-phase-footer {
   display: flex;
@@ -420,7 +420,7 @@
   gap: 8px;
   margin-top: 12px;
   color: #64748b;
-  font-size: 10px;
+  font-size: 13px;
 }
 .wf-gantt-head,
 .wf-gantt-phase,
@@ -431,12 +431,12 @@
   gap: 12px;
   padding: 9px 4px;
   border-bottom: 1px solid #edf0f4;
-  font-size: 10px;
+  font-size: 11px;
 }
 .wf-gantt-head {
-  color: #8792a2;
+  color: var(--text-muted);
   text-transform: uppercase;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
 }
 .wf-gantt-phase {
@@ -497,7 +497,7 @@
   align-items: center;
   padding: 9px;
   border-bottom: 1px solid #edf0f4;
-  font-size: 10px;
+  font-size: 13px;
 }
 .wf-offer-head {
   font-weight: 800;
@@ -520,7 +520,7 @@
 }
 .wf-service-row legend,
 .wf-person-row legend {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
   color: #334155;
 }
@@ -596,7 +596,7 @@
 }
 .wf-message small {
   color: #64748b;
-  font-size: 9px;
+  font-size: 12px;
 }
 @media (max-width: 900px) {
   .wf-stat-grid,
