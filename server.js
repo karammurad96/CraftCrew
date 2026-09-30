@@ -2435,7 +2435,9 @@ function notify(userId, text, link = "") {
       recipient.email,
       "notification",
       `CraftCrew: ${String(text).slice(0, 120)}`,
-      `${text}\n\nOpen CraftCrew to review: #${link}`,
+      recipient.language === "de"
+        ? `${text}\n\nIn CraftCrew öffnen: ${APP_URL}/#${link}`
+        : `${text}\n\nOpen CraftCrew: ${APP_URL}/#${link}`,
     );
 }
 function projectSupplierIds(p) {
