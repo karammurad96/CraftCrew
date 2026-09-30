@@ -2,7 +2,7 @@
 // Usage: node tools/audit/crawl.js <base-url> <out.json> [en|de] [desktop|mobile]   (AXE=0 skips accessibility checks)
 const { chromium } = require(process.env.PW || "playwright");
 const fs = require("fs");
-const AXE = fs.readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
+const AXE = process.env.AXE === "0" ? "" : fs.readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
 const BASE = process.argv[2] || "http://localhost:3100";
 const OUT = process.argv[3] || "crawl.json";
 const LANG = process.argv[4] || "en";
@@ -128,8 +128,16 @@ async function login(email, password) {
           .filter(Boolean);
         const h1 = document.querySelector("h1")?.textContent.trim().slice(0, 80) || "";
         const bodyText = document.body.innerText;
+        // The app catches render errors and shows one of these headings instead of the page.
+        const errorScreen =
+          [...document.querySelectorAll("#app h2")]
+            .map((el) => el.textContent.trim())
+            .find((t) =>
+              /^(We could not open this page|Something went wrong|Could not load this page)$/.test(t),
+            ) || null;
         return {
           h1,
+          errorScreen,
           title: document.title,
           scrollWidth: document.documentElement.scrollWidth,
           vw,
