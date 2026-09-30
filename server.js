@@ -20,6 +20,7 @@ const PORT = Number(process.env.PORT || 3000);
 // Demo/showcase data and demo logins exist only outside production.
 const DEMO_MODE = process.env.NODE_ENV !== "production";
 const mailer = require("./mailer");
+const { buildXRechnung, xrechnungProblem } = require("./xrechnung");
 // One spelling per email address: trimmed and lower-case, for every lookup and every stored email.
 const normEmail = (s) =>
   String(s || "")
@@ -2935,6 +2936,55 @@ function invoiceAmountLines(inv, lang = "en") {
     ...(VAT_NOTES[inv.vatMode] ? [VAT_NOTES[inv.vatMode][lang === "de" ? "de" : "en"]] : []),
   ];
 }
+// Plain data for the XRechnung builder (xrechnung.js), from the invoice, both company profiles and the project.
+function xrechnungData(inv) {
+  const sellerUser = supplierAccount(inv.supplierId),
+    supplier = db.suppliers.find((x) => x.id === inv.supplierId),
+    customer = db.users.find((x) => x.id === inv.customerId),
+    project = db.projects.find((x) => x.id === inv.projectId),
+    scp = sellerUser?.companyProfile || {},
+    ccp = customer?.companyProfile || {},
+    pay = sellerUser?.payoutDetails || {},
+    net = invoiceNet(inv);
+  return {
+    number: invoiceNo(inv),
+    issueDate: inv.createdAt,
+    note: inv.description,
+    buyerReference: project?.buyerReference || project?.name || inv.projectId,
+    paymentTerms: inv.paymentTerms,
+    dueDate: inv.scheduledPayment,
+    seller: {
+      name: scp.legalName || supplier?.company,
+      address: scp.address,
+      email: scp.procurementEmail || sellerUser?.email,
+      phone: scp.phone,
+      contactName: scp.contactName || sellerUser?.name,
+      taxId: scp.taxId,
+      iban: pay.iban,
+      bic: pay.bic,
+      accountHolder: pay.accountHolder,
+    },
+    buyer: {
+      name: ccp.legalName || customer?.company,
+      address: ccp.address,
+      email: ccp.procurementEmail || customer?.email,
+      taxId: ccp.taxId,
+    },
+    servicePeriod: { from: inv.serviceDateFrom, to: inv.serviceDateTo },
+    vat: inv.vatMode
+      ? { mode: inv.vatMode, rate: inv.vatRate, net, vat: inv.vatAmount, gross: inv.grossAmount }
+      : null,
+    lines: (inv.lineItems || []).length
+      ? inv.lineItems.map((x) => ({
+          name: x.service,
+          quantity: x.quantity,
+          unit: x.unit,
+          unitPrice: x.unitPrice ?? x.rate,
+          total: x.total,
+        }))
+      : [{ name: inv.description || "Services", quantity: 1, unit: "units", unitPrice: net, total: net }],
+  };
+}
 function invoiceParties(inv) {
   const customer = db.users.find((x) => x.id === inv.customerId),
     supplier = db.suppliers.find((x) => x.id === inv.supplierId),
@@ -4023,6 +4073,10 @@ async function api(req, res, url) {
         description: String(b.description).slice(0, 5000),
         requirements: String(b.requirements || "").slice(0, 5000),
         location: String(b.location || "").slice(0, 240),
+        // The customer's order reference; e-invoices carry it as the buyer reference (BT-10).
+        buyerReference: String(b.buyerReference || "")
+          .trim()
+          .slice(0, 100),
         budget,
         startDate,
         dueDate: b.dueDate,
@@ -4487,6 +4541,8 @@ async function api(req, res, url) {
         description: b.description ?? p.description,
         requirements: b.requirements ?? p.requirements,
         location: b.location ?? p.location,
+        buyerReference:
+          b.buyerReference !== undefined ? String(b.buyerReference).trim().slice(0, 100) : p.buyerReference,
         budget: given(b.budget) ? Number(b.budget) : p.budget,
         startDate: given(b.startDate) ? b.startDate : p.startDate,
         dueDate: given(b.dueDate) ? b.dueDate : p.dueDate,
@@ -4910,7 +4966,7 @@ async function api(req, res, url) {
       parts[1] === "invoices" &&
       parts[2] &&
       parts[3] &&
-      ["pdf", "email-draft"].includes(parts[3]) &&
+      ["pdf", "email-draft", "xrechnung"].includes(parts[3]) &&
       method === "GET"
     ) {
       const i = db.invoices.find((x) => x.id === parts[2]);
@@ -4936,6 +4992,21 @@ async function api(req, res, url) {
           "X-Content-Type-Options": "nosniff",
         });
         res.end(buffer);
+        return true;
+      }
+      if (parts[3] === "xrechnung") {
+        const data = xrechnungData(i),
+          problem = xrechnungProblem(data);
+        if (problem) return (send(res, 400, { error: problem }), true);
+        const xmlText = buildXRechnung(data);
+        res.writeHead(200, {
+          "Content-Type": "application/xml; charset=utf-8",
+          "Content-Length": Buffer.byteLength(xmlText),
+          "Content-Disposition": `attachment; filename="XRechnung-${safeName}.xml"`,
+          "Cache-Control": "no-store",
+          "X-Content-Type-Options": "nosniff",
+        });
+        res.end(xmlText);
         return true;
       }
       const to = (user.role === "supplier" ? parties.customerEmail : parties.supplierEmail).replace(

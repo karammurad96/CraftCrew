@@ -33,3 +33,28 @@ jobs:
           node-version: 22
       - run: npm i --no-save playwright && npx playwright install --with-deps chromium
       - run: npm run test:e2e
+
+  # XRechnung samples and a route-generated invoice must pass the official KoSIT validator (XRechnung 3.0.2).
+  xrechnung:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Samples are up to date
+        run: node test/fixtures/xrechnung/samples.js --write && git diff --exit-code test/fixtures/xrechnung
+      - name: Export an invoice through the API
+        run: XRECHNUNG_OUT=xrechnung-out node --test test/xrechnung.test.js
+      - name: Download the KoSIT validator and the XRechnung configuration
+        run: |
+          curl -fsSL -o validator.zip https://github.com/itplr-kosit/validator/releases/download/v1.5.0/validator-1.5.0-distribution.zip
+          curl -fsSL -o config.zip https://github.com/itplr-kosit/validator-configuration-xrechnung/releases/download/release-2025-07-10/validator-configuration-xrechnung_3.0.2_2025-07-10.zip
+          unzip -q validator.zip -d kosit
+          unzip -q config.zip -d kosit/config
+      - name: Validate
+        run: java -jar kosit/validationtool-1.5.0-standalone.jar -s kosit/config/scenarios.xml -r kosit/config test/fixtures/xrechnung/*.xml xrechnung-out/*.xml
