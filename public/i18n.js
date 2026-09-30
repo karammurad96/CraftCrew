@@ -1289,6 +1289,19 @@ Object.assign(I18N_DE, {
   "Delete this task?": "Diese Aufgabe löschen?",
   "Delete phase?": "Phase löschen?",
   "Delete this project and its invoices?": "Projekt und zugehörige Rechnungen löschen?",
+  "Delete this project? Projects with invoices, documents or accepted suppliers are archived instead.":
+    "Dieses Projekt löschen? Projekte mit Rechnungen, Dokumenten oder angenommenen Lieferanten werden stattdessen archiviert.",
+  "Project archived": "Projekt archiviert",
+  "Project deleted": "Projekt gelöscht",
+  "Phase deleted": "Phase gelöscht",
+  "Show archived": "Archivierte anzeigen",
+  Archived: "Archiviert",
+  "This project is archived and can no longer be changed.":
+    "Dieses Projekt ist archiviert und kann nicht mehr geändert werden.",
+  "This task has invoices, so it cannot be deleted.":
+    "Diese Aufgabe hat Rechnungen und kann daher nicht gelöscht werden.",
+  "Remove supplier assignments and resolve invoices before deleting this phase.":
+    "Entfernen Sie Lieferantenzuweisungen und klären Sie Rechnungen, bevor Sie diese Phase löschen.",
   "Decline this service request?": "Diese Anfrage ablehnen?",
   "Close this event without an award? Open offers are marked as not selected.":
     "Ausschreibung ohne Zuschlag schließen? Offene Angebote werden als nicht ausgewählt markiert.",

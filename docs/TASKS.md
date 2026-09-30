@@ -128,7 +128,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T12 Lock down public supplier applications and approval · M
 - [x] T13 Normalise email addresses everywhere · S
 - [x] T14 Validate statuses, dates and dependencies on projects, phases and tasks · M
-- [ ] T15 Never delete financial records: archive projects, guard phase and task deletion · M
+- [x] T15 Never delete financial records: archive projects, guard phase and task deletion · M
 - [ ] T16 Fix phase re-ordering data loss · S
 - [ ] T17 Enforce "must change password" on the server · S
 - [ ] T18 Session hygiene: purge expired sessions, cap per user, idle timeout · S
@@ -464,8 +464,8 @@ German law requires invoices to be kept for 10 years (§147 AO, §14b UStG).
 - A phase with an assigned supplier cannot be deleted.
 
 **Done when.**
-- [ ] The tests pass.
-- [ ] `bugcheck.js` reports "not reproduced" for the project-deletion line.
+- [x] The tests pass.
+- [x] `bugcheck.js` reports "not reproduced" for the project-deletion line.
 
 ### T16 · Fix phase re-ordering data loss
 `P0 · S · cheap model OK`
