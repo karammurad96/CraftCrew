@@ -1292,6 +1292,8 @@ Object.assign(I18N_DE, {
   "Delete this project? Projects with invoices, documents or accepted suppliers are archived instead.":
     "Dieses Projekt löschen? Projekte mit Rechnungen, Dokumenten oder angenommenen Lieferanten werden stattdessen archiviert.",
   "Project archived": "Projekt archiviert",
+  "Send phaseIds as a list of this project's phase ids, each once.":
+    "Senden Sie phaseIds als Liste der Phasen-IDs dieses Projekts, jede nur einmal.",
   "Project deleted": "Projekt gelöscht",
   "Phase deleted": "Phase gelöscht",
   "Show archived": "Archivierte anzeigen",
