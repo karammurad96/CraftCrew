@@ -7,7 +7,6 @@ const net = require("node:net");
 const path = require("node:path");
 
 const ROOT = path.join(__dirname, "..");
-let nextPort = 3900 + Math.floor(Math.random() * 400);
 
 function fakeSmtp() {
   const inbox = [];
@@ -57,39 +56,69 @@ function parseMail(raw) {
   };
 }
 
-async function startApp({ smtp, env = {} } = {}) {
-  const dataDir = mkdtempSync(path.join(tmpdir(), "craftcrew-test-")),
-    port = nextPort++;
-  const proc = spawn(process.execPath, [path.join(ROOT, "server.js")], {
-    cwd: ROOT,
-    stdio: ["ignore", "ignore", "pipe"],
-    env: {
-      ...process.env,
-      NODE_ENV: "production",
-      DATA_DIR: dataDir,
-      PORT: String(port),
-      APP_URL: `http://localhost:${port}`,
-      BOOTSTRAP_ADMIN_EMAIL: "admin@test.local",
-      BOOTSTRAP_ADMIN_PASSWORD: "Admin-Password-2026!",
-      ...(smtp
-        ? {
-            SMTP_HOST: "localhost",
-            SMTP_PORT: String(smtp.port),
-            SMTP_SECURE: "false",
-            SMTP_FROM: "CraftCrew <no-reply@craftcrew.test>",
-          }
-        : {}),
-      ...env,
-    },
+// A port the OS reports as free right now; the server may still lose it to another process, so
+// startApp retries with a new port when the server exits during start-up.
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const probe = net.createServer();
+    probe.once("error", reject);
+    probe.listen(0, () => {
+      const { port } = probe.address();
+      probe.close(() => resolve(port));
+    });
   });
-  let stderr = "";
-  proc.stderr.on("data", (d) => (stderr += d));
-  const base = `http://localhost:${port}`;
-  for (let i = 0; i < 60; i++) {
-    try {
-      if ((await fetch(base + "/api/health")).ok) break;
-    } catch {}
-    await new Promise((r) => setTimeout(r, 100));
+}
+
+async function startApp({ smtp, env = {} } = {}) {
+  const dataDir = mkdtempSync(path.join(tmpdir(), "craftcrew-test-"));
+  let proc,
+    port,
+    base,
+    stderr = "";
+  for (let attempt = 1; attempt <= 3 && !base; attempt++) {
+    port = await freePort();
+    proc = spawn(process.execPath, [path.join(ROOT, "server.js")], {
+      cwd: ROOT,
+      stdio: ["ignore", "ignore", "pipe"],
+      env: {
+        ...process.env,
+        NODE_ENV: "production",
+        DATA_DIR: dataDir,
+        PORT: String(port),
+        APP_URL: `http://localhost:${port}`,
+        BOOTSTRAP_ADMIN_EMAIL: "admin@test.local",
+        BOOTSTRAP_ADMIN_PASSWORD: "Admin-Password-2026!",
+        ...(smtp
+          ? {
+              SMTP_HOST: "localhost",
+              SMTP_PORT: String(smtp.port),
+              SMTP_SECURE: "false",
+              SMTP_FROM: "CraftCrew <no-reply@craftcrew.test>",
+            }
+          : {}),
+        ...env,
+      },
+    });
+    let exited = false;
+    proc.once("exit", () => (exited = true));
+    proc.stderr.on("data", (d) => (stderr += d));
+    for (let i = 0; i < 150 && !exited; i++) {
+      try {
+        if ((await fetch(`http://localhost:${port}/api/health`, { signal: AbortSignal.timeout(1000) })).ok) {
+          base = `http://localhost:${port}`;
+          break;
+        }
+      } catch {}
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    if (!base && !exited) {
+      proc.kill();
+      await new Promise((r) => proc.once("exit", r));
+    }
+  }
+  if (!base) {
+    rmSync(dataDir, { recursive: true, force: true });
+    throw new Error("The test server did not start:\n" + stderr);
   }
   const call = async (method, url, body, token) => {
     const r = await fetch(base + "/api" + url, {
