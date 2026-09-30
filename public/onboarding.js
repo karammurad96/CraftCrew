@@ -24,6 +24,7 @@ async function obEnhanceHome() {
 async function obSteps(role) {
   const [{user = {}, supplier, companyProfile: cp = {}}] = await Promise.all([api('/profile').catch(() => ({}))]);
   const filled = (...v) => v.every(x => String(x || '').trim());
+  obSteps.user = user;
   if (role === 'customer') {
     const [{projects = []}, {bids = []}] = await Promise.all([api('/projects'), api('/bids').catch(() => ({}))]);
     const tasks = projects.flatMap(p => p.phases.flatMap(ph => ph.tasks || []));
@@ -31,7 +32,7 @@ async function obSteps(role) {
       {done: filled(cp.legalName, cp.address), title: 'Complete your company profile', text: 'Legal name, address and procurement contact appear on invoices and supplier requests.', link: '/customer/profile', cta: 'Edit profile'},
       {done: projects.length > 0, title: 'Create your first project', text: 'Pick a template to generate phases and tasks, set budget and dates.', link: '/customer/projects/new', cta: 'New project'},
       {done: tasks.some(t => t.assignedSupplierId) || bids.length > 0, title: 'Source a supplier for a task', text: 'Invite a vetted supplier directly or run a sourcing event to compare offers.', link: projects[0] ? `/customer/projects/${projects[0].id}` : '/customer/suppliers', cta: projects[0] ? 'Open project' : 'Find suppliers'},
-      {done: !!user.notificationPrefs && Object.values(user.notificationPrefs).some(Boolean), title: 'Choose email notifications', text: 'Decide which events should also reach you by email.', link: '/customer/profile', cta: 'Settings'}
+      {done: !!user.notificationPrefsSavedAt || (!!user.notificationPrefs && Object.values(user.notificationPrefs).some(Boolean)), title: 'Choose email notifications', text: 'Decide which events should also reach you by email.', link: '/customer/profile', cta: 'Settings'}
     ];
   }
   if (role === 'supplier') {
@@ -60,13 +61,23 @@ async function obChecklist() {
   if (!content || content.querySelector('.ob-checklist') || !/\/dashboard$/.test(location.hash.split('?')[0])) return;
   let hidden = false; try { hidden = localStorage.getItem(obKey()) === '1'; } catch {}
   const steps = await obSteps(role), done = steps.filter(s => s.done).length;
+  // Hiding is saved on the account, so it holds in every browser and after every sign-in.
+  if (obSteps.user?.onboardingHidden !== undefined) hidden = obSteps.user.onboardingHidden;
+  obShow.allDone = done === steps.length;
+  document.querySelector('.ob-reopen')?.toggleAttribute('hidden', obShow.allDone);
   if (done === steps.length || hidden || content.querySelector('.ob-checklist')) return;
   const next = steps.find(s => !s.done && !s.pending) || steps.find(s => !s.done);
   const html = `<section class="panel ob-checklist"><div class="ob-check-head"><div><div class="eyebrow">GETTING STARTED</div><h3>${done ? `Nice progress — ${steps.length - done} step${steps.length - done === 1 ? '' : 's'} to go` : `Welcome to CraftCrew${state.user.name ? ', ' + obEsc(state.user.name.split(' ')[0]) : ''}`}</h3></div><div class="ob-progress" title="${done} of ${steps.length} done"><i style="width:${done / steps.length * 100}%"></i></div><span class="ob-count">${done}/${steps.length}</span><button type="button" class="ui-link-btn" onclick="obHide()">Hide</button></div><ol class="ob-steps">${steps.map(s => `<li class="${s.done ? 'done' : s.pending ? 'pending' : ''} ${s === next ? 'next' : ''}"><span class="ob-tick">${s.done ? '✓' : s.pending ? '…' : ''}</span><div><b>${obEsc(s.title)}</b><small>${obEsc(s.text)}</small></div>${s.done ? '' : `<a class="btn small ${s === next ? 'primary' : 'outline'}" href="#${s.link}">${obEsc(s.cta)}</a>`}</li>`).join('')}</ol></section>`;
   (content.querySelector('.dash-top') || content.firstElementChild)?.insertAdjacentHTML('afterend', html);
 }
-function obHide() { try { localStorage.setItem(obKey(), '1'); } catch {} document.querySelector('.ob-checklist')?.remove(); toast('Checklist hidden — it stays available under Help & FAQ'); }
-function obShow() { try { localStorage.removeItem(obKey()); } catch {} navigate(`/${state.user.role}/dashboard`); }
+function obHide() { try { localStorage.setItem(obKey(), '1'); } catch {} api('/account/preferences', {method: 'PUT', body: {onboardingHidden: true}}).catch(() => {}); document.querySelector('.ob-checklist')?.remove(); toast('Checklist hidden — reopen it any time from the sidebar'); }
+async function obShow() {
+  if (obShow.allDone) { toast('All getting-started steps are done'); return; }
+  try { localStorage.removeItem(obKey()); } catch {}
+  await api('/account/preferences', {method: 'PUT', body: {onboardingHidden: false}}).catch(() => {});
+  document.querySelector('.ob-checklist')?.remove();
+  location.hash.split('?')[0] === `#/${state.user.role}/dashboard` ? obChecklist() : navigate(`/${state.user.role}/dashboard`);
+}
 
 const obBaseRoute = window.route;
 window.route = async function () {
@@ -78,7 +89,7 @@ window.route = async function () {
     if (state.user && /^\/(customer|supplier|admin)\/dashboard$/.test(path)) await obChecklist();
     // Re-open the checklist from the sidebar help area.
     const help = document.querySelector('.sidebar .help');
-    if (help && !help.querySelector('.ob-reopen')) help.insertAdjacentHTML('beforeend', '<button type="button" class="ui-link-btn ob-reopen" onclick="obShow()">Getting started checklist</button>');
+    if (help && !help.querySelector('.ob-reopen')) help.insertAdjacentHTML('beforeend', `<button type="button" class="ui-link-btn ob-reopen" onclick="obShow()" ${obShow.allDone ? 'hidden' : ''}>Getting started checklist</button>`);
   } catch (e) { console.error(e); }
   return result;
 };

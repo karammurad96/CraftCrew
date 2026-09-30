@@ -48,3 +48,4 @@
 .i18n-switch button.on{background:var(--ui-blue-soft);color:var(--ui-blue)}
 .sidebar .help .i18n-switch{margin-bottom:10px}
 @media(max-width:650px){.ob-home{padding:0 16px 28px}.ob-section{padding-top:40px}.ob-steps li{grid-template-columns:28px minmax(0,1fr)}.ob-steps li .btn{grid-column:2;justify-self:start}}
+.ob-reopen[hidden] { display: none !important; }

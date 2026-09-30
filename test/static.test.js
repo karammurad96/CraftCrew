@@ -9,7 +9,7 @@ const ROOT = path.join(__dirname, '..'), PUBLIC = path.join(ROOT, 'public');
 
 describe('static assets', () => {
   it('all JavaScript files parse', () => {
-    const files = ['server.js', 'mailer.js', 'sourcing.js', 'compliance.js', 'team.js', ...readdirSync(PUBLIC).filter(f => f.endsWith('.js')).map(f => 'public/' + f)];
+    const files = ['server.js', 'mailer.js', 'sourcing.js', 'compliance.js', 'team.js', 'documents.js', 'planning.js', ...readdirSync(PUBLIC).filter(f => f.endsWith('.js')).map(f => 'public/' + f)];
     for (const f of files) execFileSync(process.execPath, ['--check', path.join(ROOT, f)]);
   });
   it('index.html references only existing local files', () => {
@@ -21,6 +21,6 @@ describe('static assets', () => {
   });
   it('the Docker image includes every server module', () => {
     const docker = readFileSync(path.join(ROOT, 'Dockerfile'), 'utf8');
-    for (const f of ['server.js', 'mailer.js', 'sourcing.js', 'compliance.js', 'team.js']) assert.match(docker, new RegExp(f.replace('.', '\\.')));
+    for (const f of ['server.js', 'mailer.js', 'sourcing.js', 'compliance.js', 'team.js', 'documents.js', 'planning.js']) assert.match(docker, new RegExp(f.replace('.', '\\.')));
   });
 });

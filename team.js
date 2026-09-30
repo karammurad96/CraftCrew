@@ -29,7 +29,8 @@ function moduleFor(parts, method) {
   if (p1 === 'time-entries') return 'time';
   if (['sites', 'workers', 'compliance', 'site-visits'].includes(p1)) return 'compliance';
   if (['chats', 'messages'].includes(p1)) return 'messages';
-  if (p1 === 'applications') return 'catalog';
+  if (p1 === 'applications' || p1 === 'supplier-documents') return 'catalog';
+  if (p1 === 'planning') return 'projects';
   return 'settings';
 }
 

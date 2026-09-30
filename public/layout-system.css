@@ -151,3 +151,22 @@ label.btn{margin:0!important;cursor:pointer}
 .modal{padding:26px!important}
 .modal-head{margin-bottom:16px}
 @media(max-width:650px){.modal{padding:18px!important}}
+
+/* Header buttons stay grouped on the right */
+.dash-top > .dash-actions { flex-shrink: 0; justify-content: flex-end; flex-wrap: wrap; margin-left: auto; }
+
+/* Public pages, signed in: account chip + Dashboard + Log out */
+#topActions { display: flex; align-items: center; gap: 10px; }
+.pa-account { display: flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; border: 1px solid var(--line, #e5e7eb); border-radius: 999px; background: var(--card, #fff); cursor: pointer; font: inherit; color: inherit; max-width: 220px; }
+.pa-account:hover { border-color: #bfdbfe; background: #f8fbff; }
+.pa-account .avatar { width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: #2563eb; color: #fff; }
+.pa-account-text { display: grid; line-height: 1.15; text-align: left; min-width: 0; }
+.pa-account-text b { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pa-account-text small { font-size: 11px; color: var(--muted, #64748b); }
+@media (max-width: 1100px) { .pa-account-text { display: none; } .pa-account { padding: 3px; } }
+/* Phones: the signed-in top bar keeps only Dashboard (sign-out lives in the workspace sidebar) */
+@media (max-width: 650px) {
+  #topActions { gap: 6px; }
+  #topActions .pa-account, #topActions .btn.outline { display: none !important; }
+  #topActions .btn.primary { padding: 0 12px; min-height: 34px; font-size: 13px; }
+}

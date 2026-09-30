@@ -59,11 +59,17 @@ async function lcSave(layout) {
 function lcToolbar() {
   const top = document.querySelector('.dashboard-content .dash-top');
   if (!top || top.querySelector('.lc-toggle')) return;
-  const holder = top.querySelector('.in-toolbar') || top.querySelector(':scope > .btn, :scope > button')?.parentElement || top;
+  let holder = top.querySelector(':scope > .in-toolbar, :scope > .cc-actions, :scope > .dash-actions');
+  if (!holder) {
+    // Keep the page's own buttons and Customize together on the right of the header.
+    holder = document.createElement('div'); holder.className = 'cc-actions dash-actions';
+    top.querySelectorAll(':scope > .btn, :scope > button, :scope > a.btn').forEach(b => holder.appendChild(b));
+    top.appendChild(holder);
+  }
   const btn = document.createElement('button');
   btn.type = 'button'; btn.className = 'btn outline lc-toggle'; btn.innerHTML = '<span aria-hidden="true">⠿</span> Customize';
   btn.onclick = lcStart;
-  holder === top ? top.appendChild(btn) : holder.prepend(btn);
+  holder.prepend(btn);
 }
 function lcStart() {
   if (lcEditing) return;

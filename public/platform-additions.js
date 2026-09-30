@@ -329,8 +329,12 @@ async function paVerifySession() {
 const paBaseTopActions = topActions;
 topActions = function () {
   paBaseTopActions();
-  const name = document.querySelector('#topActions > .subtle');
-  if (name && state.user) name.innerHTML = `Signed in as <b>${paEsc(state.user.name)}</b> <span class="pa-role">${paEsc(state.user.role)}</span>`;
+  const el = document.getElementById('topActions');
+  if (!el || !state.user) return;
+  // Signed in: one compact account chip, the way back to the workspace, and sign-out.
+  const u = state.user, initials = String(u.name || 'U').split(' ').map(x => x[0]).join('').slice(0, 2).toUpperCase();
+  const roleLabel = {customer: 'Customer', supplier: 'Supplier', admin: 'Admin'}[u.role] || u.role;
+  el.innerHTML = `<button type="button" class="pa-account" onclick="navigate('/${u.role}/profile')" title="Profile / Settings"><span class="avatar">${paEsc(initials)}</span><span class="pa-account-text"><b>${paEsc(u.name)}</b><small>${paEsc(roleLabel)}</small></span></button><button type="button" class="btn primary" onclick="navigate('/${u.role}/dashboard')">Dashboard</button><button type="button" class="btn outline" onclick="logout()">Log out</button>`;
 };
 paVerifySession();
 

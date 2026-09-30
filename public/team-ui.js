@@ -141,3 +141,16 @@ window.route = async function () {
   tmNav(); tmViewHint(parts);
   return result;
 };
+
+/* Some pages (e.g. a supplier profile opened from the directory) render without the router,
+   so complete the sidebar whenever a fresh one appears. */
+function tmCompleteNav() {
+  const nav = document.querySelector('.sidebar nav');
+  if (!nav || nav.dataset.tmComplete || !state.user) return;
+  nav.dataset.tmComplete = '1';
+  for (const fn of ['inNav', 'srNav', 'cmNav']) if (typeof window[fn] === 'function') try { window[fn](); } catch (e) { console.error(e); }
+  tmNav();
+  if (typeof uiEnhanceSidebar === 'function') uiEnhanceSidebar();
+}
+let tmNavPending = false;
+new MutationObserver(() => { if (tmNavPending) return; tmNavPending = true; requestAnimationFrame(() => { tmNavPending = false; tmCompleteNav(); }); }).observe(document.getElementById('app'), {childList: true, subtree: false});
