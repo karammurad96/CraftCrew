@@ -3011,19 +3011,23 @@ async function api(req, res, url) {
     if (parts[1] === "auth" && parts[2] === "login" && method === "POST") {
       const b = await body(req),
         ip = clientIp(req),
-        loginKey = "login:" + ip + ":" + normEmail(b.email);
-      // Max 8 failed attempts per account and network, and 60 attempts per network, in 15 minutes.
-      if (
-        (rateBuckets.get(loginKey) || []).filter((x) => Date.now() - x < 900000).length >= 8 ||
-        rateLimited("login-ip:" + ip, 60, 900000)
-      )
+        loginKey = "login:" + ip + ":" + normEmail(b.email),
+        accountKey = "login-account:" + normEmail(b.email),
+        failures = (key) => (rateBuckets.get(key) || []).filter((x) => Date.now() - x < 900000).length;
+      // In 15 minutes: max 8 failed attempts per account and network, 20 failed attempts per account
+      // from any network, and 60 attempts per network.
+      if (failures(loginKey) >= 8 || failures(accountKey) >= 20 || rateLimited("login-ip:" + ip, 60, 900000))
         return (send(res, 429, { error: "Too many sign-in attempts. Wait 15 minutes and try again." }), true);
       const u = db.users.find((x) => normEmail(x.email) === normEmail(b.email));
+      // Unknown emails still cost one password hash, so the answer time doesn't reveal which accounts exist.
+      if (!u) hashPassword(String(b.password || ""));
       if (!u || !verifyPassword(b.password || "", u)) {
         rateLimited(loginKey, 1000, 900000);
+        rateLimited(accountKey, 1000, 900000);
         return (send(res, 401, { error: "Invalid email or password" }), true);
       }
       clearRate(loginKey);
+      clearRate(accountKey);
       const acting = u.status === "Suspended" ? null : team.resolve(u);
       if (!acting)
         return (

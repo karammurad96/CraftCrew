@@ -53,7 +53,7 @@ Browsers pick up new scripts automatically (versioned asset URLs).
 ## Security built in
 - HTTPS with HSTS, Content-Security-Policy, frame and referrer protection.
 - Passwords hashed with scrypt; sessions expire after 7 days and are revoked on logout, password change and suspension.
-- Sign-in lockout after 8 failed attempts per account (15 minutes); rate limits on sign-up, applications and uploads.
+- Sign-in lockout for 15 minutes after 8 failed attempts on one account from one network, or 20 failed attempts on one account from any networks; at most 60 sign-in attempts per network in 15 minutes. Rate limits on sign-up, applications and uploads.
 - Uploaded files are only served to signed-in project participants.
 - Complete audit log of changes (Admin → Audit log).
 - Admin password reset issues a one-time temporary password and forces a change.
