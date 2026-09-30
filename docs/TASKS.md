@@ -135,7 +135,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T19 Per-account sign-in lockout across networks · S
 - [x] T20 Validate supplier profile fields and make directory search robust · S
 - [x] T21 Upload safety: file type allowlist and ownership of attached files · M
-- [ ] T22 Email safety: validate application emails, sanitise mail headers, clickable links · S
+- [x] T22 Email safety: validate application emails, sanitise mail headers, clickable links · S
 - [ ] T23 Record the real client IP in the audit log · S
 - [ ] T24 Safer backup export and import · S
 - [ ] T25 Escalations reach admins and have valid values · S
@@ -636,8 +636,8 @@ supplier record contains a number (write it straight into `db.json` before start
 captured mail body contains `http://localhost:<port>/#/customer/`.
 
 **Done when.**
-- [ ] The tests pass.
-- [ ] `bugcheck.js` reports "not reproduced" for the notification-link line.
+- [x] The tests pass.
+- [x] `bugcheck.js` reports "not reproduced" for the notification-link line.
 
 ### T23 · Record the real client IP in the audit log
 `P0 · S · cheap model OK`
