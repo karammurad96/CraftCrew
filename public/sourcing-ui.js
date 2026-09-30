@@ -169,7 +169,7 @@ function srScorecardTable(cards) {
       .sort((a, b) => (b.score ?? -1) - (a.score ?? -1))
       .map(
         (c) =>
-          `<tr><td><b>${srEsc(c.company)}</b><small>${srEsc(c.badge || "No badge")}</small></td><td>${srScoreBar(c.score)}</td><td>${c.metrics.rating ? "★ " + Number(c.metrics.rating).toFixed(1) : "—"}</td><td>${c.metrics.onTimeRate ?? "—"}${c.metrics.onTimeRate === null ? "" : "%"}</td><td>${c.metrics.firstTimeRightRate ?? "—"}${c.metrics.firstTimeRightRate === null ? "" : "%"}</td><td>${c.metrics.responseRate ?? "—"}${c.metrics.responseRate === null ? "" : "%"}</td><td>${riskTag(c.riskLevel)}${c.risks.length ? `<small>${srEsc(c.risks[0].text)}</small>` : ""}</td></tr>`,
+          `<tr><td><b>${srEsc(c.company)}</b><small>${srEsc(supplierBadge(c))}</small></td><td>${srScoreBar(c.score)}</td><td>${c.metrics.rating ? "★ " + Number(c.metrics.rating).toFixed(1) : "—"}</td><td>${c.metrics.onTimeRate ?? "—"}${c.metrics.onTimeRate === null ? "" : "%"}</td><td>${c.metrics.firstTimeRightRate ?? "—"}${c.metrics.firstTimeRightRate === null ? "" : "%"}</td><td>${c.metrics.responseRate ?? "—"}${c.metrics.responseRate === null ? "" : "%"}</td><td>${riskTag(c.riskLevel)}${c.risks.length ? `<small>${srEsc(c.risks[0].text)}</small>` : ""}</td></tr>`,
       )
       .join("") || '<tr><td colspan="7">No suppliers yet.</td></tr>'
   }</tbody></table></div>`;
@@ -210,7 +210,7 @@ async function srEvent(bidId) {
         ranked
           .map(
             (r, i) =>
-              `<tr class="${i === 0 ? "sr-best" : ""}"><td>${i + 1}</td><td><b>${srEsc(r.o.supplierCompany)}</b><small>${srEsc(r.s.badge || "")} ${r.card ? "· risk " + srEsc(r.card.riskLevel) : ""}</small></td><td><b>${money(r.o.amount)}</b></td><td>${r.o.deliveryDays} d</td><td>${r.savings === null ? "—" : `<span class="${r.savings >= 0 ? "success-text" : "danger-text"}">${r.savings >= 0 ? "−" : "+"}${money(Math.abs(r.savings))}</span>`}</td>${Object.keys(
+              `<tr class="${i === 0 ? "sr-best" : ""}"><td>${i + 1}</td><td><b>${srEsc(r.o.supplierCompany)}</b><small>${srEsc(supplierBadge(r.s))} ${r.card ? "· risk " + srEsc(r.card.riskLevel) : ""}</small></td><td><b>${money(r.o.amount)}</b></td><td>${r.o.deliveryDays} d</td><td>${r.savings === null ? "—" : `<span class="${r.savings >= 0 ? "success-text" : "danger-text"}">${r.savings >= 0 ? "−" : "+"}${money(Math.abs(r.savings))}</span>`}</td>${Object.keys(
                 weights,
               )
                 .map((k) => `<td>${r.parts[k]}</td>`)

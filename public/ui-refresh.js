@@ -376,7 +376,7 @@ async function uiBuildIndex() {
     for (const s of suppliers)
       items.push({
         t: s.company,
-        s: `Supplier · ${s.badge} · ${s.location}`,
+        s: `Supplier · ${supplierBadge(s)} · ${s.location}`,
         l: `/customer/suppliers/${s.id}`,
       });
   }

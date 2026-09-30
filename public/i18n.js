@@ -1293,6 +1293,14 @@ Object.assign(I18N_DE, {
     "Dieses Projekt löschen? Projekte mit Rechnungen, Dokumenten oder angenommenen Lieferanten werden stattdessen archiviert.",
   "Project archived": "Projekt archiviert",
   "Please choose a new password first.": "Bitte wählen Sie zuerst ein neues Passwort.",
+  // Suppliers not yet verified (T55)
+  "Not yet verified": "Noch nicht verifiziert",
+  Verified: "Verifiziert",
+  "Your company is not verified yet. Complete your application to receive bid invitations.":
+    "Ihr Unternehmen ist noch nicht verifiziert. Schließen Sie Ihre Bewerbung ab, um Angebotsanfragen zu erhalten.",
+  "Complete your application": "Bewerbung abschließen",
+  "View application status": "Bewerbungsstatus ansehen",
+  "Available once your company is verified.": "Verfügbar, sobald Ihr Unternehmen verifiziert ist.",
   // Dashboard action queue (T53)
   "Action queue": "Zu erledigen",
   "You're all caught up": "Alles erledigt",

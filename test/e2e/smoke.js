@@ -84,6 +84,69 @@ async function notFoundChecks(base) {
   return failures;
 }
 
+// A supplier who is not verified yet sees the banner and "Not yet verified"; an approved one doesn't (T55).
+async function supplierStatusChecks(base) {
+  const { chromium } = require(process.env.PW || "playwright");
+  const post = (p, body) =>
+    fetch(base + "/api" + p, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then((r) => r.json());
+  const fresh = await post("/auth/signup", {
+      name: "New Supplier",
+      email: "new.supplier@example.com",
+      password: "New-Supplier-2026!",
+      role: "supplier",
+      company: "Neu Service GmbH",
+      legalConsent: true,
+    }),
+    approved = await post("/auth/login", {
+      email: "supplier.demo@craftcrew.local",
+      password: "CraftCrew2026!",
+    });
+  const browser = await chromium.launch(),
+    failures = [];
+  try {
+    for (const [who, session, expectBanner] of [
+      ["new supplier", fresh, true],
+      ["approved supplier", approved, false],
+    ]) {
+      const context = await browser.newContext();
+      await context.addInitScript((s) => {
+        localStorage.setItem("cc_lang", "en");
+        localStorage.setItem("cc_token", s.token);
+        localStorage.setItem("cc_user", JSON.stringify(s.user));
+      }, session);
+      const page = await context.newPage();
+      await page.goto(base + "/#/supplier/dashboard");
+      await page.waitForTimeout(2000);
+      const { banner, text } = await page.evaluate(() => ({
+        banner: !!document.querySelector(".ss-banner"),
+        text: document.body.innerText,
+      }));
+      if (banner !== expectBanner)
+        failures.push({
+          view: "desktop",
+          role: who,
+          route: "/supplier/dashboard",
+          problem: `verification banner ${banner ? "shown" : "missing"}`,
+        });
+      if (/\bNone\b/.test(text))
+        failures.push({
+          view: "desktop",
+          role: who,
+          route: "/supplier/dashboard",
+          problem: '"None" shown as a badge',
+        });
+      await context.close();
+    }
+  } finally {
+    await browser.close();
+  }
+  return failures;
+}
+
 async function main() {
   const dataDir = mkdtempSync(path.join(os.tmpdir(), "craftcrew-e2e-")),
     out = path.join(dataDir, "crawl.json"),
@@ -137,6 +200,7 @@ async function main() {
         }
     }
     failures.push(...(await notFoundChecks(base)));
+    failures.push(...(await supplierStatusChecks(base)));
     const total = totals.reduce((a, b) => a + b, 0);
     if (failures.length) {
       console.table(failures);
