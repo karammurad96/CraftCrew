@@ -2375,12 +2375,43 @@ function repairShowcaseMessagesV1() {
   db.meta.showcaseMessagesRepairV1 = true;
 }
 if (DEMO_MODE) repairShowcaseMessagesV1();
-function save() {
-  const temp = DB_FILE + ".tmp";
-  fs.writeFileSync(temp, JSON.stringify(db, null, 2), { mode: 0o600 });
+// Writes are batched: save() marks the data dirty and one write follows within SAVE_DELAY_MS.
+// saveNow() writes at once (start-up, backup import, shutdown).
+// `var`, because start-up repairs call save() before these lines run.
+var SAVE_DELAY_MS = 200,
+  saveTimer = null;
+function saveNow() {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = null;
+  const temp = DB_FILE + ".tmp",
+    fd = fs.openSync(temp, "w", 0o600);
+  try {
+    fs.writeSync(fd, JSON.stringify(db));
+    fs.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
   fs.renameSync(temp, DB_FILE);
 }
-save();
+function save() {
+  if (saveTimer) return;
+  saveTimer = setTimeout(() => {
+    try {
+      saveNow();
+    } catch (e) {
+      console.error("Could not save the database:", e);
+    }
+  }, SAVE_DELAY_MS);
+}
+saveNow();
+for (const signal of ["SIGTERM", "SIGINT"])
+  process.on(signal, () => {
+    try {
+      if (saveTimer) saveNow();
+    } finally {
+      process.exit(0);
+    }
+  });
 
 function publicUser(u) {
   const { passwordHash, salt, payoutDetails, notificationPrefs, layouts, self, ...safe } = u;
@@ -5164,6 +5195,7 @@ async function api(req, res, url) {
           ].join("|"),
         ),
       );
+      let changed = false;
       for (const m of db.messages)
         if (m.projectId && !m.chatId) {
           const pair = [m.senderId, m.recipientId].filter(Boolean).sort(),
@@ -5184,6 +5216,7 @@ async function api(req, res, url) {
               };
             db.chats.push(c);
             existing.add(key);
+            changed = true;
           }
           const c = db.chats.find(
             (x) =>
@@ -5192,7 +5225,10 @@ async function api(req, res, url) {
               (x.taskId || "") === (m.taskId || "") &&
               (x.participantIds || []).slice().sort().join(",") === pair.join(","),
           );
-          if (c) m.chatId = c.id;
+          if (c) {
+            m.chatId = c.id;
+            changed = true;
+          }
         }
       const list = db.chats
         .filter((c) => chatScopeAllows(user, c))
@@ -5208,7 +5244,7 @@ async function api(req, res, url) {
             String(a.lastMessage?.createdAt || a.createdAt),
           ),
         );
-      save();
+      if (changed) save();
       return (send(res, 200, { chats: list }), true);
     }
     if (parts[1] === "chats" && parts.length === 2 && method === "POST") {
@@ -6017,7 +6053,7 @@ async function api(req, res, url) {
       const sessions = db.sessions || [];
       delete data.authTokens;
       db = { ...data, sessions };
-      save();
+      saveNow();
       const counts = Object.fromEntries(
         Object.entries(db)
           .filter(([k, v]) => Array.isArray(v) && k !== "sessions")
