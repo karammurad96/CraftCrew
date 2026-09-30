@@ -295,20 +295,22 @@ describe("marketplace flow: vetting → project → sourcing → contract → in
     assert.equal((await app.call("GET", "/contracts", undefined, supplier)).contracts.length, 1);
   });
   it("handles an invoice change request and resubmission, reflected in the scorecard", async () => {
-    const inv = await app.call(
-      "POST",
-      "/invoices",
-      {
-        projectId: project.id,
-        phaseId: project.phases[1].id,
-        taskId: task.id,
-        description: "Milestone 1",
-        lineItems: [{ service: "PLC Programming", quantity: 40, unit: "hours", unitPrice: 150 }],
-      },
-      supplier,
-    );
+    const draft = {
+      projectId: project.id,
+      phaseId: project.phases[1].id,
+      taskId: task.id,
+      description: "Milestone 1",
+      lineItems: [{ service: "PLC Programming", quantity: 40, unit: "hours", unitPrice: 150 }],
+    };
+    const noTax = await app.call("POST", "/invoices", draft, supplier);
+    assert.equal(noTax.status, 400, "tax details are required first");
+    assert.match(noTax.error, /company profile/);
+    const profile = { legalName: "Maker Automation GmbH", address: "Werkstraße 1, Regensburg", taxId: "DE1" };
+    assert.equal((await app.call("PUT", "/profile", { companyProfile: profile }, supplier)).status, 200);
+    const inv = await app.call("POST", "/invoices", draft, supplier);
     assert.equal(inv.status, 201);
-    assert.equal(inv.invoice.amount, 6000);
+    assert.equal(inv.invoice.netAmount, 6000);
+    assert.equal(inv.invoice.amount, 7140, "amount is the gross total at 19 %");
     assert.equal(
       (await app.call("PATCH", `/invoices/${inv.invoice.id}`, { action: "Approve" }, supplier)).status,
       400,

@@ -3,6 +3,8 @@ const API = "/api";
 let apiBusy = 0;
 // Invoices show their sequential number to people; the id stays for links and the API.
 const invNo = (i) => i?.number || i?.id || "";
+// Net amount of an invoice; older invoices without VAT data only have `amount`, which is net.
+const invNet = (i) => Number(i?.netAmount ?? i?.amount) || 0;
 const state = {
   user: JSON.parse(localStorage.getItem("cc_user") || "null"),
   token: localStorage.getItem("cc_token") || "",

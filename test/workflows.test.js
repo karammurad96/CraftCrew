@@ -419,6 +419,8 @@ describe("full project workflow across customer, supplier and admin", () => {
   });
   it("invoice: change request, supplier fixes and resubmits, approval, payment by admin", async () => {
     const up = await app.call("POST", "/upload", pdf("timesheet.pdf"), supplier);
+    const companyProfile = { legalName: "Crew Automation GmbH", address: "Werkstraße 1", taxId: "DE123" };
+    assert.equal((await app.call("PUT", "/profile", { companyProfile }, supplier)).status, 200);
     const inv = await app.call(
       "POST",
       "/invoices",
@@ -468,7 +470,8 @@ describe("full project workflow across customer, supplier and admin", () => {
     );
     assert.equal(fixed.status, 200, fixed.error);
     assert.equal(fixed.invoice.status, "Submitted");
-    assert.equal(fixed.invoice.amount, 9000);
+    assert.equal(fixed.invoice.netAmount, 9000);
+    assert.equal(fixed.invoice.amount, 10710, "gross at 19 %");
     assert.equal(fixed.invoice.lineItems.length, 2);
     assert.equal(fixed.invoice.revisions[0].reviewNote, "Split per robot cell");
     assert.match(await notes(customer), /corrected and resubmitted: Split per cell/);

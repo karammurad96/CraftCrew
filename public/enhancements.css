@@ -280,6 +280,14 @@
 .invoice-total-row strong {
   font-size: 20px;
 }
+/* Net and VAT lines above the gross total. */
+.invoice-total-row.sub {
+  padding: 2px 0;
+  margin: 0 !important;
+}
+.invoice-total-row.sub strong {
+  font-size: 14px;
+}
 .order-check {
   padding: 11px 13px;
   border-radius: 8px;
