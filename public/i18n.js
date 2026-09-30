@@ -4,7 +4,7 @@
    inside interface elements (buttons, labels, headers, menus, badges) so user content such as a
    phase called "Design" is never changed. */
 const I18N_UI_SCOPE =
-  "button, a.btn, th, label, legend, summary, option, nav a, .status, .tag, .cc-label, .eyebrow, .pa-pill, .sr-risk, .in-col header b, .ui-count, .stage-flow span, .sr-chips a, .ob-count, h1, h2, h3, h4, dt, .panel-title small, kbd";
+  "button, a.btn, th, label, legend, summary, option, nav a, .status, .tag, .cc-label, .eyebrow, .pa-pill, .sr-risk, .in-col header b, .ui-count, .stage-flow span, .sr-chips a, .ob-count, h1, h2, h3, h4, dt, .panel-title small, kbd, .ng-title";
 const I18N_DE = {
   // Navigation & shell
   Dashboard: "Übersicht",
@@ -1297,6 +1297,15 @@ Object.assign(I18N_DE, {
   More: "Mehr",
   Vetting: "Prüfung",
   Payments: "Zahlungen",
+  // Sidebar groups (T52)
+  Work: "Arbeit",
+  Buying: "Einkauf",
+  Money: "Finanzen",
+  "Site safety": "Standortsicherheit",
+  Sales: "Vertrieb",
+  Overview: "Übersicht",
+  "Suppliers & users": "Lieferanten & Benutzer",
+  Platform: "Plattform",
   // XRechnung e-invoices (T43)
   "Download e-invoice (XRechnung)": "E-Rechnung herunterladen (XRechnung)",
   "Order reference (for e-invoices)": "Bestellreferenz (für E-Rechnungen)",
