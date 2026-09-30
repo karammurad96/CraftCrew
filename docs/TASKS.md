@@ -151,7 +151,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T41 VAT, net and gross, service date, required tax details · M · stronger model
 - [x] T42 Invoice PDF with umlauts, € and several pages · S
 - [x] T43 XRechnung (EN 16931) e-invoice export · L · stronger model
-- [ ] T44 Invoice review reminders and overdue tracking · S
+- [x] T44 Invoice review reminders and overdue tracking · S
 
 **Wave 4 — UX and UI (P1)**
 - [ ] T50 Readable type sizes and WCAG contrast · M

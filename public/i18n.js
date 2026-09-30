@@ -1312,6 +1312,9 @@ Object.assign(I18N_DE, {
   "The customer's email address is missing.": "Die E-Mail-Adresse des Kunden fehlt.",
   "Reverse charge needs the customer's VAT ID (for example DE123456789) in their company profile.":
     "Für Reverse Charge wird die USt-IdNr. des Kunden (zum Beispiel DE123456789) im Unternehmensprofil benötigt.",
+  // Invoice reminders (T44)
+  Overdue: "Überfällig",
+  "Waiting for review since today": "Wartet seit heute auf Prüfung",
   // VAT on invoices (T41)
   "Net amounts – VAT not recorded": "Nettobeträge – Umsatzsteuer nicht erfasst",
   "Net amount": "Nettobetrag",
@@ -1511,6 +1514,17 @@ const I18N_PATTERNS = [
   [/^(\d+)% left$/, "$1 % übrig"],
   [/^Showing the latest (\d+)$/, "Die neuesten $1"],
   [/^Overdue: (.+)$/, "Überfällig: $1"],
+  [/^Waiting for review since (\d+) days?$/, "Wartet seit $1 Tag(en) auf Prüfung"],
+  [/^Reminder: invoice (.+) is waiting for your review$/, "Erinnerung: Rechnung $1 wartet auf Ihre Prüfung"],
+  [
+    /^Second reminder: invoice (.+) has been waiting for your review for 7 days$/,
+    "Zweite Erinnerung: Rechnung $1 wartet seit 7 Tagen auf Ihre Prüfung",
+  ],
+  [
+    /^Invoice (.+) has been waiting for customer review for 7 days$/,
+    "Rechnung $1 wartet seit 7 Tagen auf die Prüfung durch den Kunden",
+  ],
+  [/^Invoice (.+) is overdue: payment was due (.+)$/, "Rechnung $1 ist überfällig: Zahlung war fällig am $2"],
   [/^Invoice waiting > 7 days: (.+)$/, "Rechnung wartet > 7 Tage: $1"],
   [/^Application waiting > 3 days: (.+)$/, "Bewerbung wartet > 3 Tage: $1"],
   [/^Open escalation: (.+)$/, "Offene Eskalation: $1"],
