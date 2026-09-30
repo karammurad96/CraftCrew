@@ -138,12 +138,12 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T22 Email safety: validate application emails, sanitise mail headers, clickable links · S
 - [x] T23 Record the real client IP in the audit log · S
 - [x] T24 Safer backup export and import · S
-- [ ] T25 Escalations reach admins and have valid values · S
+- [x] T25 Escalations reach admins and have valid values · S
 
 **Wave 2 — reliability and performance (P1, one agent at a time: all touch `save()`)**
 - [x] T30 Batch database writes and stop writing on reads · M
 - [x] T31 Data retention limits · S
-- [ ] T32 Browser smoke test in CI · M
+- [x] T32 Browser smoke test in CI · M
 - [ ] T33 Prevent double submission of forms · S
 
 **Wave 3 — German-ready invoicing (P0/P1; in this order: all touch invoices)**
@@ -703,7 +703,7 @@ the pre-import file.
 notifies the customer.
 
 **Done when.**
-- [ ] The tests pass.
+- [x] The tests pass.
 
 ---
 
