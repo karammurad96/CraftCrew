@@ -2592,6 +2592,45 @@ function phaseProject(pid, phid) {
   const p = db.projects.find((x) => x.id === pid);
   return p && p.phases.find((ph) => ph.id === phid) ? p : null;
 }
+// Retention: each user keeps the newest 300 notifications; read ones go after 180 days.
+// `var`, because start-up code can notify before these lines run.
+var NOTIFICATIONS_PER_USER = 300,
+  READ_NOTIFICATION_DAYS = 180,
+  AUDIT_IN_MEMORY = 5000;
+function trimNotifications(userId) {
+  const mine = db.notifications.filter((n) => n.userId === userId);
+  if (mine.length <= NOTIFICATIONS_PER_USER) return;
+  const keep = new Set(
+    mine
+      .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+      .slice(0, NOTIFICATIONS_PER_USER),
+  );
+  db.notifications = db.notifications.filter((n) => n.userId !== userId || keep.has(n));
+}
+function pruneNotifications() {
+  db.notifications ||= [];
+  const cutoff = new Date(Date.now() - READ_NOTIFICATION_DAYS * 86400000).toISOString(),
+    count = db.notifications.length;
+  db.notifications = db.notifications.filter((n) => !(n.read && String(n.createdAt) < cutoff));
+  for (const userId of new Set(db.notifications.map((n) => n.userId))) trimNotifications(userId);
+  if (db.notifications.length !== count) save();
+}
+// The audit log keeps the newest 5,000 entries in memory; older ones are appended to
+// DATA_DIR/audit/audit-YYYY-MM.jsonl (one JSON object per line) by the month they happened.
+function archiveAudit() {
+  if (!db.auditLog || db.auditLog.length <= AUDIT_IN_MEMORY) return;
+  const old = db.auditLog.slice(AUDIT_IN_MEMORY),
+    dir = path.join(DATA_DIR, "audit"),
+    byMonth = {};
+  for (const entry of old.reverse()) {
+    const month = /^\d{4}-\d{2}/.test(String(entry.at)) ? String(entry.at).slice(0, 7) : "unknown";
+    (byMonth[month] ||= []).push(JSON.stringify(entry) + "\n");
+  }
+  fs.mkdirSync(dir, { recursive: true });
+  for (const [month, lines] of Object.entries(byMonth))
+    fs.appendFileSync(path.join(dir, `audit-${month}.jsonl`), lines.join(""), { mode: 0o600 });
+  db.auditLog = db.auditLog.slice(0, AUDIT_IN_MEMORY);
+}
 function notify(userId, text, link = "") {
   if (!userId) return;
   const recipient = db.users.find((x) => x.id === userId),
@@ -2609,6 +2648,7 @@ function notify(userId, text, link = "") {
     else link = `/${role}/inbox`;
   }
   db.notifications.unshift({ id: id("not"), userId, text, link, read: false, createdAt: now() });
+  trimNotifications(userId);
   const category = /message|chat/.test(lower)
     ? "messages"
     : /invoice|payment/.test(lower)
@@ -2789,7 +2829,9 @@ function newSession(u) {
 }
 setInterval(() => {
   if (purgeSessions()) save();
+  pruneNotifications();
 }, 3600000).unref();
+pruneNotifications();
 function emailSubject(key, fallback) {
   return db.settings?.emailTemplates?.[key] || fallback;
 }
@@ -6424,7 +6466,7 @@ function trackAudit(req, res, url) {
       projectName: project?.name || "",
       ip: clientIp(req),
     });
-    db.auditLog = db.auditLog.slice(0, 5000);
+    archiveAudit();
     save();
   });
 }
