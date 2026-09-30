@@ -129,7 +129,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T13 Normalise email addresses everywhere · S
 - [x] T14 Validate statuses, dates and dependencies on projects, phases and tasks · M
 - [x] T15 Never delete financial records: archive projects, guard phase and task deletion · M
-- [ ] T16 Fix phase re-ordering data loss · S
+- [x] T16 Fix phase re-ordering data loss · S
 - [ ] T17 Enforce "must change password" on the server · S
 - [ ] T18 Session hygiene: purge expired sessions, cap per user, idle timeout · S
 - [ ] T19 Per-account sign-in lockout across networks · S
@@ -485,8 +485,8 @@ empty list deletes the others (confirmed: 5 → 1 phases).
 - `{}` → 400, and the phases are unchanged.
 
 **Done when.**
-- [ ] The tests pass.
-- [ ] `bugcheck.js` reports "not reproduced" for the re-ordering line.
+- [x] The tests pass.
+- [x] `bugcheck.js` reports "not reproduced" for the re-ordering line.
 
 ### T17 · Enforce "must change password" on the server
 `P0 · S · cheap model OK`

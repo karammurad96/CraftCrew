@@ -4089,8 +4089,18 @@ async function api(req, res, url) {
       const p = projectFor(user, parts[2]);
       if (!p || user.role !== "customer") return (send(res, 403, { error: "Not allowed" }), true);
       const b = await body(req);
-      const map = new Map(p.phases.map((x) => [x.id, x]));
-      p.phases = (b.phaseIds || []).map((x) => map.get(x)).filter(Boolean);
+      const ids = b.phaseIds;
+      if (
+        !Array.isArray(ids) ||
+        new Set(ids).size !== ids.length ||
+        !ids.every((x) => p.phases.some((ph) => ph.id === x))
+      )
+        return (
+          send(res, 400, { error: "Send phaseIds as a list of this project's phase ids, each once." }),
+          true
+        );
+      const listed = ids.map((x) => p.phases.find((ph) => ph.id === x));
+      p.phases = [...listed, ...p.phases.filter((ph) => !ids.includes(ph.id))];
       p.updatedAt = now();
       save();
       return (send(res, 200, { project: p }), true);
