@@ -473,6 +473,34 @@ async function supplierInvoices() {
     `<div class="dash-top"><div><h1>Invoices</h1><p>Submit and track invoices for assigned work.</p></div><div class="cc-actions">${back ? `<button class="btn outline" onclick="navigate(decodeURIComponent('${encodeURIComponent(back)}'))">← Back to project</button>` : ""}<button class="btn primary" onclick="navigate('/supplier/invoices/new${location.hash.includes("?") ? "?" + location.hash.split("?")[1] : ""}')">+ Create invoice</button></div></div><div class="panel"><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Invoice</th><th>Order / task</th><th>Amount / cap</th><th>Status</th><th>Actions</th></tr></thead><tbody>${d.invoices.map((i) => `<tr><td>${esc(invNo(i))}<small>${date(i.createdAt)}</small></td><td>${esc(i.projectId)}<small>${esc(i.taskName || i.phaseId)}</small></td><td>${money(i.amount)}${i.orderedAmount ? `<small>of ${money(i.orderedAmount)}</small>` : ""}</td><td>${esc(i.status)}</td><td><button class="btn small outline" onclick="wfInvoicePrint('${i.id}')">PDF</button><button class="btn small outline" onclick="wfInvoiceEmail('${i.id}')">Email</button></td></tr>`).join("") || '<tr><td colspan="5">No invoices match.</td></tr>'}</tbody></table></div></div>`,
   );
 }
+// VAT modes offered on the invoice form, with the rule each one applies.
+const WF_VAT_MODES = {
+  standard: {
+    rate: 19,
+    label: "19 % VAT (standard rate)",
+    help: "Standard rate: 19 % VAT is added to the net amount.",
+  },
+  reduced: {
+    rate: 7,
+    label: "7 % VAT (reduced rate)",
+    help: "Reduced rate: 7 % VAT, only for goods and services that qualify for it.",
+  },
+  reverseCharge13b: {
+    rate: 0,
+    label: "Reverse charge (§13b UStG)",
+    help: "Reverse charge (§13b UStG): no VAT on the invoice; the business customer pays the VAT. Common for construction and installation work between companies.",
+  },
+  smallBusiness19: {
+    rate: 0,
+    label: "Small business (§19 UStG)",
+    help: "Small-business rule (§19 UStG): you charge no VAT because your turnover is below the limit.",
+  },
+  intraEU: {
+    rate: 0,
+    label: "Intra-EU service (reverse charge)",
+    help: "Intra-EU service: no German VAT; the business customer in another EU country pays the VAT. Both VAT IDs must be on the invoice.",
+  },
+};
 async function newInvoice() {
   const [d, profile] = await Promise.all([api("/projects"), api("/profile")]),
     supplier = profile.supplier,
@@ -500,9 +528,18 @@ async function newInvoice() {
         `<option value="${p.id}|${ph.id}|${t?.id || ""}">${esc(p.name)} — ${esc(ph.name)}${t ? " — " + esc(t.name) : ""}</option>`,
     )
     .join("");
+  const cp = profile.companyProfile || {},
+    today = new Date().toISOString().slice(0, 10),
+    taxMissing = !["legalName", "address", "taxId"].every((k) => String(cp[k] || "").trim());
   modal(
     "Create invoice",
-    `<p class="modal-intro">Link this invoice to its exact project task. The customer can compare the positions with the task order amount.</p><form id="invF" class="modal-form"><label>Accepted project task *<select name="target" id="invTarget" required><option value="">Choose assigned work</option>${phaseOpts}</select></label><div id="invoiceContext" class="notice">Select a task to see the customer and order cap.</div><div class="invoice-lines-head"><h3>Invoice positions</h3><button class="btn small outline" type="button" onclick="addInvoiceLine()">+ Add position</button></div><div id="invoiceLines"></div><div class="invoice-total-row"><span>Invoice total</span><strong id="invoiceTotal">€0</strong></div><div id="invoiceOrderCheck" class="order-check">Select a work item.</div><label>Invoice note *<textarea name="description" required></textarea></label><label>Supporting attachment<input name="attachmentFile" type="file"></label><div id="invoiceError" class="form-error"></div><div class="action-row"><button class="btn primary">Submit invoice</button><button type="button" class="btn outline" onclick="closeModal();supplierInvoices()">Cancel</button></div></form>`,
+    `${taxMissing ? `<div class="notice warn">Add your legal company name, address and tax number or VAT ID to your company profile before creating an invoice. <a href="#/supplier/profile" onclick="closeModal()">Open company profile</a></div>` : ""}<p class="modal-intro">Link this invoice to its exact project task. The customer can compare the positions with the task order amount.</p><form id="invF" class="modal-form"><label>Accepted project task *<select name="target" id="invTarget" required><option value="">Choose assigned work</option>${phaseOpts}</select></label><div id="invoiceContext" class="notice">Select a task to see the customer and order cap.</div><div class="invoice-lines-head"><h3>Invoice positions</h3><button class="btn small outline" type="button" onclick="addInvoiceLine()">+ Add position</button></div><div id="invoiceLines"></div><div class="two"><label>VAT *<select name="vatMode" id="invVatMode">${Object.entries(
+      WF_VAT_MODES,
+    )
+      .map(([k, m]) => `<option value="${k}">${m.label}</option>`)
+      .join(
+        "",
+      )}</select></label><div class="two"><label>Service from *<input name="serviceDateFrom" type="date" value="${today}" required></label><label>Service to *<input name="serviceDateTo" type="date" value="${today}" required></label></div></div><p id="invVatHelp" class="subtle">${WF_VAT_MODES.standard.help}</p><div class="invoice-total-row sub"><span>Net amount</span><strong id="invoiceNet">€0</strong></div><div class="invoice-total-row sub"><span>Value added tax</span><strong id="invoiceVat">€0</strong></div><div class="invoice-total-row"><span>Invoice total (gross)</span><strong id="invoiceTotal">€0</strong></div><div id="invoiceOrderCheck" class="order-check">Select a work item.</div><label>Invoice note *<textarea name="description" required></textarea></label><label>Supporting attachment<input name="attachmentFile" type="file"></label><div id="invoiceError" class="form-error"></div><div class="action-row"><button class="btn primary">Submit invoice</button><button type="button" class="btn outline" onclick="closeModal();supplierInvoices()">Cancel</button></div></form>`,
   );
   const chosen = eligible.find(
     (x) => x.p.id === q.get("project") && x.ph.id === q.get("phase") && x.t?.id === (q.get("task") || ""),
@@ -523,6 +560,11 @@ async function newInvoice() {
   document.getElementById("invTarget").onchange = update;
   document.getElementById("invoiceLines").addEventListener("input", refreshInvoiceTotal);
   document.getElementById("invoiceLines").addEventListener("change", refreshInvoiceTotal);
+  document.getElementById("invVatMode").onchange = () => {
+    document.getElementById("invVatHelp").textContent =
+      WF_VAT_MODES[document.getElementById("invVatMode").value].help;
+    refreshInvoiceTotal();
+  };
   update();
   document.getElementById("invF").onsubmit = async (e) => {
     e.preventDefault();
@@ -547,6 +589,9 @@ async function newInvoice() {
           taskId: taskId || undefined,
           description: new FormData(e.target).get("description"),
           lineItems,
+          vatMode: new FormData(e.target).get("vatMode"),
+          serviceDateFrom: new FormData(e.target).get("serviceDateFrom"),
+          serviceDateTo: new FormData(e.target).get("serviceDateTo"),
         },
       });
       closeModal();
@@ -603,8 +648,14 @@ function refreshInvoiceTotal() {
           (Number(row.querySelector("[name=unitPrice]")?.value) || 0),
       0,
     ),
-    totalEl = document.getElementById("invoiceTotal");
-  if (totalEl) totalEl.textContent = money(total);
+    totalEl = document.getElementById("invoiceTotal"),
+    rate = WF_VAT_MODES[document.getElementById("invVatMode")?.value]?.rate || 0,
+    vat = Math.round(total * rate) / 100;
+  if (document.getElementById("invoiceNet")) {
+    document.getElementById("invoiceNet").textContent = money(total);
+    document.getElementById("invoiceVat").textContent = `${money(vat)} (${rate} %)`;
+  }
+  if (totalEl) totalEl.textContent = money(total + vat);
   const [pid, phid, tid] = (document.getElementById("invTarget")?.value || "||").split("|"),
     entry = (window.__ccInvoiceEligible || []).find(
       (x) => x.p.id === pid && x.ph.id === phid && (x.t?.id || "") === tid,

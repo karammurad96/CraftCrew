@@ -148,7 +148,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 
 **Wave 3 — German-ready invoicing (P0/P1; in this order: all touch invoices)**
 - [x] T40 Sequential invoice numbers shown everywhere · M
-- [ ] T41 VAT, net and gross, service date, required tax details · M · stronger model
+- [x] T41 VAT, net and gross, service date, required tax details · M · stronger model
 - [x] T42 Invoice PDF with umlauts, € and several pages · S
 - [ ] T43 XRechnung (EN 16931) e-invoice export · L · stronger model
 - [ ] T44 Invoice review reminders and overdue tracking · S

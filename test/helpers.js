@@ -170,8 +170,9 @@ function expectStatus(r, status, step) {
   return r;
 }
 
-// Signs up a supplier, applies for vetting and approves it as admin; returns {token, supplierId, user}.
-async function vettedSupplier(app, adminToken, email, company) {
+// Signs up a supplier, applies for vetting, approves it as admin and fills in the tax details on the
+// company profile (pass {taxDetails: false} to skip); returns {token, supplierId, user}.
+async function vettedSupplier(app, adminToken, email, company, { taxDetails = true } = {}) {
   const s = expectStatus(await app.signup("supplier", email, { company }), 201, "supplier signup");
   const a = expectStatus(
     await app.call("POST", "/applications", {
@@ -204,6 +205,24 @@ async function vettedSupplier(app, adminToken, email, company) {
     200,
     "application approval",
   );
+  // Invoices need the legal name, address and tax number on the company profile.
+  if (taxDetails)
+    expectStatus(
+      await app.call(
+        "PUT",
+        "/profile",
+        {
+          companyProfile: {
+            legalName: company,
+            address: "Werkstraße 1, 93055 Regensburg",
+            taxId: "DE123456789",
+          },
+        },
+        s.token,
+      ),
+      200,
+      "company profile",
+    );
   return { token: s.token, supplierId: s.user.supplierId, user: s.user };
 }
 

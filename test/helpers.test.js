@@ -35,7 +35,8 @@ describe("shared test helpers", () => {
     assert.equal(task.acceptanceStatus, "Accepted");
 
     const invoice = await submitInvoice(app, s.token, project, phase, tasks[0], 1234.5);
-    assert.equal(invoice.amount, 1234.5);
+    assert.equal(invoice.netAmount, 1234.5);
+    assert.equal(invoice.amount, invoice.grossAmount);
     assert.equal(invoice.status, "Submitted");
     assert.equal(invoice.supplierId, s.supplierId);
     assert.equal(invoice.lineItems[0].service, "PLC programming");
