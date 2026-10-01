@@ -1,0 +1,33 @@
+/* Two-factor sign-in (twofactor-ui.js). */
+.tf-steps {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+.tf-secret {
+  display: block;
+  margin: 6px 0 2px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #f1f4f8;
+  font-size: 15px;
+  letter-spacing: 1px;
+  word-break: break-all;
+}
+.tf-codes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 16px;
+  margin: 10px 0 16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #f1f4f8;
+  list-style: none;
+}
+.tf-codes code {
+  font-size: 15px;
+}
+.tf-require {
+  margin-top: 12px;
+}

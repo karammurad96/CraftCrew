@@ -297,6 +297,14 @@ const calendar = require("./calendar")({
   contracts: { view: (c) => sourcing.contractView(c), canSee: (u, c) => sourcing.canSeeContract(u, c) },
   appUrl: () => APP_URL,
 });
+const twoFactor = require("./twofactor")({
+  getDb: () => db,
+  save: () => save(),
+  send: (...a) => send(...a),
+  body: (r) => body(r),
+  now: () => now(),
+  verifyPassword: (...a) => verifyPassword(...a),
+});
 // Public base URL used in email links.
 const APP_URL = (
   process.env.APP_URL || (process.env.DOMAIN ? `https://${process.env.DOMAIN}` : `http://localhost:${PORT}`)
@@ -2654,13 +2662,24 @@ for (const signal of ["SIGTERM", "SIGINT"])
   });
 
 function publicUser(u) {
-  const { passwordHash, salt, payoutDetails, notificationPrefs, layouts, self, icsTokenHash, ...safe } = u;
-  return safe;
+  const {
+    passwordHash,
+    salt,
+    payoutDetails,
+    notificationPrefs,
+    layouts,
+    self,
+    icsTokenHash,
+    totp,
+    totpPending,
+    ...safe
+  } = u;
+  return { ...safe, twoFactor: !!totp?.enabledAt };
 }
 // The signed-in user's own record, including private settings.
 function selfUser(u) {
-  const { passwordHash, salt, self, icsTokenHash, ...safe } = u;
-  return safe;
+  const { passwordHash, salt, self, icsTokenHash, totp, totpPending, ...safe } = u;
+  return { ...safe, twoFactor: !!totp?.enabledAt };
 }
 function send(res, status, data, headers = {}) {
   const body = JSON.stringify(data);
@@ -3844,6 +3863,31 @@ async function api(req, res, url) {
         rateLimited(accountKey, 1000, 900000);
         return (send(res, 401, { error: "Invalid email or password" }), true);
       }
+      // Two-factor sign-in (T67): wrong codes count like wrong passwords.
+      let recoveryCodesLeft;
+      if (twoFactor.enabled(u)) {
+        if (!String(b.code || "").trim())
+          return (
+            send(res, 401, {
+              error: "Enter the 6-digit code from your authenticator app, or a recovery code.",
+              code: "TOTP_REQUIRED",
+            }),
+            true
+          );
+        const check = twoFactor.checkLogin(u, b.code);
+        if (!check.ok) {
+          rateLimited(loginKey, 1000, 900000);
+          rateLimited(accountKey, 1000, 900000);
+          return (
+            send(res, 401, {
+              error: "That code is not right. Check the time on your phone and try again.",
+              code: "TOTP_INVALID",
+            }),
+            true
+          );
+        }
+        if (check.usedRecovery) recoveryCodesLeft = check.left;
+      }
       clearRate(loginKey);
       clearRate(accountKey);
       const acting = u.status === "Suspended" ? null : team.resolve(u);
@@ -3867,7 +3911,11 @@ async function api(req, res, url) {
       u.lastLoginAt = now();
       const token = newSession(u);
       save();
-      send(res, 200, { token, user: publicUser(acting) });
+      send(res, 200, {
+        token,
+        user: publicUser(acting),
+        ...(recoveryCodesLeft !== undefined ? { recoveryCodesLeft } : {}),
+      });
       return true;
     }
     if (parts[1] === "auth" && parts[2] === "me" && method === "GET") {
@@ -4105,6 +4153,14 @@ async function api(req, res, url) {
     )
       return (
         send(res, 403, { error: "Please choose a new password first.", code: "MUST_CHANGE_PASSWORD" }),
+        true
+      );
+    if (twoFactor.setupRequired(user, parts))
+      return (
+        send(res, 403, {
+          error: "Admin accounts need two-factor sign-in. Turn it on to continue.",
+          code: "TOTP_SETUP_REQUIRED",
+        }),
         true
       );
     // Team members: the main account decides which areas they may view or change.
@@ -7293,6 +7349,7 @@ async function api(req, res, url) {
     }
     if (await acceptance.handle(req, res, url, parts, user)) return true;
     if (await calendar.handle(req, res, url, parts, user)) return true;
+    if (await twoFactor.handle(req, res, url, parts, user)) return true;
     if (await siteReports.handle(req, res, url, parts, user)) return true;
     if (await punchList.handle(req, res, url, parts, user)) return true;
     if (await compliance.handle(req, res, url, parts, user)) return true;

@@ -172,7 +172,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T64 Punch list (defects) per task · M
 - [x] T65 Daily site report per task with photos · M
 - [x] T66 Calendar feeds (ICS) for deadlines and site visits · S
-- [ ] T67 Two-factor sign-in (TOTP) · M
+- [x] T67 Two-factor sign-in (TOTP) · M
 - [ ] T68 Preferred-supplier list for customers · S
 - [ ] T69 Price benchmarks per service · S
 
@@ -1330,7 +1330,7 @@ prove progress. CraftCrew has time entries without photos or notes on conditions
 4. Admins can require 2FA for all admin accounts.
 
 **Done when.**
-- [ ] Tests cover setup, login with a code, a wrong code, a recovery code and lockout.
+- [x] Tests cover setup, login with a code, a wrong code, a recovery code and lockout.
 
 ### T68 · Preferred-supplier list for customers
 `P2 · S · cheap model OK`
