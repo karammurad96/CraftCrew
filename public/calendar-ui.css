@@ -1,0 +1,16 @@
+/* Calendar feed panel (calendar-ui.js). */
+.cf-url {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 10px;
+}
+.cf-url input {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, monospace;
+  font-size: var(--fs-sm);
+}
+.cf-help ul {
+  margin: 6px 0;
+  padding-left: 18px;
+}

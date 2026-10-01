@@ -1293,6 +1293,32 @@ Object.assign(I18N_DE, {
     "Dieses Projekt löschen? Projekte mit Rechnungen, Dokumenten oder angenommenen Lieferanten werden stattdessen archiviert.",
   "Project archived": "Projekt archiviert",
   "Please choose a new password first.": "Bitte wählen Sie zuerst ein neues Passwort.",
+  Calendar: "Kalender",
+  On: "An",
+  "Task due dates, phase dates, bid deadlines, contract notice dates and approved site visits appear in your own calendar as all-day events.":
+    "Fälligkeiten von Aufgaben, Phasentermine, Angebotsfristen, Kündigungsfristen von Verträgen und genehmigte Standortbesuche erscheinen als ganztägige Termine in Ihrem eigenen Kalender.",
+  "Your private calendar link (shown once — keep it secret)":
+    "Ihr privater Kalenderlink (wird nur einmal angezeigt – geheim halten)",
+  "Copy link": "Link kopieren",
+  "How to add it": "So fügen Sie ihn hinzu",
+  "Outlook:": "Outlook:",
+  "Calendar → Add calendar → Subscribe from web → paste the link.":
+    "Kalender → Kalender hinzufügen → Aus dem Internet abonnieren → Link einfügen.",
+  "Google Calendar:": "Google Kalender:",
+  "Other calendars → + → From URL → paste the link.": "Weitere Kalender → + → Per URL → Link einfügen.",
+  "Apple Calendar:": "Apple Kalender:",
+  "File → New Calendar Subscription → paste the link.": "Ablage → Neues Kalenderabonnement → Link einfügen.",
+  "Calendar apps refresh subscribed calendars every few hours.":
+    "Kalender-Apps aktualisieren abonnierte Kalender alle paar Stunden.",
+  "Create new link": "Neuen Link erstellen",
+  "Create calendar link": "Kalenderlink erstellen",
+  "Turn off": "Ausschalten",
+  "Create a new link? The old link stops working in every calendar that uses it.":
+    "Neuen Link erstellen? Der alte Link funktioniert dann in keinem Kalender mehr.",
+  "Turn off the calendar link? Calendars that use it stop updating.":
+    "Kalenderlink ausschalten? Kalender, die ihn nutzen, werden nicht mehr aktualisiert.",
+  "Calendar link turned off": "Kalenderlink ausgeschaltet",
+  "Link copied": "Link kopiert",
   "Site reports": "Bautagesberichte",
   "Daily site reports": "Bautagesberichte",
   Acknowledged: "Zur Kenntnis genommen",
@@ -1828,6 +1854,10 @@ const I18N_PATTERNS = [
   [/^(\d+)% left$/, "$1 % übrig"],
   [/^Showing the latest (\d+)$/, "Die neuesten $1"],
   [/^Overdue: (.+)$/, "Überfällig: $1"],
+  [
+    /^A calendar link was created on (.+)\. For safety it is only shown once\. Create a new link if you need it again; the old one then stops working\.$/,
+    "Am $1 wurde ein Kalenderlink erstellt. Aus Sicherheitsgründen wird er nur einmal angezeigt. Erstellen Sie bei Bedarf einen neuen Link; der alte funktioniert dann nicht mehr.",
+  ],
   [/^📷 Photo (\d+)$/, "📷 Foto $1"],
   [/^📷 Fix photo (\d+)$/, "📷 Foto der Behebung $1"],
   [/^Send request to (\d+) supplier\(s\)$/, "Anfrage an $1 Anbieter senden"],

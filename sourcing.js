@@ -312,5 +312,14 @@ module.exports = function createSourcing(ctx) {
     return null;
   }
 
-  return { handle, cleanWeights, contractFromAward, scorecard, publicReliability, DEFAULT_WEIGHTS };
+  return {
+    handle,
+    cleanWeights,
+    contractFromAward,
+    contractView,
+    canSeeContract: canSee,
+    scorecard,
+    publicReliability,
+    DEFAULT_WEIGHTS,
+  };
 };
