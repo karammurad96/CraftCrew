@@ -341,3 +341,607 @@
     font-size: 12px;
   }
 }
+
+/* ---------- Landing page (T94, board Landing 1440 × 2900) ---------- */
+html body .cc-shell:has(> .ds-landing) {
+  background: #fff;
+}
+html body .ds-landing {
+  background: #fff;
+  color: var(--cc-text);
+}
+html body .ds-landing h1,
+html body .ds-landing h2,
+html body .ds-landing h3 {
+  font-family: var(--cc-font-display);
+  hyphens: manual;
+  overflow-wrap: break-word;
+}
+html body .ds-wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+}
+html body .ds-text-link {
+  font-size: 17px;
+  color: var(--cc-blue);
+}
+html body .ds-text-link:hover {
+  color: var(--cc-blue-pressed);
+}
+/* Hero */
+html body .ds-hero {
+  padding: 104px 24px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 20px;
+}
+html body .ds-hero-kicker {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--cc-blue);
+}
+html body .ds-hero h1 {
+  margin: 0;
+  max-width: 900px;
+  font-size: 80px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+html body .ds-hero-sub {
+  margin: 0;
+  max-width: 640px;
+  font-size: 21px;
+  line-height: 1.45;
+  color: var(--cc-muted);
+}
+html body .ds-hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 28px;
+  margin-top: 8px;
+}
+html body .ds-hero-cta .btn.lg {
+  min-height: 48px;
+  padding: 0 26px !important;
+  font-size: 17px !important;
+}
+/* Product window (an illustration) */
+html body .ds-window-frame {
+  margin-top: 64px;
+  width: 100%;
+  max-width: 1080px;
+  box-sizing: border-box;
+  padding: 40px 40px 0;
+  border-radius: 28px 28px 0 0;
+  background: var(--cc-page);
+}
+html body .ds-window {
+  overflow: hidden;
+  border-radius: 18px 18px 0 0;
+  background: #fff;
+  box-shadow:
+    0 -1px 0 rgba(0, 0, 0, 0.04),
+    0 30px 60px rgba(0, 0, 0, 0.08);
+  text-align: left;
+}
+html body .ds-window-bar {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--cc-hairline);
+  background: #fbfbfd;
+}
+html body .ds-window-bar i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+}
+html body .ds-window-bar span {
+  margin-left: 16px;
+  font-size: 12px;
+  color: var(--cc-muted);
+}
+html body .ds-window-body {
+  padding: 32px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 24px;
+}
+html body .ds-win-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+html body .ds-win-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+html body .ds-win-title span {
+  font-size: 13px;
+  color: var(--cc-muted);
+}
+html body .ds-win-title b {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+html body .ds-win-phases {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+html body .ds-win-phase {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 44px;
+  gap: 12px;
+  align-items: center;
+  font-size: 14px;
+}
+html body .ds-win-bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f0f0f2;
+}
+html body .ds-win-bar i {
+  display: block;
+  height: 100%;
+}
+html body .ds-win-end {
+  text-align: right;
+  color: var(--cc-muted);
+}
+html body .ds-win-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+html body .ds-win-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--cc-page);
+}
+html body .ds-win-note span {
+  font-size: 12px;
+  color: var(--cc-muted);
+}
+html body .ds-win-note b {
+  font-size: 15px;
+  font-weight: 600;
+}
+html body .ds-win-note small {
+  font-size: 13px;
+  color: var(--cc-muted);
+}
+/* Steps band */
+html body .ds-steps-band {
+  padding: 112px 24px;
+  background: var(--cc-page);
+}
+html body .ds-steps-band .ds-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 56px;
+}
+html body .ds-steps-band h2,
+html body .ds-final-cta h2 {
+  margin: 0;
+  font-size: 56px;
+  font-weight: 700;
+  line-height: 1.07;
+  letter-spacing: -0.03em;
+}
+html body .ds-steps-band h2 {
+  max-width: 760px;
+}
+html body .ds-steps-band h2 span {
+  color: var(--cc-muted);
+}
+html body .ds-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 40px;
+}
+html body .ds-step {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+html body .ds-step-label,
+html body .ds-bento-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--cc-blue);
+}
+html body .ds-step-lead {
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+html body .ds-step-text {
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--cc-muted);
+}
+/* Bento grid */
+html body .ds-bento-band {
+  padding: 24px;
+}
+html body .ds-bento {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 20px;
+}
+html body .ds-bento > div {
+  box-sizing: border-box;
+  border-radius: 28px;
+  background: var(--cc-page);
+}
+html body .ds-bento h3 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+html body .ds-bento-sourcing,
+html body .ds-bento-safety {
+  min-height: 380px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+html body .ds-bento-sourcing > div:first-child,
+html body .ds-bento-safety > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+html body .ds-bento > .ds-bento-sourcing {
+  grid-column: span 4;
+  padding: 48px;
+  background: var(--cc-navy);
+  color: #fff;
+}
+html body .ds-bento-sourcing .ds-bento-label {
+  color: #93c5fd;
+}
+html body .ds-bento-sourcing h3 {
+  max-width: 460px;
+  font-size: 40px;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: #fff;
+}
+html body .ds-bento-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  height: 140px;
+}
+html body .ds-bento-bars i {
+  flex: 1;
+  border-radius: 12px;
+  background: #1e3a64;
+}
+html body .ds-bento-bars i:nth-child(1) {
+  height: 100%;
+  background: var(--cc-blue);
+}
+html body .ds-bento-bars i:nth-child(2) {
+  height: 82%;
+}
+html body .ds-bento-bars i:nth-child(3) {
+  height: 64%;
+}
+html body .ds-bento > .ds-bento-safety {
+  grid-column: span 2;
+  padding: 40px;
+}
+html body .ds-bento-big {
+  font-family: var(--cc-font-display);
+  font-size: 96px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--cc-blue);
+}
+html body .ds-bento > .ds-bento-plain {
+  grid-column: span 3;
+  min-height: 300px;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+html body .ds-bento-plain p {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--cc-muted);
+}
+/* Featured suppliers and feature tiles (the old home sections, in the board's style) */
+html body .ds-partners-band,
+html body .ds-tiles-band {
+  padding: 96px 24px 0;
+}
+html body .ds-partners-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin-bottom: 32px;
+}
+html body .ds-partners-head h2,
+html body .ds-band-head h2 {
+  margin: 0;
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+html body .ds-partners {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+html body .ds-partner {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: var(--cc-page);
+  color: var(--cc-text);
+}
+html body .ds-partner:hover {
+  background: #ececf0;
+  color: var(--cc-text);
+}
+html body .ds-partner-avatar {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--cc-blue-pressed);
+  font-size: 14px;
+  font-weight: 600;
+}
+html body .ds-partner-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+html body .ds-partner-text b,
+html body .ds-partner-text small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+html body .ds-partner-text b {
+  font-size: 15px;
+  font-weight: 600;
+}
+html body .ds-partner-text small {
+  font-size: 13px;
+  color: var(--cc-muted);
+}
+html body .ds-band-head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 32px;
+}
+html body .ds-band-head p {
+  margin: 0;
+  max-width: 640px;
+  font-size: 19px;
+  line-height: 1.45;
+  color: var(--cc-muted);
+}
+html body .ds-band-head-2 {
+  margin-top: 72px;
+}
+html body .ds-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+html body .ds-tile {
+  padding: 28px;
+  border-radius: 20px;
+  background: var(--cc-page);
+}
+html body .ds-tile h3 {
+  margin: 0 0 8px;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+html body .ds-tile p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--cc-muted);
+}
+/* Call to action */
+html body .ds-final-cta {
+  padding: 120px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 22px;
+}
+html body .ds-final-cta p {
+  margin: 0;
+  font-size: 21px;
+  color: var(--cc-muted);
+}
+
+/* Top bar (public pages): board links, "Sign in" text link and a small pill */
+html body .topbar .main-nav a {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--cc-text);
+}
+html body .topbar .ds-top-signin {
+  font-size: 13px;
+  color: var(--cc-text);
+}
+html body .topbar .top-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+html body .topbar .btn.ds-top-start {
+  min-height: 30px;
+  padding: 0 14px !important;
+  font-size: 13px !important;
+}
+
+/* Footer: copyright on the left, legal links on the right */
+html body > footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 20px;
+  max-width: none;
+  margin: 0;
+  padding: 20px max(24px, calc((100% - 1080px) / 2)) !important;
+  border: 0 !important;
+  background: var(--cc-page) !important;
+  color: var(--cc-muted);
+  font-size: 12px;
+}
+html body > footer .brand {
+  display: none;
+}
+html body > footer p {
+  order: 2;
+  margin: 0;
+  font-size: 12px;
+  color: var(--cc-muted);
+}
+html body > footer > span {
+  order: 1;
+  font-size: 12px;
+  color: var(--cc-muted);
+}
+html body > footer .legal-footer-links {
+  order: 3;
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+html body > footer .legal-footer-links a {
+  font-size: 12px;
+  color: var(--cc-text-2);
+}
+
+/* Phone and tablet */
+@media (max-width: 900px) {
+  html body .ds-hero h1 {
+    font-size: 48px;
+  }
+  html body .ds-steps,
+  html body .ds-bento,
+  html body .ds-window-body,
+  html body .ds-partners,
+  html body .ds-tiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  html body .ds-bento > * {
+    grid-column: auto !important;
+  }
+  html body .ds-steps-band h2,
+  html body .ds-final-cta h2 {
+    font-size: 40px;
+  }
+  html body .ds-window-frame {
+    padding: 20px 16px 0;
+  }
+  html body .ds-window-body {
+    padding: 20px;
+  }
+  html body .ds-win-phase {
+    grid-template-columns: 110px minmax(0, 1fr) 40px;
+  }
+  html body .ds-bento > .ds-bento-sourcing,
+  html body .ds-bento > .ds-bento-safety,
+  html body .ds-bento > .ds-bento-plain {
+    min-height: 0;
+    padding: 32px 28px;
+    gap: 24px;
+  }
+  html body .ds-steps-band {
+    padding: 72px 20px;
+  }
+  html body .ds-partners-band,
+  html body .ds-tiles-band {
+    padding: 64px 20px 0;
+  }
+  html body .ds-final-cta {
+    padding: 80px 20px;
+  }
+}
+@media (max-width: 480px) {
+  html body .ds-hero {
+    padding-top: 64px;
+  }
+  html body .ds-hero h1 {
+    font-size: 40px;
+  }
+  html body .ds-hero-sub,
+  html body .ds-final-cta p {
+    font-size: 18px;
+  }
+  html body .ds-steps-band h2,
+  html body .ds-final-cta h2,
+  html body .ds-partners-head h2,
+  html body .ds-band-head h2 {
+    font-size: 32px;
+  }
+  html body .ds-bento-sourcing h3 {
+    font-size: 30px;
+  }
+}
+@media (min-width: 1001px) {
+  html body > .topbar {
+    padding: 0 max(24px, calc((100% - 1080px) / 2)) !important;
+    gap: 24px;
+  }
+  html body > .topbar .main-nav {
+    margin: 0 auto;
+    gap: 32px;
+  }
+}
+@media (max-width: 600px) {
+  /* Phones: the bar keeps the logo, language, "Sign in" and the menu; "Start a project" is on the page itself */
+  html body > .topbar .ds-top-start {
+    display: none;
+  }
+  html body > .topbar .top-actions {
+    gap: 10px;
+  }
+}

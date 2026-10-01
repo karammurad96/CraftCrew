@@ -8,6 +8,35 @@ const PUBLIC = path.join(__dirname, "..", "public");
 const read = (f) => readFileSync(path.join(PUBLIC, f), "utf8");
 const index = read("index.html");
 
+/* Runs public/design-screens.js in a VM with stubs for the globals of the older scripts it builds on.
+   `extra` adds or replaces globals; `expose` lists top-level names to read back from the script. */
+function loadScreens(extra = {}, expose = []) {
+  const vm = require("node:vm");
+  const ctx = {
+    NG_GROUPS: { customer: [], supplier: [], admin: [] },
+    ngGroup() {},
+    obEnhanceHome() {},
+    topActions() {},
+    publicLayout: (html) => html,
+    api: async () => ({}),
+    esc: (s) => String(s),
+    supplierBadge: (s) => s.badge,
+    state: {},
+    app: { innerHTML: "" },
+    document: { addEventListener() {}, getElementById: () => null, querySelector: () => null },
+    MutationObserver: class {
+      observe() {}
+      disconnect() {}
+    },
+    requestAnimationFrame() {},
+    Date,
+    ...extra,
+  };
+  const src = read("design-screens.js").replace("Object.assign(NG_GROUPS", "Object.assign(this.NG_GROUPS");
+  vm.runInNewContext(src + ";" + expose.map((n) => `this.${n}=${n};`).join(""), ctx);
+  return ctx;
+}
+
 describe("design 2026", () => {
   it("loads design-2026.css after every other stylesheet", () => {
     const sheets = [...index.matchAll(/<link rel="stylesheet" href="([^"]+)"/g)].map((m) => m[1]);
@@ -52,20 +81,7 @@ describe("design 2026", () => {
   });
 
   it("tints status chips by meaning and says how late (T92)", () => {
-    const vm = require("node:vm");
-    const stub = { addEventListener() {}, getElementById: () => null };
-    const ctx = {
-      NG_GROUPS: {},
-      ngGroup() {},
-      document: stub,
-      MutationObserver: class {
-        observe() {}
-        disconnect() {}
-      },
-      requestAnimationFrame() {},
-      Date,
-    };
-    vm.runInNewContext(read("design-screens.js") + ";this.dsTone=dsTone;this.dsDaysLate=dsDaysLate;", ctx);
+    const ctx = loadScreens({}, ["dsTone", "dsDaysLate"]);
     const chip = (text, ...classes) => ({
       nodeType: 1,
       childNodes: [{ nodeType: 3, textContent: text }],
@@ -108,23 +124,9 @@ describe("design 2026", () => {
   });
 
   it("shows the daily pages first in the sidebar and has German for every label (T93)", () => {
-    const vm = require("node:vm");
-    const NG_GROUPS = { customer: [], supplier: [], admin: [] };
-    const ctx = {
-      NG_GROUPS,
-      ngGroup() {},
-      document: { addEventListener() {}, getElementById: () => null },
-      MutationObserver: class {
-        observe() {}
-        disconnect() {}
-      },
-      requestAnimationFrame() {},
-    };
-    vm.runInNewContext(
-      read("design-screens.js").replace("Object.assign(NG_GROUPS", "Object.assign(this.NG_GROUPS") +
-        ";this.labels=DS_SIDE_LABELS;",
-      ctx,
-    );
+    const ctx = loadScreens({}, ["DS_SIDE_LABELS"]);
+    const NG_GROUPS = ctx.NG_GROUPS;
+    ctx.labels = ctx.DS_SIDE_LABELS;
     const main = (role) => JSON.parse(JSON.stringify(NG_GROUPS[role][0][1]));
     assert.deepEqual(main("customer"), ["dashboard", "projects", "approvals", "sourcing", "invoices", "messages"]);
     assert.deepEqual(main("supplier"), ["dashboard", "projects", "planning", "bids", "invoices", "compliance"]);
@@ -137,6 +139,28 @@ describe("design 2026", () => {
     const de = read("i18n.js");
     for (const label of [...Object.values(ctx.labels).flatMap(Object.values), "More"])
       assert.match(de, new RegExp(`^  (${label}|"${label}"): "`, "m"), `no German for ${label}`);
+  });
+
+  it("renders the landing page from the board, with German for every text (T94)", async () => {
+    const ctx = loadScreens({ api: async () => ({ suppliers: [] }) });
+    const app = ctx.app;
+    await ctx.renderHome();
+    const html = app.innerHTML;
+    for (const link of ["#/signup", "#/suppliers", "#/supplier-application"])
+      assert.ok(html.includes(`href="${link}"`), `missing link ${link}`);
+    assert.match(html, /<h1>Every crew\. One project\. Zero chaos\.<\/h1>/);
+    const texts = [...html.matchAll(/>([^<>]*[A-Za-z][^<>]*)</g)].map((m) => m[1].trim()).filter(Boolean);
+    const de = read("i18n.js");
+    const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const missing = texts.filter(
+      (t) => !new RegExp(`^\\s+(${esc(t)}|${esc(JSON.stringify(t))}):`, "m").test(de) && !/^[\d\s%€·,.-]+$/.test(t),
+    );
+    // Example-only strings that stay the same in German
+    assert.deepEqual(
+      missing.filter((t) => !["Oct", "55 %"].includes(t)),
+      [],
+      "English texts without a German entry",
+    );
   });
 
   it("uses a new service worker cache so installed apps load the new files", () => {
