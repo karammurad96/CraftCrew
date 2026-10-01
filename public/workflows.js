@@ -935,7 +935,7 @@ function sidebar(role, active) {
             ["disputes", "Escalations"],
             ["profile", "Settings"],
           ];
-  return `<aside class="sidebar"><div class="brand side-brand"><span class="brand-mark"><svg viewBox="0 0 40 40"><path d="M25.8 8.5a12.5 12.5 0 1 0 0 23"/><path d="M14.2 15.2a7 7 0 1 1 0 9.6"/></svg></span><span class="brand-word">Craft<span>Crew</span></span></div><button class="user-mini wf-user-link" onclick="navigate('/${role}/profile')"><div class="avatar">${
+  return `<aside class="sidebar"><div class="brand side-brand"><span class="brand-mark" role="img" aria-label="CraftCrew logo"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M14 50C24 42 40 22 50 14"/><circle cx="14" cy="50" r="8.5"/><circle cx="50" cy="14" r="8.5"/></svg></span><span class="brand-word">Craft<span>Crew</span></span></div><button class="user-mini wf-user-link" onclick="navigate('/${role}/profile')"><div class="avatar">${
     state.user?.profileImage
       ? `<img src="${esc(state.user?.profileImage)}" alt="">`
       : esc(
