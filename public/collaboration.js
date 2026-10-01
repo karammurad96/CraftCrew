@@ -1236,13 +1236,37 @@ reviewApplication = async function (id) {
       .map(([k, val]) => `<div><dt>${ccEsc(k)}</dt><dd>${ccEsc(val || "—")}</dd></div>`)
       .join(
         "",
-      )}</dl></section><section class="panel"><h3>Evidence files</h3>${(a.proofUploads || []).map((f) => `<a class="cc-vetting-file" href="${ccEsc(f.url)}" target="_blank" rel="noopener">📄 ${ccEsc(f.filename)} <small>${ccEsc(f.category)} · ${Math.ceil((f.size || 0) / 1024)} KB</small></a>`).join("") || '<p class="subtle">No supporting documents uploaded.</p>'}<h3>References</h3><p>${ccEsc(a.referenceName)} · ${ccEsc(a.referenceEmail)}</p><p>${ccEsc(a.reference2 || "No second reference supplied")}</p></section></div><section class="panel cc-preflight"><h3>Automatic intake checks</h3><p>These checks validate submitted fields and files only; they do not query government, credit or sanctions databases.</p><div>${
+      )}</dl></section><section class="panel"><h3>Evidence files</h3>${(a.proofUploads || []).map((f) => `<a class="cc-vetting-file" href="${ccEsc(f.url)}" target="_blank" rel="noopener">📄 ${ccEsc(f.filename)} <small>${ccEsc(f.category)} · ${Math.ceil((f.size || 0) / 1024)} KB</small></a>`).join("") || '<p class="subtle">No supporting documents uploaded.</p>'}<h3>References</h3><p>${ccEsc(a.referenceName)} · ${ccEsc(a.referenceEmail)}</p><p>${ccEsc(a.reference2 || "No second reference supplied")}</p></section></div><section class="panel cc-preflight"><h3>Automatic intake checks</h3><p>These checks validate submitted fields and files. The VAT ID is also checked with the EU VIES service; credit and sanctions databases are not queried.</p><div>${
       Object.entries(a.preflight || {})
         .map(([k, val]) => `<span><b>${ccEsc(k.replaceAll(/([A-Z])/g, " $1"))}</b>${ccEsc(val)}</span>`)
         .join("") || ""
-    }</div></section><form id="ccVettingReview" class="modal-form"><div class="cc-vetting-checks"><h3>Verification checks</h3>${checks.map(([key, label]) => `<label>${label}<select name="check_${key}">${["Not checked", "Passed", "Needs follow-up", "Failed", "Not applicable"].map((x) => `<option ${x === (v.checks?.[key] || "Not checked") ? "selected" : ""}>${x}</option>`).join("")}</select></label>`).join("")}</div><div class="two"><label>Vetting stage<select name="stage">${["New", "Verified", "References", "Manual Review", "Decision & Badge"].map((x) => `<option ${x === (a.stage || "New") ? "selected" : ""}>${x}</option>`).join("")}</select></label><label>Risk level<select name="riskLevel">${["Not assessed", "Low", "Medium", "High"].map((x) => `<option ${x === (v.riskLevel || "Not assessed") ? "selected" : ""}>${x}</option>`).join("")}</select></label></div><div class="two"><label>Reference call outcome<select name="referenceOutcome">${["Not started", "Reached - positive", "Reached - concerns", "No response", "Not applicable"].map((x) => `<option ${x === (v.referenceOutcome || "Not started") ? "selected" : ""}>${x}</option>`).join("")}</select></label><label>Badge decision<select name="badge">${["Bronze", "Silver", "Gold"].map((x) => `<option ${x === (a.badgeDecision || "Bronze") ? "selected" : ""}>${x}</option>`).join("")}</select></label></div><label>Risk assessment / verification notes<textarea name="riskNotes" rows="3" maxlength="3000">${ccEsc(v.riskNotes || "")}</textarea></label><label>Decision note to applicant<textarea name="decisionNote" rows="2" maxlength="3000">${ccEsc(a.decisionNote || "")}</textarea></label><div id="ccVettingError" class="form-error" role="alert"></div><div class="cc-actions">${a.status === "On Hold" ? `<button type="button" class="btn outline" onclick="ccSaveVetting('${id}','New')">Return to review queue</button>` : ""}<button type="button" class="btn outline" onclick="ccSaveVetting('${id}','')">Save review</button><button type="button" class="btn outline" onclick="ccSaveVetting('${id}','On Hold')">Put on hold</button><button type="button" class="btn danger" onclick="ccSaveVetting('${id}','Rejected')">Reject</button><button type="button" class="btn success" onclick="ccSaveVetting('${id}','Approved')">Approve & assign badge</button></div></form>`,
+    }</div>${ccViesPanel(a)}</section><form id="ccVettingReview" class="modal-form"><div class="cc-vetting-checks"><h3>Verification checks</h3>${checks.map(([key, label]) => `<label>${label}<select name="check_${key}">${["Not checked", "Passed", "Needs follow-up", "Failed", "Not applicable"].map((x) => `<option ${x === (v.checks?.[key] || "Not checked") ? "selected" : ""}>${x}</option>`).join("")}</select></label>`).join("")}</div><div class="two"><label>Vetting stage<select name="stage">${["New", "Verified", "References", "Manual Review", "Decision & Badge"].map((x) => `<option ${x === (a.stage || "New") ? "selected" : ""}>${x}</option>`).join("")}</select></label><label>Risk level<select name="riskLevel">${["Not assessed", "Low", "Medium", "High"].map((x) => `<option ${x === (v.riskLevel || "Not assessed") ? "selected" : ""}>${x}</option>`).join("")}</select></label></div><div class="two"><label>Reference call outcome<select name="referenceOutcome">${["Not started", "Reached - positive", "Reached - concerns", "No response", "Not applicable"].map((x) => `<option ${x === (v.referenceOutcome || "Not started") ? "selected" : ""}>${x}</option>`).join("")}</select></label><label>Badge decision<select name="badge">${["Bronze", "Silver", "Gold"].map((x) => `<option ${x === (a.badgeDecision || "Bronze") ? "selected" : ""}>${x}</option>`).join("")}</select></label></div><label>Risk assessment / verification notes<textarea name="riskNotes" rows="3" maxlength="3000">${ccEsc(v.riskNotes || "")}</textarea></label><label>Decision note to applicant<textarea name="decisionNote" rows="2" maxlength="3000">${ccEsc(a.decisionNote || "")}</textarea></label><div id="ccVettingError" class="form-error" role="alert"></div><div class="cc-actions">${a.status === "On Hold" ? `<button type="button" class="btn outline" onclick="ccSaveVetting('${id}','New')">Return to review queue</button>` : ""}<button type="button" class="btn outline" onclick="ccSaveVetting('${id}','')">Save review</button><button type="button" class="btn outline" onclick="ccSaveVetting('${id}','On Hold')">Put on hold</button><button type="button" class="btn danger" onclick="ccSaveVetting('${id}','Rejected')">Reject</button><button type="button" class="btn success" onclick="ccSaveVetting('${id}','Approved')">Approve & assign badge</button></div></form>`,
   );
 };
+
+// EU VIES result for the VAT ID (T60). The "VAT / tax check" below is pre-filled from it; the admin decides.
+function ccViesPanel(a) {
+  if (!a.vatId) return "";
+  const r = a.verification?.vies,
+    when = r?.checkedAt ? ` <small>${date(r.checkedAt)}</small>` : "";
+  const text = !r
+    ? "Not checked with VIES yet"
+    : r.unreachable
+      ? "VIES not reachable – check manually"
+      : r.valid
+        ? `<b>VIES: VAT ID valid</b>${r.name ? ` · ${ccEsc(r.name)}` : ""}${r.address ? ` · ${ccEsc(r.address)}` : ""}${r.requestId ? ` · <small>${ccEsc(r.requestId)}</small>` : ""}`
+        : "<b>VIES: VAT ID not valid</b>";
+  return `<p class="cm-vies" id="ccVies">${text}${when} <button type="button" class="btn small outline" onclick="ccViesCheck('${ccEsc(a.id)}')">Check now</button></p>`;
+}
+async function ccViesCheck(id) {
+  try {
+    await api(`/admin/applications/${encodeURIComponent(id)}/vies`, { method: "POST" });
+    await reviewApplication(id);
+    toast("VIES check finished");
+  } catch (e) {
+    toast(e.message);
+  }
+}
 
 async function ccSaveVetting(id, status) {
   const form = document.getElementById("ccVettingReview"),

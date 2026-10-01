@@ -145,6 +145,7 @@ async function cmSiteForm(id) {
   modal(
     id ? "Edit site" : "New site",
     `<form id="cmSiteForm" class="modal-form"><div class="two"><label>Site name<input name="name" value="${cmEsc(site.name || "")}" required placeholder="e.g. Plant Regensburg"></label><label>Address<input name="address" value="${cmEsc(site.address || "")}"></label></div><div class="three"><label>Site contact<input name="contactName" value="${cmEsc(site.contactName || "")}"></label><label>Contact phone<input name="contactPhone" value="${cmEsc(site.contactPhone || "")}"></label><label>Emergency number<input name="emergencyNumber" value="${cmEsc(site.emergencyNumber || "")}"></label></div>
+    <label>Minimum liability coverage in € (optional)<input name="minCoverage" type="number" min="0" step="100000" value="${cmEsc(site.minCoverage ?? "")}" placeholder="e.g. 5000000"></label>
     <fieldset class="cm-fieldset"><legend>Company evidence required</legend><div class="cm-checks">${req("company")}</div></fieldset>
     <fieldset class="cm-fieldset"><legend>Worker qualifications required</legend><div class="cm-checks">${req("worker")}</div></fieldset>
     <fieldset class="cm-fieldset"><legend>Work permits used on this site</legend><div class="cm-checks">${Object.entries(
@@ -169,6 +170,7 @@ async function cmSiteForm(id) {
       contactName: f.get("contactName"),
       contactPhone: f.get("contactPhone"),
       emergencyNumber: f.get("emergencyNumber"),
+      minCoverage: f.get("minCoverage") === "" ? null : Number(f.get("minCoverage")),
       briefingContent: f.get("briefingContent"),
       requirements: f.getAll("req"),
       permitTypes: f.getAll("permit"),
@@ -184,6 +186,12 @@ async function cmSiteForm(id) {
       document.getElementById("cmSiteError").textContent = x.message;
     }
   };
+}
+// The site asks for more liability coverage than the supplier's application states (T60). A warning, not a blocker.
+function cmCoverageNote(c) {
+  return c?.below
+    ? `<span class="cm-coverage-warn" role="note"><b>Liability coverage below the site minimum</b> <small>${money(c.actual)} of ${money(c.required)} required</small></span>`
+    : "";
 }
 async function cmSiteDetail(siteId) {
   const [cat, d, { visits = [] }, { documents = [] }] = await Promise.all([
@@ -217,7 +225,7 @@ async function cmSiteDetail(siteId) {
     <div class="in-kpis">${inKpi("On site now", onSiteWorkers.length, `${d.onSite.length} company visit(s)`)}${inKpi("Open requests", mine.filter((v) => v.status === "Requested").length, "waiting for approval", mine.some((v) => v.status === "Requested") ? "warn" : "good")}${inKpi("Suppliers ready", `${d.readiness.filter((r) => r.ready).length}/${d.readiness.length}`, "meet every requirement", d.readiness.every((r) => r.ready) ? "good" : "warn")}${inKpi("Safety briefing", s.briefing?.content ? `v${s.briefing.version}` : "—", s.briefing?.content ? `updated ${date(s.briefing.updatedAt)}` : "not written yet", s.briefing?.content ? "" : "warn")}</div>
     <div class="in-grid"><section class="panel"><div class="panel-title"><h3>On site now</h3><span class="ui-count">${onSiteWorkers.length}</span></div>${onSiteWorkers.map((w) => `<div class="pa-row"><span><b>${cmEsc(w.name)}</b><small>${cmEsc(w.company)} · ${cmEsc(w.role || "")} · since ${paTime(w.since)}${w.permit ? " · " + cmEsc(w.permit) : ""}</small></span></div>`).join("") || '<p class="pa-empty">Nobody is checked in.</p>'}</section>
     <section class="panel"><div class="panel-title"><h3>Access requests</h3><span class="ui-count">${open.length}</span></div>${open.map(cmVisitRow).join("") || '<p class="pa-empty">No open requests.</p>'}</section></div>
-    <section class="panel"><div class="panel-title"><h3>Supplier readiness</h3><small class="subtle">${(s.requirements || []).length} requirement(s) on this site</small></div>${d.readiness.map((r) => `<details class="cm-ready"><summary>${r.ready ? '<span class="status completed">Ready</span>' : '<span class="status rejected">Not ready</span>'}<b>${cmEsc(r.company_name)}</b><small>${r.company.filter((c) => ["Valid", "Expiring"].includes(c.state)).length}/${r.company.length} company documents · ${r.workers.filter((w) => w.ready).length}/${r.workers.length} workers ready${r.expiringSoon ? ` · ${r.expiringSoon} expiring soon` : ""}</small></summary><div class="cm-matrix">${r.company.map((c) => `<div><span>${cmEsc(c.label)}</span>${cmTag(c.state)}${c.expiresAt ? `<small>${date(c.expiresAt)}</small>` : "<small></small>"}</div>`).join("")}${r.workers.map((w) => `<h4>${cmEsc(w.name)} <small>${cmEsc(w.role || "")}</small></h4>${w.items.map((i) => `<div><span>${cmEsc(i.label)}</span>${cmTag(i.state)}${i.expiresAt ? `<small>${date(i.expiresAt)}</small>` : "<small></small>"}</div>`).join("")}`).join("") || '<p class="pa-empty">No workers registered yet.</p>'}</div></details>`).join("") || '<p class="pa-empty">No suppliers work at this site yet. Link projects in the site settings.</p>'}</section>
+    <section class="panel"><div class="panel-title"><h3>Supplier readiness</h3><small class="subtle">${(s.requirements || []).length} requirement(s) on this site</small></div>${d.readiness.map((r) => `<details class="cm-ready"><summary>${r.ready ? '<span class="status completed">Ready</span>' : '<span class="status rejected">Not ready</span>'}<b>${cmEsc(r.company_name)}</b><small>${r.company.filter((c) => ["Valid", "Expiring"].includes(c.state)).length}/${r.company.length} company documents · ${r.workers.filter((w) => w.ready).length}/${r.workers.length} workers ready${r.expiringSoon ? ` · ${r.expiringSoon} expiring soon` : ""}</small>${cmCoverageNote(r.coverage)}</summary><div class="cm-matrix">${r.company.map((c) => `<div><span>${cmEsc(c.label)}</span>${cmTag(c.state)}${c.expiresAt ? `<small>${date(c.expiresAt)}</small>` : "<small></small>"}</div>`).join("")}${r.workers.map((w) => `<h4>${cmEsc(w.name)} <small>${cmEsc(w.role || "")}</small></h4>${w.items.map((i) => `<div><span>${cmEsc(i.label)}</span>${cmTag(i.state)}${i.expiresAt ? `<small>${date(i.expiresAt)}</small>` : "<small></small>"}</div>`).join("")}`).join("") || '<p class="pa-empty">No workers registered yet.</p>'}</div></details>`).join("") || '<p class="pa-empty">No suppliers work at this site yet. Link projects in the site settings.</p>'}</section>
     <section class="panel"><div class="panel-title"><h3>Documents to review</h3><span class="ui-count">${toReview.length}</span></div>${toReview.map(cmDocReviewRow).join("") || '<p class="pa-empty">All documents reviewed.</p>'}</section>
     ${s.briefing?.content ? `<details class="panel cm-briefing"><summary><h3>Safety briefing · version ${s.briefing.version}</h3></summary><div class="legal-body">${legalHtml(s.briefing.content)}</div></details>` : ""}`,
   );
@@ -291,7 +299,7 @@ async function cmSupplierPage() {
                   .map((i) => `${w.name}: ${i.label}`),
               ),
             ];
-          return `<div class="cm-site-ready"><div><b>${cmEsc(s.name)}</b><small>${cmEsc(s.address || "")}</small>${
+          return `<div class="cm-site-ready"><div><b>${cmEsc(s.name)}</b><small>${cmEsc(s.address || "")}</small>${cmCoverageNote(r.coverage)}${
             missing.length
               ? `<ul>${missing
                   .slice(0, 6)

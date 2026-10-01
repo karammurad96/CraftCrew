@@ -89,6 +89,8 @@ async function startApp({ smtp, env = {}, dataDir: keepDir } = {}) {
         APP_URL: `http://localhost:${port}`,
         BOOTSTRAP_ADMIN_EMAIL: "admin@test.local",
         BOOTSTRAP_ADMIN_PASSWORD: "Admin-Password-2026!",
+        // Tests never call the real EU VIES service; a closed port makes it "not reachable" at once.
+        VIES_URL: "http://127.0.0.1:9/check-vat-number",
         ...(smtp
           ? {
               SMTP_HOST: "localhost",

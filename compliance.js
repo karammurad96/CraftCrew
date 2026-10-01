@@ -218,11 +218,22 @@ module.exports = function createCompliance(ctx) {
       supplierId,
       company,
       workers,
+      coverage: coverageCheck(site, supplierId),
       companyReady,
       ready: companyReady && workers.every((w) => w.ready),
       expiringSoon: [...company, ...workers.flatMap((w) => w.items)].filter((i) => i.state === "Expiring")
         .length,
     };
+  }
+  // Liability coverage from the supplier's latest application against the site's optional minimum (a warning only).
+  function coverageCheck(site, supplierId) {
+    const required = Number(site.minCoverage) || 0;
+    if (!required) return null;
+    const app = (getDb().applications || [])
+      .filter((a) => a.supplierId === supplierId)
+      .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))[0];
+    const actual = Number(app?.insuranceCoverage) || 0;
+    return { required, actual, below: actual < required };
   }
   function publicDoc(d) {
     const { reviews, ...rest } = d;
@@ -618,6 +629,12 @@ module.exports = function createCompliance(ctx) {
     const requirements = Array.isArray(b.requirements)
       ? [...new Set(b.requirements.filter((k) => REQUIREMENTS[k]))]
       : site.requirements || ["insurance", "minimumWage"];
+    let minCoverage = site.minCoverage ?? null;
+    if (b.minCoverage !== undefined) {
+      minCoverage = b.minCoverage === null || b.minCoverage === "" ? null : Number(b.minCoverage);
+      if (minCoverage !== null && (!Number.isFinite(minCoverage) || minCoverage < 0 || minCoverage > 1e10))
+        return "Enter the minimum liability coverage in euros, or leave it empty";
+    }
     const content = String(b.briefingContent ?? site.briefing?.content ?? "").slice(0, 20000);
     const briefingChanged = content !== (site.briefing?.content || "");
     Object.assign(site, {
@@ -627,6 +644,7 @@ module.exports = function createCompliance(ctx) {
       contactPhone: String(b.contactPhone ?? site.contactPhone ?? "").slice(0, 40),
       emergencyNumber: String(b.emergencyNumber ?? site.emergencyNumber ?? "").slice(0, 40),
       requirements,
+      minCoverage,
       permitTypes: Array.isArray(b.permitTypes)
         ? b.permitTypes.filter((k) => PERMITS[k] && k !== "none")
         : site.permitTypes || [],

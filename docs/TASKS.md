@@ -165,7 +165,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T58 Complete German translation, including notifications · M
 
 **Wave 5 — marketplace features from competitors (P2)**
-- [ ] T60 Automatic VAT ID check (EU VIES) and insurance limit check in vetting · M
+- [x] T60 Automatic VAT ID check (EU VIES) and insurance limit check in vetting · M
 - [ ] T61 Public reliability metrics on supplier profiles · S
 - [ ] T62 Directory: certification and region filters, compare, shortlist, quote request to several suppliers · M
 - [ ] T63 Acceptance report (Abnahmeprotokoll) with signature and PDF · M
@@ -1195,8 +1195,8 @@ check is manual today, although the EU offers a free VIES service that returns v
    warns when the supplier's insurance coverage from the application is lower.
 
 **Done when.**
-- [ ] Tests mock `fetch` (pass the fetch function through `ctx`) and cover valid, invalid and timeout.
-- [ ] Coverage below the site minimum shows a warning.
+- [x] Tests mock `fetch` (pass the fetch function through `ctx`) and cover valid, invalid and timeout.
+- [x] Coverage below the site minimum shows a warning.
 
 ### T61 · Public reliability metrics on supplier profiles
 `P2 · S · cheap model OK`

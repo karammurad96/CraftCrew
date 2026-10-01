@@ -1293,6 +1293,19 @@ Object.assign(I18N_DE, {
     "Dieses Projekt löschen? Projekte mit Rechnungen, Dokumenten oder angenommenen Lieferanten werden stattdessen archiviert.",
   "Project archived": "Projekt archiviert",
   "Please choose a new password first.": "Bitte wählen Sie zuerst ein neues Passwort.",
+  "Minimum liability coverage in € (optional)": "Mindestdeckung der Haftpflicht in € (optional)",
+  "Liability coverage below the site minimum": "Haftpflichtdeckung unter dem Minimum des Standorts",
+  "Not checked with VIES yet": "Noch nicht mit VIES geprüft",
+  "VIES not reachable – check manually": "VIES nicht erreichbar – bitte manuell prüfen",
+  "VIES: VAT ID valid": "VIES: USt-IdNr. gültig",
+  "VIES: VAT ID not valid": "VIES: USt-IdNr. ungültig",
+  "Check now": "Jetzt prüfen",
+  "VIES check finished": "VIES-Prüfung abgeschlossen",
+  "These checks validate submitted fields and files. The VAT ID is also checked with the EU VIES service; credit and sanctions databases are not queried.":
+    "Diese Prüfungen kontrollieren die eingereichten Angaben und Dateien. Die USt-IdNr. wird zusätzlich über den EU-Dienst VIES geprüft; Auskunfteien und Sanktionslisten werden nicht abgefragt.",
+  "This application has no VAT ID to check.": "Diese Bewerbung enthält keine USt-IdNr. zum Prüfen.",
+  "Enter the minimum liability coverage in euros, or leave it empty":
+    "Geben Sie die Mindestdeckung in Euro ein oder lassen Sie das Feld leer",
   // German interface gaps (T58)
   'Required before going live in Germany (§ 5 DDG Impressum, Art. 13 GDPR privacy notice). Plain text: blank line = new paragraph, a line starting with "# " = heading. Have the final texts checked by a lawyer or a trusted generator.':
     "Vor dem Livegang in Deutschland erforderlich (§ 5 DDG Impressum, Art. 13 DSGVO Datenschutzhinweis). Reiner Text: Leerzeile = neuer Absatz, eine Zeile mit „# “ am Anfang = Überschrift. Lassen Sie die endgültigen Texte von einer Anwältin, einem Anwalt oder einem verlässlichen Generator prüfen.",
@@ -1639,6 +1652,7 @@ const I18N_PATTERNS = [
   [/^(\d+)% left$/, "$1 % übrig"],
   [/^Showing the latest (\d+)$/, "Die neuesten $1"],
   [/^Overdue: (.+)$/, "Überfällig: $1"],
+  [/^(.+) of (.+) required$/, "$1 von $2 erforderlich"],
   [/^([\d.,]+ €) \/ hour$/, "$1 / Stunde"],
   [/^([\d.,]+ €) \/ project$/, "$1 / Projekt"],
   [/^(\d+) project teams?$/, "$1 Projektteam(s)"],
