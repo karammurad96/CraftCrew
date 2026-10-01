@@ -4528,6 +4528,21 @@ async function api(req, res, url) {
         const sid = user.supplierId;
         for (const p of db.projects)
           for (const ph of p.phases || []) {
+            // The supplier dashboard shows the newest invitation as a card with its dates and order value (T96).
+            const customer = db.users.find((u) => u.id === p.customerId),
+              invite = (x, extra) => ({
+                invite: {
+                  projectId: p.id,
+                  project: p.name,
+                  phase: ph.name,
+                  customer: customer?.company || customer?.name || "",
+                  startDate: x.startDate || "",
+                  dueDate: x.dueDate || "",
+                  orderAmount: Number(x.orderAmount) || 0,
+                  invitedAt: x.invitedAt || x.assignedAt || "",
+                  ...extra,
+                },
+              });
             if (ph.supplierId === sid && ph.acceptanceStatus === "Pending")
               add(
                 "invitation",
@@ -4535,6 +4550,8 @@ async function api(req, res, url) {
                 p.name,
                 `/supplier/projects?invite=${ph.id}`,
                 "Respond",
+                undefined,
+                invite(ph, { phaseId: ph.id, name: ph.name }),
               );
             for (const t of ph.tasks || [])
               if (t.assignedSupplierId === sid && t.acceptanceStatus === "Pending")
@@ -4544,6 +4561,8 @@ async function api(req, res, url) {
                   p.name,
                   `/supplier/projects?invite=${t.id}`,
                   "Respond",
+                  undefined,
+                  invite(t, { taskId: t.id, name: t.name }),
                 );
           }
         for (const b of (db.bids || []).filter(

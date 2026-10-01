@@ -462,8 +462,123 @@ aqHtml = function (d) {
       `<h2 class="ds-dash-h ds-ui">At a glance</h2><div class="ds-card ds-glance" data-ds-fill="customer"></div><div class="ds-card ds-week" data-ds-fill="week"><h3 class="ds-ui">This week</h3><div class="ds-week-list"></div></div>`,
     );
   }
+  if (role === "supplier") {
+    const invites = items
+      .filter((x) => x.kind === "invitation" && x.invite)
+      .sort((a, b) => String(b.invite.invitedAt).localeCompare(String(a.invite.invitedAt)));
+    const first = invites[0],
+      rest = items.filter((x) => x !== first);
+    dsDashHeader(
+      state.user?.company || "",
+      invites.length === 1
+        ? "A new job is waiting for your answer."
+        : invites.length > 1
+          ? `${invites.length} new jobs are waiting for your answer.`
+          : dsDecisionLine(d.total || items.length),
+    );
+    return dsDashBase(
+      (first ? dsInviteCard(first) : "") +
+        (rest.length || !first
+          ? `<h2 class="ds-dash-h ds-ui">${first ? "Also for you" : "Needs your decision"}</h2><div class="ds-card ds-dec-list ds-dec-small">${rest.length ? rest.map((x) => dsRow(x.kind, x.text, x.sub, x.link, dsBtn(x.action || "Open", x.link, x.kind === "compliance" ? "grey" : "primary"))).join("") : dsCaughtUp(d)}</div>`
+          : ""),
+      `<section class="ds-pay-card" data-ds-fill="pay"><span class="ds-ui">Paid this year</span><b>—</b><small></small></section><div class="ds-card ds-crew" data-ds-fill="crew"><div class="ds-crew-head"><h3 class="ds-ui">Crew this week</h3><a href="#/supplier/planning">Planner ›</a></div><div class="ds-crew-grid"></div><span class="ds-crew-legend ds-ui">Blue job · teal site visit · orange absence</span></div>`,
+    );
+  }
   return dsBaseAqHtml(d);
 };
+/* Supplier (T96): the newest invitation as a card with its facts and the answer buttons */
+// "24 Sep – 11 Oct" in the interface language (the year only when it is not this year)
+function dsShortRange(a, b) {
+  const lang = typeof i18nLang !== "undefined" && i18nLang === "de" ? "de-DE" : "en-GB",
+    year = String(new Date().getFullYear()),
+    f = (d) =>
+      d
+        ? new Date(d + "T12:00:00").toLocaleDateString(lang, {
+            day: "numeric",
+            month: "short",
+            ...(d.startsWith(year) ? {} : { year: "numeric" }),
+          })
+        : "";
+  return a && b && a !== b ? `${f(a)} – ${f(b)}` : f(a || b) || "—";
+}
+function dsInviteCard(x) {
+  const v = x.invite,
+    answer = v.taskId
+      ? (ok) => `invAnswerTask('${esc(v.projectId)}', '${esc(v.taskId)}', ${ok})`
+      : (ok) => `invAnswerPhase('${esc(v.projectId)}', '${esc(v.phaseId)}', ${ok})`;
+  return `<article class="ds-invite" data-ds-invite="${esc(v.projectId)}" data-from="${esc(v.startDate)}" data-to="${esc(v.dueDate)}">
+    <div class="ds-invite-head"><span class="ds-invite-kicker">${esc(v.customer ? `New invitation · ${v.customer}` : "New invitation")}</span><a class="ds-invite-title" href="#${esc(x.link)}">${esc(v.name)}</a><span class="ds-invite-sub">${esc([v.project, v.taskId ? v.phase : ""].filter(Boolean).join(" · "))}</span></div>
+    <div class="ds-facts"><div><span class="ds-ui">Dates</span><b data-no-i18n>${esc(dsShortRange(v.startDate, v.dueDate))}</b></div><div><span class="ds-ui">Order value</span><b>${v.orderAmount ? money(v.orderAmount) : "—"}</b></div><div><span class="ds-ui">Your crew</span><b class="ds-crew-count">…</b></div></div>
+    <div class="ds-invite-actions"><button type="button" class="btn primary ds-invite-accept" onclick="${answer(true)}">Accept Job</button><button type="button" class="btn secondary ds-invite-decline" onclick="${answer(false)}">Decline</button><a class="ds-text-link" href="#/supplier/messages?project=${encodeURIComponent(v.projectId)}">Ask a question ›</a></div>
+  </article>`;
+}
+const DS_ABSENCE = ["vacation", "sick", "training"];
+async function dsFillSupplierSide(root) {
+  const pay = root.querySelector('.ds-pay-card[data-ds-fill="pay"]:not([data-ds])'),
+    crew = root.querySelector('.ds-crew[data-ds-fill="crew"]:not([data-ds])'),
+    invite = root.querySelector(".ds-invite:not([data-ds])");
+  if (pay) {
+    pay.dataset.ds = "1";
+    const { invoices = [] } = await api("/invoices").catch(() => ({}));
+    const year = dsToday().slice(0, 4),
+      paid = invoices
+        .filter((i) => i.status === "Paid" && String(i.paymentDate || i.updatedAt || "").startsWith(year))
+        .reduce((a, i) => a + Number(i.amount || 0), 0),
+      approved = invoices.filter((i) => i.status === "Approved"),
+      next = approved.map((i) => i.scheduledPayment).filter(Boolean).sort()[0];
+    pay.querySelector("b").replaceChildren(money(paid));
+    const lang = typeof i18nLang !== "undefined" && i18nLang === "de" ? "de-DE" : "en-GB";
+    pay.querySelector("small").replaceChildren(approved.length
+      ? `+ ${money(approved.reduce((a, i) => a + Number(i.amount || 0), 0))} approved${next ? `, paid ${new Date(next + "T12:00:00").toLocaleDateString(lang, { weekday: "long" })}` : ""}`
+      : "No payments waiting");
+  }
+  if (crew) {
+    crew.dataset.ds = "1";
+    const now = new Date(),
+      monday = new Date(now.getTime() - ((now.getDay() + 6) % 7) * 86400000),
+      days = [0, 1, 2, 3, 4].map((i) => dsIso(new Date(monday.getTime() + i * 86400000)));
+    const d = await api(`/planning?from=${days[0]}&to=${days[4]}`).catch(() => ({}));
+    const people = (d.people || []).slice(0, 4),
+      kind = (pid, day) => {
+        const hit = [...(d.visits || []), ...(d.entries || [])].find(
+          (e) => e.personId === pid && e.start <= day && e.end >= day,
+        );
+        return !hit ? "free" : hit.type === "visit" ? "visit" : DS_ABSENCE.includes(hit.type) ? "absence" : "job";
+      };
+    const lang = typeof i18nLang !== "undefined" && i18nLang === "de" ? "de-DE" : "en-GB";
+    const head = `<span></span>${days.map((day) => `<span class="ds-crew-day">${new Date(day + "T12:00:00").toLocaleDateString(lang, { weekday: "narrow" })}</span>`).join("")}`;
+    const rows = people
+      .map((p) => {
+        // Neighbouring days of the same kind become one bar
+        const spans = [];
+        for (const day of days) {
+          const k = kind(p.id, day);
+          if (spans.at(-1)?.k === k) spans.at(-1).n++;
+          else spans.push({ k, n: 1 });
+        }
+        return `<span class="ds-crew-name">${esc(String(p.name || "").split(" ")[0])}</span>${spans.map((x) => `<i class="ds-crew-${x.k}" style="grid-column: span ${x.n}"></i>`).join("")}`;
+      })
+      .join("");
+    crew.querySelector(".ds-crew-grid").innerHTML = people.length
+      ? head + rows
+      : '<p class="ds-week-none">Add your team in the planner to see who is free.</p>';
+    crew.querySelector(".ds-crew-grid").setAttribute("data-no-i18n", "");
+  }
+  if (invite) {
+    invite.dataset.ds = "1";
+    const cell = invite.querySelector(".ds-crew-count"),
+      from = invite.dataset.from || invite.dataset.to,
+      to = invite.dataset.to || invite.dataset.from;
+    if (!from) return cell.replaceChildren("—");
+    const d = await api(`/planning?from=${from}&to=${to}`).catch(() => ({}));
+    const people = d.people || [],
+      busy = new Set([...(d.entries || []), ...(d.visits || [])].map((e) => e.personId)),
+      free = people.filter((p) => !busy.has(p.id)).length;
+    cell.replaceChildren(!people.length ? "—" : free ? `${free} of ${people.length} free` : "Nobody free");
+    cell.classList.toggle("ds-green", free > 0);
+    cell.classList.toggle("ds-red", people.length > 0 && !free);
+  }
+}
 const dsGlanceCell = (label, value, red) =>
   `<div class="ds-glance-cell"><span class="ds-ui">${label}</span><b${red ? ' class="ds-red"' : ""}>${value}</b></div>`;
 async function dsFillCustomerSide(root) {
@@ -545,6 +660,7 @@ async function dsFillCustomerSide(root) {
 function dsEnhanceDashboard(root) {
   if (!/^#\/(customer|supplier|admin)\/dashboard/.test(location.hash)) return;
   dsFillCustomerSide(root);
+  dsFillSupplierSide(root);
   // "Customize" stays next to the main button as a quiet grey text button
   root.querySelector(".ds-dash-top .lc-toggle")?.classList.add("ds-quiet");
 }
