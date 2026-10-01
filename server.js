@@ -21,6 +21,14 @@ const PORT = Number(process.env.PORT || 3000);
 const DEMO_MODE = process.env.NODE_ENV !== "production";
 const mailer = require("./mailer");
 const { buildXRechnung, xrechnungProblem } = require("./xrechnung");
+// Directory and public profile view of a supplier: the profile plus public reliability metrics (T61).
+// Internal fields that may be added to supplier records later never leave the server.
+const PRIVATE_SUPPLIER_FIELDS = ["risks", "riskLevel", "riskNotes", "verification", "notes", "internalNotes"];
+function publicSupplier(s) {
+  const out = { ...s, reliability: sourcing.publicReliability(s.id) };
+  for (const k of PRIVATE_SUPPLIER_FIELDS) delete out[k];
+  return out;
+}
 const createVies = require("./vies");
 const vies = createVies({
   fetch: (...a) => fetch(...a),
@@ -2372,6 +2380,120 @@ function ensureComplianceDemoV1() {
   db.meta.complianceDemoV1 = true;
 }
 if (DEMO_MODE) ensureComplianceDemoV1();
+// Delivery history for three demo suppliers, so the public reliability metrics (T61) have data: a completed
+// project with on-time tasks, paid invoices and answered quote requests.
+function ensureDeliveryHistoryV1() {
+  if (db.meta?.deliveryHistoryV1) return;
+  db.meta ||= {};
+  db.meta.deliveryHistoryV1 = true;
+  const customer = db.users.find((u) => u.id === "u_customer"),
+    suppliers = ["sup_showcase", "sup_002", "sup_004"]
+      .map((sid) => db.suppliers.find((s) => s.id === sid))
+      .filter(Boolean);
+  if (!customer || !suppliers.length || db.projects.some((p) => p.id === "prj_hist_press2")) return;
+  const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10),
+    at = (n) => new Date(Date.now() + n * 86400000).toISOString();
+  const work = [
+    ["Mechanical survey", 9800],
+    ["Electrical installation", 14600],
+    ["Commissioning and handover", 7400],
+  ];
+  const project = {
+    id: "prj_hist_press2",
+    customerId: customer.id,
+    participantIds: [],
+    name: "Press Line 2 — Retrofit (completed)",
+    description:
+      "Completed retrofit of press line 2: survey, installation and commissioning by three suppliers.",
+    budget: 96000,
+    startDate: day(-200),
+    dueDate: day(-120),
+    status: "Completed",
+    createdAt: at(-210),
+    updatedAt: at(-118),
+    phases: suppliers.map((s, i) => ({
+      id: `ph_hist_${i}`,
+      name: `Work package ${i + 1} — ${s.company}`,
+      description: "",
+      startDate: day(-200 + i * 20),
+      dueDate: day(-170 + i * 20),
+      status: "Completed",
+      dependencies: [],
+      tasks: work.map(([name, amount], j) => ({
+        id: `tsk_hist_${i}_${j}`,
+        name,
+        description: "",
+        startDate: day(-200 + i * 20 + j * 8),
+        dueDate: day(-192 + i * 20 + j * 8),
+        status: "Completed",
+        assignedSupplierId: s.id,
+        acceptanceStatus: "Accepted",
+        orderAmount: amount,
+        progress: 100,
+        dependencies: [],
+        subtasks: [],
+        assignmentHistory: [{ supplierId: s.id, company: s.company, status: "Accepted", at: at(-200) }],
+        offers: [],
+      })),
+    })),
+  };
+  db.projects.push(project);
+  project.phases.forEach((ph, i) =>
+    ph.tasks.forEach((t, j) =>
+      db.invoices.push({
+        id: `inv_hist_${i}_${j}`,
+        projectId: project.id,
+        phaseId: ph.id,
+        taskId: t.id,
+        supplierId: t.assignedSupplierId,
+        customerId: customer.id,
+        amount: t.orderAmount,
+        description: t.name,
+        status: "Paid",
+        attachment: null,
+        createdAt: at(-190 + i * 20 + j * 8),
+        updatedAt: at(-175 + i * 20 + j * 8),
+        paymentDate: day(-175 + i * 20 + j * 8),
+        // One invoice needed a correction before approval.
+        ...(i === 2 && j === 1 ? { changeRequests: 1 } : {}),
+      }),
+    ),
+  );
+  db.bids ||= [];
+  ["Conveyor guarding", "Hydraulic unit service", "Safety PLC update"].forEach((title, k) =>
+    db.bids.push({
+      id: `bid_hist_${k}`,
+      projectId: project.id,
+      projectName: project.name,
+      phaseId: project.phases[0].id,
+      phaseName: project.phases[0].name,
+      taskId: "",
+      taskName: "",
+      customerId: customer.id,
+      title,
+      description: "Closed quote request.",
+      dueDate: day(-205 + k * 10),
+      status: "Awarded",
+      invitedSupplierIds: suppliers.map((s) => s.id),
+      // The second supplier did not answer the first request.
+      offers: suppliers
+        .map((s, i) => ({
+          id: `offer_hist_${k}_${i}`,
+          supplierId: s.id,
+          supplierCompany: s.company,
+          amount: 8000 + i * 900 + k * 400,
+          deliveryDays: 10 + i * 2,
+          notes: "",
+          status: i === k ? "Accepted" : "Not selected",
+          createdAt: at(-210 + k * 10),
+        }))
+        .filter((o) => o.id !== "offer_hist_0_1"),
+      createdAt: at(-215 + k * 10),
+      updatedAt: at(-205 + k * 10),
+    }),
+  );
+}
+if (DEMO_MODE) ensureDeliveryHistoryV1();
 // Repair: early showcase messages stored their text in taskId; move it back and link the right task.
 function repairShowcaseMessagesV1() {
   if (db.meta?.showcaseMessagesRepairV1) return;
@@ -3766,7 +3888,7 @@ async function api(req, res, url) {
       list = list.sort((a, b) => b.rating - a.rating);
       return (
         send(res, 200, {
-          suppliers: list,
+          suppliers: list.map(publicSupplier),
           services: db.settings?.serviceCategories || services,
           locations,
           badges: ["Gold", "Silver", "Bronze"],
@@ -3777,7 +3899,7 @@ async function api(req, res, url) {
     if (parts[1] === "suppliers" && parts[2] && !parts[3] && method === "GET") {
       const s = db.suppliers.find((x) => x.id === parts[2] && x.live);
       if (!s) return (send(res, 404, { error: "Supplier not found" }), true);
-      return (send(res, 200, { supplier: s }), true);
+      return (send(res, 200, { supplier: publicSupplier(s) }), true);
     }
     // Application public
     if (parts[1] === "applications" && method === "POST") {

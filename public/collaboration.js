@@ -588,6 +588,28 @@ async function reviewNewChat() {
   };
 }
 
+// Public reliability (T61): rates appear only with at least 3 data points; otherwise "New on CraftCrew".
+function ccReliability(s, full = false) {
+  const r = s.reliability;
+  if (!r) return "";
+  const rates = [
+    [r.onTimeRate, "on time"],
+    [r.firstTimeRightRate, "invoices right first time"],
+    [r.responseRate, "answer rate to quote requests"],
+  ].filter(([v]) => v !== null && v !== undefined);
+  const counts = [
+    [r.completed, "completed jobs"],
+    [r.reviews, "customer reviews"],
+  ];
+  const item = (v, label) => `<span><b>${v}</b> <span>${label}</span></span>`;
+  const body = r.isNew
+    ? '<span class="cc-rel-new">New on CraftCrew</span>'
+    : rates.map(([v, l]) => item(v + "%", l)).join("");
+  return full
+    ? `<section class="panel cc-rel-panel"><h2>Reliability on CraftCrew</h2><div class="cc-rel">${body}${counts.map(([v, l]) => item(v, l)).join("")}</div></section>`
+    : `<div class="cc-rel">${body}</div>`;
+}
+
 // Advanced supplier search; secondary facets stay tucked under an expand control.
 async function renderSuppliers() {
   const all = (await api("/suppliers")).suppliers || [],
@@ -644,7 +666,7 @@ async function renderSuppliers() {
         .map((x) => `<span class="chip">${ccEsc(x)}</span>`)
         .join(
           "",
-        )}</p><div class="supplier-meta">★ ${Number(s.rating || 0).toFixed(1)} · ${s.projectsCompleted || 0} projects · ${s.experience || 0}+ yrs · ${money(s.hourlyRate || 0)}/h</div><div class="cc-actions"><button class="btn small outline" onclick="supplierDetail('${s.id}')">View profile</button>${customer ? `<button class="btn small primary" onclick="supplierDetail('${s.id}')">Request quote</button>` : ""}</div></article>`,
+        )}</p><div class="supplier-meta">★ ${Number(s.rating || 0).toFixed(1)} · ${s.projectsCompleted || 0} projects · ${s.experience || 0}+ yrs · ${money(s.hourlyRate || 0)}/h</div>${ccReliability(s)}<div class="cc-actions"><button class="btn small outline" onclick="supplierDetail('${s.id}')">View profile</button>${customer ? `<button class="btn small primary" onclick="supplierDetail('${s.id}')">Request quote</button>` : ""}</div></article>`,
     view = v.view || "grid",
     listing =
       view === "map"
