@@ -45,6 +45,20 @@ describe("action queue", () => {
     assert.equal(item.amount, inv.amount);
   });
 
+  it("gives the supplier dashboard the invitation details (T96)", async () => {
+    const sq = await queue(supplier);
+    const inv = sq.items.find((x) => x.kind === "invitation");
+    assert.equal(inv.invite.projectId, project.id);
+    assert.equal(inv.invite.taskId, phase.tasks[1].id);
+    assert.equal(inv.invite.name, phase.tasks[1].name);
+    assert.equal(inv.invite.phase, phase.name);
+    assert.equal(inv.invite.project, project.name);
+    assert.equal(inv.invite.dueDate, phase.tasks[1].dueDate);
+    assert.equal(typeof inv.invite.orderAmount, "number");
+    assert.equal(typeof inv.invite.customer, "string");
+    assert.ok(inv.invite.invitedAt, "invitedAt tells which invitation is newest");
+  });
+
   it("gives the customer dashboard the ids it acts on (T95)", async () => {
     const cq = await queue(customer);
     const inv = cq.items.find((x) => x.kind === "invoice");

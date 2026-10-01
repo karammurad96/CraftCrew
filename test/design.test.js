@@ -203,6 +203,22 @@ describe("design 2026", () => {
       assert.ok(de.includes(p.replace(/\\\\/g, "\\")), `no German pattern for ${p}`);
   });
 
+  it("shows the newest invitation as a card with the existing answer actions (T96)", () => {
+    const ctx = loadScreens({ money: (n) => `€${n}` }, ["dsInviteCard"]);
+    const v = { projectId: "p1", taskId: "t1", name: "Weld test", project: "Line 4", phase: "Build", customer: "MAKBERG", startDate: "2099-09-24", dueDate: "2099-10-11", orderAmount: 1000 };
+    const html = ctx.dsInviteCard({ kind: "invitation", link: "/supplier/projects?invite=t1", invite: v });
+    assert.match(html, /New invitation · MAKBERG/);
+    assert.match(html, /onclick="invAnswerTask\('p1', 't1', true\)">Accept Job</);
+    assert.match(html, /onclick="invAnswerTask\('p1', 't1', false\)">Decline</);
+    assert.match(html, /href="#\/supplier\/messages\?project=p1">Ask a question ›</);
+    assert.match(html, /€1000/);
+    const phase = ctx.dsInviteCard({ kind: "invitation", link: "/x", invite: { ...v, taskId: undefined, phaseId: "ph1" } });
+    assert.match(phase, /invAnswerPhase\('p1', 'ph1', true\)/);
+    const de = read("i18n.js");
+    for (const p of ["new jobs are waiting for your answer", "of (\\\\d+) free", '"Accept Job"', '"Paid this year"'])
+      assert.ok(de.includes(p.replace(/\\\\/g, "\\")), `no German for ${p}`);
+  });
+
   it("uses a new service worker cache so installed apps load the new files", () => {
     assert.match(read("sw.js"), /const CACHE = "craftcrew-shell-v2"/);
   });
