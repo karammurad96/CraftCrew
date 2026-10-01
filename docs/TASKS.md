@@ -173,7 +173,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T65 Daily site report per task with photos · M
 - [x] T66 Calendar feeds (ICS) for deadlines and site visits · S
 - [x] T67 Two-factor sign-in (TOTP) · M
-- [ ] T68 Preferred-supplier list for customers · S
+- [x] T68 Preferred-supplier list for customers · S
 - [ ] T69 Price benchmarks per service · S
 
 **Wave 6 — strategic (P3, needs a human decision or a stronger model)**
@@ -1344,7 +1344,7 @@ trusted contractors and will only move them onto CraftCrew if they can keep them
 3. The bid form offers "Invite my preferred suppliers".
 
 **Done when.**
-- [ ] API tests cover privacy: other customers never see the list or notes.
+- [x] API tests cover privacy: other customers never see the list or notes.
 
 ### T69 · Price benchmarks per service
 `P2 · S · cheap model OK`

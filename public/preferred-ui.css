@@ -1,0 +1,34 @@
+/* Preferred suppliers (preferred-ui.js). */
+.pv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.pv-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.pv-head h3 {
+  margin: 0;
+}
+.pv-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 8px 0;
+}
+.pv-note {
+  white-space: pre-wrap;
+}
+.pv-profile {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-left: auto;
+}
+.pv-invite {
+  margin: 4px 0 8px;
+}
