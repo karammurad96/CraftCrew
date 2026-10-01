@@ -168,7 +168,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T60 Automatic VAT ID check (EU VIES) and insurance limit check in vetting · M
 - [x] T61 Public reliability metrics on supplier profiles · S
 - [x] T62 Directory: certification and region filters, compare, shortlist, quote request to several suppliers · M
-- [ ] T63 Acceptance report (Abnahmeprotokoll) with signature and PDF · M
+- [x] T63 Acceptance report (Abnahmeprotokoll) with signature and PDF · M
 - [ ] T64 Punch list (defects) per task · M
 - [ ] T65 Daily site report per task with photos · M
 - [ ] T66 Calendar feeds (ICS) for deadlines and site visits · S
@@ -1261,8 +1261,8 @@ sign-off.
    task returns 409 until the task is accepted.
 
 **Done when.**
-- [ ] API tests cover the accept, reject and invoice-block cases.
-- [ ] The PDF opens and shows the signature.
+- [x] API tests cover the accept, reject and invoice-block cases.
+- [x] The PDF opens and shows the signature.
 
 ### T64 · Punch list (defects) per task
 `P2 · M · cheap model OK`
