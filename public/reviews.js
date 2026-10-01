@@ -447,7 +447,7 @@ async function reviewInvoice(id) {
 }
 // Suppliers see how long an invoice has waited for review; approved invoices past their payment date are overdue.
 function rvInvoiceTiming(i, role) {
-  if (i.status === "Approved" && i.overdue) return ` <span class="status overdue">Overdue</span>`;
+  if (i.status === "Approved" && i.overdue) return ` <span class="status overdue">${dsDaysLate(i.scheduledPayment)}</span>`;
   if (role !== "supplier" || i.status !== "Submitted") return "";
   const days = Math.floor((Date.now() - Date.parse(i.resubmittedAt || i.createdAt)) / 86400000);
   return `<small>${days < 1 ? "Waiting for review since today" : `Waiting for review since ${days} day${days === 1 ? "" : "s"}`}</small>`;
