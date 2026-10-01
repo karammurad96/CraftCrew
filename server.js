@@ -287,6 +287,16 @@ const siteReports = require("./sitereports")({
   ownUpload: (...a) => ownUpload(...a),
   uploadDir: () => UPLOAD_DIR,
 });
+const calendar = require("./calendar")({
+  getDb: () => db,
+  save: () => save(),
+  send: (...a) => send(...a),
+  now: () => now(),
+  projectFor: (...a) => projectFor(...a),
+  resolveUser: (u) => (u.status === "Suspended" ? null : team.resolve(u)),
+  contracts: { view: (c) => sourcing.contractView(c), canSee: (u, c) => sourcing.canSeeContract(u, c) },
+  appUrl: () => APP_URL,
+});
 // Public base URL used in email links.
 const APP_URL = (
   process.env.APP_URL || (process.env.DOMAIN ? `https://${process.env.DOMAIN}` : `http://localhost:${PORT}`)
@@ -2644,12 +2654,12 @@ for (const signal of ["SIGTERM", "SIGINT"])
   });
 
 function publicUser(u) {
-  const { passwordHash, salt, payoutDetails, notificationPrefs, layouts, self, ...safe } = u;
+  const { passwordHash, salt, payoutDetails, notificationPrefs, layouts, self, icsTokenHash, ...safe } = u;
   return safe;
 }
 // The signed-in user's own record, including private settings.
 function selfUser(u) {
-  const { passwordHash, salt, self, ...safe } = u;
+  const { passwordHash, salt, self, icsTokenHash, ...safe } = u;
   return safe;
 }
 function send(res, status, data, headers = {}) {
@@ -7282,6 +7292,7 @@ async function api(req, res, url) {
       );
     }
     if (await acceptance.handle(req, res, url, parts, user)) return true;
+    if (await calendar.handle(req, res, url, parts, user)) return true;
     if (await siteReports.handle(req, res, url, parts, user)) return true;
     if (await punchList.handle(req, res, url, parts, user)) return true;
     if (await compliance.handle(req, res, url, parts, user)) return true;
@@ -7489,6 +7500,13 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname.startsWith("/api/")) {
     if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) trackAudit(req, res, url);
     return api(req, res, url);
+  }
+  if (url.pathname.startsWith("/ics/")) {
+    if (rateLimited("ics:" + clientIp(req), 120, 3600000)) {
+      res.writeHead(429, { "Content-Type": "text/plain; charset=utf-8" });
+      return res.end("Too many requests");
+    }
+    if (calendar.serveFeed(req, res, url)) return;
   }
   let file =
     url.pathname === "/"

@@ -171,7 +171,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T63 Acceptance report (Abnahmeprotokoll) with signature and PDF · M
 - [x] T64 Punch list (defects) per task · M
 - [x] T65 Daily site report per task with photos · M
-- [ ] T66 Calendar feeds (ICS) for deadlines and site visits · S
+- [x] T66 Calendar feeds (ICS) for deadlines and site visits · S
 - [ ] T67 Two-factor sign-in (TOTP) · M
 - [ ] T68 Preferred-supplier list for customers · S
 - [ ] T69 Price benchmarks per service · S
@@ -1314,8 +1314,8 @@ prove progress. CraftCrew has time entries without photos or notes on conditions
 3. Settings show "Add to Outlook / Google Calendar" instructions.
 
 **Done when.**
-- [ ] The feed validates as iCalendar (a test parses `BEGIN:VEVENT` blocks).
-- [ ] A regenerated token invalidates the old URL.
+- [x] The feed validates as iCalendar (a test parses `BEGIN:VEVENT` blocks).
+- [x] A regenerated token invalidates the old URL.
 
 ### T67 · Two-factor sign-in (TOTP)
 `P2 · M · cheap model OK`
