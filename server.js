@@ -305,6 +305,19 @@ const twoFactor = require("./twofactor")({
   now: () => now(),
   verifyPassword: (...a) => verifyPassword(...a),
 });
+const preferred = require("./preferred")({
+  getDb: () => db,
+  save: () => save(),
+  send: (...a) => send(...a),
+  body: (r) => body(r),
+  id: (p) => id(p),
+  now: () => now(),
+  notify: (...a) => notify(...a),
+  queueEmail: (...a) => queueEmail(...a),
+  appUrl: () => APP_URL,
+  normEmail: (e) => normEmail(e),
+  rateLimited: (...a) => rateLimited(...a),
+});
 // Public base URL used in email links.
 const APP_URL = (
   process.env.APP_URL || (process.env.DOMAIN ? `https://${process.env.DOMAIN}` : `http://localhost:${PORT}`)
@@ -2672,6 +2685,8 @@ function publicUser(u) {
     icsTokenHash,
     totp,
     totpPending,
+    preferredSuppliers,
+    shortlist,
     ...safe
   } = u;
   return { ...safe, twoFactor: !!totp?.enabledAt };
@@ -2919,6 +2934,7 @@ const NOTIFY_TEXT = {
     applicationApproved: "Your supplier application was approved. Sign in to manage your service catalog.",
     escalationOpened: "Escalation opened for {project}: {type}",
     escalationStatus: "Escalation for {project} is now {status}",
+    preferredJoined: "{company} joined CraftCrew and is on your preferred suppliers list",
     workAccepted: "Work accepted: {task}. The acceptance report is in the project documents.",
     workRejected: "Work not accepted: {task}. Reason: {note}",
     siteReportNew: "Daily site report for {task} on {date}",
@@ -2956,6 +2972,7 @@ const NOTIFY_TEXT = {
       "Ihre Lieferantenbewerbung wurde freigegeben. Melden Sie sich an, um Ihren Leistungskatalog zu pflegen.",
     escalationOpened: "Eskalation eröffnet für {project}: {type}",
     escalationStatus: "Eskalation für {project} ist jetzt {status}",
+    preferredJoined: "{company} ist jetzt auf CraftCrew und steht auf Ihrer Liste bevorzugter Anbieter",
     workAccepted: "Leistung abgenommen: {task}. Das Abnahmeprotokoll liegt in den Projektdokumenten.",
     workRejected: "Abnahme verweigert: {task}. Grund: {note}",
     siteReportNew: "Bautagesbericht für {task} vom {date}",
@@ -5953,6 +5970,7 @@ async function api(req, res, url) {
           applicationStatus: "Approved",
         });
         a.supplierId = s.id;
+        preferred.supplierApproved(s, a.email);
         if (supplierUser) {
           supplierUser.supplierId = s.id;
           supplierUser.company = a.company;
@@ -7350,6 +7368,7 @@ async function api(req, res, url) {
     if (await acceptance.handle(req, res, url, parts, user)) return true;
     if (await calendar.handle(req, res, url, parts, user)) return true;
     if (await twoFactor.handle(req, res, url, parts, user)) return true;
+    if (await preferred.handle(req, res, url, parts, user)) return true;
     if (await siteReports.handle(req, res, url, parts, user)) return true;
     if (await punchList.handle(req, res, url, parts, user)) return true;
     if (await compliance.handle(req, res, url, parts, user)) return true;

@@ -1293,6 +1293,38 @@ Object.assign(I18N_DE, {
     "Dieses Projekt löschen? Projekte mit Rechnungen, Dokumenten oder angenommenen Lieferanten werden stattdessen archiviert.",
   "Project archived": "Projekt archiviert",
   "Please choose a new password first.": "Bitte wählen Sie zuerst ein neues Passwort.",
+  "Preferred suppliers": "Bevorzugte Anbieter",
+  "Your own list of trusted suppliers, with private notes and tags. Only your company sees it.":
+    "Ihre eigene Liste vertrauter Anbieter mit privaten Notizen und Schlagwörtern. Nur Ihr Unternehmen sieht sie.",
+  "Joined by invitation": "Über Einladung beigetreten",
+  "No note yet.": "Noch keine Notiz.",
+  "Edit note and tags": "Notiz und Schlagwörter bearbeiten",
+  'No preferred suppliers yet. Open a supplier profile and choose "Add to preferred suppliers", or invite a supplier below.':
+    "Noch keine bevorzugten Anbieter. Öffnen Sie ein Anbieterprofil und wählen Sie „Zu bevorzugten Anbietern hinzufügen“, oder laden Sie unten einen Anbieter ein.",
+  "Invite a supplier who is not on CraftCrew": "Einen Anbieter einladen, der noch nicht auf CraftCrew ist",
+  "Tags (comma separated)": "Schlagwörter (durch Komma getrennt)",
+  "Private note": "Private Notiz",
+  "e.g. Electrical, Bavaria": "z. B. Elektro, Bayern",
+  Joined: "Beigetreten",
+  "Invitation sent": "Einladung gesendet",
+  Saved: "Gespeichert",
+  "Remove this supplier from your preferred list? Your note and tags are deleted.":
+    "Diesen Anbieter von Ihrer Liste entfernen? Notiz und Schlagwörter werden gelöscht.",
+  "Removed from your preferred suppliers": "Von Ihren bevorzugten Anbietern entfernt",
+  "Added to your preferred suppliers": "Zu Ihren bevorzugten Anbietern hinzugefügt",
+  "On your preferred list": "Auf Ihrer Liste bevorzugter Anbieter",
+  "Add to preferred suppliers": "Zu bevorzugten Anbietern hinzufügen",
+  "Only they can send offers. Leave unticked to let every matching supplier bid.":
+    "Nur sie können Angebote abgeben. Ohne Haken können alle passenden Anbieter bieten.",
+  "Select my preferred suppliers": "Meine bevorzugten Anbieter auswählen",
+  "Only customers keep a preferred-supplier list": "Nur Kunden führen eine Liste bevorzugter Anbieter",
+  "Enter the supplier's email address": "Geben Sie die E-Mail-Adresse des Anbieters ein",
+  "Enter the supplier's company name": "Geben Sie den Firmennamen des Anbieters ein",
+  "You can invite up to 20 suppliers a day.": "Sie können bis zu 20 Anbieter pro Tag einladen.",
+  "This supplier is already on CraftCrew. Add them from the supplier directory.":
+    "Dieser Anbieter ist schon auf CraftCrew. Fügen Sie ihn über das Anbieterverzeichnis hinzu.",
+  "You already invited this supplier.": "Sie haben diesen Anbieter bereits eingeladen.",
+  "Your list can hold up to 500 suppliers": "Ihre Liste kann bis zu 500 Anbieter enthalten",
   "Authentication code": "Bestätigungscode",
   "6-digit code or recovery code": "6-stelliger Code oder Wiederherstellungscode",
   "Admin accounts need two-factor sign-in. Turn it on to continue.":
@@ -1903,6 +1935,7 @@ const I18N_PATTERNS = [
   [/^(\d+)% left$/, "$1 % übrig"],
   [/^Showing the latest (\d+)$/, "Die neuesten $1"],
   [/^Overdue: (.+)$/, "Überfällig: $1"],
+  [/^Invite my preferred suppliers \((\d+)\)$/, "Meine bevorzugten Anbieter einladen ($1)"],
   [/^Recovery code used\. (\d+) left\.$/, "Wiederherstellungscode verwendet. Noch $1 übrig."],
   [
     /^A calendar link was created on (.+)\. For safety it is only shown once\. Create a new link if you need it again; the old one then stops working\.$/,

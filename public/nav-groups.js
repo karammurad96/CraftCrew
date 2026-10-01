@@ -5,7 +5,7 @@
 const NG_GROUPS = {
   customer: [
     ["Work", ["dashboard", "projects", "approvals", "time"]],
-    ["Buying", ["suppliers", "offers", "sourcing", "contracts"]],
+    ["Buying", ["suppliers", "preferred", "offers", "sourcing", "contracts"]],
     ["Money", ["invoices", "analytics"]],
     ["Site safety", ["sites"]],
     ["Communication", ["inbox", "messages"]],

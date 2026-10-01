@@ -908,6 +908,7 @@ function sidebar(role, active) {
           ["projects", "Projects"],
           ["offers", "Offers overview"],
           ["suppliers", "Find Suppliers"],
+          ["preferred", "Preferred suppliers"],
           ["invoices", "Invoices"],
           ["messages", "Messages"],
           ["profile", "Profile / Settings"],
@@ -1002,6 +1003,7 @@ async function route() {
       if (parts[1] === "profile") return profilePage("customer");
       if (parts[1] === "suppliers" && parts[2]) return supplierDetail(parts[2]);
       if (parts[1] === "suppliers") return renderSuppliers();
+      if (parts[1] === "preferred") return pvPage();
     }
     if (parts[0] === "supplier") {
       if (parts[1] === "projects" && parts[2] === "new") return wfOldRoute();
