@@ -21,6 +21,27 @@ const PORT = Number(process.env.PORT || 3000);
 const DEMO_MODE = process.env.NODE_ENV !== "production";
 const mailer = require("./mailer");
 const { buildXRechnung, xrechnungProblem } = require("./xrechnung");
+const createVies = require("./vies");
+const vies = createVies({
+  fetch: (...a) => fetch(...a),
+  ...(process.env.VIES_URL ? { url: process.env.VIES_URL } : {}),
+});
+
+// Checks an application's VAT ID with VIES and pre-fills the "vat" check. On submission an admin's own choice
+// is kept; "Check now" (manual) always sets it, and the admin can still override it afterwards.
+async function runViesCheck(a, { manual = false } = {}) {
+  if (!a.vatId) return null;
+  const r = await vies.check(a.vatId);
+  a.verification ||= { checks: {} };
+  a.verification.checks ||= {};
+  a.verification.vies = r;
+  if (!r.unreachable && (manual || (a.verification.checks.vat || "Not checked") === "Not checked"))
+    a.verification.checks.vat =
+      r.valid && createVies.nameMatches(a.company, r.name) ? "Passed" : "Needs follow-up";
+  a.updatedAt = now();
+  save();
+  return r;
+}
 // One spelling per email address: trimmed and lower-case, for every lookup and every stored email.
 const normEmail = (s) =>
   String(s || "")
@@ -3895,6 +3916,7 @@ async function api(req, res, url) {
       save();
       activity(null, `New supplier application from ${a.company}`);
       save();
+      runViesCheck(a).catch((e) => console.error("VIES check failed", e));
       return (send(res, 201, { application: { id: a.id, status: a.status } }), true);
     }
     if (parts[1] === "platform-config" && method === "GET")
@@ -5561,6 +5583,14 @@ async function api(req, res, url) {
     if (parts[1] === "admin" && parts[2] === "applications" && method === "GET") {
       if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
       return (send(res, 200, { applications: db.applications }), true);
+    }
+    if (parts[1] === "admin" && parts[2] === "applications" && parts[4] === "vies" && method === "POST") {
+      if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
+      const a = db.applications.find((x) => x.id === parts[3]);
+      if (!a) return (send(res, 404, { error: "Application not found" }), true);
+      if (!a.vatId) return (send(res, 400, { error: "This application has no VAT ID to check." }), true);
+      await runViesCheck(a, { manual: true });
+      return (send(res, 200, { application: a }), true);
     }
     if (parts[1] === "admin" && parts[2] === "applications" && parts[3] && method === "PATCH") {
       if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);

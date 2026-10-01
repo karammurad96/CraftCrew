@@ -221,3 +221,20 @@
     display: none;
   }
 }
+.cm-coverage-warn {
+  display: block;
+  margin-top: 6px;
+  padding: 6px 10px;
+  border-left: 3px solid #d9a400;
+  background: #fff7df;
+  color: var(--warn-text);
+  font-size: var(--fs-sm);
+}
+.cm-coverage-warn small {
+  display: block;
+  color: var(--warn-text);
+}
+.cm-vies {
+  margin: 8px 0 0;
+  font-size: var(--fs-sm);
+}
