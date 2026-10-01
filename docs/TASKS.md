@@ -174,7 +174,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T66 Calendar feeds (ICS) for deadlines and site visits · S
 - [x] T67 Two-factor sign-in (TOTP) · M
 - [x] T68 Preferred-supplier list for customers · S
-- [ ] T69 Price benchmarks per service · S
+- [x] T69 Price benchmarks per service · S
 
 **Wave 6 — strategic (P3, needs a human decision or a stronger model)**
 - [ ] T80 Real payments: escrow-like milestones, payment terms, early payout
@@ -1361,8 +1361,8 @@ with hourly rates.
 3. Never show individual competitors' prices.
 
 **Done when.**
-- [ ] A unit test covers the statistics.
-- [ ] The benchmark is hidden below 5 data points.
+- [x] A unit test covers the statistics.
+- [x] The benchmark is hidden below 5 data points.
 
 ---
 

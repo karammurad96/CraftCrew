@@ -1293,6 +1293,9 @@ Object.assign(I18N_DE, {
     "Dieses Projekt löschen? Projekte mit Rechnungen, Dokumenten oder angenommenen Lieferanten werden stattdessen archiviert.",
   "Project archived": "Projekt archiviert",
   "Please choose a new password first.": "Bitte wählen Sie zuerst ein neues Passwort.",
+  "Hourly rate (€/h, optional)": "Stundensatz (€/h, optional)",
+  "Enter the hourly rate in euros, or leave it empty":
+    "Geben Sie den Stundensatz in Euro ein oder lassen Sie das Feld leer",
   "Preferred suppliers": "Bevorzugte Anbieter",
   "Your own list of trusted suppliers, with private notes and tags. Only your company sees it.":
     "Ihre eigene Liste vertrauter Anbieter mit privaten Notizen und Schlagwörtern. Nur Ihr Unternehmen sieht sie.",
@@ -1935,6 +1938,10 @@ const I18N_PATTERNS = [
   [/^(\d+)% left$/, "$1 % übrig"],
   [/^Showing the latest (\d+)$/, "Die neuesten $1"],
   [/^Overdue: (.+)$/, "Überfällig: $1"],
+  [/^Typical rate for (.+): (.+)–(.+)\/h \(median (.+)\)$/, "Üblicher Satz für $1: $2–$3/h (Median $4)"],
+  [/^(.+)\/h — within the typical range (.+)–(.+)\/h$/, "$1/h – im üblichen Bereich $2–$3/h"],
+  [/^(.+)\/h — above the typical range (.+)–(.+)\/h$/, "$1/h – über dem üblichen Bereich $2–$3/h"],
+  [/^(.+)\/h — below the typical range (.+)–(.+)\/h$/, "$1/h – unter dem üblichen Bereich $2–$3/h"],
   [/^Invite my preferred suppliers \((\d+)\)$/, "Meine bevorzugten Anbieter einladen ($1)"],
   [/^Recovery code used\. (\d+) left\.$/, "Wiederherstellungscode verwendet. Noch $1 übrig."],
   [
