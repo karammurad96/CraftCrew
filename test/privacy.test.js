@@ -37,14 +37,10 @@ describe("supplier privacy on shared projects", () => {
     assert.equal(r.status, 200);
     assert.equal(r.project.budget, undefined);
     assert.ok(!r.invoices.some((i) => i.id === invoiceB.id), "no invoice of the other supplier");
-    const own = taskIn(r.project, tasks[0].id),
-      other = taskIn(r.project, tasks[1].id);
+    const own = taskIn(r.project, tasks[0].id);
     assert.equal(own.orderAmount, 5000, "own price stays visible");
-    assert.equal(other.orderAmount, null);
-    assert.deepEqual(other.assignmentHistory, []);
-    assert.deepEqual(other.offers, []);
-    assert.deepEqual(other.progressUpdates, []);
-    assert.equal(other.name, tasks[1].name, "the schedule stays visible");
+    assert.equal(taskIn(r.project, tasks[1].id), undefined, "other suppliers' tasks are not shown at all");
+    assert.doesNotMatch(JSON.stringify(r.project), new RegExp(b.supplierId || "Beta GmbH"));
   });
 
   it("project list and dashboard hide the budget and other suppliers' prices", async () => {
@@ -53,7 +49,7 @@ describe("supplier privacy on shared projects", () => {
       const p = r.projects.find((x) => x.id === project.id);
       assert.ok(p, `${path} lists the project`);
       assert.equal(p.budget, undefined, `${path} has no budget`);
-      assert.equal(taskIn(p, tasks[1].id).orderAmount, null, `${path} has no foreign price`);
+      assert.equal(taskIn(p, tasks[1].id), undefined, `${path} has no foreign task`);
       assert.equal(taskIn(p, tasks[0].id).orderAmount, 5000);
     }
   });

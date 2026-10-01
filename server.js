@@ -2849,40 +2849,117 @@ function dependenciesError(list, p) {
 function statusError(v, list) {
   return v === undefined || oneOf(v, list) ? "" : `Choose one of these statuses: ${list.join(", ")}.`;
 }
-function projectFor(user, pid) {
+/* How a supplier takes part in a project: "active" (has accepted work), "invited" (only open
+   invitations) or null. Declined work gives no access. */
+/* Ids of everyone acting for the user's company: the account, its team members, and for suppliers
+   every login of the supplier company. */
+function orgUserIds(user) {
+  const ownerId = user.id;
+  return new Set(
+    db.users
+      .filter(
+        (u) =>
+          u.id === ownerId ||
+          u.orgOwnerId === ownerId ||
+          (user.role === "supplier" && user.supplierId && u.supplierId === user.supplierId),
+      )
+      .map((u) => u.id),
+  );
+}
+function supplierInvolvement(p, supplierId) {
+  let invited = false;
+  for (const ph of p?.phases || []) {
+    const items = [...(ph.supplierId === supplierId ? [ph] : []), ...(ph.tasks || []).filter((t) => t.assignedSupplierId === supplierId)];
+    for (const x of items) {
+      if (x.acceptanceStatus === "Pending") invited = true;
+      else if (x.acceptanceStatus !== "Declined") return "active";
+    }
+  }
+  return invited ? "invited" : null;
+}
+/* Project files a supplier may see: its own uploads, files on its tasks and phases, and
+   project-wide files. Files on other suppliers' work stay hidden. */
+function supplierMaySeeDocument(p, doc, supplierId) {
+  if (doc.supplierId === supplierId) return true;
+  if (doc.supplierId) return false;
+  const view = projectForSupplierView(p, supplierId);
+  if (doc.taskId) return view.phases.some((ph) => ph.tasks.some((t) => t.id === doc.taskId));
+  if (doc.phaseId) return view.phases.some((ph) => ph.id === doc.phaseId);
+  return true;
+}
+/* The project if the user may work with it. An invited supplier may only see and answer the
+   invitation, so routes allow that explicitly with { allowInvited: true }. */
+function projectFor(user, pid, { allowInvited = false } = {}) {
   const p = db.projects.find((x) => x.id === pid);
   if (!p) return null;
   if (user.role === "customer" && p.customerId !== user.id && !(p.participantIds || []).includes(user.id))
     return null;
-  if (
-    user.role === "supplier" &&
-    !p.phases.some(
-      (ph) =>
-        ph.supplierId === user.supplierId ||
-        (ph.tasks || []).some((t) => t.assignedSupplierId === user.supplierId),
-    )
-  )
-    return null;
+  if (user.role === "supplier") {
+    const involvement = supplierInvolvement(p, user.supplierId);
+    if (!involvement || (involvement === "invited" && !allowInvited)) return null;
+  }
   return p;
 }
-// Copy of a project for a supplier: no budget, and no prices, history, offers or notes of other suppliers' work.
+/* A supplier's view of a project: only the phases and tasks given to that supplier (plus name,
+   status and dates of the tasks theirs depend on). No budget, no participants, and nothing about
+   other suppliers' work. Before accepting, the project description is hidden as well. */
 function projectForSupplierView(p, supplierId) {
-  const copy = structuredClone(p);
-  delete copy.budget;
-  for (const ph of copy.phases || []) {
-    if (ph.supplierId !== supplierId) {
-      ph.orderAmount = null;
-      ph.assignmentHistory = [];
-    }
-    for (const t of ph.tasks || []) {
-      if (t.assignedSupplierId === supplierId) continue;
-      t.orderAmount = null;
-      t.assignmentHistory = [];
-      t.offers = [];
-      t.progressUpdates = [];
-    }
+  const involvement = supplierInvolvement(p, supplierId),
+    customer = db.users.find((u) => u.id === p.customerId),
+    allTasks = (p.phases || []).flatMap((ph) => ph.tasks || []);
+  const ownTask = (t) => t.assignedSupplierId === supplierId && t.acceptanceStatus !== "Declined";
+  const phases = [];
+  for (const ph of p.phases || []) {
+    const wholePhase = ph.supplierId === supplierId && ph.acceptanceStatus !== "Declined",
+      tasks = (ph.tasks || []).filter((t) => wholePhase || ownTask(t));
+    if (!wholePhase && !tasks.length) continue;
+    phases.push({
+      id: ph.id,
+      name: ph.name,
+      description: ph.description,
+      startDate: ph.startDate,
+      dueDate: ph.dueDate,
+      status: ph.status,
+      dependencies: [],
+      ...(wholePhase
+        ? {
+            supplierId: ph.supplierId,
+            acceptanceStatus: ph.acceptanceStatus,
+            orderAmount: ph.orderAmount ?? null,
+            deliverables: structuredClone(ph.deliverables || []),
+            assignmentHistory: (ph.assignmentHistory || []).filter((h) => h.supplierId === supplierId),
+          }
+        : {}),
+      tasks: tasks.map((t) => {
+        const own = t.assignedSupplierId === supplierId,
+          copy = structuredClone(t);
+        copy.assignmentHistory = (t.assignmentHistory || []).filter((h) => h.supplierId === supplierId);
+        copy.offers = (t.offers || []).filter((o) => o.supplierId === supplierId);
+        if (!own) Object.assign(copy, { assignedSupplierId: null, orderAmount: null, progressUpdates: [] });
+        // Predecessors matter for the schedule; show only what is needed to plan.
+        copy.dependencyInfo = (t.dependencies || [])
+          .map((d) => allTasks.find((x) => x.id === d))
+          .filter(Boolean)
+          .map((d) => ({ id: d.id, name: d.name, status: d.status, dueDate: d.dueDate }));
+        return copy;
+      }),
+    });
   }
-  return copy;
+  return {
+    id: p.id,
+    name: p.name,
+    description: involvement === "active" ? p.description : "",
+    startDate: p.startDate,
+    dueDate: p.dueDate,
+    status: p.status,
+    siteId: p.siteId || null,
+    customerId: p.customerId,
+    customerCompany: customer?.company || "",
+    involvement,
+    createdAt: p.createdAt,
+    updatedAt: p.updatedAt,
+    phases,
+  };
 }
 function chatScopeAllows(user, c) {
   if (!(c.participantIds || []).includes(user.id)) return false;
@@ -4260,13 +4337,7 @@ async function api(req, res, url) {
           (i) => i.customerId === user.id || projects.some((p) => p.id === i.projectId),
         );
       } else if (user.role === "supplier") {
-        projects = db.projects.filter((p) =>
-          p.phases.some(
-            (ph) =>
-              ph.supplierId === user.supplierId ||
-              (ph.tasks || []).some((t) => t.assignedSupplierId === user.supplierId),
-          ),
-        );
+        projects = db.projects.filter((p) => supplierInvolvement(p, user.supplierId));
         invoices = db.invoices.filter((i) => i.supplierId === user.supplierId);
       } else {
         projects = db.projects;
@@ -4279,7 +4350,11 @@ async function api(req, res, url) {
             .map((p) => (user.role === "supplier" ? projectForSupplierView(p, user.supplierId) : p)),
           invoices,
           notifications,
-          activities: db.activities.slice(0, 20),
+          // Only activity of the user's own company — never other customers' or suppliers' actions.
+          activities: (user.role === "admin"
+            ? db.activities
+            : db.activities.filter((x) => orgUserIds(user).has(x.actorId))
+          ).slice(0, 20),
           suppliers: db.suppliers.filter((s) => s.live).slice(0, 8),
         }),
         true
@@ -4707,11 +4782,7 @@ async function api(req, res, url) {
           : user.role === "supplier"
             ? db.projects
                 .filter((p) =>
-                  p.phases.some(
-                    (ph) =>
-                      ph.supplierId === user.supplierId ||
-                      (ph.tasks || []).some((t) => t.assignedSupplierId === user.supplierId),
-                  ),
+                  supplierInvolvement(p, user.supplierId),
                 )
                 .map((p) => ({
                   ...projectForSupplierView(p, user.supplierId),
@@ -4829,7 +4900,8 @@ async function api(req, res, url) {
       return (send(res, 201, { project: p }), true);
     }
     if (parts[1] === "projects" && parts[2] && parts.length === 3 && method === "GET") {
-      const p = projectFor(user, parts[2]);
+      // Invited suppliers may open the project to read their invitation (in the restricted view).
+      const p = projectFor(user, parts[2], { allowInvited: true });
       if (!p) return (send(res, 404, { error: "Project not found" }), true);
       return (
         send(res, 200, {
@@ -4837,7 +4909,8 @@ async function api(req, res, url) {
           invoices: db.invoices.filter(
             (i) => i.projectId === p.id && (user.role !== "supplier" || i.supplierId === user.supplierId),
           ),
-          suppliers: db.suppliers.filter((s) => s.live),
+          // Suppliers don't need the list of other companies on the project.
+          suppliers: db.suppliers.filter((s) => s.live && (user.role !== "supplier" || s.id === user.supplierId)),
         }),
         true
       );
@@ -5088,7 +5161,7 @@ async function api(req, res, url) {
       parts[5] === "accept" &&
       method === "POST"
     ) {
-      const p = projectFor(user, parts[2]),
+      const p = projectFor(user, parts[2], { allowInvited: true }),
         found =
           p &&
           p.phases.flatMap((ph) => (ph.tasks || []).map((t) => ({ ph, t }))).find((x) => x.t.id === parts[4]);
@@ -5132,7 +5205,7 @@ async function api(req, res, url) {
         send(res, 200, {
           documents:
             user.role === "supplier"
-              ? docs.filter((x) => !x.supplierId || x.supplierId === user.supplierId)
+              ? docs.filter((x) => supplierMaySeeDocument(p, x, user.supplierId))
               : docs,
         }),
         true
@@ -5468,7 +5541,7 @@ async function api(req, res, url) {
       return (send(res, 200, { phase: ph }), true);
     }
     if (parts[1] === "projects" && parts[3] === "accept" && method === "POST") {
-      const p = projectFor(user, parts[2]);
+      const p = projectFor(user, parts[2], { allowInvited: true });
       if (!p || user.role !== "supplier") return (send(res, 403, { error: "Only assigned supplier" }), true);
       const b = await body(req);
       const ph = p.phases.find((x) => x.id === b.phaseId && x.supplierId === user.supplierId);
@@ -7407,7 +7480,12 @@ async function api(req, res, url) {
       const p = projectFor(user, parts[2]);
       if (!p) return (send(res, 404, { error: "Project not found" }), true);
       return (
-        send(res, 200, { entries: (db.auditLog || []).filter((x) => x.projectId === p.id).slice(0, 200) }),
+        send(res, 200, {
+          // Suppliers see what their own company did on the project, not the customer's or other suppliers' log.
+          entries: (db.auditLog || [])
+            .filter((x) => x.projectId === p.id && (user.role !== "supplier" || orgUserIds(user).has(x.actorId)))
+            .slice(0, 200),
+        }),
         true
       );
     }
@@ -7845,14 +7923,14 @@ const server = http.createServer(async (req, res) => {
       (db.projects || []).some(
         (p) =>
           projectFor(user || {}, p.id) &&
-          p.phases.some((ph) => (ph.deliverables || []).some((d) => d.url === `/uploads/${stored}`)),
+          (user.role === "supplier" ? projectForSupplierView(p, user.supplierId).phases : p.phases).some((ph) =>
+            (ph.deliverables || []).some((d) => d.url === `/uploads/${stored}`),
+          ),
       ) ||
-      (db.documents || []).some(
-        (d) =>
-          d.url === `/uploads/${stored}` &&
-          projectFor(user || {}, d.projectId) &&
-          (user.role !== "supplier" || !d.supplierId || d.supplierId === user.supplierId),
-      ) ||
+      (db.documents || []).some((d) => {
+        const p = d.url === `/uploads/${stored}` && projectFor(user || {}, d.projectId);
+        return !!p && (user.role !== "supplier" || supplierMaySeeDocument(p, d, user.supplierId));
+      }) ||
       (user?.role === "admin" &&
         (db.applications || []).some((a) =>
           (a.proofUploads || []).some((f) => f.url === `/uploads/${stored}`),

@@ -1947,6 +1947,8 @@ Object.assign(I18N_DE, {
   "Accept the invitation before invoicing this work.": "Nehmen Sie die Einladung an, bevor Sie diese Arbeit abrechnen.",
   "This invitation has already been answered.": "Diese Einladung wurde bereits beantwortet.",
   "There is no open invitation on this task.": "Für diese Aufgabe gibt es keine offene Einladung.",
+  "Your order value": "Ihr Auftragswert",
+  "Only the tasks given to your company are shown.": "Es werden nur die Aufgaben Ihres Unternehmens angezeigt.",
 });
 const I18N_STATUS = { ...I18N_DE, Open: "Offen", Completed: "Abgeschlossen", Paid: "Bezahlt", New: "Neu" };
 const I18N_PATTERNS = [
@@ -1955,6 +1957,10 @@ const I18N_PATTERNS = [
   [/^(.+) declined this task: “(.+)” Choose another supplier or request bids\.$/, "$1 hat diese Aufgabe abgelehnt: „$2“ Wählen Sie einen anderen Lieferanten oder holen Sie Angebote ein."],
   [/^(.+) declined this task\. Choose another supplier or request bids\.$/, "$1 hat diese Aufgabe abgelehnt. Wählen Sie einen anderen Lieferanten oder holen Sie Angebote ein."],
   [/^Task invitation · (.+)$/, "Aufgabeneinladung · $1"],
+  [/^(.+) invoiced by you$/, "$1 von Ihnen abgerechnet"],
+  [/^(\d+) invoice\(s\) from you$/, "$1 Rechnung(en) von Ihnen"],
+  [/^You are invited to a task on this project\. Accept to see the full scope, documents and messages\.$/, "Sie sind zu einer Aufgabe in diesem Projekt eingeladen. Nehmen Sie an, um Umfang, Dokumente und Nachrichten zu sehen."],
+  [/^You are invited to (\d+) tasks on this project\. Accept to see the full scope, documents and messages\.$/, "Sie sind zu $1 Aufgaben in diesem Projekt eingeladen. Nehmen Sie an, um Umfang, Dokumente und Nachrichten zu sehen."],
   [/^Phase invitation · (.+)$/, "Phaseneinladung · $1"],
   [/^Phase invitation: (.+)$/, "Phaseneinladung: $1"],
   [/^(.+) is already invited and has not answered yet\.$/, "$1 ist bereits eingeladen und hat noch nicht geantwortet."],

@@ -101,7 +101,7 @@ describe("project, phase and task validation", () => {
     const { supplier: s } = await app.call("GET", "/profile", undefined, supplier);
     await app.call(`POST`, `${P()}/tasks/${tasks[1].id}/assign`, { supplierId: s.id }, customer);
     const pending = await app.call("PATCH", url(tasks[1]), { status: "In Progress" }, supplier);
-    assert.equal(pending.status, 403, "not accepted yet");
+    assert.equal(pending.status, 404, "not accepted yet: an invited supplier cannot reach the task");
     await assignAndAccept(app, customer, supplier, project, tasks[0]);
     await expect400("PATCH", url(tasks[0]), { status: "Totally Done!!" }, supplier);
     await expect400("PATCH", url(tasks[0]), { status: "Not Started" }, supplier);

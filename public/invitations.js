@@ -155,3 +155,48 @@ wfAssignSupplier = async function (pid, tid, sid) {
     toast(e.message, "error");
   }
 };
+
+/* ---------- Supplier view of a customer project ---------- */
+// The supplier sees its own scope: its order value instead of the customer's budget, no project
+// editing or offer comparison, and while only invited, the invitation to answer first.
+const invBaseProjectDetail = projectDetail;
+projectDetail = async function (pid) {
+  await invBaseProjectDetail(pid);
+  if (state.user?.role !== "supplier") return;
+  const content = document.querySelector(".dashboard-content");
+  if (!content) return;
+  const d = await api("/projects/" + pid),
+    p = d.project,
+    sid = state.user.supplierId,
+    own = p.phases.flatMap((ph) => (ph.tasks || []).map((t) => ({ ph, t }))).filter((x) => x.t.assignedSupplierId === sid),
+    pending = own.filter((x) => x.t.acceptanceStatus === "Pending"),
+    orderValue = own.reduce((a, x) => a + (Number(x.t.orderAmount) || 0), 0),
+    invoiced = (d.invoices || [])
+      .filter((i) => !["Rejected", "Changes Requested"].includes(i.status))
+      .reduce((a, i) => a + Number(i.amount || 0), 0);
+  content.querySelectorAll(".dash-top .cc-actions button").forEach((b) => {
+    if (/editProject/.test(b.getAttribute("onclick") || "")) b.remove();
+  });
+  content.querySelectorAll(".wf-project-nav button").forEach((b) => {
+    if (/\/offers\?/.test(b.getAttribute("onclick") || "")) b.remove();
+  });
+  const cards = content.querySelectorAll(".wf-stat-grid .cc-card");
+  if (cards[0])
+    cards[0].innerHTML = `<span class="cc-label">Your order value</span><b>${money(orderValue)}</b><small>${money(invoiced)} invoiced by you</small>`;
+  const desk = cards[3]?.querySelector("small");
+  if (desk) desk.textContent = `${(d.invoices || []).length} invoice(s) from you`;
+  const sub = content.querySelector(".project-task-panel .panel-title small");
+  if (sub) sub.textContent = "Only the tasks given to your company are shown.";
+  if (p.involvement === "invited") {
+    content.querySelector(".wf-project-nav")?.remove();
+    content.querySelector(".wf-stat-grid")?.insertAdjacentHTML(
+      "beforebegin",
+      `<div class="inv-wait"><span>You are invited to ${pending.length === 1 ? "a task" : pending.length + " tasks"} on this project. Accept to see the full scope, documents and messages.</span><span class="cc-actions">${pending
+        .map(
+          (x) =>
+            `<button class="btn small primary" onclick="invAnswerTask('${p.id}','${x.t.id}',true)">Accept ${pending.length > 1 ? invEsc(x.t.name) : "task"}</button><button class="btn small outline" onclick="invAnswerTask('${p.id}','${x.t.id}',false)">Decline</button>`,
+        )
+        .join("")}</span></div>`,
+    );
+  }
+};

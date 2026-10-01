@@ -47,7 +47,8 @@ describe("task invitations", () => {
     assert.equal(
       (await app.call("PATCH", `/projects/${project.id}/phases/${phase.id}/tasks/${task.id}`, { progress: 30 }, supplier))
         .status,
-      403,
+      404,
+      "an invited supplier cannot reach the task yet",
     );
     const inv = await app.call(
       "POST",

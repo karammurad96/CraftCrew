@@ -31,3 +31,15 @@
 .pl-head .pl-person { z-index: 5 !important; }
 .pl-bar { z-index: 1; }
 .pl-track { isolation: isolate; }
+
+/* Task board: cards always fit their column; long phase names are shortened instead of widening it. */
+.in-col-body { grid-template-columns: minmax(0, 1fr) !important; }
+.in-card { min-width: 0; max-width: 100%; box-sizing: border-box; overflow: hidden; }
+.in-card-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
+.in-card-phase { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.in-card a, .in-card b { overflow-wrap: anywhere; }
+/* Cards the user can't move stay fully readable; the lock icon says why. */
+.in-card.locked { opacity: 1 !important; background: var(--soft, #f8fafc); }
+.in-card-meta { min-width: 0; }
+.in-card-meta span { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.in-card-grip { flex: 0 0 auto; letter-spacing: -2px; }
