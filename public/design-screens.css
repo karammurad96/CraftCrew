@@ -945,3 +945,277 @@ html body > footer .legal-footer-links a {
     gap: 10px;
   }
 }
+
+/* ---------- Dashboards (T95–T97, board Dashboard) ---------- */
+html body .dashboard-content > .dash-top.ds-dash-top {
+  align-items: flex-end;
+}
+html body .ds-dash-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+html body .ds-dash-kicker {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cc-muted);
+}
+html body .ds-dash-head h1 {
+  margin: 0 !important;
+  font-size: 34px !important;
+  font-weight: 700;
+  letter-spacing: -0.02em !important;
+}
+html body .ds-dash-head p {
+  margin: 0;
+  font-size: 17px;
+  color: var(--cc-muted);
+}
+html body .ds-dash-top .lc-toggle.ds-quiet {
+  order: -1;
+  background: transparent !important;
+  color: var(--cc-muted) !important;
+}
+html body .ds-dash-top .lc-toggle.ds-quiet:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+  color: var(--cc-text) !important;
+}
+html body .dashboard-content > section.ds-dash {
+  display: block;
+  padding: 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+html body .ds-dash-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+@media (min-width: 1200px) {
+  html body .ds-dash-cols {
+    grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
+  }
+}
+html body .ds-dash-main,
+html body .ds-dash-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+html body .ds-dash-side > .ds-card + .ds-dash-h,
+html body .ds-dash-side > .ds-card + .ds-card {
+  margin-top: 14px;
+}
+html body .ds-dash-h,
+html body .ds-dash-more {
+  margin: 0 0 0 4px;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+html body .ds-dash-more {
+  margin-top: 36px;
+}
+html body .ds-card {
+  overflow: hidden;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: var(--cc-shadow);
+}
+/* Decision rows */
+html body .ds-dec-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px;
+  position: relative;
+}
+html body .ds-dec-row + .ds-dec-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 78px;
+  right: 0;
+  height: 1px;
+  background: var(--cc-hairline);
+}
+html body .ds-dec-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+}
+html body .ds-dec-icon svg {
+  width: 20px;
+  height: 20px;
+}
+html body .ds-tint-blue {
+  background: #e8eefb;
+  color: #2563eb;
+}
+html body .ds-tint-orange {
+  background: #fff1e0;
+  color: #c25e00;
+}
+html body .ds-tint-red {
+  background: #fde7e9;
+  color: #d70015;
+}
+html body .ds-tint-green {
+  background: #e3f5e8;
+  color: #1e7a35;
+}
+html body .ds-dec-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+html body .ds-dec-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--cc-text);
+  overflow-wrap: anywhere;
+}
+html body .ds-dec-title:hover {
+  color: var(--cc-blue);
+}
+html body .ds-dec-sub {
+  font-size: 13px;
+  color: var(--cc-muted);
+}
+html body .ds-dec-actions {
+  display: flex;
+  gap: 8px;
+}
+html body .ds-dec-actions .btn.ds-dec-btn {
+  min-height: 34px;
+  min-width: 112px;
+  padding: 0 16px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+html body .ds-dec-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 22px;
+}
+html body .ds-dec-empty b {
+  font-size: 17px;
+  font-weight: 600;
+}
+html body .ds-dec-empty span {
+  font-size: 14px;
+  color: var(--cc-muted);
+}
+/* At a glance */
+html body .ds-glance {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 16px;
+  padding: 22px;
+  min-height: 140px;
+}
+html body .ds-glance-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+html body .ds-glance-cell span {
+  font-size: 13px;
+  color: var(--cc-muted);
+}
+html body .ds-glance-cell b {
+  font-family: var(--cc-font-display);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+html body .ds-red {
+  color: var(--cc-red-text) !important;
+}
+/* This week */
+html body .ds-week {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px;
+}
+html body .ds-week h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+html body .ds-week-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+html body .ds-week-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 12px;
+}
+html body .ds-week-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+html body .ds-week-date span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cc-muted);
+}
+html body .ds-week-date b {
+  font-size: 20px;
+  font-weight: 600;
+}
+html body .ds-week-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 12px;
+  border-left: 3px solid var(--cc-blue);
+}
+html body .ds-week-text.ds-tone-orange {
+  border-left-color: var(--cc-orange);
+}
+html body .ds-week-text.ds-tone-green {
+  border-left-color: var(--cc-green);
+}
+html body .ds-week-text b {
+  font-size: 14px;
+  font-weight: 600;
+}
+html body .ds-week-text span,
+html body .ds-week-none {
+  margin: 0;
+  font-size: 13px;
+  color: var(--cc-muted);
+}
+@media (max-width: 640px) {
+  html body .ds-dec-row {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+  html body .ds-dec-actions {
+    grid-column: 2;
+    flex-wrap: wrap;
+  }
+  html body .ds-dec-actions .btn.ds-dec-btn {
+    min-width: 0;
+  }
+  html body .ds-dash-head h1 {
+    font-size: 28px !important;
+  }
+}

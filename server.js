@@ -4418,8 +4418,10 @@ async function api(req, res, url) {
       const items = [],
         today = now().slice(0, 10),
         in30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
-        add = (kind, text, sub, link, action, amount) =>
-          items.push({ kind, text, sub, link, action, amount }),
+        add = (kind, text, sub, link, action, amount, extra) =>
+          items.push({ kind, text, sub, link, action, amount, ...extra }),
+        // Company names and ids let the dashboards show and act on an item without another request (T95).
+        companyOf = (supplierId) => db.suppliers.find((s) => s.id === supplierId)?.company || "",
         mine = user.role === "customer" ? db.projects.filter((p) => projectFor(user, p.id)) : [],
         open = (x) => x.status !== "Completed" && x.dueDate,
         tasksOf = (projects, keep) =>
@@ -4437,6 +4439,12 @@ async function api(req, res, url) {
             `/customer/invoice/${i.id}`,
             "Review",
             i.amount,
+            {
+              invoiceId: i.id,
+              number: invoiceNo(i),
+              projectId: i.projectId,
+              supplier: i.supplierCompany || companyOf(i.supplierId),
+            },
           );
         for (const b of (db.bids || []).filter(
           (b) =>
@@ -4450,6 +4458,20 @@ async function api(req, res, url) {
             `${b.offers.length} offer(s) received`,
             `/customer/offers?project=${b.projectId}`,
             "Compare",
+            undefined,
+            (() => {
+              const best = [...b.offers]
+                .filter((o) => Number(o.amount) > 0)
+                .sort((x, y) => Number(x.amount) - Number(y.amount))[0];
+              return {
+                bidId: b.id,
+                projectId: b.projectId,
+                title: b.title,
+                offers: b.offers.length,
+                dueDate: b.dueDate || "",
+                best: best ? { amount: Number(best.amount), supplier: companyOf(best.supplierId) } : null,
+              };
+            })(),
           );
         const pendingTime = (db.timeEntries || []).filter(
           (t) => t.status === "Pending approval" && ids.has(t.projectId),
@@ -4461,6 +4483,14 @@ async function api(req, res, url) {
             `${pendingTime.reduce((a, t) => a + Number(t.hours || 0), 0)} h submitted`,
             "/customer/time",
             "Approve",
+            undefined,
+            {
+              entries: pendingTime.length,
+              hours: pendingTime.reduce((a, t) => a + Number(t.hours || 0), 0),
+              suppliers: [...new Set(pendingTime.map((t) => companyOf(t.supplierId)).filter(Boolean))],
+              from: pendingTime.map((t) => t.workDate).filter(Boolean).sort()[0] || "",
+              to: pendingTime.map((t) => t.workDate).filter(Boolean).sort().at(-1) || "",
+            },
           );
         for (const d of (db.documents || []).filter(
           (d) => d.status === "Pending approval" && ids.has(d.projectId),
@@ -4471,14 +4501,26 @@ async function api(req, res, url) {
             db.projects.find((p) => p.id === d.projectId)?.name || "",
             `/customer/projects/${d.projectId}/documents`,
             "Review",
+            undefined,
+            { projectId: d.projectId, documentId: d.id },
           );
-        for (const { p, t } of tasksOf(mine, (t) => open(t) && t.dueDate < today))
+        for (const { p, ph, t } of tasksOf(mine, (t) => open(t) && t.dueDate < today))
           add(
             "overdue",
             `Overdue: ${t.name}`,
             `${p.name} · due ${t.dueDate}`,
             `/customer/projects/${p.id}`,
             "Open",
+            undefined,
+            {
+              projectId: p.id,
+              phaseId: ph.id,
+              taskId: t.id,
+              taskName: t.name,
+              projectName: p.name,
+              dueDate: t.dueDate,
+              supplier: companyOf(t.assignedSupplierId),
+            },
           );
         upcoming = tasksOf(mine, (t) => open(t) && t.dueDate >= today);
       }

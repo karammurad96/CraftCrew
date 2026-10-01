@@ -17,6 +17,10 @@ function loadScreens(extra = {}, expose = []) {
     ngGroup() {},
     obEnhanceHome() {},
     topActions() {},
+    aqHtml: () => "",
+    route() {},
+    money: (n) => String(n),
+    date: (d) => d,
     publicLayout: (html) => html,
     api: async () => ({}),
     esc: (s) => String(s),
@@ -161,6 +165,42 @@ describe("design 2026", () => {
       [],
       "English texts without a German entry",
     );
+  });
+
+  it("builds the customer dashboard header and decision rows from the queue (T95)", () => {
+    const ctx = loadScreens(
+      { money: (n) => `€${n}`, date: (d) => d, aqHtml: () => "base" },
+      ["dsDecisionLine", "dsGreeting", "dsCustomerRow"],
+    );
+    assert.equal(ctx.dsDecisionLine(0), "Nothing needs a decision. Everything is on track.");
+    assert.equal(ctx.dsDecisionLine(1), "One thing needs a decision. Everything else is on track.");
+    assert.equal(ctx.dsDecisionLine(4), "4 things need a decision. Everything else is on track.");
+    assert.match(ctx.dsGreeting("Maya Hartmann"), /^Good (morning|afternoon|evening), Maya\.$/);
+    const inv = ctx.dsCustomerRow({
+      kind: "invoice",
+      link: "/customer/invoice/inv_1",
+      invoiceId: "inv_1",
+      number: "2026-0001",
+      amount: 8806,
+      supplier: "Keller Automation",
+      sub: "Robot cell",
+    });
+    assert.match(inv, /Invoice 2026-0001 · €8806/);
+    assert.match(inv, /href="#\/customer\/invoice\/inv_1"[^>]*>Review</);
+    assert.match(inv, /dsApproveInvoice\('inv_1', this\)">Approve</);
+    const offer = ctx.dsCustomerRow({ kind: "offer", link: "/customer/offers?project=p", bidId: "bid_1", offers: 3, title: "Vision", best: { amount: 18900, supplier: "Rhein" } });
+    assert.match(offer, /3 offers · Vision/);
+    assert.match(offer, /href="#\/customer\/sourcing\/bid_1"[^>]*>Compare</);
+    // The row title keeps the old action-queue link, so no link is lost
+    assert.match(offer, /class="ds-dec-title" href="#\/customer\/offers\?project=p"/);
+    const time = ctx.dsCustomerRow({ kind: "time", link: "/customer/time", entries: 2, hours: 14.5, suppliers: ["Keller"] });
+    assert.match(time, /2 time entries · 14\.5 h/);
+    const late = ctx.dsCustomerRow({ kind: "overdue", link: "/customer/projects/p", projectId: "p", phaseId: "ph", taskId: "t", taskName: "PLC", dueDate: "2000-01-01" });
+    assert.match(late, /PLC is \d+ days late/);
+    assert.match(late, /\/customer\/messages\?project=p&amp;phase=ph&amp;task=t|\/customer\/messages\?project=p&phase=ph&task=t/);
+    const de = read("i18n.js");
+    for (const p of ["things need a decision", "is (\\\\d+) days late", "time entries", "offers · ", "Good morning"])
+      assert.ok(de.includes(p.replace(/\\\\/g, "\\")), `no German pattern for ${p}`);
   });
 
   it("uses a new service worker cache so installed apps load the new files", () => {
