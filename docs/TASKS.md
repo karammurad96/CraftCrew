@@ -162,7 +162,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T55 Clear status for suppliers not yet verified · S
 - [x] T56 Safer destructive actions · S
 - [x] T57 Fix the accessibility violations found by axe · S
-- [ ] T58 Complete German translation, including notifications · M
+- [x] T58 Complete German translation, including notifications · M
 
 **Wave 5 — marketplace features from competitors (P2)**
 - [ ] T60 Automatic VAT ID check (EU VIES) and insurance limit check in vetting · M

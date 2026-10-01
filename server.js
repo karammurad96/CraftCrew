@@ -2667,11 +2667,94 @@ function archiveAudit() {
     fs.appendFileSync(path.join(dir, `audit-${month}.jsonl`), lines.join(""), { mode: 0o600 });
   db.auditLog = db.auditLog.slice(0, AUDIT_IN_MEMORY);
 }
-function notify(userId, text, link = "") {
+/* Notification texts in both languages. notify(userId, {key, params}, link) renders the text in the recipient's
+   language; plain strings still work for the rarer notifications. Status values are translated too. */
+const NOTIFY_TEXT = {
+  en: {
+    invoiceSubmitted: "Invoice {number} submitted for review",
+    invoiceStatus: "Invoice {number}: {status}",
+    invoiceResubmitted: "Invoice {number} was corrected and resubmitted{note}",
+    invoicePaid: "Invoice {number} has been paid",
+    invoiceRefunded: "Invoice {number} payment was refunded",
+    invoiceReminder: "Reminder: invoice {number} is waiting for your review",
+    invoiceReminder2: "Second reminder: invoice {number} has been waiting for your review for 7 days",
+    invoiceWaitingAdmin: "Invoice {number} has been waiting for customer review for 7 days",
+    invoiceOverdue: "Invoice {number} is overdue: payment was due {date}",
+    taskInvitation: "Task invitation: {task} · {project}",
+    taskInvitationWithdrawn: "Task invitation withdrawn: {task}",
+    phaseInvitation: "New phase invitation: {phase} on {project}",
+    newMessage: "New message from {name}",
+    chatMessage: "New message in {chat}",
+    bidInvitation: "Invitation to bid: {title} · {project}",
+    offerAccepted: "Your offer was accepted for {title}",
+    offerChanges: "Changes requested on your offer for {title}: {note}",
+    documentAwaiting: "Document awaiting approval: {file}",
+    documentReviewed: "Document {file}: {status}",
+    timeSubmitted: "{name} submitted {hours}h for {task}",
+    timeReviewed: "{hours}h time entry for {task}: {status}",
+    applicationNew: "New supplier application: {company}",
+    applicationApproved: "Your supplier application was approved. Sign in to manage your service catalog.",
+    escalationOpened: "Escalation opened for {project}: {type}",
+    escalationStatus: "Escalation for {project} is now {status}",
+  },
+  de: {
+    invoiceSubmitted: "Rechnung {number} zur Prüfung eingereicht",
+    invoiceStatus: "Rechnung {number}: {status}",
+    invoiceResubmitted: "Rechnung {number} wurde korrigiert und erneut eingereicht{note}",
+    invoicePaid: "Rechnung {number} wurde bezahlt",
+    invoiceRefunded: "Zahlung für Rechnung {number} wurde erstattet",
+    invoiceReminder: "Erinnerung: Rechnung {number} wartet auf Ihre Prüfung",
+    invoiceReminder2: "Zweite Erinnerung: Rechnung {number} wartet seit 7 Tagen auf Ihre Prüfung",
+    invoiceWaitingAdmin: "Rechnung {number} wartet seit 7 Tagen auf die Prüfung durch den Kunden",
+    invoiceOverdue: "Rechnung {number} ist überfällig: Zahlung war fällig am {date}",
+    taskInvitation: "Aufgabeneinladung: {task} · {project}",
+    taskInvitationWithdrawn: "Aufgabeneinladung zurückgezogen: {task}",
+    phaseInvitation: "Neue Phaseneinladung: {phase} in {project}",
+    newMessage: "Neue Nachricht von {name}",
+    chatMessage: "Neue Nachricht in {chat}",
+    bidInvitation: "Einladung zur Angebotsabgabe: {title} · {project}",
+    offerAccepted: "Ihr Angebot für {title} wurde angenommen",
+    offerChanges: "Änderungen an Ihrem Angebot für {title} angefragt: {note}",
+    documentAwaiting: "Dokument wartet auf Freigabe: {file}",
+    documentReviewed: "Dokument {file}: {status}",
+    timeSubmitted: "{name} hat {hours} h für {task} eingereicht",
+    timeReviewed: "Zeiteintrag über {hours} h für {task}: {status}",
+    applicationNew: "Neue Lieferantenbewerbung: {company}",
+    applicationApproved:
+      "Ihre Lieferantenbewerbung wurde freigegeben. Melden Sie sich an, um Ihren Leistungskatalog zu pflegen.",
+    escalationOpened: "Eskalation eröffnet für {project}: {type}",
+    escalationStatus: "Eskalation für {project} ist jetzt {status}",
+  },
+};
+const STATUS_DE = {
+  Approved: "Freigegeben",
+  Rejected: "Abgelehnt",
+  "Changes Requested": "Änderungen angefordert",
+  "Changes requested": "Änderungen angefordert",
+  Paid: "Bezahlt",
+  Submitted: "Eingereicht",
+  Open: "Offen",
+  "In progress": "In Bearbeitung",
+  Resolved: "Gelöst",
+  Closed: "Geschlossen",
+  "Pending approval": "Wartet auf Freigabe",
+};
+function notifyText(spec, lang) {
+  if (typeof spec === "string") return spec;
+  const de = lang === "de",
+    template = (de && NOTIFY_TEXT.de[spec.key]) || NOTIFY_TEXT.en[spec.key] || spec.key;
+  return template.replace(/\{(\w+)\}/g, (_, k) => {
+    const v = String(spec.params?.[k] ?? "");
+    return de && k === "status" ? STATUS_DE[v] || v : v;
+  });
+}
+function notify(userId, spec, link = "") {
   if (!userId) return;
   const recipient = db.users.find((x) => x.id === userId),
     role = recipient?.role || "customer",
-    lower = String(text || "").toLowerCase();
+    // The link and email category are worked out from the English text; people see their own language.
+    lower = notifyText(spec, "en").toLowerCase(),
+    text = notifyText(spec, recipient?.language);
   if (!link) {
     if (/time entry|\d+(?:\.\d+)?h time|submitted \d+(?:\.\d+)?h/.test(lower))
       link = role === "customer" ? "/customer/time" : "/supplier/time";
@@ -2792,34 +2875,30 @@ function runInvoiceReminders(at = Date.now()) {
       if (days >= 3 && once("review3"))
         notify(
           i.customerId,
-          `Reminder: invoice ${invoiceNo(i)} is waiting for your review`,
+          { key: "invoiceReminder", params: { number: invoiceNo(i) } },
           `/customer/invoice/${i.id}`,
         );
       if (days >= 7 && once("review7")) {
         notify(
           i.customerId,
-          `Second reminder: invoice ${invoiceNo(i)} has been waiting for your review for 7 days`,
+          { key: "invoiceReminder2", params: { number: invoiceNo(i) } },
           `/customer/invoice/${i.id}`,
         );
         for (const a of admins)
-          notify(
-            a.id,
-            `Invoice ${invoiceNo(i)} has been waiting for customer review for 7 days`,
-            "/admin/billing",
-          );
+          notify(a.id, { key: "invoiceWaitingAdmin", params: { number: invoiceNo(i) } }, "/admin/billing");
       }
     }
     if (i.status === "Approved" && i.scheduledPayment && i.scheduledPayment < today && once("overdue")) {
       i.overdue = true;
       notify(
         supplierUser(i)?.id,
-        `Invoice ${invoiceNo(i)} is overdue: payment was due ${i.scheduledPayment}`,
+        { key: "invoiceOverdue", params: { number: invoiceNo(i), date: i.scheduledPayment } },
         `/supplier/invoice/${i.id}`,
       );
       for (const a of admins)
         notify(
           a.id,
-          `Invoice ${invoiceNo(i)} is overdue: payment was due ${i.scheduledPayment}`,
+          { key: "invoiceOverdue", params: { number: invoiceNo(i), date: i.scheduledPayment } },
           "/admin/billing",
         );
     }
@@ -3812,7 +3891,7 @@ async function api(req, res, url) {
         `Hello ${a.contactName || a.company},\n\nWe received the CraftCrew supplier application for ${a.company} (reference ${a.id}). The review covers company registration, insurance, certifications and references; we will contact you with the outcome.`,
       );
       for (const admin of db.users.filter((x) => x.role === "admin"))
-        notify(admin.id, `New supplier application: ${a.company}`, "/admin/applications");
+        notify(admin.id, { key: "applicationNew", params: { company: a.company } }, "/admin/applications");
       save();
       activity(null, `New supplier application from ${a.company}`);
       save();
@@ -4219,7 +4298,7 @@ async function api(req, res, url) {
       db.timeEntries.unshift(entry);
       notify(
         p.customerId,
-        `${entry.employeeName} submitted ${entry.hours}h for ${task.name}`,
+        { key: "timeSubmitted", params: { name: entry.employeeName, hours: entry.hours, task: task.name } },
         `/${"customer"}/projects/${p.id}/tasks/${task.id}`,
       );
       save();
@@ -4245,7 +4324,7 @@ async function api(req, res, url) {
         const member = db.users.find((x) => x.supplierId === entry.supplierId);
         notify(
           member?.id,
-          `${entry.hours}h time entry for ${entry.taskName}: ${entry.status}`,
+          { key: "timeReviewed", params: { hours: entry.hours, task: entry.taskName, status: entry.status } },
           `/supplier/time`,
         );
         save();
@@ -4583,17 +4662,17 @@ async function api(req, res, url) {
           status: "Reassigned before acceptance",
           at: now(),
         });
-        notify(
-          db.users.find((x) => x.supplierId === t.assignedSupplierId)?.id,
-          `Task invitation withdrawn: ${t.name}`,
-        );
+        notify(db.users.find((x) => x.supplierId === t.assignedSupplierId)?.id, {
+          key: "taskInvitationWithdrawn",
+          params: { task: t.name },
+        });
       }
       t.assignedSupplierId = s.id;
       t.acceptanceStatus = "Pending";
       t.status = "Not Started";
       t.assignmentHistory.push({ supplierId: s.id, company: s.company, status: "Invited", at: now() });
       const su = db.users.find((x) => x.supplierId === s.id);
-      notify(su?.id, `Task invitation: ${t.name} · ${p.name}`);
+      notify(su?.id, { key: "taskInvitation", params: { task: t.name, project: p.name } });
       save();
       return (send(res, 200, { task: t }), true);
     }
@@ -4684,7 +4763,7 @@ async function api(req, res, url) {
       db.documents ||= [];
       db.documents.unshift(doc);
       if (doc.approvalRequired && p.customerId !== user.id)
-        notify(p.customerId, `Document awaiting approval: ${doc.filename}`);
+        notify(p.customerId, { key: "documentAwaiting", params: { file: doc.filename } });
       activity(user, `Shared ${doc.filename} on ${p.name}`);
       save();
       return (send(res, 201, { document: doc }), true);
@@ -4762,7 +4841,7 @@ async function api(req, res, url) {
       doc.reviewNote = String(b.reviewNote || "").slice(0, 2000);
       doc.reviewedBy = user.id;
       doc.reviewedAt = now();
-      notify(doc.uploadedBy, `Document ${doc.filename}: ${doc.status}`);
+      notify(doc.uploadedBy, { key: "documentReviewed", params: { file: doc.filename, status: doc.status } });
       save();
       return (send(res, 200, { document: doc }), true);
     }
@@ -4965,10 +5044,10 @@ async function api(req, res, url) {
       ph.acceptanceStatus = "Pending";
       ph.status = "Not Started";
       ph.assignmentHistory.push({ supplierId: s.id, company: s.company, status: "Invited", at: now() });
-      notify(
-        db.users.find((u) => u.supplierId === s.id)?.id,
-        `New phase invitation: ${ph.name} on ${p.name}`,
-      );
+      notify(db.users.find((u) => u.supplierId === s.id)?.id, {
+        key: "phaseInvitation",
+        params: { phase: ph.name, project: p.name },
+      });
       activity(user, `Assigned ${s.company} to ${ph.name}`);
       save();
       return (send(res, 200, { phase: ph }), true);
@@ -5208,7 +5287,7 @@ async function api(req, res, url) {
         updatedAt: now(),
       };
       db.invoices.unshift(inv);
-      notify(p.customerId, `Invoice ${inv.number} submitted for review`);
+      notify(p.customerId, { key: "invoiceSubmitted", params: { number: inv.number } });
       activity(user, `Submitted invoice ${inv.number}`);
       save();
       return (send(res, 201, { invoice: inv }), true);
@@ -5337,10 +5416,10 @@ async function api(req, res, url) {
           i.status = "Rejected";
           i.comments = b.comment || "Invoice rejected.";
         }
-        notify(
-          i.supplierId ? db.users.find((u) => u.supplierId === i.supplierId)?.id : null,
-          `Invoice ${invoiceNo(i)}: ${i.status}`,
-        );
+        notify(i.supplierId ? db.users.find((u) => u.supplierId === i.supplierId)?.id : null, {
+          key: "invoiceStatus",
+          params: { number: invoiceNo(i), status: i.status },
+        });
       } else if (user.role === "supplier") {
         if (!["Resubmit"].includes(action) || !["Changes Requested", "Rejected"].includes(i.status))
           return (send(res, 400, { error: "Invoice cannot be resubmitted" }), true);
@@ -5406,7 +5485,10 @@ async function api(req, res, url) {
         if (i.remindersSent) i.remindersSent = i.remindersSent.filter((k) => !k.startsWith("review"));
         notify(
           i.customerId,
-          `Invoice ${invoiceNo(i)} was corrected and resubmitted${i.resubmitNote ? ": " + i.resubmitNote : ""}`,
+          {
+            key: "invoiceResubmitted",
+            params: { number: invoiceNo(i), note: i.resubmitNote ? ": " + i.resubmitNote : "" },
+          },
           `/customer/invoice/${i.id}`,
         );
       } else return (send(res, 403, { error: "Not allowed" }), true);
@@ -5444,10 +5526,10 @@ async function api(req, res, url) {
             createdAt: now(),
           });
         }
-        notify(
-          i.supplierId ? db.users.find((u) => u.supplierId === i.supplierId)?.id : null,
-          `Invoice ${invoiceNo(i)} has been paid`,
-        );
+        notify(i.supplierId ? db.users.find((u) => u.supplierId === i.supplierId)?.id : null, {
+          key: "invoicePaid",
+          params: { number: invoiceNo(i) },
+        });
         i.updatedAt = now();
         save();
         return (send(res, 200, { invoice: i }), true);
@@ -5464,10 +5546,10 @@ async function api(req, res, url) {
           pay.refundReason = reason;
           pay.refundedAt = now();
         }
-        notify(
-          i.supplierId ? db.users.find((u) => u.supplierId === i.supplierId)?.id : null,
-          `Invoice ${invoiceNo(i)} payment was refunded`,
-        );
+        notify(i.supplierId ? db.users.find((u) => u.supplierId === i.supplierId)?.id : null, {
+          key: "invoiceRefunded",
+          params: { number: invoiceNo(i) },
+        });
         activity(user, `Refund recorded for invoice ${invoiceNo(i)}`);
         i.updatedAt = now();
         save();
@@ -5599,10 +5681,7 @@ async function api(req, res, url) {
         if (supplierUser) {
           supplierUser.supplierId = s.id;
           supplierUser.company = a.company;
-          notify(
-            supplierUser.id,
-            "Your supplier application was approved. Sign in to manage your service catalog.",
-          );
+          notify(supplierUser.id, { key: "applicationApproved" });
         }
       }
       if (b.status && b.status !== previousStatus) {
@@ -6008,7 +6087,7 @@ async function api(req, res, url) {
         if (uid !== user.id)
           notify(
             uid,
-            `New message in ${c.title}`,
+            { key: "chatMessage", params: { chat: c.title } },
             `/${db.users.find((x) => x.id === uid)?.role || "customer"}/messages?chat=${c.id}`,
           );
       save();
@@ -6077,7 +6156,7 @@ async function api(req, res, url) {
         read: false,
       };
       db.messages.push(m);
-      notify(recipient.id, `New message from ${user.name}`);
+      notify(recipient.id, { key: "newMessage", params: { name: user.name } });
       save();
       return (send(res, 201, { message: m }), true);
     }
@@ -6280,7 +6359,7 @@ async function api(req, res, url) {
       db.bids.unshift(bid);
       for (const sid of invited)
         for (const su of db.users.filter((x) => x.supplierId === sid))
-          notify(su.id, `Invitation to bid: ${bid.title} · ${p.name}`);
+          notify(su.id, { key: "bidInvitation", params: { title: bid.title, project: p.name } });
       activity(user, `Published bid request for ${task.name}`);
       save();
       return (send(res, 201, { bid }), true);
@@ -6416,7 +6495,7 @@ async function api(req, res, url) {
         Object.assign(offer, { status: "Changes requested", changeNote: note, changeRequestedAt: now() });
         bid.updatedAt = now();
         for (const su of db.users.filter((x) => x.supplierId === offer.supplierId))
-          notify(su.id, `Changes requested on your offer for ${bid.title}: ${note}`, "/supplier/bids");
+          notify(su.id, { key: "offerChanges", params: { title: bid.title, note } }, "/supplier/bids");
         activity(user, `Requested changes on the ${offer.supplierCompany} offer for ${bid.title}`);
         save();
         return (send(res, 200, { bid }), true);
@@ -6449,10 +6528,10 @@ async function api(req, res, url) {
         bid.savings = bid.baseline ? Math.round((bid.baseline - offer.amount) * 100) / 100 : null;
         sourcing.contractFromAward(bid, offer, user);
         for (const other of bid.offers) if (other.id !== offer.id) other.status = "Not selected";
-        notify(
-          db.users.find((u) => u.supplierId === offer.supplierId)?.id,
-          `Your offer was accepted for ${bid.title}`,
-        );
+        notify(db.users.find((u) => u.supplierId === offer.supplierId)?.id, {
+          key: "offerAccepted",
+          params: { title: bid.title },
+        });
       }
       if (b.action === "Decline offer") offer.status = "Declined";
       if (b.action === "Close bid") {
@@ -6631,7 +6710,7 @@ async function api(req, res, url) {
       };
       db.disputes = db.disputes || [];
       db.disputes.unshift(d);
-      const text = `Escalation opened for ${p.name}: ${d.type}`;
+      const text = { key: "escalationOpened", params: { project: p.name, type: d.type } };
       for (const admin of db.users.filter((x) => x.role === "admin" && x.status !== "Suspended"))
         notify(admin.id, text, "/admin/disputes");
       for (const uid of disputeParties(d)) if (uid !== user.id) notify(uid, text);
@@ -6652,7 +6731,10 @@ async function api(req, res, url) {
       if (d.status !== previous) {
         const p = db.projects.find((x) => x.id === d.projectId);
         for (const uid of disputeParties(d))
-          notify(uid, `Escalation for ${p?.name || "your project"} is now ${d.status}`);
+          notify(uid, {
+            key: "escalationStatus",
+            params: { project: p?.name || "your project", status: d.status },
+          });
       }
       save();
       return (send(res, 200, { dispute: d }), true);
