@@ -169,7 +169,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T61 Public reliability metrics on supplier profiles · S
 - [x] T62 Directory: certification and region filters, compare, shortlist, quote request to several suppliers · M
 - [x] T63 Acceptance report (Abnahmeprotokoll) with signature and PDF · M
-- [ ] T64 Punch list (defects) per task · M
+- [x] T64 Punch list (defects) per task · M
 - [ ] T65 Daily site report per task with photos · M
 - [ ] T66 Calendar feeds (ICS) for deadlines and site visits · S
 - [ ] T67 Two-factor sign-in (TOTP) · M
@@ -1279,7 +1279,7 @@ messages.
 5. Every status change notifies the other party.
 
 **Done when.**
-- [ ] API tests cover the full status flow and permissions: a supplier can't verify, a customer can't mark fixed.
+- [x] API tests cover the full status flow and permissions: a supplier can't verify, a customer can't mark fixed.
 
 ### T65 · Daily site report per task with photos
 `P2 · M · cheap model OK`

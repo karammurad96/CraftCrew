@@ -263,6 +263,18 @@ const acceptance = require("./acceptance")({
   activity: (...a) => activity(...a),
   uploadDir: () => UPLOAD_DIR,
 });
+const punchList = require("./punchlist")({
+  getDb: () => db,
+  save: () => save(),
+  send: (...a) => send(...a),
+  body: (r) => body(r),
+  id: (p) => id(p),
+  now: () => now(),
+  notify: (...a) => notify(...a),
+  projectFor: (...a) => projectFor(...a),
+  ownUpload: (...a) => ownUpload(...a),
+  activity: (...a) => activity(...a),
+});
 // Public base URL used in email links.
 const APP_URL = (
   process.env.APP_URL || (process.env.DOMAIN ? `https://${process.env.DOMAIN}` : `http://localhost:${PORT}`)
@@ -2868,6 +2880,10 @@ const NOTIFY_TEXT = {
     escalationStatus: "Escalation for {project} is now {status}",
     workAccepted: "Work accepted: {task}. The acceptance report is in the project documents.",
     workRejected: "Work not accepted: {task}. Reason: {note}",
+    defectCreated: "New defect on {task}: {title}",
+    defectFixed: "Defect marked as fixed on {task}: {title}",
+    defectVerified: "Defect fix accepted on {task}: {title}",
+    defectReopened: "Defect reopened on {task}: {title}. {note}",
   },
   de: {
     invoiceSubmitted: "Rechnung {number} zur Prüfung eingereicht",
@@ -2898,6 +2914,10 @@ const NOTIFY_TEXT = {
     escalationStatus: "Eskalation für {project} ist jetzt {status}",
     workAccepted: "Leistung abgenommen: {task}. Das Abnahmeprotokoll liegt in den Projektdokumenten.",
     workRejected: "Abnahme verweigert: {task}. Grund: {note}",
+    defectCreated: "Neuer Mangel bei {task}: {title}",
+    defectFixed: "Mangel als behoben gemeldet bei {task}: {title}",
+    defectVerified: "Mängelbeseitigung bestätigt bei {task}: {title}",
+    defectReopened: "Mangel wieder geöffnet bei {task}: {title}. {note}",
   },
 };
 const STATUS_DE = {
@@ -7244,6 +7264,7 @@ async function api(req, res, url) {
       );
     }
     if (await acceptance.handle(req, res, url, parts, user)) return true;
+    if (await punchList.handle(req, res, url, parts, user)) return true;
     if (await compliance.handle(req, res, url, parts, user)) return true;
     if (await documents.handle(req, res, url, parts, user)) return true;
     if (await planning.handle(req, res, url, parts, user)) return true;
@@ -7520,7 +7541,8 @@ const server = http.createServer(async (req, res) => {
     if (
       !related &&
       !compliance.canAccessFile(user, "/uploads/" + stored) &&
-      !documents.canAccessFile(user, "/uploads/" + stored)
+      !documents.canAccessFile(user, "/uploads/" + stored) &&
+      !punchList.canAccessFile(user, "/uploads/" + stored)
     )
       return send(res, 404, { error: "File not found" });
     const up = path.join(UPLOAD_DIR, stored);
