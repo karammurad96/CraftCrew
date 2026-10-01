@@ -328,8 +328,229 @@ topActions = function () {
 })();
 topActions();
 
+/* ---------- Dashboards: shared header, decision list and "at a glance" (T95–T97, board Dashboard) ---------- */
+const DS_ICON_PATHS = {
+  invoice: '<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/>',
+  document: '<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/>',
+  offer: '<path d="M6 20V11M12 20V5M18 20v-6"/>',
+  time: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  overdue: '<circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/>',
+  invitation: '<path d="M4 7h16v12H4z"/><path d="m4 7 8 6 8-6"/>',
+  bid: '<path d="M6 20V11M12 20V5M18 20v-6"/>',
+  compliance: '<path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6z"/><path d="m9 12 2 2 4-4"/>',
+  application: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>',
+  dispute: '<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17v.5"/>',
+  payment: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/>',
+};
+const DS_TINT = {
+  invoice: "blue",
+  time: "blue",
+  offer: "orange",
+  document: "orange",
+  overdue: "red",
+  invitation: "orange",
+  bid: "blue",
+  compliance: "orange",
+  application: "blue",
+  dispute: "red",
+  payment: "green",
+};
+const dsIcon = (kind) =>
+  `<span class="ds-dec-icon ds-tint-${DS_TINT[kind] || "blue"}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${DS_ICON_PATHS[kind] || DS_ICON_PATHS.document}</svg></span>`;
+const dsIso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+const dsToday = () => dsIso(new Date());
+const dsDaysBetween = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 86400000);
+function dsGreeting(name) {
+  const h = new Date().getHours(),
+    part = h < 12 ? "morning" : h < 18 ? "afternoon" : "evening",
+    first = String(name || "").trim().split(/\s+/)[0];
+  return first ? `Good ${part}, ${first}.` : `Good ${part}.`;
+}
+function dsDecisionLine(n) {
+  if (!n) return "Nothing needs a decision. Everything is on track.";
+  if (n === 1) return "One thing needs a decision. Everything else is on track.";
+  return `${n} things need a decision. Everything else is on track.`;
+}
+function dsKickerDate() {
+  const lang = typeof i18nLang !== "undefined" && i18nLang === "de" ? "de-DE" : "en-GB";
+  return new Date().toLocaleDateString(lang, { weekday: "long", day: "numeric", month: "long" });
+}
+/* Page header: kicker, greeting, one line; the existing header buttons move to the right. */
+function dsDashHeader(kicker, line, { kickerIsDate = false } = {}) {
+  const top = document.querySelector(".dashboard-content > .dash-top");
+  if (!top) return;
+  const text = top.querySelector(":scope > div:first-child");
+  if (!text || text.dataset.ds === line) return;
+  text.dataset.ds = line;
+  text.classList.add("ds-dash-head");
+  text.innerHTML = `<span class="ds-dash-kicker"${kickerIsDate ? " data-no-i18n" : ""}>${esc(kicker)}</span><h1>${esc(dsGreeting(state.user?.name))}</h1><p>${esc(line)}</p>`;
+  top.classList.add("ds-dash-top");
+}
+const dsBtn = (label, href, kind = "primary") =>
+  `<a class="btn ${kind === "grey" ? "secondary" : "primary"} ds-dec-btn" href="#${esc(href)}">${esc(label)}</a>`;
+function dsCustomerRow(x) {
+  let title = x.text,
+    sub = x.sub || "",
+    buttons = dsBtn(x.action || "Open", x.link);
+  if (x.kind === "invoice" && x.invoiceId) {
+    title = `Invoice ${x.number} · ${money(x.amount || 0)}`;
+    sub = [x.supplier, x.sub].filter(Boolean).join(" · ");
+    buttons =
+      dsBtn("Review", x.link, "grey") +
+      `<button type="button" class="btn primary ds-dec-btn" onclick="dsApproveInvoice('${esc(x.invoiceId)}', this)">Approve</button>`;
+  } else if (x.kind === "offer" && x.bidId) {
+    title = `${x.offers === 1 ? "1 offer" : `${x.offers} offers`} · ${x.title}`;
+    sub = x.best
+      ? `Best ${money(x.best.amount)} from ${x.best.supplier}${x.dueDate ? ` · closes ${date(x.dueDate)}` : ""}`
+      : x.sub;
+    buttons = dsBtn("Compare", `/customer/sourcing/${x.bidId}`);
+  } else if (x.kind === "time" && x.entries) {
+    title = `${x.entries === 1 ? "1 time entry" : `${x.entries} time entries`} · ${Math.round(x.hours * 10) / 10} h`;
+    const range = x.from && x.to && x.from !== x.to ? `${date(x.from)} – ${date(x.to)}` : x.from ? date(x.from) : "";
+    sub = [(x.suppliers || []).join(", "), range].filter(Boolean).join(" · ");
+    buttons = dsBtn("Review", "/customer/time");
+  } else if (x.kind === "overdue" && x.taskId) {
+    const late = Math.max(1, dsDaysBetween(x.dueDate, dsToday()));
+    title = `${x.taskName} is ${late === 1 ? "1 day" : `${late} days`} late`;
+    sub = [x.supplier, x.projectName].filter(Boolean).join(" · ");
+    buttons = dsBtn(
+      "Message",
+      `/customer/messages?project=${encodeURIComponent(x.projectId)}&phase=${encodeURIComponent(x.phaseId)}&task=${encodeURIComponent(x.taskId)}`,
+      "grey",
+    );
+  } else if (x.amount) sub = [sub, money(x.amount)].filter(Boolean).join(" · ");
+  return dsRow(x.kind, title, sub, x.link, buttons);
+}
+// One row of a decision list. The title links to the item's page, as the old action queue did.
+const dsRow = (kind, title, sub, link, buttons) =>
+  `<div class="ds-dec-row">${dsIcon(kind)}<div class="ds-dec-text"><a class="ds-dec-title" href="#${esc(link)}">${esc(title)}</a>${sub ? `<span class="ds-dec-sub">${esc(sub)}</span>` : ""}</div><div class="ds-dec-actions">${buttons}</div></div>`;
+async function dsApproveInvoice(id, btn) {
+  if (btn) btn.disabled = true;
+  try {
+    // The same request as invoiceAction(id, 'Approve'), without its jump to the invoice list.
+    await api("/invoices/" + id, { method: "PATCH", body: { action: "Approve", comment: "" } });
+    toast("Invoice approved; payment scheduled");
+    route();
+  } catch (e) {
+    toast(e.message, "error");
+    if (btn) btn.disabled = false;
+  }
+}
+function dsCaughtUp(d) {
+  const n = d.nextDeadline;
+  return `<div class="ds-dec-empty"><b>You're all caught up</b><span>${
+    n
+      ? `Next deadline: <a href="#${esc(n.link)}">${esc(n.name)}</a> · ${esc(n.project)} · ${date(n.dueDate)}`
+      : "Nothing needs your attention right now."
+  }</span></div>`;
+}
+const dsDashBase = (left, right) =>
+  `<section class="aq-panel ds-dash">
+    <div class="ds-dash-cols"><div class="ds-dash-main">${left}</div><div class="ds-dash-side">${right}</div></div>
+    <h2 class="ds-dash-more ds-ui">More on your dashboard</h2>
+  </section>`;
+
+/* Customer (T95) */
+const dsBaseAqHtml = aqHtml;
+aqHtml = function (d) {
+  const role = state.user?.role,
+    items = d.items || [];
+  if (role === "customer") {
+    dsDashHeader(dsKickerDate(), dsDecisionLine(d.total || items.length), { kickerIsDate: true });
+    return dsDashBase(
+      `<h2 class="ds-dash-h ds-ui">Needs your decision</h2><div class="ds-card ds-dec-list">${items.length ? items.map(dsCustomerRow).join("") : dsCaughtUp(d)}</div>`,
+      `<h2 class="ds-dash-h ds-ui">At a glance</h2><div class="ds-card ds-glance" data-ds-fill="customer"></div><div class="ds-card ds-week" data-ds-fill="week"><h3 class="ds-ui">This week</h3><div class="ds-week-list"></div></div>`,
+    );
+  }
+  return dsBaseAqHtml(d);
+};
+const dsGlanceCell = (label, value, red) =>
+  `<div class="ds-glance-cell"><span class="ds-ui">${label}</span><b${red ? ' class="ds-red"' : ""}>${value}</b></div>`;
+async function dsFillCustomerSide(root) {
+  const glance = root.querySelector('.ds-glance[data-ds-fill="customer"]:not([data-ds])'),
+    week = root.querySelector('.ds-week[data-ds-fill="week"]:not([data-ds])');
+  if (!glance && !week) return;
+  if (glance) glance.dataset.ds = "1";
+  if (week) week.dataset.ds = "1";
+  const [{ projects = [] }, { invoices = [] }, { visits = [] }] = await Promise.all([
+    api("/projects").catch(() => ({})),
+    api("/invoices").catch(() => ({})),
+    api("/site-visits").catch(() => ({})),
+  ]);
+  const today = dsToday(),
+    month = today.slice(0, 7),
+    active = projects.filter((p) => !["Completed", "Archived"].includes(p.status) && !p.archived),
+    activeIds = new Set(active.map((p) => p.id)),
+    tasks = projects.flatMap((p) =>
+      (p.phases || []).flatMap((ph) => (ph.tasks || []).map((t) => ({ p, ph, t }))),
+    ),
+    open = tasks.filter(({ t }) => t.status !== "Completed" && t.dueDate),
+    late = open.filter(({ t }) => t.dueDate < today).length,
+    unpaid = invoices.filter((i) => i.status === "Approved"),
+    toPay = unpaid
+      .filter((i) => String(i.scheduledPayment || "").slice(0, 7) === month)
+      .reduce((a, i) => a + Number(i.amount || 0), 0),
+    budget = active.reduce((a, p) => a + Number(p.budget || 0), 0),
+    invoiced = invoices
+      .filter((i) => activeIds.has(i.projectId) && !["Rejected", "Draft"].includes(i.status))
+      .reduce((a, i) => a + Number(i.amount || 0), 0);
+  if (glance)
+    glance.innerHTML =
+      dsGlanceCell("Active projects", active.length) +
+      dsGlanceCell("Late tasks", late, late > 0) +
+      dsGlanceCell("To pay this month", money(toPay)) +
+      dsGlanceCell("Budget used", budget ? `${Math.round((invoiced / budget) * 100)} %` : "—");
+  if (week) {
+    const end = dsIso(new Date(Date.now() + 6 * 86400000)),
+      inWeek = (d) => d && d >= today && d <= end,
+      events = [
+        ...visits
+          .filter((v) => ["Approved", "Checked in"].includes(v.status) && inWeek(v.date))
+          .map((v) => ({
+            date: v.date,
+            tone: "blue",
+            title: `${v.supplierCompany} crew on site`,
+            sub: [v.siteName, v.permitLabel].filter(Boolean).join(" · "),
+          })),
+        ...unpaid
+          .filter((i) => inWeek(i.scheduledPayment))
+          .map((i) => ({
+            date: i.scheduledPayment,
+            tone: "orange",
+            title: `Invoice ${invNo(i)} due`,
+            sub: `${money(i.amount)} · ${i.supplierCompany || ""}`.replace(/ · $/, ""),
+          })),
+        ...open
+          .filter(({ t }) => inWeek(t.dueDate))
+          .map(({ t }) => ({
+            date: t.dueDate,
+            tone: "green",
+            title: t.name,
+            sub: `${Number(t.progress || 0)} % · ${t.dueDate < today ? "late" : "on track"}`,
+          })),
+      ]
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(0, 4);
+    const lang = typeof i18nLang !== "undefined" && i18nLang === "de" ? "de-DE" : "en-GB";
+    week.querySelector(".ds-week-list").innerHTML = events.length
+      ? events
+          .map((e) => {
+            const d = new Date(e.date + "T12:00:00");
+            return `<div class="ds-week-row"><div class="ds-week-date" data-no-i18n><span${e.date === today ? ' class="ds-red"' : ""}>${d.toLocaleDateString(lang, { weekday: "short" }).replace(".", "").toUpperCase()}</span><b>${d.getDate()}</b></div><div class="ds-week-text ds-tone-${e.tone}"><b>${esc(e.title)}</b><span>${esc(e.sub)}</span></div></div>`;
+          })
+          .join("")
+      : '<p class="ds-week-none">Nothing scheduled this week.</p>';
+  }
+}
+function dsEnhanceDashboard(root) {
+  if (!/^#\/(customer|supplier|admin)\/dashboard/.test(location.hash)) return;
+  dsFillCustomerSide(root);
+  // "Customize" stays next to the main button as a quiet grey text button
+  root.querySelector(".ds-dash-top .lc-toggle")?.classList.add("ds-quiet");
+}
+
 /* ---------- Run the enhancers after every render ---------- */
-const DS_ENHANCERS = [dsEnhanceChips, dsEnhanceButtons, dsEnhanceEmpty, dsEnhanceSidebar];
+const DS_ENHANCERS = [dsEnhanceChips, dsEnhanceButtons, dsEnhanceEmpty, dsEnhanceSidebar, dsEnhanceDashboard];
 function dsEnhance() {
   for (const root of [document.getElementById("app"), document.getElementById("modalRoot")])
     if (root) for (const fn of DS_ENHANCERS) fn(root);

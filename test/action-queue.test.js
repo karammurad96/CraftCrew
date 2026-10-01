@@ -45,6 +45,33 @@ describe("action queue", () => {
     assert.equal(item.amount, inv.amount);
   });
 
+  it("gives the customer dashboard the ids it acts on (T95)", async () => {
+    const cq = await queue(customer);
+    const inv = cq.items.find((x) => x.kind === "invoice");
+    assert.ok(inv.invoiceId, "invoice item has invoiceId");
+    assert.equal(inv.link, `/customer/invoice/${inv.invoiceId}`);
+    assert.match(inv.number, /^\d{4}-\d{4}$/);
+    assert.equal(inv.supplier, "Crew GmbH");
+    assert.equal(inv.projectId, project.id);
+
+    // An overdue task names its project, task and supplier
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const task = phase.tasks[0];
+    const r = await app.call(
+      "PATCH",
+      `/projects/${project.id}/phases/${phase.id}/tasks/${task.id}`,
+      { startDate: new Date(Date.now() - 5 * 86400000).toISOString().slice(0, 10), dueDate: yesterday },
+      customer,
+    );
+    assert.equal(r.status, 200, JSON.stringify(r));
+    const late = (await queue(customer)).items.find((x) => x.kind === "overdue");
+    assert.equal(late.projectId, project.id);
+    assert.equal(late.taskId, task.id);
+    assert.equal(late.taskName, task.name);
+    assert.equal(late.dueDate, yesterday);
+    assert.equal(late.supplier, "Crew GmbH");
+  });
+
   it("lists invoices to mark paid for admins and asks for a signed-in user", async () => {
     const { invoices } = await app.call("GET", "/invoices", undefined, customer);
     await app.call("PATCH", `/invoices/${invoices[0].id}`, { action: "Approve" }, customer);
