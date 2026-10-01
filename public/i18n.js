@@ -1293,6 +1293,29 @@ Object.assign(I18N_DE, {
     "Dieses Projekt löschen? Projekte mit Rechnungen, Dokumenten oder angenommenen Lieferanten werden stattdessen archiviert.",
   "Project archived": "Projekt archiviert",
   "Please choose a new password first.": "Bitte wählen Sie zuerst ein neues Passwort.",
+  "Change awaiting re-verification": "Änderung wartet auf erneute Prüfung",
+  "Until an admin reviews it, your profile still shows the previous values.":
+    "Bis ein Admin sie prüft, zeigt Ihr Profil weiterhin die bisherigen Angaben.",
+  "Company name": "Firmenname",
+  "Tax ID": "Steuernummer",
+  "Profile changes": "Profiländerungen",
+  "Profile changes awaiting re-verification": "Profiländerungen, die auf erneute Prüfung warten",
+  "Changes to a company name, legal invoicing details or claimed certifications wait here until approved.":
+    "Änderungen am Firmennamen, an rechtlichen Rechnungsdaten oder an angegebenen Zertifizierungen warten hier auf Freigabe.",
+  "Nothing is waiting for re-verification.": "Nichts wartet derzeit auf erneute Prüfung.",
+  Field: "Feld",
+  Current: "Aktuell",
+  Proposed: "Vorgeschlagen",
+  "Explain to the supplier why this change was not approved":
+    "Erklären Sie dem Anbieter, warum diese Änderung nicht freigegeben wurde",
+  "Approve this change? It goes live right away.": "Diese Änderung freigeben? Sie wird sofort wirksam.",
+  "Change approved": "Änderung freigegeben",
+  "Enter a reason for the supplier in the decision note.":
+    "Geben Sie im Entscheidungshinweis einen Grund für den Anbieter an.",
+  "Change rejected": "Änderung abgelehnt",
+  "Admin only": "Nur für Admins",
+  "Choose Approve or Reject": "Wählen Sie Freigeben oder Ablehnen",
+  "No pending change for this supplier": "Für diesen Anbieter liegt keine ausstehende Änderung vor",
   "Hourly rate (€/h, optional)": "Stundensatz (€/h, optional)",
   "Enter the hourly rate in euros, or leave it empty":
     "Geben Sie den Stundensatz in Euro ein oder lassen Sie das Feld leer",
@@ -1938,6 +1961,7 @@ const I18N_PATTERNS = [
   [/^(\d+)% left$/, "$1 % übrig"],
   [/^Showing the latest (\d+)$/, "Die neuesten $1"],
   [/^Overdue: (.+)$/, "Überfällig: $1"],
+  [/^Submitted (.+)$/, "Eingereicht $1"],
   [/^Typical rate for (.+): (.+)–(.+)\/h \(median (.+)\)$/, "Üblicher Satz für $1: $2–$3/h (Median $4)"],
   [/^(.+)\/h — within the typical range (.+)–(.+)\/h$/, "$1/h – im üblichen Bereich $2–$3/h"],
   [/^(.+)\/h — above the typical range (.+)–(.+)\/h$/, "$1/h – über dem üblichen Bereich $2–$3/h"],

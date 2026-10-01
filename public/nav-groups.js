@@ -21,7 +21,7 @@ const NG_GROUPS = {
   ],
   admin: [
     ["Overview", ["dashboard", "reports"]],
-    ["Suppliers & users", ["applications", "users"]],
+    ["Suppliers & users", ["applications", "profile-changes", "users"]],
     ["Money", ["billing"]],
     ["Support", ["disputes"]],
     ["Platform", ["platform", "audit", "profile"]],

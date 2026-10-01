@@ -928,6 +928,7 @@ function sidebar(role, active) {
         : [
             ["dashboard", "Admin Dashboard"],
             ["applications", "Vetting Queue"],
+            ["profile-changes", "Profile changes"],
             ["users", "Users"],
             ["billing", "Payments & Billing"],
             ["reports", "Reports & Analytics"],
@@ -971,6 +972,7 @@ const wfOldRoute = async () => {
   if (parts[0] === "admin") {
     if (parts[1] === "dashboard") return adminDashboard();
     if (parts[1] === "applications") return adminApplications();
+    if (parts[1] === "profile-changes") return adminProfileChanges();
     if (parts[1] === "users") return adminUsers();
     if (parts[1] === "billing") return adminBilling();
     if (parts[1] === "reports") return adminReports();
