@@ -950,6 +950,8 @@ const wfOldRoute = async () => {
     parts = h.split("?")[0].split("/").filter(Boolean);
   if (h === "/" || h === "/home") return renderHome();
   if (h === "/suppliers") return renderSuppliers();
+  // Public supplier profile, shareable as a link (T61).
+  if (parts[0] === "suppliers" && parts[1] && !parts[2]) return supplierDetail(parts[1]);
   if (h === "/supplier-application") return supplierApplication();
   if (h === "/pricing") return renderStatic("pricing");
   if (h === "/how-it-works") return renderStatic("how_it_works");

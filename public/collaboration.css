@@ -533,10 +533,9 @@
 .wf-offer-head,
 .wf-offer-row {
   display: grid !important;
-  grid-template-columns: minmax(190px, 1.7fr) minmax(100px, 0.7fr) minmax(95px, 0.65fr) minmax(
-      100px,
-      0.7fr
-    ) minmax(145px, 1fr) minmax(135px, auto) !important;
+  grid-template-columns:
+    minmax(190px, 1.7fr) minmax(100px, 0.7fr) minmax(95px, 0.65fr) minmax(100px, 0.7fr)
+    minmax(145px, 1fr) minmax(135px, auto) !important;
   gap: 12px;
   align-items: start !important;
 }
@@ -925,4 +924,29 @@
 .cc-preflight span b {
   text-transform: capitalize;
   color: #233953;
+}
+.cc-rel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 8px 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.cc-rel b {
+  color: var(--text);
+}
+.cc-rel-new {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eef3ff;
+  color: #1d3f9e;
+  font-weight: 600;
+}
+.cc-rel-panel h2 {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+}
+.cc-rel-panel .cc-rel {
+  font-size: var(--fs-md);
 }

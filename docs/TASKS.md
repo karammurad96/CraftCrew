@@ -166,7 +166,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 
 **Wave 5 — marketplace features from competitors (P2)**
 - [x] T60 Automatic VAT ID check (EU VIES) and insurance limit check in vetting · M
-- [ ] T61 Public reliability metrics on supplier profiles · S
+- [x] T61 Public reliability metrics on supplier profiles · S
 - [ ] T62 Directory: certification and region filters, compare, shortlist, quote request to several suppliers · M
 - [ ] T63 Acceptance report (Abnahmeprotokoll) with signature and PDF · M
 - [ ] T64 Punch list (defects) per task · M
@@ -1214,8 +1214,8 @@ Show a metric only when it is based on at least 3 data points; otherwise show "N
 show** risk flags or vetting notes publicly.
 
 **Done when.**
-- [ ] The metrics show for demo suppliers with data and are hidden for new ones.
-- [ ] A test checks that the public supplier endpoint has no risk fields.
+- [x] The metrics show for demo suppliers with data and are hidden for new ones.
+- [x] A test checks that the public supplier endpoint has no risk fields.
 
 ### T62 · Directory: certification and region filters, compare, shortlist, quote request to several suppliers
 `P2 · M · cheap model OK`

@@ -17,6 +17,7 @@ const START = {
   public: [
     "/",
     "/suppliers",
+    "/suppliers/sup_002",
     "/how-it-works",
     "/pricing",
     "/faq",

@@ -135,6 +135,7 @@ module.exports = function createSourcing(ctx) {
       completed: done,
       overdue: late,
       firstTimeRightRate: pct(firstTime, decided.length),
+      decidedInvoices: decided.length,
       invoices: invoices.length,
       responseRate: pct(answered.length, invited.length),
       invitations: invited.length,
@@ -156,6 +157,25 @@ module.exports = function createSourcing(ctx) {
         ? "Medium"
         : "Low";
     return { supplierId: s.id, company: s.company, badge: s.badge, score, riskLevel, risks, metrics };
+  }
+
+  // Public profile and directory: only delivery facts, never risks, vetting notes or the composite score.
+  // A rate is shown only when it rests on at least 3 data points (T61).
+  const MIN_POINTS = 3;
+  function publicReliability(supplierId) {
+    const card = scorecard(supplierId);
+    if (!card) return null;
+    const m = card.metrics,
+      rate = (value, points) => (points >= MIN_POINTS ? value : null);
+    const r = {
+      onTimeRate: rate(m.onTimeRate, m.completed + m.overdue),
+      firstTimeRightRate: rate(m.firstTimeRightRate, m.decidedInvoices),
+      responseRate: rate(m.responseRate, m.invitations),
+      completed: m.completed,
+      reviews: m.reviews,
+    };
+    r.isNew = r.onTimeRate === null && r.firstTimeRightRate === null && r.responseRate === null;
+    return r;
   }
 
   /* Daily renewal reminders for contracts approaching their notice date or end date. */
@@ -292,5 +312,5 @@ module.exports = function createSourcing(ctx) {
     return null;
   }
 
-  return { handle, cleanWeights, contractFromAward, scorecard, DEFAULT_WEIGHTS };
+  return { handle, cleanWeights, contractFromAward, scorecard, publicReliability, DEFAULT_WEIGHTS };
 };
