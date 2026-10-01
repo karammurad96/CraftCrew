@@ -1410,3 +1410,325 @@ html body .ds-crew-legend {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ---------- Project workspace (T98, board Workspace) ---------- */
+html body .ds-ws-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+html body .ds-ws-meta {
+  font-size: 13px;
+  color: var(--cc-muted);
+}
+html body .ds-ws-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+html body .ds-ws-title h1 {
+  margin: 0 !important;
+  font-size: 34px !important;
+  font-weight: 700;
+  letter-spacing: -0.02em !important;
+}
+html body .ds-ws-head > p {
+  margin: 0;
+  max-width: 760px;
+  font-size: 15px;
+  color: var(--cc-muted);
+}
+html body .dashboard-content > .dash-top:has(.ds-ws-head) {
+  align-items: flex-end;
+}
+html body .dashboard-content > .dash-top:has(.ds-ws-head) .cc-actions .btn {
+  min-height: 36px;
+  padding: 0 16px !important;
+}
+/* Segmented control */
+html body .ds-ws-tabs {
+  align-self: flex-start;
+  display: inline-flex;
+  max-width: 100%;
+  overflow-x: auto;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 9px;
+  background: rgba(118, 118, 128, 0.12);
+  justify-self: start;
+  margin-right: auto !important;
+}
+html body .ds-ws-tabs > button,
+html body .ds-ws-tabs > a {
+  flex: 0 0 auto;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--cc-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+html body .ds-ws-tabs > [aria-selected="true"] {
+  background: #fff;
+  font-weight: 600;
+  box-shadow: var(--cc-seg-shadow);
+}
+html body .ds-ws-tabs > button:not([aria-selected="true"]):hover,
+html body .ds-ws-tabs > a:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+html body .ds-ws-pane[hidden] {
+  display: none !important;
+}
+html body .ds-ws-pane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-section, 24px);
+  min-width: 0;
+}
+html body .ds-ws-pane > * {
+  margin: 0 !important;
+}
+html body .ds-gap {
+  margin-top: 14px !important;
+}
+/* Up next */
+html body .ds-next-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  position: relative;
+}
+html body .ds-next-row + .ds-next-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 42px;
+  right: 0;
+  height: 1px;
+  background: var(--cc-hairline);
+}
+html body .ds-next-dot {
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+html body .ds-dot-blue {
+  background: var(--cc-blue);
+}
+html body .ds-dot-red {
+  background: var(--cc-red-text);
+}
+html body .ds-dot-orange {
+  background: var(--cc-orange);
+}
+html body .ds-next-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+html body .ds-next-text b {
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+html body .ds-next-text span,
+html body .ds-next-none {
+  margin: 0;
+  font-size: 13px;
+  color: var(--cc-muted);
+}
+html body .ds-next-none {
+  padding: 18px 20px;
+}
+html body .ds-next-row .btn.small {
+  min-width: 84px;
+}
+/* Phases */
+html body .ds-phases {
+  padding: 8px 20px;
+}
+html body .ds-phase-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) 80px;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 0;
+}
+html body .ds-phase-row + .ds-phase-row {
+  border-top: 1px solid var(--cc-hairline);
+}
+html body .ds-phase-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+html body .ds-phase-name b {
+  font-size: 15px;
+  font-weight: 600;
+}
+html body .ds-phase-name span,
+html body .ds-phase-end {
+  font-size: 13px;
+  color: var(--cc-muted);
+}
+html body .ds-phase-end {
+  text-align: right;
+}
+html body .ds-bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f0f0f2;
+}
+html body .ds-bar i {
+  display: block;
+  height: 100%;
+}
+/* Progress, budget, suppliers */
+html body .ds-progress {
+  padding: 22px;
+}
+html body .ds-progress-top {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+html body .ds-ring {
+  flex: 0 0 84px;
+  width: 84px;
+  height: 84px;
+}
+html body .ds-progress-top > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+html body .ds-progress-top b {
+  font-family: var(--cc-font-display);
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+html body .ds-progress-top span {
+  font-size: 13px;
+  color: var(--cc-muted);
+}
+html body .ds-facts-line {
+  margin: 16px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--cc-muted);
+}
+html body .ds-facts-line span + span::before {
+  content: " · ";
+}
+html body .ds-budget,
+html body .ds-suppliers {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 22px;
+}
+html body .ds-budget-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+html body .ds-budget h3,
+html body .ds-suppliers h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+html body .ds-budget-head b {
+  font-size: 15px;
+  font-weight: 600;
+}
+html body .ds-budget-bar {
+  display: flex;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f0f0f2;
+}
+html body .ds-budget-legend {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  font-size: 12px;
+  color: var(--cc-muted);
+}
+html body .ds-budget-legend.ds-two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+html body .ds-budget-legend b {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--cc-text);
+}
+html body .ds-supplier-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+html body .ds-avatar {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+}
+html body .ds-supplier-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 640px) {
+  html body .ds-phase-row {
+    grid-template-columns: minmax(0, 1fr) 70px;
+  }
+  html body .ds-phase-row .ds-bar {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+  html body .ds-ws-title h1 {
+    font-size: 28px !important;
+  }
+}
+html body .ds-hidden {
+  display: none !important;
+}
+/* Initials are text: the chip text colours keep 4.5:1 on the tints */
+html body .ds-avatar.ds-tint-blue {
+  color: var(--cc-chip-blue);
+}
+html body .ds-avatar.ds-tint-orange {
+  color: var(--cc-chip-orange);
+}
