@@ -21,15 +21,29 @@ const PORT = Number(process.env.PORT || 3000);
 const DEMO_MODE = process.env.NODE_ENV !== "production";
 const mailer = require("./mailer");
 const { buildXRechnung, xrechnungProblem } = require("./xrechnung");
+function withinRadius(location, center, radius) {
+  const at = geo.geocode(location);
+  return !!at && geo.distanceKm(at, center) <= radius;
+}
 // Directory and public profile view of a supplier: the profile plus public reliability metrics (T61).
 // Internal fields that may be added to supplier records later never leave the server.
-const PRIVATE_SUPPLIER_FIELDS = ["risks", "riskLevel", "riskNotes", "verification", "notes", "internalNotes"];
+// companyProfile (tax number, address, procurement contact) is copied onto the record for invoices only.
+const PRIVATE_SUPPLIER_FIELDS = [
+  "risks",
+  "riskLevel",
+  "riskNotes",
+  "verification",
+  "notes",
+  "internalNotes",
+  "companyProfile",
+];
 function publicSupplier(s) {
   const out = { ...s, reliability: sourcing.publicReliability(s.id) };
   for (const k of PRIVATE_SUPPLIER_FIELDS) delete out[k];
   return out;
 }
 const createVies = require("./vies");
+const geo = require("./geo");
 const vies = createVies({
   fetch: (...a) => fetch(...a),
   ...(process.env.VIES_URL ? { url: process.env.VIES_URL } : {}),
@@ -3868,7 +3882,18 @@ async function api(req, res, url) {
         service = url.searchParams.get("service") || "",
         location = url.searchParams.get("location") || "",
         badge = url.searchParams.get("badge") || "",
-        availability = url.searchParams.get("availability") || "";
+        availability =
+          url.searchParams.get("availability") ||
+          (url.searchParams.get("available") === "1" ? "Available" : ""),
+        // T62: every selected certification must be held; region = place or postcode plus radius in km.
+        wantedCerts = (url.searchParams.get("certs") || "")
+          .split(",")
+          .map((x) => x.trim().toLowerCase())
+          .filter(Boolean)
+          .slice(0, 10),
+        near = String(url.searchParams.get("near") || "").slice(0, 80),
+        radius = Math.min(Math.max(Number(url.searchParams.get("radius")) || 100, 1), 5000),
+        center = near ? geo.geocode(near) : null;
       let list = db.suppliers.filter(
         (s) =>
           s.live &&
@@ -3883,13 +3908,17 @@ async function api(req, res, url) {
           (!service || (s.services || []).includes(service)) &&
           (!location || s.location === location) &&
           (!badge || s.badge === badge) &&
-          (!availability || s.availability === availability),
+          (!availability || s.availability === availability) &&
+          wantedCerts.every((c) => (s.certifications || []).some((x) => String(x).toLowerCase() === c)) &&
+          (!near || (center && withinRadius(s.location, center, radius))),
       );
       list = list.sort((a, b) => b.rating - a.rating);
       return (
         send(res, 200, {
           suppliers: list.map(publicSupplier),
           services: db.settings?.serviceCategories || services,
+          certifications: certs,
+          ...(near ? { region: { near, radius, found: !!center } } : {}),
           locations,
           badges: ["Gold", "Silver", "Bronze"],
         }),
@@ -4118,6 +4147,24 @@ async function api(req, res, url) {
       );
     }
     // Badge counts for the sidebar, keyed by the page they link to.
+    // Customer shortlist of suppliers for comparing and quote requests (T62). Private to the customer account.
+    if (parts[1] === "shortlist" && !parts[2] && (method === "GET" || method === "PUT")) {
+      if (user.role !== "customer")
+        return (send(res, 403, { error: "Only customers keep a supplier shortlist" }), true);
+      const account = db.users.find((u) => u.id === user.id);
+      if (method === "PUT") {
+        const b = await body(req);
+        if (!Array.isArray(b.supplierIds))
+          return (send(res, 400, { error: "Send the shortlist as a list of supplier ids" }), true);
+        if (b.supplierIds.length > 50)
+          return (send(res, 400, { error: "A shortlist can hold up to 50 suppliers" }), true);
+        account.shortlist = [...new Set(b.supplierIds.map(String))].filter((sid) =>
+          db.suppliers.some((s) => s.id === sid && s.live),
+        );
+        save();
+      }
+      return (send(res, 200, { supplierIds: account.shortlist || [] }), true);
+    }
     if (parts[1] === "nav-counts" && method === "GET") {
       const counts = {},
         unreadMessages = (db.notifications || []).filter(
@@ -6481,6 +6528,10 @@ async function api(req, res, url) {
           ),
         ),
       ];
+      const attachments = [...new Set(Array.isArray(b.attachments) ? b.attachments : [])];
+      if (attachments.length > 5) return (send(res, 400, { error: "Attach up to five files" }), true);
+      if (attachments.some((u) => !ownUpload(user, u)))
+        return (send(res, 400, { error: NOT_OWN_FILE }), true);
       const bid = {
         id: id("bid"),
         projectId: p.id,
@@ -6495,6 +6546,7 @@ async function api(req, res, url) {
         dueDate: b.dueDate,
         status: "Open",
         invitedSupplierIds: invited,
+        attachments,
         offers: [],
         eventType: ["RFQ", "RFP", "RFI"].includes(b.eventType) ? b.eventType : "RFQ",
         category: String(b.category || "").slice(0, 80),
@@ -7468,6 +7520,15 @@ const server = http.createServer(async (req, res) => {
             i.customerId === user.id ||
             (user.role === "customer" && !!projectFor(user, i.projectId)) ||
             i.supplierId === user.supplierId),
+      ) ||
+      // Quote request files: the customer's project team and the suppliers who may bid.
+      (db.bids || []).some(
+        (bd) =>
+          (bd.attachments || []).includes(fileUrl) &&
+          (user.role === "admin" ||
+            (user.role === "customer" && !!projectFor(user, bd.projectId)) ||
+            (user.role === "supplier" &&
+              (!(bd.invitedSupplierIds || []).length || bd.invitedSupplierIds.includes(user.supplierId)))),
       ) ||
       (db.bids || []).some((bd) =>
         (bd.offers || []).some(
