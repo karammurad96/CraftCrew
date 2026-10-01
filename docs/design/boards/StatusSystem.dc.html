@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Design language</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#2563EB}a:hover{color:#1D4ED8}
+button,span[style*="999px"],a[style*="980px"]{white-space:nowrap}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; padding: 48px; background: #F5F5F7; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif; color: #1D1D1F; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; -webkit-font-smoothing: antialiased">
+<section style="background: #FFFFFF; border-radius: 24px; box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04); padding: 32px; display: flex; flex-direction: column; gap: 20px; min-width: 0">
+<div style="display: flex; flex-direction: column; gap: 4px"><h2 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em">Status</h2><span style="font-size: 14px; color: #6E6E73">One meaning, one look — everywhere in the app.</span></div>
+<div style="display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 14px 20px; align-items: center">
+<span style="justify-self: start; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px; border-radius: 999px; background: #F0F0F2; color: #424245; font-size: 13px; font-weight: 600"><span style="width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid #6E6E73"></span>Not started</span><span style="font-size: 14px; color: #6E6E73; min-width: 0">Nothing has happened yet</span>
+<span style="justify-self: start; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px; border-radius: 999px; background: #FFF1E0; color: #A34F00; font-size: 13px; font-weight: 600"><span style="width: 7px; height: 7px; border-radius: 50%; background: #FF9F0A"></span>Awaiting acceptance</span><span style="font-size: 14px; color: #6E6E73; min-width: 0">Waiting for the other side</span>
+<span style="justify-self: start; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px; border-radius: 999px; background: #E8EEFB; color: #1D4ED8; font-size: 13px; font-weight: 600"><span style="width: 7px; height: 7px; border-radius: 50%; background: #2563EB"></span>In progress</span><span style="font-size: 14px; color: #6E6E73; min-width: 0">Work is running</span>
+<span style="justify-self: start; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px; border-radius: 999px; background: #F3E8FB; color: #7A2DB0; font-size: 13px; font-weight: 600"><span style="width: 7px; height: 7px; border-radius: 2px; background: #AF52DE"></span>In review</span><span style="font-size: 14px; color: #6E6E73; min-width: 0">Someone has to check it</span>
+<span style="justify-self: start; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px; border-radius: 999px; background: #E3F5E8; color: #1E7A35; font-size: 13px; font-weight: 600">✓ Done</span><span style="font-size: 14px; color: #6E6E73; min-width: 0">Finished and accepted</span>
+<span style="justify-self: start; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px; border-radius: 999px; background: #FDE7E9; color: #C01024; font-size: 13px; font-weight: 600">5 days late</span><span style="font-size: 14px; color: #6E6E73; min-width: 0">Always says how late</span>
+</div>
+</section>
+<section style="background: #FFFFFF; border-radius: 24px; box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04); padding: 32px; display: flex; flex-direction: column; gap: 20px; min-width: 0">
+<div style="display: flex; flex-direction: column; gap: 4px"><h2 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em">Buttons</h2><span style="font-size: 14px; color: #6E6E73">One primary action per screen.</span></div>
+<div style="display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px 20px; align-items: center">
+<button type="button" style="justify-self: start; height: 40px; min-width: 150px; padding: 0 20px; border-radius: 980px; border: 0; background: #2563EB; font: inherit; font-size: 15px; font-weight: 500; color: #FFFFFF">Approve</button><span style="font-size: 14px; color: #6E6E73; min-width: 0">Primary — the next step</span>
+<button type="button" style="justify-self: start; height: 40px; min-width: 150px; padding: 0 20px; border-radius: 980px; border: 0; background: #E8E8ED; font: inherit; font-size: 15px; font-weight: 500; color: #1D1D1F">Request Changes</button><span style="font-size: 14px; color: #6E6E73; min-width: 0">Secondary — the alternative</span>
+<a href="#" style="justify-self: start; font-size: 15px; text-decoration: none">View PDF ›</a><span style="font-size: 14px; color: #6E6E73; min-width: 0">Link — look things up</span>
+<button type="button" style="justify-self: start; height: 40px; min-width: 150px; padding: 0 20px; border-radius: 980px; border: 0; background: transparent; font: inherit; font-size: 15px; font-weight: 500; color: #D70015">Archive Project</button><span style="font-size: 14px; color: #6E6E73; min-width: 0">Destructive — always asks first</span>
+</div>
+</section>
+<section style="background: #FFFFFF; border-radius: 24px; box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04); padding: 32px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; min-width: 0">
+<svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#F0F0F2"></rect><path d="M18 46 C26 40 38 24 46 18" fill="none" stroke="#C7C7CC" stroke-width="5" stroke-linecap="round"></path><circle cx="18" cy="46" r="6.5" fill="#AEAEB2"></circle><circle cx="46" cy="18" r="6.5" fill="#AEAEB2"></circle></svg>
+<h3 style="margin: 0; font-size: 20px; font-weight: 600">No invoices yet</h3>
+<p style="margin: 0; max-width: 340px; font-size: 15px; line-height: 1.5; color: #6E6E73">They appear here once a supplier finishes accepted work.</p>
+<button type="button" style="height: 40px; padding: 0 20px; border-radius: 980px; border: 0; background: #2563EB; font: inherit; font-size: 15px; font-weight: 500; color: #FFFFFF">Create a Project</button>
+</section>
+<section style="background: #FFFFFF; border-radius: 24px; box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04); padding: 32px; display: flex; flex-direction: column; gap: 18px; min-width: 0">
+<div style="display: flex; flex-direction: column; gap: 4px"><h2 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em">Forms</h2><span style="font-size: 14px; color: #6E6E73">Say what's wrong, right where it happened.</span></div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: #6E6E73">IBAN
+<input type="text" value="DE89 3704 0044 0532" aria-invalid="true" style="height: 44px; border-radius: 10px; border: 0; box-shadow: 0 0 0 2px #FF3B30; background: #FFFFFF; padding: 0 14px; font: inherit; font-size: 16px; font-weight: 400; color: #1D1D1F">
+<span style="font-size: 13px; font-weight: 400; color: #C01024">4 digits short — German IBANs have 22 characters.</span>
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: #6E6E73">Order value
+<input type="text" value="€42,000" style="height: 44px; border-radius: 10px; border: 0; background: #F5F5F7; padding: 0 14px; font: inherit; font-size: 16px; font-weight: 400; color: #1D1D1F">
+<span style="font-size: 13px; font-weight: 400; color: #6E6E73">The supplier sees this as the order limit.</span>
+</label>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

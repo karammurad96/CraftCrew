@@ -185,6 +185,24 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T85 GDPR self-service: data export, account deletion with invoice retention
 - [x] T86 Re-verify supplier profile changes after approval
 
+**Wave 7 — Design 2026 (P1; in this order; read "Rules for every design task" first)**
+- [ ] T90 Design foundation: tokens, type, cards, buttons, forms · M · cheap model OK
+- [ ] T91 The new logo everywhere · S · cheap model OK
+- [ ] T92 Status chips, buttons, empty states and form errors · M · cheap model OK
+- [ ] T93 Sidebar like the boards · M · cheap model OK
+- [ ] T94 Landing page · M · cheap model OK
+- [ ] T95 Customer dashboard: decisions first · M · cheap model OK
+- [ ] T96 Supplier dashboard: the invitation first · M · cheap model OK
+- [ ] T97 Admin dashboard in the same style · S · cheap model OK
+- [ ] T98 Project workspace with tabs · L · cheap model OK if done in the order written
+- [ ] T99 Task board with a side panel · M · cheap model OK
+- [ ] T100 Offer comparison · M · cheap model OK
+- [ ] T101 Invoice review · M · cheap model OK
+- [ ] T102 Phone: bottom bar and "Today" for suppliers · M · cheap model OK
+- [ ] T103 Phone: "Log time" form · S · cheap model OK
+- [ ] T104 Phone: Approvals · S · cheap model OK
+- [ ] T105 Final check against every board, then merge · M
+
 ---
 
 ## Wave 0 — preparation
@@ -1399,6 +1417,1001 @@ with Karam, then split each into S/M tasks in this file.
   data but keeps invoices for the legal retention period (10 years). Needs a privacy policy update.
 - **T86 Re-verify profile changes.** After approval, changes to company name, legal details or claimed
   certifications should go to admin review ("pending verification") before they show as verified.
+
+---
+
+## Wave 7 — Design 2026
+
+Goal: the website looks **exactly like the design boards** in `docs/design/` and **loses no function**.
+Read `docs/design/README.md` first: it lists the boards, the page each board belongs to and the design tokens.
+
+### Rules for every design task (T90–T105)
+
+**1. Starting point and branches.**
+- Start from the current `main` on GitHub (`git fetch origin`).
+- T90 creates the integration branch `design-2026` from `origin/main` and pushes it.
+- Every task branches from the latest `design-2026` (`ai/T9x-short-name`) and opens its pull request **into
+  `design-2026`**, not into `main`.
+- Only T105 merges `design-2026` into `main`, after Karam has looked at it.
+- Do the tasks in order. T90–T93 change things every page uses. T94–T104 need them. T105 is last.
+
+**2. The boards are the specification.**
+- `docs/design/reference/<Board>.png` shows what the page must look like.
+- `docs/design/boards/<Board>.dc.html` has the exact values in its inline styles: sizes, colours, radius,
+  spacing and font weights. Copy the values from there; do not estimate them from the picture.
+- The boards use example data. Show the real data in the same layout.
+
+**3. Never lose a function.** Moving something is fine. Removing it is not.
+- Every link, button, form and field that a page has on `main` must still exist after your change. It can
+  be on the same page or one click away: a tab, the "More" menu, a side panel.
+- Every piece of information a page shows on `main` must still be shown somewhere.
+- If the board leaves something out, keep it in a quieter place, below the board's content or behind a tab
+  or menu.
+- Never change data, statuses or API rules to match a board. For example, the board shows an "In Review"
+  column, but the app has "On Hold": keep the app's statuses and rename labels only where the meaning is
+  the same.
+- Some board examples have no feature behind them, for example a "Share" button. Build those only when the
+  task says how. Otherwise leave them out.
+- **Proof, in every PR.** Start two demo servers, each with a fresh, empty data folder, so both get the
+  same demo data:
+  ```bash
+  git worktree add C:/cc-main origin/main   # use a short path on Windows; long paths fail
+  npm i --no-save playwright axe-core
+  DATA_DIR=$(mktemp -d) PORT=3200 node C:/cc-main/server.js &
+  DATA_DIR=$(mktemp -d) PORT=3100 node server.js &
+  node tools/audit/controls.js http://localhost:3200 main.json
+  node tools/audit/controls.js http://localhost:3100 branch.json
+  node tools/audit/controls.js --diff main.json branch.json
+  ```
+  The last command must print `No control is missing.` If a control changed only its form (for example a
+  button that called `navigate('/x')` became a link to `#/x`), the tool already treats it as the same.
+  Explain any other difference in the PR. In the PR description, list what moved and where to.
+
+**4. How to build it.** The frontend is about 40 files that override each other. Do not rewrite old pages.
+Add layers on top:
+- `public/design-2026.css` (T90): tokens and components.
+- `public/design-screens.css` and `public/design-screens.js` (from T93 on): page layouts.
+- In `public/index.html`, load both CSS files after `mobile-nav.css`, in that order.
+- Load `design-screens.js` after `invitations.js` and before `i18n.js`.
+- **Change a page by wrapping its last renderer:**
+  ```js
+  const dsBaseX = X;
+  X = async function (...a) {
+    await dsBaseX(...a);
+    /* move and restyle the DOM here */
+  };
+  ```
+  This works because `route()` calls renderers by their global name. Functions declared with
+  `function`/`async function` can be reassigned this way; `const` ones cannot.
+- **Move existing buttons; don't rebuild them.** Moved buttons keep their inline `onclick`, so they keep
+  working.
+- **Other scripts add blocks after a page renders.** Examples: the activity log, the board button, the
+  getting-started card.
+  - Catch them with one `MutationObserver` on `#app`, debounced with `requestAnimationFrame`.
+  - Make every enhancer safe to run twice: mark finished nodes with `data-ds="1"`.
+- **CSS specificity.** Older stylesheets use `!important` a lot. Prefix your selectors with `html body` and
+  add `!important` where the old rule has it. Known ones:
+  - `layout-system.css`: `.btn` radius, padding and weight; `.app-shell .dashboard-content > * + *`
+    margins. In a grid these margins also centre and shrink children, so set `justify-self: stretch;
+    margin-left: 0 !important; margin-right: 0 !important`.
+  - `collaboration.css`: `.wf-offer-row` is `display: grid !important` with fixed columns.
+  - `feedback-fixes.css`: `.brand-mark svg { display: none !important }` and a "C" drawn with `::before`.
+
+**5. German (rule 7 in `CLAUDE.md`).** Every new English text needs an `I18N_DE` entry in `public/i18n.js`.
+- **Check whether a key exists before adding it:** `grep -n '^  Accept:\|"Accept":' public/i18n.js`.
+  Never redefine an existing key with another translation. For example, "Accept" is already
+  "Akzeptieren".
+- **Single words** only translate inside `I18N_UI_SCOPE` (buttons, labels, headings…).
+  - T90 adds `.ds-ui` to that scope. Put `class="ds-ui"` on containers of fixed labels.
+  - Never put it on user data: a project called "Run" must not become "Umsetzen".
+- **Text with numbers or names** ("3 things need a decision…") needs a pattern inside the
+  `I18N_PATTERNS` array.
+  - That array is a `const` declared further down the file, after the `Object.assign` blocks.
+  - Add patterns inside the array literal. Do not call `.push` before it is declared.
+- **Your wrapper often runs after the page was already translated.** To read the English original of a
+  text node, use `I18N_ORIGINAL.get(node) || node.textContent`, for example to pick a status colour.
+- Turn hyphenation off for big headings (`hyphens: manual`), so German compound words are not split
+  badly.
+
+**6. Text never overflows.**
+- Chips and buttons stay on one line: `white-space: nowrap`.
+- Long names end with "…".
+- On phones (≤ 600 px), a button label may wrap inside its pill.
+- These must all print `No problems.`:
+  ```bash
+  node tools/audit/overflow.js http://localhost:3100
+  W=390 node tools/audit/overflow.js http://localhost:3100
+  LANG=de node tools/audit/overflow.js http://localhost:3100
+  LANG=de W=390 node tools/audit/overflow.js http://localhost:3100
+  ```
+- Keep `test/styles.test.js` green:
+  - no font size under 11 px;
+  - no text colour from its failing list;
+  - grey text no lighter than `#6E6E73`. The boards' `#8E8E93` fails contrast on white; use `#6E6E73`.
+
+**7. Compare with the board.**
+- Take screenshots: `node tools/design/shot.js http://localhost:3100 shots <role>:<route>`. Use
+  `W=390 H=844` for the phone boards and `LANG=de` for German.
+- Put each screenshot next to the reference PNG and fix differences until they match.
+- Attach both pictures to the PR.
+
+**8. Before every PR.**
+- `npm test`. On Windows these suites also fail on `main` (they restart the server) and can be ignored
+  locally; CI on Linux must be green:
+  - invoice numbers on start-up
+  - invoice reminders
+  - persistence after SIGTERM
+  - data retention
+  - two-factor setup redirect
+- `node test/e2e/smoke.js` and `node test/e2e/pwa.js`.
+- The control diff (rule 3), the overflow checks (rule 6) and the screenshots (rule 7).
+- One regression test per change (rule 2 in `CLAUDE.md`):
+  - static checks in `test/design.test.js` (create it in T90);
+  - API tests in the matching `test/*.test.js`.
+- Restart the server after changing `server.js`.
+- The service worker caches files in a normal browser. The tools block it; in your own browser, hard
+  reload or unregister it in DevTools.
+
+### T90 · Design foundation: tokens, type, cards, buttons, forms
+`P1 · M · cheap model OK`
+
+**Problem.** The app still uses the old look:
+- Inter on a blue-white background;
+- square-ish buttons and cards with borders;
+- a navy text colour.
+
+The boards use one calm system: the system font, a light grey page, white cards with soft shadows, and pill
+buttons.
+
+**Board.** `docs/design/README.md` (tokens), `StatusSystem` (buttons, forms), `Dashboard` (page and cards).
+
+**Where.** New file `public/design-2026.css`; `public/index.html`; `public/i18n.js` (`I18N_UI_SCOPE`);
+`public/sw.js`.
+
+**Do.**
+1. Create the branch `design-2026` from `origin/main` and push it (rule 1). Branch this task from it.
+2. Create `public/design-2026.css` and load it after `mobile-nav.css` in `index.html`.
+3. **Tokens.** Put the tokens from the README into `:root` as `--cc-*` variables. Point the old variables
+   at them, so the older files follow:
+   - `--text`, `--text-muted` (`styles.css`);
+   - `--ui-blue`, `--ui-blue-dark`, `--ui-blue-soft`, `--ui-ink`, `--ui-text`, `--ui-muted`, `--ui-line`,
+     `--ui-radius`, `--ui-shadow` (`ui-refresh.css`);
+   - `--blue`, `--navy`, `--muted` (the inline `<style>` in `index.html`).
+4. **Type and page.**
+   - Body: text font, `#1D1D1F`, background `#F5F5F7`, `-webkit-font-smoothing: antialiased`.
+   - Headings and big numbers: display font. Page titles 34 px / 700 / −0.025em; headings break long words
+     (`overflow-wrap: break-word`).
+   - Backgrounds of `.cc-shell, .simple-page, .app-shell, .dashboard-content, .cc-page`: `#F5F5F7`.
+   - Kickers (`.eyebrow, .cc-label, .small-label`): 600, +0.04em, muted; `.eyebrow` blue.
+5. **Cards.** These get white, no border, radius 20 and the card shadow:
+   - `.panel, .cc-card, .stats > div, .form-card`
+   - `.project-card, .supplier-card, .metric-card, .price-card`
+   - `.in-kpi, .pa-earnings > div, .wf-stat-grid > div`
+   - `.wf-bid-card, .phase-card, .detail-box, .feature-grid > article`
+
+   Panel titles are 17 px / 600. "View all" links in panel titles become plain blue text links with "›"
+   (today they are tinted pills).
+6. **Buttons** (board `StatusSystem`). All `.btn`: radius 980 px `!important`, weight 500–600, no shadow,
+   nowrap.
+   - Sizes:
+     - default: min-height 40, padding 0 18, 14 px
+     - `.small`: 32 / 0 14 / 13 px
+     - `.lg`: 48 / 0 24 / 16 px
+   - Variants:
+     - `.primary`, `.success`: blue, white text; pressed `#1D4ED8`
+     - `.outline`, `.secondary`: fill `#E8E8ED`, text `#1D1D1F`, no border
+     - `.ghost`: transparent, blue text
+     - `.danger`: transparent, red text `#D70015`
+     - disabled: 45 % opacity
+   - Buttons inside table rows stay small: 32 px, 13 px.
+7. **Forms** (board `StatusSystem`, "Forms").
+   - Fields: fill `#F5F5F7`, no border, radius 12, 15–17 px.
+   - Focus: white background with a 4 px `rgba(37,99,235,.15)` ring.
+   - Labels: 13 px / 600 `#424245`.
+   - Leave checkboxes, radios, range and file inputs alone.
+8. **Tables.** Headers 12–13 px / 600 muted with one hairline under them; rows separated by hairlines.
+9. **Other parts.**
+   - Top bar (public pages): 64 px, `rgba(251,251,253,.8)` with `backdrop-filter: saturate(180%) blur(20px)`,
+     hairline bottom.
+   - Progress bars: round ends, track `rgba(118,118,128,.16)`.
+   - Modals: radius 24.
+   - Log-in card: radius 28.
+   - Toast: `rgba(29,29,31,.92)` with blur.
+10. Add `.ds-ui` to `I18N_UI_SCOPE` in `i18n.js` (rule 5).
+11. Rename the service worker cache in `sw.js` from `craftcrew-shell-v1` to `craftcrew-shell-v2`, so
+    installed apps load the new files.
+12. Create `test/design.test.js` with two checks:
+    - `design-2026.css` is loaded after every other stylesheet;
+    - `.ds-ui` is in `I18N_UI_SCOPE`.
+
+**Keep.** This is CSS only; no control may change.
+
+**Done when.**
+- [ ] Customer, supplier and admin pages all show the new type, cards, buttons and fields.
+- [ ] The control diff prints "No control is missing."
+- [ ] The overflow checks print "No problems." (4 runs).
+- [ ] `test/styles.test.js` and `test/design.test.js` pass.
+- [ ] Screenshots of `/customer/dashboard`, `/customer/invoices` and `/login` are in the PR.
+
+### T91 · The new logo everywhere
+`P1 · S · cheap model OK`
+
+**Problem.** The header, sidebar, log-in card and footer show a "C" in a box. The favicon and app icons are
+old.
+
+**Board.** `Main` (all uses of the logo), `LogoConcepts` ("Flow" is the chosen shape).
+
+**Where.**
+- **Logo markup** — two variants of the old SVG, with and without `role="img"`. Search for `M25.8 8.5`:
+  - `public/app.js` (2×)
+  - `public/enhancements.js` (2×)
+  - `public/legal-security.js`
+  - `public/workflows.js`
+  - `public/index.html` (header and footer)
+- **CSS:**
+  - `.brand-mark` in `styles.css`, `feedback-fixes.css` (draws the "C"), `layout-system.css` and
+    `mobile-nav.css`.
+- **Icons:** `public/icons/`, `public/manifest.webmanifest`, the `theme-color` meta in `index.html`.
+
+**Do.**
+1. Replace every old SVG with this mark. Keep the wrapping
+   `<span class="brand-mark" role="img" aria-label="CraftCrew logo">`.
+   ```html
+   <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M14 50C24 42 40 22 50 14"/><circle cx="14" cy="50" r="8.5"/><circle cx="50" cy="14" r="8.5"/></svg>
+   ```
+2. In `design-2026.css`:
+   - `.brand-mark`: 28 × 28, no box, border or background; colour `#1D1D1F`.
+   - `.brand-mark::before, ::after`: `content: none`.
+   - `.brand-mark svg`: `display: block !important`, 100 %.
+   - `path`: no fill, `stroke: currentColor`, width 6, round caps.
+   - `circle`: `fill: currentColor`.
+   - Wordmark: display font, 600, −0.025em, **one colour** (`.brand-word span { color: inherit !important }`).
+   - Sidebar: mark 26 px, word 18 px.
+3. Run `node tools/brand/make-icons.js`. It writes `favicon-32.png`, `apple-touch-icon.png`,
+   `icon-192.png`, `icon-512.png`, `icon-512-maskable.png` and `favicon.svg` (white mark on a `#1D1D1F`
+   tile).
+4. In `index.html`, add `<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">` before the PNG
+   favicon link.
+5. Set `theme-color`, and `theme_color` / `background_color` in the manifest, to `#F5F5F7`.
+
+**Keep.** All icon file names. `test/e2e/pwa.js` checks the manifest lists a 512 px maskable PNG.
+
+**Done when.**
+- [ ] `grep -rn "M25.8 8.5" public` finds nothing.
+- [ ] The header, sidebar, log-in card, footer, browser tab and installed app icon show the Flow mark.
+- [ ] `test/design.test.js` checks that every `.brand-mark` SVG in `public/*.js` and `index.html` is the
+      Flow mark.
+- [ ] `node test/e2e/pwa.js` passes.
+
+### T92 · Status chips, buttons, empty states and form errors
+`P1 · M · cheap model OK`
+
+**Problem.** Statuses look different on every page. Empty states and form errors have no common style.
+
+**Board.** `StatusSystem`.
+
+**Where.**
+- `.status` rules in `public/styles.css` (and the rules after them).
+- `.tag` in the inline `<style>` of `index.html`.
+- `statusTag` in `public/sourcing-ui.js`.
+- `public/supplier-status.css`.
+- `.empty` in `styles.css`, `.pa-empty` in `platform-additions.css`.
+- Form validation: `grep -n "aria-invalid\|setCustomValidity\|field-error" public/*.js`.
+
+**Do.**
+1. **One chip** for `.status`, `.tag`, `.badge`:
+   - height 26, padding 0 11, radius 999, 13 px / 600;
+   - `inline-flex`, gap 6, nowrap, never shrinks;
+   - inside table cells: no `max-width` or `overflow: hidden`, which cut the text today.
+2. **Tint and icon by meaning.** Use `::before` for the icon. List all status class names with
+   `grep -oh 'status [a-z-]*' public/*.js | sort -u`. Classes are usually the status text in lower case with
+   dashes.
+
+   | Meaning | Statuses | Tint (fill / text) | Icon |
+   | --- | --- | --- | --- |
+   | Not started | not-started, draft, open | grey `#F0F0F2` / `#424245` | ring: 7 px circle with a 1.5 px border |
+   | Waiting | pending, submitted, requested, awaiting acceptance | orange `#FFF1E0` / `#A34F00` | 7 px dot |
+   | Running | active, in-progress | blue `#E8EEFB` / `#1D4ED8` | 7 px dot |
+   | Someone checks | review, in-review | purple `#F3E8FB` / `#7A2DB0` | 7 px square, radius 2 |
+   | Finished | approved, paid, completed, accepted, verified | green `#E3F5E8` / `#1E7A35` | "✓" |
+   | Problem | rejected, changes, changes-requested, overdue, expired, late | red `#FDE7E9` / `#C01024` | no icon |
+
+   A late chip always says how late ("5 days late").
+3. **Buttons.** Primary, secondary and link exactly as on the board.
+   - Destructive actions (Archive project, Delete, Reject): red text, no fill.
+   - They keep asking for confirmation as they do now.
+4. **Empty states** (`.empty`, `.pa-empty`, and "No … yet" texts in panels):
+   - centred, padding 40;
+   - a 56 px tile above the text (`#F0F0F2`, radius 14) showing the Flow mark at 40 % opacity, as a CSS
+     background SVG data URI;
+   - title 20 / 700 when the text has one, otherwise the text at 15 px muted.
+   - Keep any button the page already shows there; add none.
+5. **Form errors** (`[aria-invalid="true"]`, `:user-invalid`):
+   - the field gets a white background, a 2 px `#FF3B30` border and radius 12;
+   - the message under it is 13 px `#D70015`;
+   - hint text is 13 px muted.
+6. Add German translations for any new texts.
+
+**Keep.** Every status still shows its own word. Only the look changes.
+
+**Done when.**
+- [ ] `/customer/invoices`, `/supplier/projects`, `/customer/sourcing` and the board (screenshots) show the
+      chips as on the board.
+- [ ] No chip is cut off (overflow checks).
+- [ ] One empty state and one form error are in the screenshots (sign-up with a short password).
+
+### T93 · Sidebar like the boards
+`P1 · M · cheap model OK`
+
+**Problem.** The sidebar lists 15–16 links in six groups with headings. The boards show the five or six daily
+pages, with the rest out of sight.
+
+**Board.** `Dashboard` and `SupplierDash` (left column), `Workspace` (projects listed under "Projects").
+
+**Where.**
+- `function sidebar(role, active)`, last definition in `public/workflows.js`.
+- `public/nav-groups.js`: `NG_GROUPS`, `ngGroup`, the count badges.
+- `public/ui-refresh.js`, `uiEnhanceSidebar`: logo row, bell and the `.ui-search-btn` search button.
+- `public/feedback-fixes.js`, `ffFixSidebarState`: which link is active.
+- `.sidebar .help` in `public/layout-system.css`.
+- `public/onboarding.js`: the "Getting started checklist" link.
+- `public/mobile-nav.js`: phone drawer and bottom bar. Leave its behaviour unchanged.
+
+**Do.**
+1. **Frame.** 240 px wide, `#FBFBFD`, hairline right border, padding 18 12. Order:
+   - logo row (mark 22, word 18 / 600; bell at the right);
+   - search pill: 32 px, `rgba(118,118,128,.12)`, radius 8, 13 px;
+   - main links;
+   - "More";
+   - the user, pushed to the bottom;
+   - one compact help row.
+2. **Main links per role.** Rename labels only; routes stay.
+   - **Customer:** Today (dashboard), Projects, Approvals, Sourcing, Invoices, Messages.
+   - **Supplier:** Today (dashboard), Work (projects), Team planner (planning), Opportunities (bids),
+     Invoices, Compliance.
+   - **Admin:** Today (dashboard), Vetting (applications), Users, Payments (billing), Escalations
+     (disputes), Reports.
+   - Every other link goes under "More".
+   - Set the groups through `NG_GROUPS`. It is a `const` object, so change it with
+     `Object.assign(NG_GROUPS, { … })`.
+   - Use two groups: an unnamed first group (hide `.ng-title[data-title=""]`) and "More".
+   - The links must stay direct children of `<nav>`, because the add-ons rely on it.
+3. **"More".** One row in the style 12 px / 600, uppercase, muted, with a chevron.
+   - It is collapsed by default.
+   - Click, Enter or Space toggles it. It has `role="button"`, `tabindex="0"` and `aria-expanded`.
+   - Remember the state in `localStorage` key `cc_sidebar_more`, inside `try`/`catch`.
+   - The active link always shows, even when "More" is collapsed.
+4. **Links.**
+   - Normal: 36 px high, padding 0 10, radius 8, 14 px, text `#1D1D1F` (not grey); icon 18 px `#424245`.
+   - Hover: `rgba(0,0,0,.04)`.
+   - Active: background `#E8EEFB`, weight 600, blue icon.
+   - Counts: a plain 12 px muted number at the right, not a badge.
+   - The supplier's "Work" shows an 8 px orange dot instead of a number when invitations are open (board).
+5. **Projects under "Projects"** (board `Workspace`).
+   - On any page inside a project, list the user's projects under "Projects" (at most 5, from
+     `/api/projects`, fetched once).
+   - Style: 13 px, indented to the text column; current project 600 dark, others muted.
+6. **User at the bottom.**
+   - Avatar: 30 px circle, `linear-gradient(135deg,#60A5FA,#2563EB)`, white initials 12 / 600.
+   - Name 13 / 600, company 12 muted.
+   - It still opens the profile.
+7. **Help row.**
+   - Remove the tagline "Industrial services, coordinated end-to-end." and its `<br>`.
+   - Put language switch, "Help & FAQ" and "Log out" (red text, no fill) in one row.
+   - The getting-started link stays under it.
+8. Add German translations for the new labels (check existing keys first): Today, Work, Team planner,
+   Opportunities, Vetting, Payments, Escalations, More.
+
+**Keep.**
+- Every sidebar link (control diff); counts.
+- The bell with its notification list.
+- Search (Ctrl K), language switch, help, log out, getting-started link.
+- The phone drawer and bottom bar.
+
+**Done when.**
+- [ ] The left column of `/customer/dashboard` and `/supplier/dashboard` matches the boards
+      (screenshots).
+- [ ] Opening a page under "More" highlights it even when "More" is collapsed.
+- [ ] "More" can be opened with the keyboard.
+- [ ] The control diff prints "No control is missing." for all roles.
+
+### T94 · Landing page
+`P1 · M · cheap model OK`
+
+**Problem.** The home page is a two-column hero followed by several marketing sections in the old style.
+
+**Board.** `Landing` (1440 × 2900).
+
+**Where.**
+- `renderHome` (`public/app.js`; wrapped in `public/feedback-fixes.js`). Replace it in
+  `design-screens.js` with `renderHome = async function () { … }`.
+- `obEnhanceHome` in `public/onboarding.js` appends featured suppliers, the six sourcing features and the
+  call to action. The route wrapper calls it by name: set `obEnhanceHome = async function () {}` and
+  render those parts yourself.
+- Top bar: the `<header>` in `index.html` and `topActions` (last definition in
+  `public/platform-additions.js`).
+- Footer: `index.html`, plus legal links added by `public/legal-security.js`.
+
+**Do.** Use exact sizes from the board.
+1. **Top bar** (logged out).
+   - Logo; links "How it works", "Suppliers", "Pricing", "Support" (`#/faq`).
+   - Right: "Sign in" text link and a small blue pill "Start a project" (`#/signup`).
+   - The DE/EN switch stays as a small segmented control.
+   - Logged in: keep today's buttons (Dashboard, Log out) as pills.
+2. **Hero.**
+   - Centred, padding-top 104.
+   - Kicker 17 / 600 blue: "Industrial services, coordinated."
+   - h1 80 px / 700 / 1.05 / −0.035em, max 900: "Every crew. One project. Zero chaos."
+   - Sub-line 21 px muted, max 640.
+   - Primary pill 48 px "Start a project" (`#/signup`) and link "Explore suppliers ›" (`#/suppliers`),
+     gap 28.
+3. **Product window.**
+   - Width max 1080. Grey frame `#F5F5F7`, radius 28 28 0 0, padding 40 40 0.
+   - Window bar: 40 px, dots `#FF5F57 #FEBC2E #28C840`, title 12 px muted.
+   - Body: white, grid 1.4fr / 1fr, padding 32.
+     - Left: project label and name (26 / 700), three phase rows (150 px label, 6 px bar, 44 px end).
+     - Right: two grey notes, radius 14.
+   - This is an illustration: use the board's example text, translated.
+4. **Steps band.**
+   - `#F5F5F7`, padding 112 24.
+   - h2 56 px: "From request to paid invoice." followed by a muted "Without the spreadsheets."
+   - Three columns, gap 40: label 15 / 600 blue, lead 21 / 600, text 17 muted.
+5. **Bento grid.** Max 1080, 6 columns, gap 20, radius 28.
+   - Sourcing: span 4, navy `#0D1B32`, title 40 px white, three bars (blue and two `#1E3A64`) 140 px high.
+   - Site safety: span 2, `#F5F5F7`, big "2" 96 px blue.
+   - Invoices: span 3, min-height 300.
+   - Field app: span 3, min-height 300.
+6. **Keep the old sections, in the board's style, below the bento.**
+   - "Vetted partners for your next project." (40 px) with "See all N suppliers ›": three columns of
+     supplier rows (grey `#F5F5F7`, radius 20; avatar, name, place and services with "…", badge chip).
+   - The six "strategic sourcing" features as a 3 × 2 grid of grey tiles (radius 20, padding 28, title
+     19 / 600, text 15 muted).
+   - The "how it works" steps stay on `#/how-it-works`.
+7. **Call to action.**
+   - h2 56 px "Your next project starts here.", line 21 px muted.
+   - Pill "Start a project" and link "Apply as a supplier ›" (`#/supplier-application`).
+8. **Footer.** `#F5F5F7`, 12 px muted, max 1080: copyright on the left, the existing legal links on the
+   right.
+9. **Phone (≤ 900 px).** One column; h1 48 px (≤ 480: 40); steps and bento one column; the window body
+   one column.
+
+**Keep.** Every link and button of the old home page, the top bar and the footer (control diff). The real
+supplier count comes from `/api/suppliers`, as `obEnhanceHome` does today.
+
+**Done when.**
+- [ ] A full-page screenshot at 1440 matches `Landing.png` from the top through the bento grid.
+- [ ] German shows no English.
+- [ ] The phone (390) has no sideways scrolling.
+
+### T95 · Customer dashboard: decisions first
+`P1 · M · cheap model OK`
+
+**Problem.** The dashboard puts statistics and many panels side by side. The board starts with a greeting,
+the decisions waiting and a short "at a glance".
+
+**Board.** `Dashboard`.
+
+**Where.**
+- `customerDashboard` (`public/app.js`; wrapped in `public/platform-additions.js`, which adds the panels:
+  Delayed work, Upcoming deadlines, Invoices to review, Recent messages, Notifications).
+- `public/action-queue.js`: `aqHtml` and `aqRender`. Both are called by name, so they can be reassigned.
+- `public/onboarding.js` `obChecklist`: the getting-started card.
+- `public/layout-customizer.js`: "Customize", saved layouts keyed by section class or heading text.
+- `server.js`: the action-queue route (search `"action-queue"`).
+
+**Do.**
+1. **Header.**
+   - Kicker: today's date, uppercase 13 / 600 muted (`toLocaleDateString` with `de-DE`/`en-GB`, weekday,
+     day, month; mark it `data-no-i18n`).
+   - h1: "Good morning, Maya." (morning / afternoon / evening by the hour, first name).
+   - Line 17 px muted:
+     - "N things need a decision. Everything else is on track."
+     - one item: "One thing needs a decision. Everything else is on track."
+     - none: "Nothing needs a decision. Everything is on track."
+   - Right: one blue pill "New Project". "Customize" stays next to it as a quiet grey text button.
+2. **Columns.** From 1200 px: grid `minmax(0,1.75fr) minmax(0,1fr)`, gap 24. Below 1200: one column.
+3. **"Needs your decision"** (left). Heading 20 / 600 above one white card.
+   - **Row:** grid `40px minmax(0,1fr) auto`, padding 18 22, hairlines inset 78 px.
+   - **Icon tile:** 40 px, radius 10, tinted by kind, 20 px line icon:
+     - invoice: blue
+     - offer: orange
+     - time: blue
+     - overdue: red
+     - document: orange
+   - **Text:** title 15 / 600, sub-line 13 muted.
+   - **Buttons:** 34 px pills, min-width 112, 13 px / 500.
+     - Invoice: "Review" (grey, opens the invoice) and "Approve" (blue). Approve sends the same request as
+       `invoiceAction(id, 'Approve')`, then re-renders the dashboard; `invoiceAction` itself jumps to the
+       invoice list.
+     - Offers: "Compare" → `#/customer/sourcing/<bidId>`.
+     - Time entries: "Review" → `#/customer/time`.
+     - Overdue task: "Message" (grey) → the project's messages.
+   - **Server:** add the ids the client needs to each queue item: invoice `invoiceId`, offers `bidId`,
+     overdue `projectId` and `taskId`. Add a test to `test/action-queue.test.js`.
+   - **Empty queue:** keep "You're all caught up" and the next deadline.
+4. **"At a glance"** (right). Heading 20 / 600 above a white card with a 2 × 2 grid (gap 20 16; label
+   13 muted, value 28 / 700):
+   - Active projects.
+   - Late tasks (red `#D70015` when above 0).
+   - To pay this month: approved, unpaid invoices whose `scheduledPayment` is this month.
+   - Budget used: invoiced (not rejected) divided by the budgets of active projects, in %.
+5. **"This week"** card: up to 4 events in the next 7 days, by date.
+   - Event types:
+     - site visits (`/api/site-visits`): "<supplier> crew on site", "<site> · <time>"
+     - invoice payments due (`scheduledPayment`)
+     - task due dates: "<task>", "N % · on track" or "late"
+   - Row layout:
+     - 44 px date column: weekday 11 / 600 (red when today), day 20 / 600;
+     - a 3 px coloured bar (blue visit, orange invoice, green task);
+     - title 15 / 600, sub-line 13 muted.
+   - Empty: "Nothing scheduled this week."
+6. **Below both columns.** Heading "More on your dashboard" (20 / 600), then everything the old dashboard
+   had:
+   - the getting-started card;
+   - the old statistics row (it also has Completed and Project value);
+   - the platform-additions panels;
+   - the active projects and invoices lists.
+
+   Do not delete any of them.
+7. Customize must keep working: drag, hide, reset. New blocks need stable keys.
+
+**Keep.** All of it (control diff). This is the most important rule here.
+
+**Done when.**
+- [ ] The first screen at 1440 × 900 matches `Dashboard.png`.
+- [ ] Approve from the dashboard works and the item disappears.
+- [ ] The control diff prints "No control is missing."
+- [ ] German has no English.
+
+### T96 · Supplier dashboard: the invitation first
+`P1 · M · cheap model OK`
+
+**Board.** `SupplierDash`.
+
+**Where.**
+- `supplierDashboard` (`public/reviews.js`; wrapped in `public/platform-additions.js`: earnings tiles and
+  panels).
+- Action-queue route in `server.js`.
+- `invAnswerTask(pid, tid, accept)` and `invAnswerPhase(pid, phid, accept)` in `public/invitations.js`.
+- `GET /api/planning?from=&to=` returns `{ people, entries, visits, jobs, types }` (see `planning.js`).
+  - `people`: the owner, team members and field workers.
+  - Entry types: `assignment` (a job) and `vacation`, `sick`, `training` (absence).
+  - `visits`: approved site visits, read only.
+
+**Do.**
+1. **Header.**
+   - Kicker: company name, uppercase.
+   - h1: greeting, as in T95.
+   - Line: "A new job is waiting for your answer." / "N new jobs are waiting for your answer.", or the
+     decisions sentence from T95.
+2. **Invitation card** (left; only when an invitation is open; the newest one). White, radius 24, padding
+   28.
+   - Kicker 13 / 600 orange `#A34F00`: "New invitation · <customer company>".
+   - Title 28 / 700: task name. Line 15 muted: "<project> · <phase>".
+   - **Facts strip:** 3 cells with 1 px gaps on `rgba(0,0,0,.06)`, radius 14, cells `#F5F5F7`, padding
+     14 16.
+     - Dates: start – due.
+     - Order value.
+     - Your crew: "N of M free" in green; "Nobody free" in red when 0. These are `people` with no `entries`
+       overlapping those dates, from `/api/planning?from=<start>&to=<due>`.
+   - **Buttons:**
+     - "Accept Job": blue, 44 px → `invAnswerTask`/`invAnswerPhase` with `true`.
+     - "Decline": grey → the same with `false`; it already asks for a reason.
+     - "Ask a question ›": link → `#/supplier/messages?project=<pid>`.
+   - **Server:** supplier invitation queue items get
+     `invite: { projectId, taskId | phaseId, phase, startDate, dueDate, orderAmount }`. Add a test.
+3. **"Also for you."** The other queue items in the decision-list style (36 px icons, padding 16 20). Their
+   buttons are the existing actions (Revise, Upload, …).
+4. **Right column.**
+   - **Payments card:** navy `#0D1B32`, radius 24, padding 26.
+     - "Paid this year" 13 px `#C7D2E0`.
+     - Amount 40 / 700 white.
+     - Line 14 px `#93C5FD`: "+ €X approved, paid <weekday>" for approved, unpaid invoices; otherwise "No
+       payments waiting".
+   - **"Crew this week":** heading 17 / 600 and "Planner ›" (`#/supplier/planning`).
+     - A grid of 54 px + 5 day columns (M T W T F), at most 4 members.
+     - Bars across days: blue for jobs, teal `#30B0C7` for site visits, orange `#FF9F0A` for absence, grey
+       `#F0F0F2` for free.
+     - Legend 12 px muted.
+5. **"More on your dashboard"** below: the getting-started card, the earnings tiles, the statistics, the
+   pending invitations, the invoice search, deadlines and messages.
+
+**Done when.**
+- [ ] The first screen matches `SupplierDash.png`.
+- [ ] Accept and Decline work from the card.
+- [ ] Control diff; German.
+
+### T97 · Admin dashboard in the same style
+`P2 · S · cheap model OK`
+
+**Board.** None. Use the pattern of T95.
+
+**Where.** `adminDashboard` (`public/app.js`; wrapped in `public/platform-additions.js`).
+
+**Do.**
+1. Use the T95 header, with "Admin" as the kicker.
+2. Left: "Needs your decision" in the T95 list style: applications, invoices to mark paid, escalations.
+3. Right: "At a glance" with users, live suppliers, projects and invoice volume (today's statistics).
+4. Below: the revenue chart, notices and vetting queue, in card style.
+
+**Done when.**
+- [ ] It looks like T95.
+- [ ] Control diff; German.
+
+### T98 · Project workspace with tabs
+`P1 · L · cheap model OK if done in the order written`
+
+**Problem.** The project page stacks four statistic cards, a warning, a Gantt chart, four navigation
+buttons, all phases and the activity log on one long page.
+
+**Board.** `Workspace`.
+
+**Where.**
+- `projectDetail`: `public/workflows.js`, wrapped in `public/invitations.js` (the supplier sees only their
+  own work and order value; this must stay).
+- `ccAddProjectLinks` (`public/feedback-fixes.js`): task time and cost details.
+- `.pa-project-activity` (`public/platform-additions.js`): activity log.
+- `inBoardButton` (`public/insights.js`): "Board view".
+- `saMoreMenu` (`public/safe-actions.js`): archive project.
+
+**Do.**
+1. **Header.**
+   - Meta line 13 muted: "<customer company> · <start> – <due>".
+   - h1 34 / 700 with the status chip (T92) on the same line; description below, 15 muted.
+   - Right, as grey pills: Board view, Edit project, Escalate / support, More.
+   - Customer: a blue "Review invoices" (project invoices) when invoices are waiting.
+2. **Tabs.** A segmented control (tokens; segments 32 px, 14 / 500, selected white and 600):
+   Overview · Tasks · Files (n) · Messages · Invoices · Activity.
+   - Overview, Tasks and Activity switch in place.
+     - Remember the tab per project in memory.
+     - `?tab=tasks` in the URL opens that tab.
+   - Files, Messages and Invoices go to their pages with the `onclick` of the old `.wf-project-nav` buttons.
+     Move the buttons, don't rebuild them.
+   - Tasks holds the Gantt chart (`.project-timeline`), the phases panel (`.project-task-panel`, with every
+     task action) and the time and cost details.
+   - A supplier who is only invited gets no tabs, as today the navigation is hidden. The `.inv-wait`
+     banner stays on top.
+3. **Overview, left column (1.75fr).**
+   - **"Up next"** card. Row: 12 px dot, title 15 / 600 with a 13 px sub-line, small button.
+     - Customer:
+       - invoices to review → Review;
+       - time entries waiting → Review, `#/customer/time`;
+       - open invitations: "<task> is waiting for <supplier>" → Open;
+       - documents waiting for approval: "N documents to approve" → the documents page;
+       - late tasks: "<task> · N days late", red dot → Open.
+     - Supplier: their own open invitations (Respond), their own late tasks, change requests.
+   - **"Phases"** card, one row per phase:
+     - name 15 / 600;
+     - "x of y tasks · z late" 13 muted;
+     - a 6 px bar: green when done, blue partly done, orange when a task is late;
+     - due date, or "Done" in green.
+4. **Overview, right column.**
+   - **"Progress":** 84 px ring (stroke 9, blue on `#F0F0F2`; no blue dot at 0 %), "N %" 34 / 700,
+     "complete · N days left" 13 muted.
+   - **"Budget"** (customer only):
+     - total at the right;
+     - a stacked bar: invoiced blue, ordered light blue;
+     - legend with short amounts (€16.6k, using `Intl.NumberFormat` compact): Invoiced, Ordered, Free.
+   - **Supplier:** "Your order value" (invoiced by you, still to invoice) instead of Budget. Never the
+     customer's budget (T10 rule).
+   - **"Suppliers"** (customer): 32 px initials avatar, name, chip Working / Late / Invited / Done.
+5. **Information from the old four cards that must stay.** Put anything without a natural place in a small
+   13 px facts line under the ring:
+   - budget remaining and invoiced;
+   - dates;
+   - overdue and open task counts;
+   - % complete;
+   - documents and pending approvals;
+   - invoice count;
+   - available suppliers.
+6. **Blocks added later.** Other scripts add blocks after the page renders (activity log, time details,
+   board button). File each into its tab by class with a `MutationObserver`. Unknown blocks go to the end of
+   Overview.
+
+**Keep.** Everything on the old page (control diff), and the supplier limits from `invitations.js`.
+
+**Done when.**
+- [ ] The first screen matches `Workspace.png` for the customer.
+- [ ] The supplier sees no customer budget.
+- [ ] Every task action works from the Tasks tab.
+- [ ] Control diff; German; phone without sideways scrolling.
+
+### T99 · Task board with a side panel
+`P1 · M · cheap model OK`
+
+**Board.** `BoardDrawer`.
+
+**Where.** `inBoard`, `inBindBoard`, `inMoveCard`, `IN_COLUMNS` (`public/insights.js`); `.in-*` in
+`public/insights.css`.
+
+**Do.**
+1. **Header.**
+   - Project name 13 muted (link back), h1 "Board" 34 / 700.
+   - Right: the phase filter as a segmented control ("All phases" plus one short segment per phase; keep
+     the select when there are more than 4 phases) and "List view".
+2. **Columns.**
+   - No column background.
+   - Header: 8 px dot (grey ring for "To Do"), name 14 / 600, count muted.
+   - Show "Not Started" as "To Do" and "Completed" as "Done". These are labels only: data statuses do not
+     change, and "On Hold" stays.
+   - Empty column: dashed 1.5 px `rgba(0,0,0,.12)`, radius 14, the existing text.
+3. **Cards.**
+   - White, radius 14, padding 14, shadow; title 15 / 600; no emoji; no uppercase phase label.
+   - Chips:
+     - "Awaiting <supplier>" in orange when `acceptanceStatus` is Pending;
+     - "N days late" in red when overdue.
+   - Progress bar 4 px when the work is in progress.
+   - Meta line 12 muted: "<supplier> · N % · due <date>" or "<phase> · due <date>".
+   - Done cards: `#F9F9FB` background, title 400 muted, a green "Accepted <date>" line.
+   - Selected card: 2 px blue ring.
+4. **Side panel** instead of a new page. A click or Enter on a card opens it; ctrl-click still opens the
+   page.
+   - **Frame:** full height, 400 px, white, hairline left border, padding 36 24 24.
+   - **Head:** phase 13 muted, task name 24 / 700, round 28 px close button (×).
+   - **Facts list** on `#F5F5F7`, radius 14:
+     - Status ("In progress · 55 %");
+     - Supplier;
+     - Dates;
+     - Order (only for the customer and the assigned supplier).
+   - Then the description.
+   - **Checklist:** "Checklist · x of y" with a checkbox per `task.subtasks` item.
+     - Ticking one sends `PATCH /api/projects/:pid/phases/:phid/tasks/:tid` with `{ subtasks }`.
+     - Only the customer and the accepted, assigned supplier can tick; others see disabled boxes.
+   - **"Latest update":** the last `progressUpdates` entry as a quote, with "<name> · <company> · <date>".
+   - **Bottom:** "Message" (grey, the project's messages) and "Open Task" (blue, the task page).
+   - Escape closes the panel and moves the focus back to the card.
+5. **Phase order** (customer). The drag-to-reorder panel shows while the side panel is closed.
+
+**Keep.** Drag and drop, arrow-key moves, the lock for cards the user may not move, the phase filter and
+List view.
+
+**Done when.**
+- [ ] It matches `BoardDrawer.png` with the panel open.
+- [ ] Dragging still saves.
+- [ ] A ticked checklist item is still ticked after a reload.
+- [ ] Control diff; German.
+
+### T100 · Offer comparison
+`P1 · M · cheap model OK`
+
+**Board.** `OfferCompare`.
+
+**Where.**
+- `srEvent(bidId)` in `public/sourcing-ui.js`: page `#/customer/sourcing/<bidId>`.
+- `srScoreOffers` gives each offer `score`, `parts` and `savings` against `bid.baseline`.
+- Also in that file: the weights panel ("Set weights"), `srAward`, `rvRequestOfferChanges`,
+  `reviewInviteBid`, `srCloseEvent`.
+- Offers overview: `wfOffers` in `public/reviews.js`.
+
+**Do.**
+1. **Header** (centred).
+   - Kicker 13 / 600 muted uppercase: "<project> · <round or status> · closes <date>".
+   - h1 40 / 700: "Which offer is right for you?"
+   - Line 17 muted: "Ranked by price X %, delivery Y %, track record Z % and experience W %." with the
+     bid's weights.
+   - Link "Change weights ›" opens the existing weights panel. It is collapsible and closed by default.
+   - "Invite suppliers" and "Close without award" become grey pills at the right.
+2. **Offer cards.** One per offer, by score. Three per row, max 1180, gap 20; more offers wrap.
+   - White, radius 24, padding 28.
+   - The best offer has a 2 px blue ring and a blue shadow `0 20px 44px rgba(37,99,235,.14)`.
+   - **Chip:**
+     - best: filled blue, "Best match · <score>";
+     - an offer revised after a change request: orange, "Revised · <score>";
+     - fastest delivery: green, "Fastest · <score>";
+     - otherwise grey, "<score>".
+   - **Name:** company 21 / 600, city 14 muted.
+   - **Price:** 40 / 700.
+   - **Line under the price:**
+     - under the baseline: green 600, "€X under your budget";
+     - over: red, "€X over your budget";
+     - revised: muted, "Was €Y".
+   - **Rows** (14 px, label muted left, value right, hairline above each):
+     - Delivery: "N days".
+     - Rating: "★ r · N jobs with you".
+     - Documents: "All valid" in green, or "1 expires <date>" in orange, from the scorecard or compliance
+       data. Leave this row out when unknown.
+     - Includes: the offer notes, 2 lines at most.
+   - Keep the price benchmark note (small orange text).
+   - **Button:** "Award <short name>", blue on the best offer and grey on the others → `srAward`.
+     - Below it, small text links: Request changes, Ask for details, Eliminate.
+3. **Footnote.** One centred 13 px muted sentence saying what awarding does. Read `srAward` and the server
+   (`contractFromAward`) and describe exactly that.
+4. **Below the cards.** Keep the automatic evaluation summary, scope, scope notes, clarifications and
+   invited suppliers.
+5. **Offers overview** (`#/customer/offers`). Each bid with at least one offer gets a "Compare offers ›"
+   link to this page. Everything else on that page stays.
+
+**Done when.**
+- [ ] It matches `OfferCompare.png` with the demo bid `bid_demo_vision`.
+- [ ] Award, request changes and weights still work.
+- [ ] Control diff; German.
+
+### T101 · Invoice review
+`P1 · M · cheap model OK`
+
+**Board.** `InvoiceReview`.
+
+**Where.**
+- `invoiceDetailPage` in `public/reviews.js`, with `rvVatRows`, `rvRevisionList` and `rvFixInvoice`
+  (supplier).
+- `invoiceAction(id, action)` (asks for a comment on "Request Changes") and `invoiceReject(id)` (asks for a
+  reason), both in `public/app.js`.
+- `wfInvoicePrint`, `wfDownloadInvoice(id,'xrechnung')`, `wfInvoiceEmail`.
+- `/api/time-entries?projectId=`.
+
+**Do.**
+1. **Layout.** Two full-height columns.
+   - Left: padding 32 48 48, a centred column of max 760.
+   - Right: a 420 px review panel. White, hairline left border, not a floating card; padding 32 28 40;
+     sticky.
+2. **Left top row.** "‹ Invoices" on the left (same back target as today); small grey pills on the right:
+   PDF, XRechnung, Email.
+3. **The paper.** White, radius 8, shadow `0 2px 4px rgba(0,0,0,.04), 0 24px 60px rgba(0,0,0,.10)`,
+   padding 56, gap 36.
+   - **Top row:**
+     - left: supplier company 18 / 700, address 13 muted, VAT ID;
+     - right: "INVOICE" 11 / 600 with 0.14em spacing, muted; the number 24 / 600 in tabular figures; the
+       date.
+   - **"BILL TO":** the customer, then one 13 px muted line: "<project> · service <period>". This line
+     replaces the three Project / Phase / Task cards.
+   - **Positions table:** Description | Qty | Rate | Amount.
+     - Header 12 / 600 muted with a 1 px `#1D1D1F` line under it; rows 14 px with hairlines; tabular
+       figures.
+     - Lines that are new or changed against the previous revision get a small blue "new" chip. Compare
+       service, quantity and price with `i.revisions.at(-1).lineItems`.
+   - **Totals:** on the right, 280 px wide: Net, VAT, Total 17 / 700 with a line above it.
+4. **Review panel.**
+   - "Version N · corrected by <supplier>", or "From <supplier>" (13 muted).
+   - Total 40 / 700; "Due <date> · incl. 19 % VAT" (14 muted); status chip.
+   - **"Checks"** in a grey list, radius 14. Each row: 22 px round icon (green ✓, orange !, red ×), the text,
+     and a muted detail at the right.
+     - Within order cap (x % used), or Over the order cap.
+     - Hours match approved time: invoiced hour lines against the task's approved time entries.
+     - VAT ID on the invoice.
+     - Partial invoice: when the task progress is under 100 %.
+   - **"What changed"** (when revisions exist): the customer's request, the supplier's note, and the
+     amount change or "The total is unchanged."
+   - **"Note to <supplier> (optional)"** textarea. Its text fills the comment of Request changes / Reject:
+     pass it to the prompt as the default text, or send it straight away when it is filled.
+   - **Bottom:**
+     - "Approve and Schedule Payment": blue, 48 px, full width;
+     - a row with "Request Changes" (grey) and "Reject" (red text).
+5. **Other roles.**
+   - Supplier: the same layout. The panel shows status, checks and "Fix & resubmit".
+   - Admin: the existing actions.
+
+**Keep.** Every button and download; the revision history (below the paper, collapsible); the VAT notes;
+payment terms; the over-cap warning; comment notices.
+
+**Done when.**
+- [ ] It matches `InvoiceReview.png` with the demo invoice `inv_demo_submitted` on fresh demo data.
+- [ ] Approve, request changes and reject work.
+- [ ] Control diff; German.
+
+### T102 · Phone: bottom bar and "Today" for suppliers
+`P1 · M · cheap model OK`
+
+**Board.** `PhoneToday`.
+
+**Where.**
+- `public/mobile-nav.js`: `MNAV_BOTTOM`, `.mnav-bottom`.
+- `supplierDashboard`.
+- `cmSupplierVisit(id, 'checkin' | 'checkout')` (`public/compliance-ui.js`) and `GET /api/site-visits`.
+- `ccNewTimeEntry` (last definition in `public/feedback-fixes.js`).
+- `drOpen(projectId, taskId)` (daily site report, `public/sitereports-ui.js`).
+- `puOpen(projectId, taskId)` (defects, `public/punchlist-ui.js`).
+
+**Do.** Up to 640 px only; desktop does not change.
+1. **Bottom bar.**
+   - Frosted `rgba(249,249,249,.94)` with blur and a hairline on top.
+   - Icons 24 px, labels 11 px; inactive `#6E6E73`, active blue; no pill behind the active item.
+   - Supplier: Today, Jobs (projects), Time, Messages, More.
+   - Customer: Today, Projects, Approvals, Messages, More.
+2. **Supplier dashboard = "Today".**
+   - Kicker: date. Large title "Today" 34 / 700. A 36 px blue circle with initials at the right, linking to
+     the profile.
+   - **Site visit card** (only when a visit is approved or checked in for today). Navy `#0D1B32`, radius 22,
+     padding 20.
+     - "Site visit · <time>" 13 / 600 `#93C5FD`.
+     - Site 20 / 700 white.
+     - "<workers> · <permit>" 14 px `#C7D2E0`.
+     - White button, 50 px, radius 14: "Check In" or "Check Out" → `cmSupplierVisit`.
+   - **"YOUR JOBS"** (13 px, uppercase, muted) above a grouped list: white, radius 14.
+     - One row per accepted, unfinished task: title 17 px, "N % · due <weekday>" 13 muted, chevron.
+     - Each row opens the task.
+   - **Quick actions:** 2 × 2 tiles, white, radius 18, min-height 86; 24 px icon (blue; Defect orange);
+     label 15 / 600.
+     - Log Time → `ccNewTimeEntry()`.
+     - Photo → the first job's daily report form, with its photo field.
+     - Site Report → `drOpen`.
+     - Defect → `puOpen`.
+     - With several jobs, ask which one in a simple list first.
+   - The rest of the dashboard follows below.
+
+**Done when.**
+- [ ] At 390 × 844, the supplier dashboard matches `PhoneToday.png`.
+- [ ] Check in, Log Time, Site Report and Defect open the right forms.
+- [ ] Desktop is unchanged.
+- [ ] Control diff; German.
+
+### T103 · Phone: "Log time" form
+`P2 · S · cheap model OK`
+
+**Board.** `PhoneLogTime`.
+
+**Where.** `ccNewTimeEntry` (last definition in `public/feedback-fixes.js`, a modal form);
+`public/offline-sync.js` (saves entries while offline).
+
+**Do.** Up to 640 px, as a full-screen sheet. On desktop the same field styling inside the modal.
+1. **Header:** three columns: "Cancel" (blue, 17) | "Log Time" (17 / 600, centred) | "Save" (blue
+   17 / 600, submits).
+2. **Offline banner:** when `navigator.onLine` is false, an orange banner (`#FFF1E0`, radius 12, no-signal
+   icon): "No signal. Saved on this phone and sent later."
+3. **Grouped rows:** white, radius 12, 46 px high, label 90 px left, value right.
+   - Group 1: Job (select), Date.
+   - Group 2: Start, End (time inputs as grey pills), Break as a segmented control 0 / 15 / 30 / 45
+     minutes.
+   - Then:
+     - a "WORK DONE" textarea card;
+     - "PHOTOS": a 4-column grid of thumbnails plus a "+" tile, using the existing upload input.
+4. **Submit button:** fixed, 52 px, radius 14, blue: "Submit N.N Hours", calculated live from start, end and
+   break.
+5. Every field the form has today stays. Fields that are not on the board go into a third group,
+   "Details".
+
+**Done when.**
+- [ ] At 390 × 844 it matches `PhoneLogTime.png`.
+- [ ] An entry saves online and offline (queued).
+- [ ] German.
+
+### T104 · Phone: Approvals
+`P2 · S · cheap model OK`
+
+**Board.** `PhoneApprove`.
+
+**Where.** `srApprovals` in `public/sourcing-ui.js`, page `#/customer/approvals`. It has sections for site
+access, compliance documents, invoices, time entries and more.
+
+**Do.** Up to 640 px. Desktop gets the same card styles.
+1. **Header:** large title "Approvals" (34 / 700) and a segmented filter "All · N", "Invoices", "Time". The
+   filter only hides sections; "All" shows every section.
+2. **Invoice cards:**
+   - kicker "INVOICE <number>" 13 / 600 uppercase muted, plus the chip;
+   - amount 40 / 700;
+   - "<supplier> · <task>" 15 muted, cut with "…";
+   - the two main checks from T101 with green ticks;
+   - two 50 px buttons, radius 14: "Changes" (grey) and "Approve" (blue), with the existing functions.
+3. **Time entries:** "TIME ENTRIES" (13 px, uppercase, muted) above a white grouped list, radius 14.
+   - Row: "8.0 h · <person>" 17 px, then "<weekday date> · <site>" 13 muted.
+   - "Approve" pill: tint `#E8EEFB` / `#1D4ED8`, 32 px, with the existing function.
+4. **The other sections** use the same card style below.
+   - Bug on `main`: a card stretches to about 460 px with empty space.
+   - Cause: `.ui-scroll` grows (`flex: 1`) and `.cm-visit > div:first-child` is stretched.
+   - Fix: cards hug their content.
+
+**Done when.**
+- [ ] At 390 × 844 it matches `PhoneApprove.png`.
+- [ ] No card has empty space.
+- [ ] Approving works.
+- [ ] Control diff; German.
+
+### T105 · Final check against every board, then merge
+`P1 · M`
+
+**Do.**
+1. **Screenshots** of every board's page with `tools/design/shot.js`, in English and German, at 1440 and
+   390 px.
+   - Compare each with its reference PNG.
+   - Fix small differences.
+   - Write follow-up tasks in this file for big ones.
+2. **The control diff** of `design-2026` against `main` prints "No control is missing." for every role.
+3. **Other checks:**
+   - the overflow checks, 4 runs;
+   - `tools/audit/crawl.js` with axe: no new accessibility violations compared with `main`;
+   - `test/e2e/smoke.js` and `test/e2e/pwa.js`;
+   - `npm test` (CI on Linux green).
+4. Tick T90–T105 in this file.
+5. **Ask Karam before merging `design-2026` into `main`.** Then merge and push.
 
 ---
 

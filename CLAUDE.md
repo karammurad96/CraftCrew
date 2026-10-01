@@ -17,7 +17,8 @@ The work backlog is in `docs/TASKS.md`. Do **one task at a time**, exactly as wr
 | `public/*.js` | Frontend. Later files override functions of earlier ones and wrap `window.route`. The **last** definition of a function wins. |
 | `public/i18n.js` | German translation: an English→German phrase map (`I18N_DE`) applied to the rendered DOM. |
 | `test/*.test.js` | `node:test` suites. `test/helpers.js` starts a real server in production mode on a temporary data folder. |
-| `tools/audit/` | Browser crawl, accessibility, script-injection and bug checks used for the audit in `docs/TASKS.md`. |
+| `tools/audit/` | Browser crawl, accessibility, script-injection and bug checks used for the audit in `docs/TASKS.md`. `controls.js` proves a change lost no button, link or form; `overflow.js` finds cut-off text. |
+| `docs/design/` | Design 2026: the boards (exact values), reference pictures and design tokens for tasks T90–T105. `tools/design/` renders the boards and screenshots app pages for comparison. |
 | `data/` | Local demo database (`db.json`) and uploads. Never commit it. |
 
 Data lives in memory in the `db` object and is written to `DATA_DIR/db.json` by `save()`. Always call
