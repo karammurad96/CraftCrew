@@ -1,0 +1,74 @@
+/* Daily site reports (sitereports-ui.js). */
+.dr-export {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+.dr-list {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+.dr-item {
+  padding: 10px 12px;
+  border: 1px solid #e6eaf0;
+  border-radius: 8px;
+}
+.dr-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: center;
+}
+.dr-head small {
+  color: var(--text-muted);
+}
+.dr-facts {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0;
+}
+.dr-facts div {
+  display: grid;
+  grid-template-columns: minmax(110px, 180px) 1fr;
+  gap: 8px;
+}
+.dr-facts dt {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.dr-facts dd {
+  margin: 0;
+  white-space: pre-wrap;
+}
+.dr-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dr-comments {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: var(--fs-sm);
+}
+.dr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.dr-actions input {
+  flex: 1 1 180px;
+}
+.dr-form h3 {
+  margin: 0;
+}
+@media (max-width: 520px) {
+  .dr-facts div {
+    grid-template-columns: 1fr;
+  }
+}
