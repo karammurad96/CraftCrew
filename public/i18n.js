@@ -1832,6 +1832,9 @@ Object.assign(I18N_DE, {
   "Planner ›": "Planer ›",
   "Blue job · teal site visit · orange absence": "Blau Auftrag · Türkis Baustellenbesuch · Orange Abwesenheit",
   "Add your team in the planner to see who is free.": "Legen Sie Ihr Team im Planer an, um zu sehen, wer frei ist.",
+  // Admin dashboard (T97)
+  "Live suppliers": "Aktive Lieferanten",
+  "Invoice volume": "Rechnungsvolumen",
   // Sidebar (T93)
   Reports: "Berichte",
   "Waiting for review since today": "Wartet seit heute auf Prüfung",
