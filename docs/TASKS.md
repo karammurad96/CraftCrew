@@ -181,7 +181,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T81 Move data to PostgreSQL
 - [ ] T82 Replace DOM-based translation with translation keys
 - [ ] T83 Merge the frontend add-on layers; cookie sessions; strict CSP
-- [ ] T84 Installable phone app (PWA) with offline time and photo capture
+- [x] T84 Installable phone app (PWA) with offline time and photo capture
 - [ ] T85 GDPR self-service: data export, account deletion with invoice retention
 - [x] T86 Re-verify supplier profile changes after approval
 

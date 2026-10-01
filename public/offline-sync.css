@@ -1,0 +1,59 @@
+/* Offline queue banner and panel (offline-sync.js). */
+.ofl-bar {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  background: #0d1b32;
+  color: #fff;
+  font-size: var(--fs-sm);
+  text-align: center;
+}
+.ofl-bar.ofl-warn {
+  background: #8a5a00;
+}
+.ofl-bar .btn.outline {
+  border-color: #ffffff66;
+  color: #fff;
+  background: transparent;
+}
+.ofl-list {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+  max-height: 50vh;
+  overflow: auto;
+}
+.ofl-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border: 1px solid #e6eaf0;
+  border-radius: 8px;
+}
+.ofl-item-error {
+  border-color: #e3b8a0;
+  background: #fff6f1;
+}
+.ofl-item small {
+  display: block;
+  color: var(--text-muted);
+}
+.ofl-error {
+  color: #8a3b00;
+}
+@media (max-width: 899px) {
+  /* Below the fixed top bar, above everything else, so it stays visible on phones too. */
+  .ofl-bar {
+    top: 0;
+  }
+}
