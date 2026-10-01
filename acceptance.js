@@ -33,6 +33,11 @@ const LABELS = {
     accepted_with_defects: "Accepted with defects",
     rejected: "Rejected",
     footer: "Created with CraftCrew. The drawn signature was captured on screen.",
+    minor: "minor",
+    major: "major",
+    critical: "critical",
+    open: "open",
+    fixed: "fixed, not yet verified",
     page: "Page",
     locale: "en-GB",
   },
@@ -56,6 +61,11 @@ const LABELS = {
     accepted_with_defects: "Abgenommen mit Mängeln",
     rejected: "Abnahme verweigert",
     footer: "Erstellt mit CraftCrew. Die Unterschrift wurde auf dem Bildschirm gezeichnet.",
+    minor: "geringfügig",
+    major: "erheblich",
+    critical: "kritisch",
+    open: "offen",
+    fixed: "behoben, noch nicht geprüft",
     page: "Seite",
     locale: "de-DE",
   },
@@ -152,7 +162,9 @@ module.exports = function createAcceptance(ctx) {
     list(
       L.defects,
       record.defects.map((d) =>
-        typeof d === "string" ? d : `${d.title}${d.severity ? ` (${d.severity})` : ""}`,
+        typeof d === "string"
+          ? d
+          : `${d.title} (${[L[d.severity] || d.severity, L[d.status] || d.status].filter(Boolean).join(", ")})`,
       ),
     );
     if (record.note) {

@@ -1,0 +1,61 @@
+/* Punch list (punchlist-ui.js). */
+.pu-count {
+  display: inline-grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #b42318;
+  color: #fff;
+  font-size: var(--fs-xs);
+}
+.pu-list {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+.pu-item {
+  padding: 10px 12px;
+  border: 1px solid #e6eaf0;
+  border-left: 4px solid #b42318;
+  border-radius: 8px;
+}
+.pu-item.pu-fixed {
+  border-left-color: #d9a400;
+}
+.pu-item.pu-verified {
+  border-left-color: #1f7a3d;
+}
+.pu-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+}
+.pu-item p {
+  margin: 6px 0 0;
+}
+.pu-note {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.pu-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.pu-step {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: end;
+  margin-top: 8px;
+}
+.pu-form h3 {
+  margin: 0;
+}
