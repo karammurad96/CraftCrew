@@ -238,6 +238,33 @@ describe("design 2026", () => {
       assert.ok(de.includes(k), `no German for ${k}`);
   });
 
+  it("files the project page into tabs and keeps the supplier away from the budget (T98)", () => {
+    const ctx = loadScreens({ invNo: (i) => i.number }, ["dsWsUpNext", "dsWsSide", "dsWsPhases", "DS_WS_TASKS", "DS_WS_ACTIVITY"]);
+    const t = (id, extra) => ({ id, name: id, status: "In Progress", dueDate: "2000-01-01", progress: 50, assignedSupplierId: "s1", acceptanceStatus: "Accepted", orderAmount: 1000, assignmentHistory: [{ supplierId: "s1", company: "Keller" }], ...extra });
+    const d = {
+      project: { id: "p1", name: "P", budget: 10000, dueDate: "2099-01-01", phases: [{ id: "ph", name: "Build", tasks: [t("late"), t("invited", { acceptanceStatus: "Pending", dueDate: "2099-01-01" })] }] },
+      invoices: [{ id: "i1", number: "2026-0001", status: "Submitted", amount: 500 }],
+      entries: [{ status: "Pending approval", hours: 4 }],
+      documents: [{ status: "Pending approval" }],
+    };
+    const customer = { role: "customer", pid: "p1" };
+    const next = ctx.dsWsUpNext(customer, d);
+    assert.match(next, /href="#\/customer\/invoice\/i1"[^>]*>Review</);
+    assert.match(next, /href="#\/customer\/time"[^>]*>Review</);
+    assert.match(next, /invited is waiting for Keller/);
+    assert.match(next, /1 document to approve/);
+    assert.match(next, /late · \d+ days late/);
+    assert.match(ctx.dsWsSide(customer, d), /Budget/);
+    ctx.state.user = { role: "supplier", supplierId: "s1" };
+    const side = ctx.dsWsSide({ role: "supplier", pid: "p1" }, d);
+    assert.doesNotMatch(side, />Budget</, "suppliers never see the customer budget");
+    assert.match(side, /Your order value/);
+    assert.match(ctx.dsWsPhases(customer, d), /0 of 2 tasks · 1 late/);
+    // The Gantt chart, task panel and time details live in Tasks; the activity log in Activity
+    assert.ok(["project-timeline", "project-task-panel", "ff-task-time-details"].every((c) => ctx.DS_WS_TASKS.includes(c)));
+    assert.ok(ctx.DS_WS_ACTIVITY.includes("pa-project-activity"));
+  });
+
   it("uses a new service worker cache so installed apps load the new files", () => {
     assert.match(read("sw.js"), /const CACHE = "craftcrew-shell-v2"/);
   });
