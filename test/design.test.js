@@ -55,6 +55,8 @@ describe("design 2026", () => {
     const vm = require("node:vm");
     const stub = { addEventListener() {}, getElementById: () => null };
     const ctx = {
+      NG_GROUPS: {},
+      ngGroup() {},
       document: stub,
       MutationObserver: class {
         observe() {}
@@ -98,6 +100,43 @@ describe("design 2026", () => {
     const src = read("i18n.js");
     assert.match(src, /"1 day late": "1 Tag verspätet"/);
     assert.match(src, /\[\/\^\(\\d\+\) days late\$\/, "\$1 Tage verspätet"\]/);
+  });
+
+  it("loads design-screens.css right after design-2026.css (T93)", () => {
+    const sheets = [...index.matchAll(/<link rel="stylesheet" href="([^"]+)"/g)].map((m) => m[1]);
+    assert.deepEqual(sheets.slice(-2), ["design-2026.css", "design-screens.css"]);
+  });
+
+  it("shows the daily pages first in the sidebar and has German for every label (T93)", () => {
+    const vm = require("node:vm");
+    const NG_GROUPS = { customer: [], supplier: [], admin: [] };
+    const ctx = {
+      NG_GROUPS,
+      ngGroup() {},
+      document: { addEventListener() {}, getElementById: () => null },
+      MutationObserver: class {
+        observe() {}
+        disconnect() {}
+      },
+      requestAnimationFrame() {},
+    };
+    vm.runInNewContext(
+      read("design-screens.js").replace("Object.assign(NG_GROUPS", "Object.assign(this.NG_GROUPS") +
+        ";this.labels=DS_SIDE_LABELS;",
+      ctx,
+    );
+    const main = (role) => JSON.parse(JSON.stringify(NG_GROUPS[role][0][1]));
+    assert.deepEqual(main("customer"), ["dashboard", "projects", "approvals", "sourcing", "invoices", "messages"]);
+    assert.deepEqual(main("supplier"), ["dashboard", "projects", "planning", "bids", "invoices", "compliance"]);
+    assert.deepEqual(main("admin"), ["dashboard", "applications", "users", "billing", "disputes", "reports"]);
+    for (const role of ["customer", "supplier", "admin"]) {
+      assert.equal(NG_GROUPS[role].length, 1, "everything else lands under More");
+      assert.equal(NG_GROUPS[role][0][0], "", "the first group has no heading");
+      assert.deepEqual(JSON.parse(JSON.stringify(Object.keys(ctx.labels[role]))), main(role));
+    }
+    const de = read("i18n.js");
+    for (const label of [...Object.values(ctx.labels).flatMap(Object.values), "More"])
+      assert.match(de, new RegExp(`^  (${label}|"${label}"): "`, "m"), `no German for ${label}`);
   });
 
   it("uses a new service worker cache so installed apps load the new files", () => {

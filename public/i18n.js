@@ -1763,6 +1763,8 @@ Object.assign(I18N_DE, {
   Overdue: "Überfällig",
   // Design 2026 (T92)
   "1 day late": "1 Tag verspätet",
+  // Sidebar (T93)
+  Reports: "Berichte",
   "Waiting for review since today": "Wartet seit heute auf Prüfung",
   // VAT on invoices (T41)
   "Net amounts – VAT not recorded": "Nettobeträge – Umsatzsteuer nicht erfasst",
