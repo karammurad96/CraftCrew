@@ -4,7 +4,7 @@
  * use stale-while-revalidate: the cached copy answers instantly, and a background fetch refreshes it for
  * next time, so a page the phone has opened before stays usable with no signal at all.
  */
-const CACHE = "craftcrew-shell-v1";
+const CACHE = "craftcrew-shell-v2";
 const SHELL = ["/", "/index.html"];
 
 self.addEventListener("install", (event) => {

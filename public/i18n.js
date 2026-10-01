@@ -4,7 +4,7 @@
    inside interface elements (buttons, labels, headers, menus, badges) so user content such as a
    phase called "Design" is never changed. */
 const I18N_UI_SCOPE =
-  "button, a.btn, th, label, legend, summary, option, nav a, .status, .tag, .cc-label, .eyebrow, .pa-pill, .sr-risk, .in-col header b, .ui-count, .stage-flow span, .sr-chips a, .ob-count, h1, h2, h3, h4, dt, .panel-title small, kbd, .ng-title";
+  "button, a.btn, th, label, legend, summary, option, nav a, .status, .tag, .cc-label, .eyebrow, .pa-pill, .sr-risk, .in-col header b, .ui-count, .stage-flow span, .sr-chips a, .ob-count, h1, h2, h3, h4, dt, .panel-title small, kbd, .ng-title, .ds-ui";
 const I18N_DE = {
   // Navigation & shell
   Dashboard: "Übersicht",
