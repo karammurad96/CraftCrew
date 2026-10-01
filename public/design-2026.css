@@ -445,3 +445,215 @@ html body .sidebar .brand-word,
 html body .ui-side-top .brand-word {
   font-size: 18px !important;
 }
+
+/* ---------- Status chips (T92, board StatusSystem) ---------- */
+html body .status,
+html body .tag,
+html body .badge,
+html body .in-card .status {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 11px !important;
+  border: 0;
+  border-radius: 999px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  letter-spacing: 0 !important;
+  text-transform: none;
+  white-space: nowrap !important;
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  vertical-align: middle;
+  max-width: none !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+html body td .status,
+html body td .tag,
+html body td .badge {
+  max-width: none !important;
+  overflow: visible !important;
+}
+html body .status::before {
+  content: none;
+}
+html body .status,
+html body .tag,
+html body .status[data-ds-tone="grey"],
+html body .tag[data-ds-tone="grey"] {
+  background: var(--cc-chip-grey-bg) !important;
+  color: var(--cc-chip-grey) !important;
+}
+html body .status[data-ds-tone="orange"],
+html body .tag[data-ds-tone="orange"] {
+  background: var(--cc-chip-orange-bg) !important;
+  color: var(--cc-chip-orange) !important;
+}
+html body .status[data-ds-tone="blue"],
+html body .tag[data-ds-tone="blue"] {
+  background: var(--cc-chip-blue-bg) !important;
+  color: var(--cc-chip-blue) !important;
+}
+html body .status[data-ds-tone="purple"],
+html body .tag[data-ds-tone="purple"] {
+  background: var(--cc-chip-purple-bg) !important;
+  color: var(--cc-chip-purple) !important;
+}
+html body .status[data-ds-tone="green"],
+html body .tag[data-ds-tone="green"] {
+  background: var(--cc-chip-green-bg) !important;
+  color: var(--cc-chip-green) !important;
+}
+html body .status[data-ds-tone="red"],
+html body .tag[data-ds-tone="red"] {
+  background: var(--cc-chip-red-bg) !important;
+  color: var(--cc-chip-red) !important;
+}
+/* Icons: ring = not started, dot = waiting / running, square = someone checks, tick = finished, none = problem */
+html body .status[data-ds-tone]::before,
+html body .tag[data-ds-tone]:not([data-ds-tone="grey"])::before {
+  content: "";
+  display: block;
+  flex: 0 0 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 1;
+}
+html body .status[data-ds-tone="grey"]::before {
+  box-sizing: border-box;
+  background: transparent;
+  border: 1.5px solid currentColor;
+}
+html body .status[data-ds-tone="purple"]::before,
+html body .tag[data-ds-tone="purple"]::before {
+  border-radius: 2px;
+}
+html body .status[data-ds-tone="green"]::before,
+html body .tag[data-ds-tone="green"]::before {
+  content: "✓";
+  width: auto;
+  height: auto;
+  flex: none;
+  background: none;
+  border-radius: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+html body .status[data-ds-tone="red"]::before,
+html body .tag[data-ds-tone="red"]::before {
+  content: none;
+  display: none;
+}
+/* Medal badges keep their own tint */
+html body .badge {
+  background: var(--cc-chip-blue-bg);
+  color: var(--cc-chip-blue);
+}
+
+/* ---------- Buttons: link style and destructive actions ---------- */
+html body .btn.link,
+html body a.ds-link {
+  background: none !important;
+  color: var(--cc-blue);
+  padding: 0 !important;
+  min-height: 0;
+}
+html body .btn.danger-text,
+html body .btn[data-ds-danger] {
+  background: transparent !important;
+  border: 0 !important;
+  color: var(--cc-red-text) !important;
+}
+html body .btn.danger-text:hover,
+html body .btn[data-ds-danger]:hover {
+  background: var(--cc-chip-red-bg) !important;
+}
+
+/* ---------- Empty states ---------- */
+html body .empty,
+html body .pa-empty,
+html body .ds-empty {
+  display: block;
+  margin: 0;
+  padding: 40px;
+  border: 0 !important;
+  border-radius: 0;
+  background: none;
+  text-align: center;
+  color: var(--cc-muted);
+  font-size: 15px;
+  line-height: 1.45;
+}
+html body .empty::before,
+html body .pa-empty::before,
+html body .ds-empty::before {
+  content: "";
+  display: block;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 14px;
+  border-radius: 14px;
+  background: #f0f0f2
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg opacity='.4'%3E%3Cpath d='M14 50C24 42 40 22 50 14' fill='none' stroke='%231D1D1F' stroke-width='6' stroke-linecap='round'/%3E%3Ccircle cx='14' cy='50' r='8.5' fill='%231D1D1F'/%3E%3Ccircle cx='50' cy='14' r='8.5' fill='%231D1D1F'/%3E%3C/g%3E%3C/svg%3E")
+    center / 28px 28px no-repeat;
+}
+html body .empty b:first-child,
+html body .empty strong:first-child,
+html body .empty h3,
+html body .empty h4 {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--cc-text);
+  font-size: 20px;
+  font-weight: 700;
+}
+html body .empty .btn {
+  margin-top: 16px;
+}
+
+/* ---------- Form errors and hints ---------- */
+html body input[aria-invalid="true"]:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="hidden"]),
+html body input:user-invalid:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="hidden"]),
+html body select[aria-invalid="true"]:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="hidden"]),
+html body select:user-invalid:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="hidden"]),
+html body textarea[aria-invalid="true"]:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="hidden"]),
+html body textarea:user-invalid:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="hidden"]) {
+  background-color: #fff !important;
+  border: 2px solid var(--cc-red) !important;
+  border-radius: 12px !important;
+}
+html body .ds-field-error,
+html body .form-error {
+  display: block;
+  margin: 6px 0 0;
+  color: var(--cc-red-text);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+html body .form-error:empty {
+  display: none;
+}
+html body .hint,
+html body .field-hint,
+html body label small {
+  font-size: 13px;
+  color: var(--cc-muted);
+  font-weight: 400;
+}
+/* Row actions may wrap onto two lines, so wide tables fit their card and the sticky actions column
+   no longer covers the status chips next to it */
+html body .cc-table td:last-child > .cc-actions {
+  flex-wrap: wrap !important;
+  max-width: 230px;
+  gap: 6px !important;
+}
+html body .review-invoice-table {
+  min-width: 720px;
+}

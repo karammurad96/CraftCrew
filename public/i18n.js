@@ -1761,6 +1761,8 @@ Object.assign(I18N_DE, {
     "Für Reverse Charge wird die USt-IdNr. des Kunden (zum Beispiel DE123456789) im Unternehmensprofil benötigt.",
   // Invoice reminders (T44)
   Overdue: "Überfällig",
+  // Design 2026 (T92)
+  "1 day late": "1 Tag verspätet",
   "Waiting for review since today": "Wartet seit heute auf Prüfung",
   // VAT on invoices (T41)
   "Net amounts – VAT not recorded": "Nettobeträge – Umsatzsteuer nicht erfasst",
@@ -1992,6 +1994,7 @@ const I18N_PATTERNS = [
   [/^(\d+) day\(s\) left$/, "noch $1 Tag(e)"],
   [/^(\d+) days left$/, "noch $1 Tage"],
   [/^(\d+)d late$/, "$1 T. verspätet"],
+  [/^(\d+) days late$/, "$1 Tage verspätet"],
   [/^(\d+) d waiting$/, "wartet seit $1 T."],
   [/^today$/, "heute"],
   [/^(\d+) recorded action\(s\)$/, "$1 protokollierte Aktion(en)"],

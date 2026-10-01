@@ -44,6 +44,62 @@ describe("design 2026", () => {
     assert.ok(marks >= 8, `expected at least 8 logos, found ${marks}`);
   });
 
+  it("loads design-screens.js after invitations.js and before i18n.js", () => {
+    const scripts = [...index.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]);
+    const at = scripts.indexOf("design-screens.js");
+    assert.ok(at > scripts.indexOf("invitations.js"), "design-screens.js must follow invitations.js");
+    assert.ok(at < scripts.indexOf("i18n.js"), "design-screens.js must come before i18n.js");
+  });
+
+  it("tints status chips by meaning and says how late (T92)", () => {
+    const vm = require("node:vm");
+    const stub = { addEventListener() {}, getElementById: () => null };
+    const ctx = {
+      document: stub,
+      MutationObserver: class {
+        observe() {}
+        disconnect() {}
+      },
+      requestAnimationFrame() {},
+      Date,
+    };
+    vm.runInNewContext(read("design-screens.js") + ";this.dsTone=dsTone;this.dsDaysLate=dsDaysLate;", ctx);
+    const chip = (text, ...classes) => ({
+      nodeType: 1,
+      childNodes: [{ nodeType: 3, textContent: text }],
+      classList: { contains: (c) => classes.includes(c) },
+    });
+    const cases = [
+      ["Not Started", "grey"],
+      ["Draft", "grey"],
+      ["Awaiting acceptance", "orange"],
+      ["Submitted", "orange"],
+      ["In Progress", "blue"],
+      ["In review", "purple"],
+      ["Approved", "green"],
+      ["Paid", "green"],
+      ["Changes Requested", "red"],
+      ["5 days late", "red"],
+      ["Expired 3 Oct 2026", "red"],
+    ];
+    for (const [text, tone] of cases) assert.equal(ctx.dsTone(chip(text, "submitted")), tone, text);
+    // Meaning wins over a misleading class: admin billing shows "Approved" with class "submitted".
+    assert.equal(ctx.dsTone(chip("Approved", "submitted")), "green");
+    // Unknown text falls back to the class.
+    assert.equal(ctx.dsTone(chip("Something", "in-progress")), "blue");
+    const day = 86400000;
+    const ago = (n) => new Date(Date.now() - n * day - 3600000).toISOString().slice(0, 10);
+    assert.equal(ctx.dsDaysLate(ago(5)), "5 days late");
+    assert.equal(ctx.dsDaysLate(ago(1)), "1 day late");
+    assert.equal(ctx.dsDaysLate(""), "Overdue");
+  });
+
+  it("has German for the late chip (T92)", () => {
+    const src = read("i18n.js");
+    assert.match(src, /"1 day late": "1 Tag verspätet"/);
+    assert.match(src, /\[\/\^\(\\d\+\) days late\$\/, "\$1 Tage verspätet"\]/);
+  });
+
   it("uses a new service worker cache so installed apps load the new files", () => {
     assert.match(read("sw.js"), /const CACHE = "craftcrew-shell-v2"/);
   });
