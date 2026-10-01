@@ -7729,6 +7729,7 @@ function mime(file) {
       ".png": "image/png",
       ".svg": "image/svg+xml",
       ".ico": "image/x-icon",
+      ".webmanifest": "application/manifest+json",
     }[path.extname(file)] || "application/octet-stream"
   );
 }
