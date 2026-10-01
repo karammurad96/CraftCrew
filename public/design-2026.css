@@ -387,3 +387,61 @@ html body .cc-chat-thread small {
 html body .cc-chat-thread.active > small {
   color: var(--cc-text-2);
 }
+
+/* ---------- Logo: the Flow mark (T91, board Main) ---------- */
+html body .brand-mark {
+  width: 28px !important;
+  height: 28px !important;
+  flex: 0 0 28px;
+  display: inline-block;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: none !important;
+  box-shadow: none !important;
+  color: var(--cc-text);
+}
+html body .brand-mark::before,
+html body .brand-mark::after {
+  content: none !important;
+  display: none !important;
+}
+html body .brand-mark svg {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+html body .brand-mark svg path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+html body .brand-mark svg circle {
+  fill: currentColor;
+  stroke: none;
+}
+html body .brand {
+  gap: 10px;
+  color: var(--cc-text);
+}
+html body .brand-word {
+  font-family: var(--cc-font-display);
+  font-weight: 600 !important;
+  letter-spacing: -0.025em !important;
+  color: var(--cc-text);
+}
+html body .brand-word span,
+html body .brand-word > span:last-child {
+  color: inherit !important;
+}
+html body .sidebar .brand-mark,
+html body .ui-side-top .brand-mark {
+  width: 26px !important;
+  height: 26px !important;
+  flex: 0 0 26px;
+}
+html body .sidebar .brand-word,
+html body .ui-side-top .brand-word {
+  font-size: 18px !important;
+}

@@ -158,7 +158,7 @@ api = async function (path, opts = {}) {
 /* ---------- Email verification, forgotten password, reset link ---------- */
 function authCard(title, text, inner = "") {
   app.innerHTML = publicLayout(
-    `<div class="simple-page center-page"><div class="login-card"><a class="brand" href="#/"><span class="brand-mark"><svg viewBox="0 0 40 40"><path d="M25.8 8.5a12.5 12.5 0 1 0 0 23"/><path d="M14.2 15.2a7 7 0 1 1 0 9.6"/></svg></span><span class="brand-word">Craft<span>Crew</span></span></a><h1>${title}</h1><p>${text}</p>${inner}</div></div>`,
+    `<div class="simple-page center-page"><div class="login-card"><a class="brand" href="#/"><span class="brand-mark" role="img" aria-label="CraftCrew logo"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M14 50C24 42 40 22 50 14"/><circle cx="14" cy="50" r="8.5"/><circle cx="50" cy="14" r="8.5"/></svg></span><span class="brand-word">Craft<span>Crew</span></span></a><h1>${title}</h1><p>${text}</p>${inner}</div></div>`,
   );
 }
 function authSignIn(d) {

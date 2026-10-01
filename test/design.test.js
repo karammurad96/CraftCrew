@@ -27,6 +27,23 @@ describe("design 2026", () => {
     );
   });
 
+  it("draws every .brand-mark with the Flow mark (T91)", () => {
+    const { readdirSync } = require("node:fs");
+    const FLOW =
+      '<svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M14 50C24 42 40 22 50 14"/><circle cx="14" cy="50" r="8.5"/><circle cx="50" cy="14" r="8.5"/></svg>';
+    const files = [...readdirSync(PUBLIC).filter((f) => f.endsWith(".js")), "index.html"];
+    let marks = 0;
+    for (const f of files) {
+      const src = read(f);
+      assert.doesNotMatch(src, /M25\.8 8\.5/, `${f} still has the old logo`);
+      for (const m of src.matchAll(/<span class="brand-mark"[^>]*>(<svg[\s\S]*?<\/svg>)/g)) {
+        marks++;
+        assert.equal(m[1], FLOW, `${f} has a .brand-mark that is not the Flow mark`);
+      }
+    }
+    assert.ok(marks >= 8, `expected at least 8 logos, found ${marks}`);
+  });
+
   it("uses a new service worker cache so installed apps load the new files", () => {
     assert.match(read("sw.js"), /const CACHE = "craftcrew-shell-v2"/);
   });
