@@ -333,11 +333,14 @@ async function editProject(id) {
   const { project: p } = await api("/projects/" + id);
   modal(
     "Edit project",
-    `<form id="editP" class="modal-form"><label>Name<input name="name" value="${esc(p.name)}" required></label><label>Description<textarea name="description" required>${esc(p.description)}</textarea></label><div class="two"><label>Budget<input name="budget" type="number" value="${p.budget}" required></label><label>Due date<input name="dueDate" type="date" value="${p.dueDate}" required></label></div><label>Order reference (for e-invoices)<input name="buyerReference" maxlength="100" value="${esc(p.buyerReference || "")}" placeholder="Your purchase order or cost centre number"></label><button class="btn primary">Save</button></form>`,
+    `<form id="editP" class="modal-form"><label>Name<input name="name" value="${esc(p.name)}" required></label><label>Description<textarea name="description" required>${esc(p.description)}</textarea></label><div class="two"><label>Budget<input name="budget" type="number" value="${p.budget}" required></label><label>Due date<input name="dueDate" type="date" value="${p.dueDate}" required></label></div><label>Order reference (for e-invoices)<input name="buyerReference" maxlength="100" value="${esc(p.buyerReference || "")}" placeholder="Your purchase order or cost centre number"></label><label class="cc-check-label"><input type="checkbox" name="invoicesAfterAcceptance" ${p.invoicesAfterAcceptance ? "checked" : ""}> Invoices only after acceptance (suppliers can invoice a task once you have signed its acceptance report)</label><button class="btn primary">Save</button></form>`,
   );
   document.getElementById("editP").onsubmit = async (e) => {
     e.preventDefault();
-    await api("/projects/" + id, { method: "PUT", body: Object.fromEntries(new FormData(e.target)) });
+    const fd = new FormData(e.target),
+      body = Object.fromEntries(fd);
+    body.invoicesAfterAcceptance = fd.has("invoicesAfterAcceptance");
+    await api("/projects/" + id, { method: "PUT", body });
     closeModal();
     toast("Project updated");
     projectDetail(id);

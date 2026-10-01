@@ -1,0 +1,40 @@
+/* Acceptance report (acceptance-ui.js). */
+.ac-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  margin: 8px 0;
+}
+.ac-strip small {
+  color: var(--text-muted);
+}
+.ac-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+.ac-defects {
+  margin: 0;
+  padding-left: 18px;
+}
+.ac-sign {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+.ac-sign span {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.ac-sign canvas {
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+  aspect-ratio: 560 / 180;
+  border: 1px dashed #9aa6b8;
+  border-radius: 8px;
+  background: #fff;
+  touch-action: none;
+  cursor: crosshair;
+}

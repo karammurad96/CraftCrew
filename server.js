@@ -43,6 +43,7 @@ function publicSupplier(s) {
   return out;
 }
 const createVies = require("./vies");
+const { pdfText, wrapPdfText } = require("./pdf");
 const geo = require("./geo");
 const vies = createVies({
   fetch: (...a) => fetch(...a),
@@ -249,6 +250,18 @@ const planning = require("./planning")({
   id: (p) => id(p),
   now: () => now(),
   notify: (...a) => notify(...a),
+});
+const acceptance = require("./acceptance")({
+  getDb: () => db,
+  save: () => save(),
+  send: (...a) => send(...a),
+  body: (r) => body(r),
+  id: (p) => id(p),
+  now: () => now(),
+  notify: (...a) => notify(...a),
+  projectFor: (...a) => projectFor(...a),
+  activity: (...a) => activity(...a),
+  uploadDir: () => UPLOAD_DIR,
 });
 // Public base URL used in email links.
 const APP_URL = (
@@ -2853,6 +2866,8 @@ const NOTIFY_TEXT = {
     applicationApproved: "Your supplier application was approved. Sign in to manage your service catalog.",
     escalationOpened: "Escalation opened for {project}: {type}",
     escalationStatus: "Escalation for {project} is now {status}",
+    workAccepted: "Work accepted: {task}. The acceptance report is in the project documents.",
+    workRejected: "Work not accepted: {task}. Reason: {note}",
   },
   de: {
     invoiceSubmitted: "Rechnung {number} zur Prüfung eingereicht",
@@ -2881,6 +2896,8 @@ const NOTIFY_TEXT = {
       "Ihre Lieferantenbewerbung wurde freigegeben. Melden Sie sich an, um Ihren Leistungskatalog zu pflegen.",
     escalationOpened: "Eskalation eröffnet für {project}: {type}",
     escalationStatus: "Eskalation für {project} ist jetzt {status}",
+    workAccepted: "Leistung abgenommen: {task}. Das Abnahmeprotokoll liegt in den Projektdokumenten.",
+    workRejected: "Abnahme verweigert: {task}. Grund: {note}",
   },
 };
 const STATUS_DE = {
@@ -3366,62 +3383,6 @@ const PDF_LABELS = {
     locale: "de-DE",
   },
 };
-// Characters outside Latin-1 that Windows-1252 (WinAnsiEncoding) still has, mapped to their byte.
-const WIN_ANSI_EXTRA = {
-  "€": 0x80,
-  "‚": 0x82,
-  "„": 0x84,
-  "…": 0x85,
-  "‘": 0x91,
-  "’": 0x92,
-  "“": 0x93,
-  "”": 0x94,
-  "•": 0x95,
-  "–": 0x96,
-  "—": 0x97,
-  "™": 0x99,
-};
-// Text for a PDF string in WinAnsiEncoding: one byte per character (as a latin1 string), escaped.
-// Characters Windows-1252 cannot show are dropped.
-function pdfText(value) {
-  let out = "";
-  for (const ch of String(value ?? "").normalize("NFC")) {
-    const code = ch.codePointAt(0);
-    if (WIN_ANSI_EXTRA[ch]) out += String.fromCharCode(WIN_ANSI_EXTRA[ch]);
-    else if ((code >= 0x20 && code <= 0x7e) || (code >= 0xa0 && code <= 0xff)) out += ch;
-    else if (/\s/.test(ch)) out += " ";
-  }
-  return out.replace(/[\\()]/g, "\\$&");
-}
-// Splits text into lines of at most `size`-point Helvetica fitting `width` points (approximate widths).
-function wrapPdfText(value, width, size, maxLines = Infinity) {
-  const maxChars = Math.max(8, Math.floor(width / (size * 0.52))),
-    lines = [];
-  let current = "";
-  for (let word of String(value ?? "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .split(" ")) {
-    while (word.length > maxChars) {
-      if (current) lines.push(current);
-      current = "";
-      lines.push(word.slice(0, maxChars));
-      word = word.slice(maxChars);
-    }
-    if (!current) current = word;
-    else if ((current + " " + word).length <= maxChars) current += " " + word;
-    else {
-      lines.push(current);
-      current = word;
-    }
-  }
-  if (current) lines.push(current);
-  if (lines.length > maxLines) {
-    lines.length = maxLines;
-    lines[maxLines - 1] = lines[maxLines - 1].slice(0, maxChars - 1) + "…";
-  }
-  return lines.length ? lines : [""];
-}
 function invoicePdf(inv, lang = "en") {
   const L = PDF_LABELS[lang] || PDF_LABELS.en,
     parties = invoiceParties(inv),
@@ -5055,6 +5016,9 @@ async function api(req, res, url) {
         statusError(b.status, PROJECT_STATUSES) ||
         amountError(b.budget, "The budget");
       if (invalid) return (send(res, 400, { error: invalid }), true);
+      if (b.invoicesAfterAcceptance !== undefined && typeof b.invoicesAfterAcceptance !== "boolean")
+        return (send(res, 400, { error: "Turn invoices after acceptance on or off" }), true);
+      if (b.invoicesAfterAcceptance !== undefined) p.invoicesAfterAcceptance = b.invoicesAfterAcceptance;
       if (b.siteId !== undefined) p.siteId = b.siteId || null;
       if (b.status === "Archived") Object.assign(p, { archivedAt: now(), archivedBy: user.id });
       Object.assign(p, {
@@ -5361,6 +5325,14 @@ async function api(req, res, url) {
       if (!p || !ph || !assigned || !b.description)
         return (
           send(res, 400, { error: "Project, assigned phase or task and description are required" }),
+          true
+        );
+      if (acceptance.invoiceBlocked(p, task))
+        return (
+          send(res, 409, {
+            error:
+              "This project pays invoices only after the work is accepted. Ask the customer to sign the acceptance report first.",
+          }),
           true
         );
       if (missingTaxDetails(user.supplierId).length)
@@ -7271,6 +7243,7 @@ async function api(req, res, url) {
         true
       );
     }
+    if (await acceptance.handle(req, res, url, parts, user)) return true;
     if (await compliance.handle(req, res, url, parts, user)) return true;
     if (await documents.handle(req, res, url, parts, user)) return true;
     if (await planning.handle(req, res, url, parts, user)) return true;

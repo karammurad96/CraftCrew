@@ -1293,6 +1293,51 @@ Object.assign(I18N_DE, {
     "Dieses Projekt löschen? Projekte mit Rechnungen, Dokumenten oder angenommenen Lieferanten werden stattdessen archiviert.",
   "Project archived": "Projekt archiviert",
   "Please choose a new password first.": "Bitte wählen Sie zuerst ein neues Passwort.",
+  "Accept work": "Leistung abnehmen",
+  "Work accepted": "Leistung abgenommen",
+  "Accepted with defects": "Abgenommen mit Mängeln",
+  "Not accepted": "Nicht abgenommen",
+  "Acceptance report": "Abnahmeprotokoll",
+  "Deliverables and documents checked": "Geprüfte Leistungen und Unterlagen",
+  "No deliverables or documents on this task yet.":
+    "Zu dieser Aufgabe gibt es noch keine Leistungen oder Unterlagen.",
+  "Open defects (listed in the report)": "Offene Mängel (stehen im Protokoll)",
+  "Other defects (one per line)": "Weitere Mängel (einer pro Zeile)",
+  "e.g. Paint scratch on panel 3": "z. B. Lackkratzer an Paneel 3",
+  Result: "Ergebnis",
+  "Note (required when the work is not accepted)": "Bemerkung (Pflicht, wenn die Abnahme verweigert wird)",
+  "Signed by": "Unterzeichnet von",
+  Place: "Ort",
+  "e.g. Plant Regensburg": "z. B. Werk Regensburg",
+  Signature: "Unterschrift",
+  "Clear signature": "Unterschrift löschen",
+  "Sign and save report": "Unterschreiben und Protokoll speichern",
+  "Sign in the signature box before saving": "Unterschreiben Sie im Unterschriftsfeld, bevor Sie speichern",
+  "Sent back to the supplier": "An den Auftragnehmer zurückgegeben",
+  "Acceptance report saved": "Abnahmeprotokoll gespeichert",
+  "Invoices only after acceptance (suppliers can invoice a task once you have signed its acceptance report)":
+    "Rechnungen erst nach Abnahme (Auftragnehmer können eine Aufgabe erst abrechnen, wenn Sie das Abnahmeprotokoll unterschrieben haben)",
+  "Only the customer accepts work": "Nur der Auftraggeber nimmt Leistungen ab",
+  "This task has no supplier working on it yet.": "An dieser Aufgabe arbeitet noch kein Auftragnehmer.",
+  "The supplier has not handed this work over yet. Accept it once the task is Under Review or Completed.":
+    "Der Auftragnehmer hat die Leistung noch nicht übergeben. Nehmen Sie sie ab, sobald die Aufgabe „In Prüfung“ oder „Abgeschlossen“ ist.",
+  "Choose accepted, accepted with defects or rejected":
+    "Wählen Sie abgenommen, abgenommen mit Mängeln oder verweigert",
+  "Enter the name of the person signing": "Geben Sie den Namen der unterschreibenden Person ein",
+  "Enter the place where the work was accepted": "Geben Sie den Ort der Abnahme ein",
+  "Enter the acceptance date as a date": "Geben Sie das Abnahmedatum als Datum ein",
+  "The signature image is too large. Clear it and sign again.":
+    "Die Unterschrift ist zu groß. Löschen Sie sie und unterschreiben Sie erneut.",
+  "The signature could not be read. Clear it and sign again.":
+    "Die Unterschrift konnte nicht gelesen werden. Löschen Sie sie und unterschreiben Sie erneut.",
+  "List at least one defect, or choose Accepted":
+    "Nennen Sie mindestens einen Mangel oder wählen Sie „Abgenommen“",
+  "Explain in the note why the work is not accepted":
+    "Begründen Sie in der Bemerkung, warum die Abnahme verweigert wird",
+  "Turn invoices after acceptance on or off": "Schalten Sie „Rechnungen erst nach Abnahme“ ein oder aus",
+  "This project pays invoices only after the work is accepted. Ask the customer to sign the acceptance report first.":
+    "In diesem Projekt werden Rechnungen erst nach der Abnahme bezahlt. Bitten Sie den Auftraggeber, zuerst das Abnahmeprotokoll zu unterschreiben.",
+  "Task not found": "Aufgabe nicht gefunden",
   "Near (city or postcode)": "In der Nähe von (Ort oder PLZ)",
   Radius: "Umkreis",
   "Only my shortlist": "Nur meine Merkliste",
