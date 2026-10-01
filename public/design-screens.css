@@ -1,0 +1,343 @@
+/* Design 2026 page layouts (T93 onwards). Loaded right after design-2026.css.
+   Selectors start with "html body" to win over the older stylesheets (see docs/TASKS.md, rule 4). */
+
+/* ---------- Sidebar (T93, boards Dashboard / SupplierDash / Workspace) ---------- */
+@media (min-width: 900px) {
+  html body .app-shell {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+  html body .app-shell > .sidebar {
+    display: flex !important;
+    flex-direction: column;
+    gap: 2px;
+    width: auto;
+    padding: 18px 12px !important;
+    background: #fbfbfd !important;
+    border-right: 1px solid var(--cc-hairline) !important;
+    box-shadow: none !important;
+  }
+  /* Order: logo row, search, links, More, the user (pushed down), help row */
+  html body .app-shell > .sidebar > .ui-side-top {
+    order: 1;
+    margin: 0 !important;
+    padding: 6px 4px 18px 10px;
+  }
+  html body .app-shell > .sidebar > .ui-search-btn {
+    order: 2;
+  }
+  html body .app-shell > .sidebar > nav {
+    order: 3;
+  }
+  html body .app-shell > .sidebar > .user-mini {
+    order: 4;
+    margin-top: auto !important;
+  }
+  html body .app-shell > .sidebar > .help {
+    order: 5;
+  }
+  html body .app-shell > .sidebar > :not(.ui-side-top):not(.ui-search-btn):not(nav):not(.user-mini):not(.help) {
+    order: 6;
+  }
+
+  /* Logo row: mark 22, word 18 / 600, bell at the right */
+  html body .sidebar .ui-side-top .brand-mark {
+    width: 22px !important;
+    height: 22px !important;
+    flex: 0 0 22px;
+  }
+  html body .sidebar .ui-side-top .side-brand {
+    gap: 8px;
+  }
+  html body .sidebar .ui-side-top .brand-word {
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.02em !important;
+  }
+  html body .sidebar .ui-bell {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  html body .sidebar .ui-bell:hover {
+    background: rgba(0, 0, 0, 0.04) !important;
+  }
+
+  /* Search pill */
+  html body .sidebar .ui-search-btn {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    height: 32px !important;
+    min-height: 32px;
+    margin: 0 0 12px !important;
+    padding: 0 10px !important;
+    border: 0 !important;
+    border-radius: 8px !important;
+    background: rgba(118, 118, 128, 0.12) !important;
+    box-shadow: none !important;
+    /* #6E6E73 is 4.3:1 on this grey fill; #636366 keeps 5:1 */
+    color: #636366 !important;
+    font-size: 13px !important;
+    font-weight: 400 !important;
+  }
+  html body .sidebar .ui-search-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+  html body .sidebar .ui-search-btn kbd {
+    display: none;
+  }
+
+  /* Links */
+  html body .sidebar > nav {
+    display: flex !important;
+    flex-direction: column;
+    gap: 2px !important;
+    margin: 0 !important;
+  }
+  html body .sidebar > nav > a {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0 10px !important;
+    border-radius: 8px !important;
+    background: transparent;
+    color: var(--cc-text) !important;
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  html body .sidebar > nav > a .ui-icon {
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
+    color: var(--cc-text-2) !important;
+  }
+  html body .sidebar > nav > a:not(.active):hover {
+    background: rgba(0, 0, 0, 0.04) !important;
+    color: var(--cc-text) !important;
+  }
+  html body .sidebar > nav > a.active,
+  html body .sidebar > nav > a.active:hover,
+  html body .sidebar > nav > a.ds-section-active,
+  html body .sidebar > nav > a.ds-section-active:hover {
+    background: var(--cc-blue-tint) !important;
+    color: var(--cc-text) !important;
+    font-weight: 600 !important;
+  }
+  html body .sidebar > nav > a.active .ui-icon,
+  html body .sidebar > nav > a.ds-section-active .ui-icon {
+    color: var(--cc-blue) !important;
+  }
+  /* Counts: a plain number at the right, not a badge */
+  html body .sidebar > nav > a .ng-count {
+    margin-left: auto;
+    min-width: 0;
+    height: auto;
+    padding: 0;
+    background: none !important;
+    color: var(--cc-muted) !important;
+    font-size: 12px !important;
+    font-weight: 400 !important;
+    box-shadow: none;
+  }
+  /* Supplier "Work": an orange dot when invitations are open */
+  html body .sidebar > nav[data-ds-role="supplier"] > a[data-ui-icon="projects"] .ng-count {
+    flex: 0 0 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--cc-orange) !important;
+    font-size: 0 !important;
+    color: transparent !important;
+    overflow: hidden;
+  }
+
+  /* Groups: an unnamed first group and "More" */
+  html body .sidebar > nav > .ng-title[data-title=""] {
+    display: none !important;
+  }
+  html body .sidebar > nav > .ng-title[data-title="More"] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 14px 0 4px !important;
+    padding: 6px 10px !important;
+    border-radius: 8px;
+    color: var(--cc-muted) !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    user-select: none;
+  }
+  html body .sidebar > nav > .ng-title[data-title="More"]:hover {
+    background: rgba(0, 0, 0, 0.04);
+  }
+  html body .sidebar > nav > .ng-title[data-title="More"]:focus-visible {
+    outline: 2px solid var(--cc-blue);
+    outline-offset: 1px;
+  }
+  html body .sidebar > nav > .ng-title[data-title="More"]::after {
+    content: "";
+    width: 7px;
+    height: 7px;
+    margin-right: 3px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: rotate(45deg) translateY(-2px);
+    transition: transform 0.15s;
+  }
+  html body .sidebar > nav.ds-more-closed > .ng-title[data-title="More"]::after {
+    transform: rotate(-45deg);
+  }
+  /* Collapsed: hide the links under "More", but the current page always shows */
+  html body .sidebar > nav.ds-more-closed > .ng-title[data-title="More"] ~ a:not(.active) {
+    display: none !important;
+  }
+
+  /* The user's projects under "Projects" (on pages inside a project) */
+  html body .sidebar .ds-side-projects {
+    display: flex;
+    flex-direction: column;
+    margin: 0 0 4px;
+  }
+  html body .sidebar .ds-side-projects a {
+    display: block !important;
+    height: auto !important;
+    font-weight: 400 !important;
+    padding: 5px 10px 5px 38px !important;
+    border-radius: 8px;
+    color: var(--cc-muted) !important;
+    font-size: 13px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  html body .sidebar .ds-side-projects a .ui-icon {
+    display: none;
+  }
+  html body .sidebar .ds-side-projects a.active,
+  html body .sidebar .ds-side-projects a.active:hover {
+    background: transparent !important;
+  }
+  html body .sidebar .ds-side-projects a.ds-current {
+    color: var(--cc-text) !important;
+    font-weight: 600 !important;
+  }
+  html body .sidebar .ds-side-projects a:hover {
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  /* The user, at the bottom */
+  html body .sidebar > .user-mini {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin: 0;
+    padding: 10px !important;
+    border: 0 !important;
+    border-radius: 10px;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--cc-text);
+    text-align: left;
+  }
+  html body .sidebar > .user-mini:hover {
+    background: rgba(0, 0, 0, 0.04) !important;
+  }
+  html body .sidebar > .user-mini .avatar {
+    flex: 0 0 30px;
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #60a5fa, #2563eb) !important;
+    color: #fff !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+  }
+  html body .sidebar > .user-mini b {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cc-text);
+  }
+  html body .sidebar > .user-mini small {
+    display: block;
+    font-size: 12px;
+    color: var(--cc-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  html body .sidebar > .user-mini > div:last-child {
+    min-width: 0;
+  }
+
+  /* One compact help row: language switch, Help & FAQ, Log out; the getting-started link under it */
+  html body .sidebar > .help {
+    display: flex !important;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px;
+    margin: 6px 0 0 !important;
+    padding: 10px 0 0 !important;
+    border-top: 1px solid var(--cc-hairline);
+    font-size: 12px;
+    color: var(--cc-muted);
+  }
+  html body .sidebar > .help .i18n-switch {
+    margin: 0 !important;
+  }
+  html body .sidebar > .help .btn {
+    width: auto !important;
+    margin: 0 !important;
+    min-height: 28px !important;
+    padding: 0 6px !important;
+    gap: 4px;
+    font-size: 12px !important;
+  }
+  html body .sidebar > .help .btn svg {
+    display: none;
+  }
+  html body .sidebar > .help .btn.ghost,
+  html body .sidebar > .help .btn.danger {
+    width: auto !important;
+    min-height: 28px !important;
+    margin: 0 !important;
+    padding: 0 5px !important;
+    font-size: 12px !important;
+  }
+  html body .sidebar > .help .i18n-switch button {
+    padding: 0 7px !important;
+  }
+  html body .sidebar > .help .btn.ghost {
+    order: 2;
+    margin-left: auto !important;
+    color: var(--cc-text-2) !important;
+  }
+  html body .sidebar > .help .btn.danger {
+    order: 3;
+    flex: 0 0 auto;
+    background: transparent !important;
+    border: 0 !important;
+    color: var(--cc-red-text) !important;
+  }
+  html body .sidebar > .help .btn.danger:hover {
+    background: var(--cc-chip-red-bg) !important;
+  }
+  html body .sidebar > .help .ob-reopen {
+    order: 4;
+    flex: 1 0 100%;
+    text-align: left;
+    margin: 2px 0 0 !important;
+    font-size: 12px;
+  }
+}
