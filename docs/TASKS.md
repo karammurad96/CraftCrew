@@ -170,7 +170,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T62 Directory: certification and region filters, compare, shortlist, quote request to several suppliers · M
 - [x] T63 Acceptance report (Abnahmeprotokoll) with signature and PDF · M
 - [x] T64 Punch list (defects) per task · M
-- [ ] T65 Daily site report per task with photos · M
+- [x] T65 Daily site report per task with photos · M
 - [ ] T66 Calendar feeds (ICS) for deadlines and site visits · S
 - [ ] T67 Two-factor sign-in (TOTP) · M
 - [ ] T68 Preferred-supplier list for customers · S
@@ -1301,7 +1301,7 @@ prove progress. CraftCrew has time entries without photos or notes on conditions
 4. Photos go through `/api/upload` with the T21 rules.
 
 **Done when.**
-- [ ] API tests cover create, acknowledge and access: other suppliers can't read the report.
+- [x] API tests cover create, acknowledge and access: other suppliers can't read the report.
 
 ### T66 · Calendar feeds (ICS) for deadlines and site visits
 `P2 · S · cheap model OK`

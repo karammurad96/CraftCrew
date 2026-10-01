@@ -130,8 +130,29 @@ function pngImage(buffer) {
   return { width, height, rgb: zlib.deflateSync(rgb), alpha: alpha && zlib.deflateSync(alpha) };
 }
 
+// Reads width, height and colour channels from a baseline or progressive JPEG; the file is embedded as is.
+function jpegImage(buffer) {
+  if (!Buffer.isBuffer(buffer) || buffer[0] !== 0xff || buffer[1] !== 0xd8) return null;
+  let pos = 2;
+  while (pos + 9 < buffer.length) {
+    if (buffer[pos] !== 0xff) return null;
+    const marker = buffer[pos + 1],
+      len = buffer.readUInt16BE(pos + 2);
+    if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) {
+      const height = buffer.readUInt16BE(pos + 5),
+        width = buffer.readUInt16BE(pos + 7),
+        channels = buffer[pos + 9];
+      if (!width || !height || ![1, 3].includes(channels)) return null;
+      return { width, height, jpeg: buffer, gray: channels === 1 };
+    }
+    pos += 2 + len;
+  }
+  return null;
+}
+const imageOf = (buffer) => pngImage(buffer) || jpegImage(buffer);
+
 // A4 portrait document. `pages` are arrays of content-stream commands; fonts F1 (Helvetica) and
-// F2 (Helvetica-Bold) are always available, images from `images` (pngImage results) as /Im1, /Im2 …
+// F2 (Helvetica-Bold) are always available, images from `images` (pngImage or jpegImage results) as /Im1, /Im2 …
 function pdfDocument(pages, images = []) {
   const font = (name) => `<< /Type /Font /Subtype /Type1 /BaseFont /${name} /Encoding /WinAnsiEncoding >>`,
     objects = [null, null, Buffer.from(font("Helvetica")), Buffer.from(font("Helvetica-Bold"))],
@@ -143,6 +164,13 @@ function pdfDocument(pages, images = []) {
         Buffer.from("\nendstream"),
       ]);
   const imageRefs = images.map((img) => {
+    if (img.jpeg)
+      return add(
+        stream(
+          `/Type /XObject /Subtype /Image /Width ${img.width} /Height ${img.height} /ColorSpace /${img.gray ? "DeviceGray" : "DeviceRGB"} /BitsPerComponent 8 /Filter /DCTDecode`,
+          img.jpeg,
+        ),
+      );
     const mask = img.alpha
       ? add(
           stream(
@@ -189,4 +217,4 @@ function pdfDocument(pages, images = []) {
   return Buffer.concat(parts);
 }
 
-module.exports = { pdfText, wrapPdfText, pngImage, pdfDocument };
+module.exports = { pdfText, wrapPdfText, pngImage, jpegImage, imageOf, pdfDocument };
