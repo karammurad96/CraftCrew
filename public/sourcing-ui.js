@@ -185,6 +185,7 @@ async function srEvent(bidId) {
     api("/bids"),
     api("/scorecards").catch(() => ({})),
     api("/suppliers"),
+    bmEnsure(),
   ]);
   const bid = bids.find((b) => b.id === bidId);
   if (!bid) {
@@ -201,7 +202,7 @@ async function srEvent(bidId) {
     const ranked = srScoreOffers(bid, scorecards, suppliers, weights),
       questions = bid.questions || [];
     document.getElementById("srResults").innerHTML =
-      `<div class="sr-summary"><b>Automatic evaluation</b><p>${srEsc(srSummary(bid, ranked))}</p></div>
+      `<div class="sr-summary"><b>Automatic evaluation</b><p>${srEsc(srSummary(bid, ranked))}</p>${bmRangeNote(bid.category || bid.taskName)}</div>
       <div class="cc-table-wrap"><table class="cc-table sr-table"><thead><tr><th>#</th><th>Supplier</th><th>Offer</th><th>Delivery</th><th>vs. baseline</th>${Object.keys(
         weights,
       )
@@ -210,7 +211,7 @@ async function srEvent(bidId) {
         ranked
           .map(
             (r, i) =>
-              `<tr class="${i === 0 ? "sr-best" : ""}"><td>${i + 1}</td><td><b>${srEsc(r.o.supplierCompany)}</b><small>${srEsc(supplierBadge(r.s))} ${r.card ? "· risk " + srEsc(r.card.riskLevel) : ""}</small></td><td><b>${money(r.o.amount)}</b></td><td>${r.o.deliveryDays} d</td><td>${r.savings === null ? "—" : `<span class="${r.savings >= 0 ? "success-text" : "danger-text"}">${r.savings >= 0 ? "−" : "+"}${money(Math.abs(r.savings))}</span>`}</td>${Object.keys(
+              `<tr class="${i === 0 ? "sr-best" : ""}"><td>${i + 1}</td><td><b>${srEsc(r.o.supplierCompany)}</b><small>${srEsc(supplierBadge(r.s))} ${r.card ? "· risk " + srEsc(r.card.riskLevel) : ""}</small></td><td><b>${money(r.o.amount)}</b>${r.o.hourlyRate ? bmRateNote(r.o.hourlyRate, bid.category || bid.taskName) : ""}</td><td>${r.o.deliveryDays} d</td><td>${r.savings === null ? "—" : `<span class="${r.savings >= 0 ? "success-text" : "danger-text"}">${r.savings >= 0 ? "−" : "+"}${money(Math.abs(r.savings))}</span>`}</td>${Object.keys(
                 weights,
               )
                 .map((k) => `<td>${r.parts[k]}</td>`)

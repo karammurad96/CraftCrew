@@ -318,6 +318,10 @@ const preferred = require("./preferred")({
   normEmail: (e) => normEmail(e),
   rateLimited: (...a) => rateLimited(...a),
 });
+const benchmarks = require("./benchmarks")({
+  getDb: () => db,
+  send: (...a) => send(...a),
+});
 // Public base URL used in email links.
 const APP_URL = (
   process.env.APP_URL || (process.env.DOMAIN ? `https://${process.env.DOMAIN}` : `http://localhost:${PORT}`)
@@ -2576,6 +2580,23 @@ function ensureDeliveryHistoryV1() {
   );
 }
 if (DEMO_MODE) ensureDeliveryHistoryV1();
+// Price benchmarks (T69): the demo quote request names its service and the offers state hourly rates.
+function ensureBenchmarkDemoV1() {
+  if (db.meta?.benchmarkDemoV1) return;
+  db.meta ||= {};
+  db.meta.benchmarkDemoV1 = true;
+  const bid = (db.bids || []).find((b) => b.id === "bid_demo_vision");
+  if (!bid) return;
+  bid.category ||= "Robotics";
+  for (const [offerId, rate] of [
+    ["offer_demo_a", 148],
+    ["offer_demo_b", 162],
+  ]) {
+    const offer = bid.offers.find((o) => o.id === offerId);
+    if (offer && !offer.hourlyRate) offer.hourlyRate = rate;
+  }
+}
+if (DEMO_MODE) ensureBenchmarkDemoV1();
 // Repair: early showcase messages stored their text in taskId; move it back and link the right task.
 function repairShowcaseMessagesV1() {
   if (db.meta?.showcaseMessagesRepairV1) return;
@@ -6676,6 +6697,13 @@ async function api(req, res, url) {
         deliveryDays = Number(b.deliveryDays);
       if (!Number.isFinite(amount) || amount <= 0 || !Number.isFinite(deliveryDays) || deliveryDays < 1)
         return (send(res, 400, { error: "Enter a valid offer amount and delivery schedule" }), true);
+      // Optional hourly rate (T69): compared with the price benchmark for the service.
+      const hourlyRate =
+        b.hourlyRate === undefined || b.hourlyRate === "" || b.hourlyRate === null
+          ? null
+          : Number(b.hourlyRate);
+      if (hourlyRate !== null && (!Number.isFinite(hourlyRate) || hourlyRate <= 0 || hourlyRate > 10000))
+        return (send(res, 400, { error: "Enter the hourly rate in euros, or leave it empty" }), true);
       if (b.attachment) {
         const prior = bid.offers.find((x) => x.supplierId === user.supplierId)?.attachment;
         if (attachmentUrl(b.attachment) !== prior && !ownUpload(user, attachmentUrl(b.attachment)))
@@ -6708,6 +6736,7 @@ async function api(req, res, url) {
       Object.assign(offer, {
         amount,
         deliveryDays,
+        hourlyRate,
         notes: String(b.notes || "").slice(0, 3000),
         attachment: String(b.attachment || "").slice(0, 500),
         answers: (Array.isArray(b.answers) ? b.answers : [])
@@ -7369,6 +7398,7 @@ async function api(req, res, url) {
     if (await calendar.handle(req, res, url, parts, user)) return true;
     if (await twoFactor.handle(req, res, url, parts, user)) return true;
     if (await preferred.handle(req, res, url, parts, user)) return true;
+    if (await benchmarks.handle(req, res, url, parts, user)) return true;
     if (await siteReports.handle(req, res, url, parts, user)) return true;
     if (await punchList.handle(req, res, url, parts, user)) return true;
     if (await compliance.handle(req, res, url, parts, user)) return true;

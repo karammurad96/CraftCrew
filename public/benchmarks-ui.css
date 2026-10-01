@@ -1,0 +1,17 @@
+/* Price benchmarks (benchmarks-ui.js). */
+.bm-note {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+}
+.bm-note.bm-high {
+  color: var(--warn-text);
+}
+.bm-note.bm-low {
+  color: #1d4ed8;
+}
+.bm-line {
+  grid-column: 1 / -1;
+}
