@@ -302,9 +302,10 @@ function adminMailStatus() {
   if (!panel || panel.querySelector(".mail-test")) return;
   panel
     .querySelector("summary")
+    // Buttons may not sit inside <summary>; the test button opens the panel body instead.
     ?.insertAdjacentHTML(
-      "beforeend",
-      '<button type="button" class="btn small outline mail-test" onclick="event.preventDefault();adminTestEmail()">Send test email</button>',
+      "afterend",
+      '<div class="cc-actions mail-test-row"><button type="button" class="btn small outline mail-test" onclick="adminTestEmail()">Send test email</button></div>',
     );
 }
 

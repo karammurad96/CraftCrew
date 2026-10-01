@@ -31,7 +31,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm i --no-save playwright && npx playwright install --with-deps chromium
+      - run: npm i --no-save playwright axe-core && npx playwright install --with-deps chromium
       - run: npm run test:e2e
 
   # XRechnung samples and a route-generated invoice must pass the official KoSIT validator (XRechnung 3.0.2).

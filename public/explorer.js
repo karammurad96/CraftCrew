@@ -155,7 +155,7 @@ async function wfDocuments(pid) {
     state.user.role,
     "projects",
     `<div class="xp-page"><div class="xp-window" id="xpWindow">
-    <div class="xp-titlebar"><a class="xp-back-link" href="#/${state.user.role}/projects/${project.id}">← ${xpEsc(project.name)}</a><b>Project files</b><div class="xp-winbtns"><button type="button" class="xp-winbtn" id="xpMax" title="Maximize window" onclick="xpToggleMax()">${document.body.classList.contains("xp-max") ? "❐" : "□"}</button></div></div>
+    <div class="xp-titlebar"><a class="xp-back-link" href="#/${state.user.role}/projects/${project.id}">← ${xpEsc(project.name)}</a><h1 class="xp-title-h1">Project files</h1><div class="xp-winbtns"><button type="button" class="xp-winbtn" id="xpMax" title="Maximize window" onclick="xpToggleMax()">${document.body.classList.contains("xp-max") ? "❐" : "□"}</button></div></div>
     <div class="xp-navbar"><div class="xp-navbtns"><button type="button" class="xp-nav" id="xpBackBtn" title="Back (Alt+←)" onclick="xpBack()">←</button><button type="button" class="xp-nav" id="xpFwdBtn" title="Forward (Alt+→)" onclick="xpForward()">→</button><button type="button" class="xp-nav" id="xpUpBtn" title="Up one level (Backspace)" onclick="xpUp()">↑</button><button type="button" class="xp-nav" title="Refresh (F5)" onclick="xpReload()">⟳</button></div>
       <div class="xp-address" id="xpAddress"></div><label class="xp-search">${uiIcon("search")}<input id="xpSearch" placeholder="Search project files" autocomplete="off"></label></div>
     <div class="xp-commandbar" id="xpCommands"></div>
@@ -179,8 +179,8 @@ function xpRenderTree() {
   const node = (fid, name, depth, children, icon = xpFolderIcon()) => {
     const open = xp.expanded.has(fid),
       count = xpCountDeep(fid);
-    return `<div class="xp-node ${xp.folder === fid ? "active" : ""}" style="--d:${depth}" data-folder="${fid}" role="treeitem" aria-expanded="${children ? open : ""}" draggable="false">
-      <button type="button" class="xp-twisty ${children ? "" : "none"}" onclick="event.stopPropagation();xpToggleNode('${fid}')" tabindex="-1">${children ? (open ? "▾" : "▸") : ""}</button>${icon}<span class="xp-node-name">${xpEsc(name)}</span>${count ? `<span class="xp-node-count">${count}</span>` : ""}</div>${children && open ? children() : ""}`;
+    return `<div class="xp-node ${xp.folder === fid ? "active" : ""}" style="--d:${depth}" data-folder="${fid}" draggable="false">
+      <button type="button" class="xp-twisty ${children ? "" : "none"}" onclick="event.stopPropagation();xpToggleNode('${fid}')" tabindex="-1"${children ? ` aria-expanded="${open}" aria-label="${open ? "Collapse" : "Expand"} ${xpEsc(name)}"` : ` aria-hidden="true"`}>${children ? (open ? "▾" : "▸") : ""}</button>${icon}<span class="xp-node-name">${xpEsc(name)}</span>${count ? `<span class="xp-node-count">${count}</span>` : ""}</div>${children && open ? children() : ""}`;
   };
   const p = xp.project,
     pending = xp.docs.filter((x) => x.status === "Pending approval").length;
@@ -284,9 +284,9 @@ function xpRenderContent() {
     el.innerHTML = `<div class="xp-tiles">${folders.map((f) => `<div class="xp-tile" data-folder="${f.id}" tabindex="-1">${xpFolderIcon(true)}<b>${xpEsc(f.name)}</b><small>${xpCountDeep(f.id)} file(s)</small></div>`).join("")}${files.map((d) => `<div class="xp-tile ${xp.selected.has(d.id) ? "sel" : ""}" data-doc="${d.id}" draggable="${xpCanManage(d)}" tabindex="-1">${xpFileIcon(d.filename, true)}<b title="${xpEsc(d.filename)}">${xpEsc(d.filename)}</b><small>${xpStatusTag(d.status)}</small></div>`).join("")}</div>`;
     return;
   }
-  el.innerHTML = `<div class="xp-table" role="grid"><div class="xp-row xp-head" role="row">${head("name", "Name")}${head("date", "Date modified")}${head("type", "Type")}${head("size", "Size")}${head("status", "Status")}<span class="xp-col">${inSearch ? "Folder" : "Shared by"}</span></div>
-    ${folders.map((f) => `<div class="xp-row" role="row" data-folder="${f.id}" tabindex="-1"><span class="xp-name">${xpFolderIcon()}<b>${xpEsc(f.name)}</b></span><span>${f.when ? date(f.when) : ""}</span><span>File folder</span><span>${xpCountDeep(f.id)} file(s)</span><span>${f.status ? xpStatusTag(f.status) : ""}</span><span class="subtle">${xpEsc(f.meta)}</span></div>`).join("")}
-    ${files.map((d) => `<div class="xp-row ${xp.selected.has(d.id) ? "sel" : ""}" role="row" data-doc="${d.id}" draggable="${xpCanManage(d)}" tabindex="-1" title="${xpEsc(d.description || "")}"><span class="xp-name">${xpFileIcon(d.filename)}<b>${xpEsc(d.filename)}</b>${d.version > 1 ? `<small class="xp-ver">v${d.version}</small>` : ""}</span><span>${xpWhen(d.updatedAt || d.uploadedAt)}</span><span>${xpEsc(xpType(d.filename))}</span><span>${xpSize(d.size)}</span><span>${xpStatusTag(d.status)}</span><span class="subtle">${inSearch ? xpEsc([d.phaseName || "Project files", d.taskName].filter(Boolean).join(" › ")) : xpEsc(d.supplierCompany || d.ownerName || (d.supplierId ? "Supplier" : "Customer"))}</span></div>`).join("")}</div>`;
+  el.innerHTML = `<div class="xp-table"><div class="xp-row xp-head">${head("name", "Name")}${head("date", "Date modified")}${head("type", "Type")}${head("size", "Size")}${head("status", "Status")}<span class="xp-col">${inSearch ? "Folder" : "Shared by"}</span></div>
+    ${folders.map((f) => `<div class="xp-row" data-folder="${f.id}" tabindex="-1"><span class="xp-name">${xpFolderIcon()}<b>${xpEsc(f.name)}</b></span><span>${f.when ? date(f.when) : ""}</span><span>File folder</span><span>${xpCountDeep(f.id)} file(s)</span><span>${f.status ? xpStatusTag(f.status) : ""}</span><span class="subtle">${xpEsc(f.meta)}</span></div>`).join("")}
+    ${files.map((d) => `<div class="xp-row ${xp.selected.has(d.id) ? "sel" : ""}" data-doc="${d.id}" draggable="${xpCanManage(d)}" tabindex="-1" title="${xpEsc(d.description || "")}"><span class="xp-name">${xpFileIcon(d.filename)}<b>${xpEsc(d.filename)}</b>${d.version > 1 ? `<small class="xp-ver">v${d.version}</small>` : ""}</span><span>${xpWhen(d.updatedAt || d.uploadedAt)}</span><span>${xpEsc(xpType(d.filename))}</span><span>${xpSize(d.size)}</span><span>${xpStatusTag(d.status)}</span><span class="subtle">${inSearch ? xpEsc([d.phaseName || "Project files", d.taskName].filter(Boolean).join(" › ")) : xpEsc(d.supplierCompany || d.ownerName || (d.supplierId ? "Supplier" : "Customer"))}</span></div>`).join("")}</div>`;
 }
 function xpRenderStatus() {
   const { folders, files } = xpItems(),

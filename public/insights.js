@@ -55,7 +55,7 @@ function inDonut(segments, centerLabel, fmt = money) {
 }
 function inHBars(rows, fmt = money) {
   const max = Math.max(1, ...rows.flatMap((r) => r.values.map((v) => v.value)));
-  return `<div class="in-hbars">${rows.map((r) => `<div class="in-hbar"><span title="${inEsc(r.label)}">${inEsc(r.label)}</span><div>${r.values.map((v) => `<div class="in-hbar-track" title="${inEsc(v.label)}: ${fmt(v.value)}"><i style="width:${Math.max(0.5, (v.value / max) * 100)}%;background:${v.color}"></i><em>${fmt(v.value)}</em></div>`).join("")}</div></div>`).join("")}</div>`;
+  return `<div class="in-hbars" tabindex="0" role="region" aria-label="Bar chart">${rows.map((r) => `<div class="in-hbar"><span title="${inEsc(r.label)}">${inEsc(r.label)}</span><div>${r.values.map((v) => `<div class="in-hbar-track" title="${inEsc(v.label)}: ${fmt(v.value)}"><i style="width:${Math.max(0.5, (v.value / max) * 100)}%;background:${v.color}"></i><em>${fmt(v.value)}</em></div>`).join("")}</div></div>`).join("")}</div>`;
 }
 function inKpi(label, value, sub, tone = "") {
   return `<div class="in-kpi ${tone}"><span class="cc-label">${label}</span><strong>${value}</strong><small>${sub}</small></div>`;

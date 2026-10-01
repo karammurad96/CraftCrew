@@ -192,6 +192,17 @@ async function safeActionChecks(base) {
   return failures;
 }
 
+function axeAvailable() {
+  try {
+    require.resolve("axe-core/axe.min.js", {
+      paths: [ROOT, ...(process.env.NODE_PATH || "").split(path.delimiter)],
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function main() {
   const dataDir = mkdtempSync(path.join(os.tmpdir(), "craftcrew-e2e-")),
     out = path.join(dataDir, "crawl.json"),
@@ -215,9 +226,11 @@ async function main() {
     const failures = [],
       totals = [];
     for (const view of ["desktop", "mobile"]) {
+      // Accessibility (axe) runs on desktop when axe-core is installed (CI installs it).
+      const axe = view === "desktop" && axeAvailable();
       execFileSync(process.execPath, [path.join(ROOT, "tools/audit/crawl.js"), base, out, "en", view], {
         cwd: ROOT,
-        env: { ...process.env, AXE: "0" },
+        env: { ...process.env, AXE: axe ? "1" : "0" },
         stdio: "inherit",
       });
       const results = JSON.parse(readFileSync(out, "utf8"));
@@ -231,6 +244,10 @@ async function main() {
             ...(p.apiErrors || []).map((e) => "API error: " + e),
             ...(p.navError ? ["navigation: " + p.navError] : []),
             ...(p.empty ? ["page is empty"] : []),
+            ...(view === "desktop" && p.h1Count !== undefined && p.h1Count !== 1
+              ? [`${p.h1Count} h1 headings`]
+              : []),
+            ...(p.axe || []).map((v) => `axe ${v.id}: ${v.ex}`),
             ...(view === "mobile" && p.scrollWidth > p.vw + 1
               ? [`scrolls sideways (${p.scrollWidth} px wide on a ${p.vw} px screen)`]
               : []),

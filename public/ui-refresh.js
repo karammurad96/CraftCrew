@@ -481,10 +481,20 @@ function uiScrollAreas() {
     body[0].before(box);
     body.forEach((ch) => box.appendChild(ch));
     if (cls === "ui-scroll") {
-      const fade = () =>
+      // A region that scrolls must be reachable by keyboard, with a name taken from its panel heading.
+      const label = panel.querySelector(".panel-title h3, h3")?.textContent.trim();
+      const fade = () => {
+        const scrolls = box.scrollHeight > box.clientHeight + 1 || box.scrollWidth > box.clientWidth + 1;
         box.classList.toggle("ui-fade", box.scrollHeight - box.scrollTop - box.clientHeight > 4);
+        if (scrolls && !box.hasAttribute("tabindex")) {
+          box.setAttribute("tabindex", "0");
+          box.setAttribute("role", "region");
+          if (label) box.setAttribute("aria-label", label);
+        }
+      };
       box.addEventListener("scroll", fade, { passive: true });
       requestAnimationFrame(fade);
+      setTimeout(fade, 600);
     }
   };
   document
@@ -493,6 +503,13 @@ function uiScrollAreas() {
   document
     .querySelectorAll(".pa-project-activity, .pa-updates")
     .forEach((p) => wrap(p, (ch) => ch.matches("summary, .panel-title"), "pa-list"));
+  // Wide tables scroll sideways inside their wrapper; keyboard users need to reach that area too.
+  document.querySelectorAll(".cc-table-wrap:not([tabindex])").forEach((w) => {
+    if (w.scrollWidth <= w.clientWidth + 1 && w.scrollHeight <= w.clientHeight + 1) return;
+    w.setAttribute("tabindex", "0");
+    w.setAttribute("role", "region");
+    w.setAttribute("aria-label", w.closest(".panel")?.querySelector("h2, h3")?.textContent.trim() || "Table");
+  });
 }
 
 /* ---------- In-app dialogs instead of the browser's confirm()/prompt() ----------

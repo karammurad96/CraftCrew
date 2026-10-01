@@ -139,6 +139,7 @@ async function login(email, password) {
           null;
         return {
           h1,
+          h1Count: document.querySelectorAll("h1").length,
           errorScreen,
           title: document.title,
           scrollWidth: document.documentElement.scrollWidth,

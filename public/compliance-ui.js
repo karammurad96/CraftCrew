@@ -309,7 +309,7 @@ async function cmSupplierPage() {
         .filter((w) => w.active !== false)
         .map(
           (w) =>
-            `<details class="cm-ready"><summary><b>${cmEsc(w.name)}</b><small>${cmEsc(w.role || "")}${w.postedFromAbroad ? " · posted from abroad (A1 needed)" : ""}</small><span class="cm-summary-actions"><button type="button" class="btn small outline" onclick="event.preventDefault();cmWorkerForm('${w.id}')">Edit</button></span></summary>${workerReqs
+            `<details class="cm-ready"><summary><b>${cmEsc(w.name)}</b><small>${cmEsc(w.role || "")}${w.postedFromAbroad ? " · posted from abroad (A1 needed)" : ""}</small></summary><div class="cm-summary-actions"><button type="button" class="btn small outline" onclick="cmWorkerForm('${w.id}')">Edit worker</button></div>${workerReqs
               .filter(([, r]) => !r.onlyPosted || w.postedFromAbroad)
               .map(([k]) => docCell(k, w.id))
               .join("")}</details>`,
