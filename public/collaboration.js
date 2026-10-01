@@ -612,8 +612,18 @@ function ccReliability(s, full = false) {
 
 // Advanced supplier search; secondary facets stay tucked under an expand control.
 async function renderSuppliers() {
-  const all = (await api("/suppliers")).suppliers || [],
-    params = new URLSearchParams(location.hash.split("?")[1] || ""),
+  const params = new URLSearchParams(location.hash.split("?")[1] || ""),
+    // Certification and region filters run on the server (T62); the rest filters this list.
+    serverQuery = new URLSearchParams(
+      Object.entries({
+        certs: params.get("certs") || "",
+        near: params.get("near") || "",
+        radius: params.get("near") ? params.get("radius") || "100" : "",
+      }).filter(([, x]) => x),
+    ),
+    directory = await api("/suppliers?" + serverQuery),
+    all = directory.suppliers || [],
+    shortlist = state.user?.role === "customer" ? await dirLoadShortlist() : [],
     v = {
       q: params.get("q") || "",
       service: params.get("service") || "",
@@ -623,7 +633,10 @@ async function renderSuppliers() {
       minRating: params.get("rating") || "",
       maxRate: params.get("maxRate") || "",
       minExperience: params.get("experience") || "",
-      cert: params.get("cert") || "",
+      certs: (params.get("certs") || "").split(",").filter(Boolean),
+      near: params.get("near") || "",
+      radius: params.get("radius") || "100",
+      onlyShortlist: params.get("shortlist") === "1",
       sort: params.get("sort") || "relevance",
       view: params.get("view") || "grid",
     },
@@ -641,7 +654,7 @@ async function renderSuppliers() {
         (!v.minRating || Number(s.rating) >= Number(v.minRating)) &&
         (!v.maxRate || Number(s.hourlyRate) <= Number(v.maxRate)) &&
         (!v.minExperience || Number(s.experience) >= Number(v.minExperience)) &&
-        (!v.cert || (s.certifications || []).some((c) => c.toLowerCase().includes(v.cert.toLowerCase()))),
+        (!v.onlyShortlist || shortlist.includes(s.id)),
     );
   rows.sort((a, b) =>
     v.sort === "price"
@@ -657,16 +670,16 @@ async function renderSuppliers() {
       ...new Set(all.map((s) => (s.location || "").split(",").at(-1).trim()).filter(Boolean)),
     ].sort(),
     customer = state.user?.role === "customer",
-    form = `<form id="ccSupplierSearch" class="cc-supplier-filters"><label class="cc-search-wide">Search<input id="ccSq" value="${ccEsc(v.q)}" placeholder="Company, service or location"></label><label>Service<select id="ccSs"><option value="">All services</option>${services.map((s) => `<option ${s === v.service ? "selected" : ""}>${ccEsc(s)}</option>`).join("")}</select></label><label>Badge<select id="ccSb"><option value="">All badges</option>${["Gold", "Silver", "Bronze"].map((s) => `<option ${s === v.badge ? "selected" : ""}>${s}</option>`).join("")}</select></label><label class="cc-check-label"><input id="ccSa" type="checkbox" ${v.available ? "checked" : ""}> Available now</label><button class="btn primary">Search</button><details class="cc-advanced-filters"><summary>More filters</summary><div class="cc-advanced-grid"><label>Country / region<select id="ccCountry"><option value="">Any location</option>${countries.map((s) => `<option ${s === v.country ? "selected" : ""}>${ccEsc(s)}</option>`).join("")}</select></label><label>Minimum rating<select id="ccRating"><option value="">Any rating</option>${["3", "3.5", "4", "4.5"].map((s) => `<option ${s === v.minRating ? "selected" : ""}>${s}</option>`).join("")}</select></label><label>Maximum hourly rate<input id="ccRate" type="number" min="0" value="${ccEsc(v.maxRate)}" placeholder="€ / hour"></label><label>Minimum experience<input id="ccExperience" type="number" min="0" value="${ccEsc(v.minExperience)}" placeholder="Years"></label><label>Certification<input id="ccCert" value="${ccEsc(v.cert)}" placeholder="e.g. TÜV, ISO"></label><label>Sort by<select id="ccSort"><option value="relevance">Best match</option><option value="rating" ${v.sort === "rating" ? "selected" : ""}>Highest rated</option><option value="price" ${v.sort === "price" ? "selected" : ""}>Lowest rate</option><option value="experience" ${v.sort === "experience" ? "selected" : ""}>Most experience</option></select></label></div></details></form>`,
+    form = `<form id="ccSupplierSearch" class="cc-supplier-filters"><label class="cc-search-wide">Search<input id="ccSq" value="${ccEsc(v.q)}" placeholder="Company, service or location"></label><label>Service<select id="ccSs"><option value="">All services</option>${services.map((s) => `<option ${s === v.service ? "selected" : ""}>${ccEsc(s)}</option>`).join("")}</select></label><label>Badge<select id="ccSb"><option value="">All badges</option>${["Gold", "Silver", "Bronze"].map((s) => `<option ${s === v.badge ? "selected" : ""}>${s}</option>`).join("")}</select></label><label class="cc-check-label"><input id="ccSa" type="checkbox" ${v.available ? "checked" : ""}> Available now</label><button class="btn primary">Search</button><details class="cc-advanced-filters" ${v.certs.length || v.near || v.onlyShortlist || v.country || v.minRating || v.maxRate || v.minExperience ? "open" : ""}><summary>More filters</summary><div class="cc-advanced-grid"><label>Country / region<select id="ccCountry"><option value="">Any location</option>${countries.map((s) => `<option ${s === v.country ? "selected" : ""}>${ccEsc(s)}</option>`).join("")}</select></label><label>Minimum rating<select id="ccRating"><option value="">Any rating</option>${["3", "3.5", "4", "4.5"].map((s) => `<option ${s === v.minRating ? "selected" : ""}>${s}</option>`).join("")}</select></label><label>Maximum hourly rate<input id="ccRate" type="number" min="0" value="${ccEsc(v.maxRate)}" placeholder="€ / hour"></label><label>Minimum experience<input id="ccExperience" type="number" min="0" value="${ccEsc(v.minExperience)}" placeholder="Years"></label><label>Near (city or postcode)<input id="ccNear" value="${ccEsc(v.near)}" placeholder="e.g. Munich or 80331"></label><label>Radius<select id="ccRadius">${["25", "50", "100", "200", "500"].map((r) => `<option value="${r}" ${r === v.radius ? "selected" : ""}>${r} km</option>`).join("")}</select></label>${customer ? `<label class="cc-check-label"><input id="ccShortlistOnly" type="checkbox" ${v.onlyShortlist ? "checked" : ""}> Only my shortlist</label>` : ""}<fieldset class="dir-certs"><legend>Certifications (all required)</legend>${[...new Set([...(directory.certifications || []), ...v.certs])].map((c) => `<label class="cc-check-label"><input type="checkbox" name="ccCerts" value="${ccEsc(c)}" ${v.certs.includes(c) ? "checked" : ""}> ${ccEsc(c)}</label>`).join("")}</fieldset><label>Sort by<select id="ccSort"><option value="relevance">Best match</option><option value="rating" ${v.sort === "rating" ? "selected" : ""}>Highest rated</option><option value="price" ${v.sort === "price" ? "selected" : ""}>Lowest rate</option><option value="experience" ${v.sort === "experience" ? "selected" : ""}>Most experience</option></select></label></div></details></form>`,
     card = (s) =>
-      `<article class="supplier-card review-supplier-card"><div class="supplier-top"><div class="supplier-avatar">${ccEsc(s.avatar || "CC")}</div><div><h3>${ccEsc(s.company)}</h3><small>${ccEsc(s.location)}</small></div><span class="badge ${(s.badge || "none").toLowerCase()}">${ccEsc(supplierBadge(s))}</span></div><p>${(
+      `<article class="supplier-card review-supplier-card" data-supplier-id="${ccEsc(s.id)}"><div class="supplier-top"><div class="supplier-avatar">${ccEsc(s.avatar || "CC")}</div><div><h3>${ccEsc(s.company)}</h3><small>${ccEsc(s.location)}</small></div><span class="badge ${(s.badge || "none").toLowerCase()}">${ccEsc(supplierBadge(s))}</span></div><p>${(
         s.services || []
       )
         .slice(0, 4)
         .map((x) => `<span class="chip">${ccEsc(x)}</span>`)
         .join(
           "",
-        )}</p><div class="supplier-meta">★ ${Number(s.rating || 0).toFixed(1)} · ${s.projectsCompleted || 0} projects · ${s.experience || 0}+ yrs · ${money(s.hourlyRate || 0)}/h</div>${ccReliability(s)}<div class="cc-actions"><button class="btn small outline" onclick="supplierDetail('${s.id}')">View profile</button>${customer ? `<button class="btn small primary" onclick="supplierDetail('${s.id}')">Request quote</button>` : ""}</div></article>`,
+        )}</p><div class="supplier-meta">★ ${Number(s.rating || 0).toFixed(1)} · ${s.projectsCompleted || 0} projects · ${s.experience || 0}+ yrs · ${money(s.hourlyRate || 0)}/h</div>${ccReliability(s)}${dirCardPicks(s, customer, shortlist)}<div class="cc-actions"><button class="btn small outline" onclick="supplierDetail('${s.id}')">View profile</button>${customer ? `<button class="btn small primary" onclick="supplierDetail('${s.id}')">Request quote</button>` : ""}</div></article>`,
     view = v.view || "grid",
     listing =
       view === "map"
@@ -678,10 +691,10 @@ async function renderSuppliers() {
     ? dashboardShell(
         "customer",
         "suppliers",
-        `<div class="cc-page"><div class="page-head"><div><div class="eyebrow">SUPPLIER DIRECTORY</div><h1>Find the right industrial specialist.</h1><p>Explore service, workforce, certifications, rate and location.</p></div></div>${form}<div class="review-directory-toolbar"><span>${rows.length} suppliers found</span><div class="cc-actions">${["grid", "list", "map"].map((x) => `<button class="btn small ${view === x ? "primary" : "outline"}" onclick="ccSupplierView('${x}')">${x[0].toUpperCase() + x.slice(1)}</button>`).join("")}</div></div>${listing}</div>`,
+        `<div class="cc-page"><div class="page-head"><div><div class="eyebrow">SUPPLIER DIRECTORY</div><h1>Find the right industrial specialist.</h1><p>Explore service, workforce, certifications, rate and location.</p></div></div>${form}<div class="review-directory-toolbar"><span>${rows.length} suppliers found</span><div class="cc-actions">${["grid", "list", "map"].map((x) => `<button class="btn small ${view === x ? "primary" : "outline"}" onclick="ccSupplierView('${x}')">${x[0].toUpperCase() + x.slice(1)}</button>`).join("")}</div></div>${dirRegionNotice(directory.region)}${listing}${dirBarHtml()}</div>`,
       )
     : publicLayout(
-        `<div class="cc-page"><div class="page-head"><div><div class="eyebrow">SUPPLIER DIRECTORY</div><h1>Find the right industrial specialist.</h1><p>Explore service, workforce, certifications, rate and location.</p></div></div>${form}<div class="review-directory-toolbar"><span>${rows.length} suppliers found</span><div class="cc-actions">${["grid", "list", "map"].map((x) => `<button class="btn small ${view === x ? "primary" : "outline"}" onclick="ccSupplierView('${x}')">${x[0].toUpperCase() + x.slice(1)}</button>`).join("")}</div></div>${listing}</div>`,
+        `<div class="cc-page"><div class="page-head"><div><div class="eyebrow">SUPPLIER DIRECTORY</div><h1>Find the right industrial specialist.</h1><p>Explore service, workforce, certifications, rate and location.</p></div></div>${form}<div class="review-directory-toolbar"><span>${rows.length} suppliers found</span><div class="cc-actions">${["grid", "list", "map"].map((x) => `<button class="btn small ${view === x ? "primary" : "outline"}" onclick="ccSupplierView('${x}')">${x[0].toUpperCase() + x.slice(1)}</button>`).join("")}</div></div>${dirRegionNotice(directory.region)}${listing}${dirBarHtml()}</div>`,
       );
   document.getElementById("ccSupplierSearch").onsubmit = (e) => {
     e.preventDefault();
@@ -694,7 +707,10 @@ async function renderSuppliers() {
       rating: document.getElementById("ccRating")?.value || "",
       maxRate: document.getElementById("ccRate")?.value || "",
       experience: document.getElementById("ccExperience")?.value || "",
-      cert: document.getElementById("ccCert")?.value || "",
+      certs: [...document.querySelectorAll('input[name="ccCerts"]:checked')].map((x) => x.value).join(","),
+      near: document.getElementById("ccNear")?.value.trim() || "",
+      radius: document.getElementById("ccRadius")?.value || "100",
+      shortlist: document.getElementById("ccShortlistOnly")?.checked ? "1" : "",
       sort: document.getElementById("ccSort")?.value || "relevance",
       view,
     });

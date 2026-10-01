@@ -167,7 +167,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 **Wave 5 — marketplace features from competitors (P2)**
 - [x] T60 Automatic VAT ID check (EU VIES) and insurance limit check in vetting · M
 - [x] T61 Public reliability metrics on supplier profiles · S
-- [ ] T62 Directory: certification and region filters, compare, shortlist, quote request to several suppliers · M
+- [x] T62 Directory: certification and region filters, compare, shortlist, quote request to several suppliers · M
 - [ ] T63 Acceptance report (Abnahmeprotokoll) with signature and PDF · M
 - [ ] T64 Punch list (defects) per task · M
 - [ ] T65 Daily site report per task with photos · M
@@ -1238,9 +1238,9 @@ and send **one** request to a shortlist. Cosuno does the same for tenders.
 4. The shortlist is kept per customer (`user.shortlist`).
 
 **Done when.**
-- [ ] The filters work together.
-- [ ] Comparing 3 suppliers works.
-- [ ] One request reaches 3 suppliers (test on the API part).
+- [x] The filters work together.
+- [x] Comparing 3 suppliers works.
+- [x] One request reaches 3 suppliers (test on the API part).
 
 ### T63 · Acceptance report (Abnahmeprotokoll) with signature and PDF
 `P2 · M · cheap model OK`
