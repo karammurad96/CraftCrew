@@ -484,8 +484,44 @@ aqHtml = function (d) {
       `<section class="ds-pay-card" data-ds-fill="pay"><span class="ds-ui">Paid this year</span><b>—</b><small></small></section><div class="ds-card ds-crew" data-ds-fill="crew"><div class="ds-crew-head"><h3 class="ds-ui">Crew this week</h3><a href="#/supplier/planning">Planner ›</a></div><div class="ds-crew-grid"></div><span class="ds-crew-legend ds-ui">Blue job · teal site visit · orange absence</span></div>`,
     );
   }
+  if (role === "admin") {
+    dsDashHeader("Admin", dsDecisionLine(d.total || items.length));
+    return dsDashBase(
+      `<h2 class="ds-dash-h ds-ui">Needs your decision</h2><div class="ds-card ds-dec-list">${
+        items.length
+          ? items
+              .map((x) =>
+                dsRow(
+                  x.kind,
+                  x.text,
+                  [x.sub, x.amount ? money(x.amount) : ""].filter(Boolean).join(" · "),
+                  x.link,
+                  dsBtn(x.action || "Open", x.link),
+                ),
+              )
+              .join("")
+          : dsCaughtUp(d)
+      }</div>`,
+      `<h2 class="ds-dash-h ds-ui">At a glance</h2><div class="ds-card ds-glance" data-ds-fill="stats"></div>`,
+    );
+  }
   return dsBaseAqHtml(d);
 };
+/* Admin (T97): "At a glance" shows today's statistics row (users, live suppliers, projects, invoice volume). */
+function dsFillAdminSide(root) {
+  const glance = root.querySelector('.ds-glance[data-ds-fill="stats"]:not([data-ds])'),
+    stats = root.querySelector(".dashboard-content > .stats");
+  if (!glance || !stats) return;
+  glance.dataset.ds = "1";
+  glance.innerHTML = [...stats.children]
+    .slice(0, 4)
+    .map((cell) => {
+      const label = cell.querySelector("span, .cc-label"),
+        value = cell.querySelector("strong, b");
+      return dsGlanceCell(esc(dsText(label)), esc(dsText(value)));
+    })
+    .join("");
+}
 /* Supplier (T96): the newest invitation as a card with its facts and the answer buttons */
 // "24 Sep – 11 Oct" in the interface language (the year only when it is not this year)
 function dsShortRange(a, b) {
@@ -661,6 +697,7 @@ function dsEnhanceDashboard(root) {
   if (!/^#\/(customer|supplier|admin)\/dashboard/.test(location.hash)) return;
   dsFillCustomerSide(root);
   dsFillSupplierSide(root);
+  dsFillAdminSide(root);
   // "Customize" stays next to the main button as a quiet grey text button
   root.querySelector(".ds-dash-top .lc-toggle")?.classList.add("ds-quiet");
 }

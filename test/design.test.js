@@ -219,6 +219,25 @@ describe("design 2026", () => {
       assert.ok(de.includes(p.replace(/\\\\/g, "\\")), `no German for ${p}`);
   });
 
+  it("gives the admin dashboard the same decision list and German labels (T97)", () => {
+    const ctx = loadScreens({ state: { user: { role: "admin", name: "Admin" } } }, ["aqHtml"]);
+    const html = ctx.aqHtml({
+      items: [
+        { kind: "application", text: "Vet application: NordWerk", sub: "New", link: "/admin/applications", action: "Review" },
+        { kind: "payment", text: "Mark invoice 2026-0001 as paid", sub: "Due 2026-10-04", link: "/admin/billing", action: "Record", amount: 32000 },
+      ],
+      total: 2,
+    });
+    assert.match(html, /Needs your decision/);
+    assert.match(html, /href="#\/admin\/applications"[^>]*>Review</);
+    assert.match(html, /href="#\/admin\/billing"[^>]*>Record</);
+    assert.match(html, /data-ds-fill="stats"/);
+    assert.match(html, /More on your dashboard/);
+    const de = read("i18n.js");
+    for (const k of ['"Live suppliers"', '"Invoice volume"', '"At a glance"'])
+      assert.ok(de.includes(k), `no German for ${k}`);
+  });
+
   it("uses a new service worker cache so installed apps load the new files", () => {
     assert.match(read("sw.js"), /const CACHE = "craftcrew-shell-v2"/);
   });
