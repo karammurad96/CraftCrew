@@ -785,3 +785,10 @@ label.btn.ui-btn-gap {
     font-size: 13px;
   }
 }
+
+/* Sidebar top: logo, wordmark and bell fit side by side without overlapping */
+.ui-side-top { gap: 6px; margin-right: 0; }
+.ui-side-top .side-brand { gap: 6px; flex: 1 1 auto; overflow: hidden; }
+.ui-side-top .brand-mark { width: 30px !important; height: 30px !important; flex: 0 0 30px; }
+.ui-side-top .brand-word { font-size: 17px !important; white-space: nowrap; letter-spacing: -0.01em; }
+.ui-side-top .ui-bell { flex: 0 0 34px; width: 34px; height: 34px; }

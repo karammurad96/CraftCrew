@@ -1906,9 +1906,59 @@ const I18N_CM_PATTERNS = [
   [/^Safety briefing · (.+)$/, "Sicherheitsunterweisung · $1"],
   [/^posted from abroad \(A1 needed\)$/, "aus dem Ausland entsandt (A1 nötig)"],
 ];
+// Task and phase invitations
+Object.assign(I18N_DE, {
+  "Waiting for your answer": "Wartet auf Ihre Antwort",
+  "The customer has invited you. Nothing starts until you accept — declined work goes back to the customer.":
+    "Der Kunde hat Sie eingeladen. Erst nach Ihrer Zusage beginnt die Arbeit – abgelehnte Aufträge gehen an den Kunden zurück.",
+  "Answer new invitations, then report progress, documents and invoices on the work you accepted.":
+    "Beantworten Sie neue Einladungen und melden Sie dann Fortschritt, Dokumente und Rechnungen für angenommene Arbeiten.",
+  "Accepted work": "Angenommene Arbeiten",
+  "Task invitation": "Aufgabeneinladung",
+  "Phase invitation": "Phaseneinladung",
+  "Order value": "Auftragswert",
+  Invited: "Eingeladen",
+  "Not set": "Nicht festgelegt",
+  "Accept task": "Aufgabe annehmen",
+  "Accept phase": "Phase annehmen",
+  "Decline task": "Aufgabe ablehnen",
+  "View project": "Projekt ansehen",
+  "No accepted work yet. Answer an invitation above or browse task bids.":
+    "Noch keine angenommenen Arbeiten. Beantworten Sie oben eine Einladung oder sehen Sie sich Ausschreibungen an.",
+  "Decline this task? You can tell the customer why (optional).":
+    "Diese Aufgabe ablehnen? Sie können dem Kunden den Grund nennen (optional).",
+  "Decline this phase invitation?": "Diese Phaseneinladung ablehnen?",
+  "Task accepted — it is now in your assigned work": "Aufgabe angenommen – sie steht jetzt bei Ihren Aufträgen",
+  "Phase accepted": "Phase angenommen",
+  "Invitation declined": "Einladung abgelehnt",
+  "Awaiting acceptance": "Wartet auf Zusage",
+  "Withdraw invitation": "Einladung zurückziehen",
+  Withdraw: "Zurückziehen",
+  "Withdraw this invitation? The supplier is told and the task is free again.":
+    "Einladung zurückziehen? Der Lieferant wird informiert und die Aufgabe ist wieder frei.",
+  "Invitation withdrawn": "Einladung zurückgezogen",
+  "You are invited to this task. Accept it to start reporting progress.":
+    "Sie sind zu dieser Aufgabe eingeladen. Nehmen Sie sie an, um Fortschritte zu melden.",
+  "The supplier receives an invitation and has to accept it before the task starts.":
+    "Der Lieferant erhält eine Einladung und muss sie annehmen, bevor die Aufgabe beginnt.",
+  "Invitation sent — waiting for the supplier to accept": "Einladung gesendet – wartet auf die Zusage des Lieferanten",
+  "The supplier has not accepted this task yet. Wait for the answer or withdraw the invitation.":
+    "Der Lieferant hat diese Aufgabe noch nicht angenommen. Warten Sie die Antwort ab oder ziehen Sie die Einladung zurück.",
+  "Accept the invitation before invoicing this work.": "Nehmen Sie die Einladung an, bevor Sie diese Arbeit abrechnen.",
+  "This invitation has already been answered.": "Diese Einladung wurde bereits beantwortet.",
+  "There is no open invitation on this task.": "Für diese Aufgabe gibt es keine offene Einladung.",
+});
 const I18N_STATUS = { ...I18N_DE, Open: "Offen", Completed: "Abgeschlossen", Paid: "Bezahlt", New: "Neu" };
 const I18N_PATTERNS = [
   ...I18N_CM_PATTERNS,
+  [/^Invitation sent to (.+) on (.+)\. Work, time sheets and invoices start once they accept\.$/, "Einladung an $1 am $2 gesendet. Arbeit, Zeitnachweise und Rechnungen beginnen nach der Zusage."],
+  [/^(.+) declined this task: “(.+)” Choose another supplier or request bids\.$/, "$1 hat diese Aufgabe abgelehnt: „$2“ Wählen Sie einen anderen Lieferanten oder holen Sie Angebote ein."],
+  [/^(.+) declined this task\. Choose another supplier or request bids\.$/, "$1 hat diese Aufgabe abgelehnt. Wählen Sie einen anderen Lieferanten oder holen Sie Angebote ein."],
+  [/^Task invitation · (.+)$/, "Aufgabeneinladung · $1"],
+  [/^Phase invitation · (.+)$/, "Phaseneinladung · $1"],
+  [/^Phase invitation: (.+)$/, "Phaseneinladung: $1"],
+  [/^(.+) is already invited and has not answered yet\.$/, "$1 ist bereits eingeladen und hat noch nicht geantwortet."],
+  [/^(.+) already accepted this task\.$/, "$1 hat diese Aufgabe bereits angenommen."],
   [/^(\d+) person\(s\) planned$/, "$1 Person(en) eingeplant"],
   [/^Valid until (.+)$/, "Gültig bis $1"],
   [/^Expires (.+)$/, "Läuft ab $1"],

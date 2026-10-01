@@ -67,7 +67,7 @@ module.exports = function createPlanning(ctx) {
         for (const t of ph.tasks || [])
           if (
             t.assignedSupplierId === user.supplierId &&
-            t.acceptanceStatus !== "Declined" &&
+            t.acceptanceStatus === "Accepted" &&
             t.status !== "Completed"
           )
             out.push({

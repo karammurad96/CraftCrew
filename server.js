@@ -4410,10 +4410,25 @@ async function api(req, res, url) {
       if (user.role === "supplier") {
         const sid = user.supplierId;
         for (const p of db.projects)
-          for (const ph of p.phases || [])
+          for (const ph of p.phases || []) {
+            if (ph.supplierId === sid && ph.acceptanceStatus === "Pending")
+              add(
+                "invitation",
+                `Phase invitation: ${ph.name}`,
+                p.name,
+                `/supplier/projects?invite=${ph.id}`,
+                "Respond",
+              );
             for (const t of ph.tasks || [])
               if (t.assignedSupplierId === sid && t.acceptanceStatus === "Pending")
-                add("invitation", `Task invitation: ${t.name}`, p.name, "/supplier/projects", "Respond");
+                add(
+                  "invitation",
+                  `Task invitation: ${t.name}`,
+                  p.name,
+                  `/supplier/projects?invite=${t.id}`,
+                  "Respond",
+                );
+          }
         for (const b of (db.bids || []).filter(
           (b) =>
             b.status === "Open" &&
@@ -4888,6 +4903,20 @@ async function api(req, res, url) {
           amountError(b.orderAmount, "The order amount") ||
           dependenciesError(b.dependencies, p);
         if (invalid) return (send(res, 400, { error: invalid }), true);
+        // An invited supplier has not agreed yet, so the work cannot be started or finished.
+        if (
+          t.assignedSupplierId &&
+          t.acceptanceStatus === "Pending" &&
+          b.status &&
+          b.status !== t.status &&
+          b.status !== "Not Started"
+        )
+          return (
+            send(res, 409, {
+              error: "The supplier has not accepted this task yet. Wait for the answer or withdraw the invitation.",
+            }),
+            true
+          );
         Object.assign(t, {
           name: b.name !== undefined ? cleanStr(b.name, 160) : t.name,
           description: b.description ?? t.description,
@@ -4997,12 +5026,58 @@ async function api(req, res, url) {
           params: { task: t.name },
         });
       }
+      if (t.assignedSupplierId === s.id && ["Pending", "Accepted"].includes(t.acceptanceStatus))
+        return (
+          send(res, 409, {
+            error:
+              t.acceptanceStatus === "Accepted"
+                ? `${s.company} already accepted this task.`
+                : `${s.company} is already invited and has not answered yet.`,
+          }),
+          true
+        );
+      // An invitation only: the supplier must accept before work, time or invoices can start.
       t.assignedSupplierId = s.id;
       t.acceptanceStatus = "Pending";
+      t.invitedAt = now();
       t.status = "Not Started";
       t.assignmentHistory.push({ supplierId: s.id, company: s.company, status: "Invited", at: now() });
-      const su = db.users.find((x) => x.supplierId === s.id);
-      notify(su?.id, { key: "taskInvitation", params: { task: t.name, project: p.name } });
+      for (const su of db.users.filter((x) => x.supplierId === s.id && !x.orgOwnerId))
+        notify(
+          su.id,
+          { key: "taskInvitation", params: { task: t.name, project: p.name } },
+          `/supplier/projects?invite=${t.id}`,
+        );
+      activity(user, `Invited ${s.company} to ${t.name}`);
+      save();
+      return (send(res, 200, { task: t }), true);
+    }
+    // The customer takes back an invitation the supplier has not answered yet.
+    if (
+      parts[1] === "projects" &&
+      parts[3] === "tasks" &&
+      parts[4] &&
+      parts[5] === "withdraw" &&
+      method === "POST"
+    ) {
+      const p = projectFor(user, parts[2]),
+        found =
+          p &&
+          p.phases.flatMap((ph) => (ph.tasks || []).map((t) => ({ ph, t }))).find((x) => x.t.id === parts[4]);
+      if (!p || user.role !== "customer" || !found)
+        return (send(res, 404, { error: "Task not found" }), true);
+      const { t } = found;
+      if (t.acceptanceStatus !== "Pending" || !t.assignedSupplierId)
+        return (send(res, 409, { error: "There is no open invitation on this task." }), true);
+      const prior = db.suppliers.find((x) => x.id === t.assignedSupplierId),
+        last = t.assignmentHistory?.at(-1);
+      if (last) last.status = "Withdrawn";
+      notify(db.users.find((x) => x.supplierId === t.assignedSupplierId && !x.orgOwnerId)?.id, {
+        key: "taskInvitationWithdrawn",
+        params: { task: t.name },
+      });
+      Object.assign(t, { assignedSupplierId: null, acceptanceStatus: "Unassigned", invitedAt: null });
+      activity(user, `Withdrew the invitation of ${prior?.company || "a supplier"} for ${t.name}`);
       save();
       return (send(res, 200, { task: t }), true);
     }
@@ -5021,14 +5096,21 @@ async function api(req, res, url) {
         return (send(res, 403, { error: "This task invitation is not assigned to you" }), true);
       const b = await body(req),
         { t } = found;
+      if (t.acceptanceStatus !== "Pending")
+        return (send(res, 409, { error: "This invitation has already been answered." }), true);
+      const reason = String(b.reason || "")
+        .trim()
+        .slice(0, 500);
       t.acceptanceStatus = b.accept ? "Accepted" : "Declined";
       t.status = b.accept ? "In Progress" : "Not Started";
+      if (b.accept) t.acceptedAt = now();
       if (!b.accept) t.assignedSupplierId = null;
       const last = t.assignmentHistory?.at(-1);
-      if (last) last.status = t.acceptanceStatus;
+      if (last) Object.assign(last, { status: t.acceptanceStatus, answeredAt: now(), ...(reason ? { reason } : {}) });
       notify(
         p.customerId,
-        `${supplierForUser(user).company} ${b.accept ? "accepted" : "declined"} ${t.name}`,
+        `${supplierForUser(user).company} ${b.accept ? "accepted" : "declined"} ${t.name}${!b.accept && reason ? `: ${reason}` : ""}`,
+        `/customer/projects/${p.id}`,
       );
       save();
       return (send(res, 200, { task: t }), true);
@@ -5391,6 +5473,8 @@ async function api(req, res, url) {
       const b = await body(req);
       const ph = p.phases.find((x) => x.id === b.phaseId && x.supplierId === user.supplierId);
       if (!ph) return (send(res, 404, { error: "Invitation not found" }), true);
+      if (ph.acceptanceStatus !== "Pending")
+        return (send(res, 409, { error: "This invitation has already been answered." }), true);
       ph.acceptanceStatus = b.accept ? "Accepted" : "Declined";
       ph.status = b.accept ? "In Progress" : "Not Started";
       const last = (ph.assignmentHistory || []).at(-1);
@@ -5500,6 +5584,9 @@ async function api(req, res, url) {
         ph = p && p.phases.find((x) => x.id === b.phaseId),
         task = ph?.tasks?.find((x) => x.id === b.taskId),
         assigned = task ? task.assignedSupplierId === user.supplierId : ph?.supplierId === user.supplierId;
+      // Work that is only an invitation cannot be invoiced yet.
+      if (assigned && ["Pending", "Declined"].includes((task || ph).acceptanceStatus))
+        return (send(res, 409, { error: "Accept the invitation before invoicing this work." }), true);
       if (!p || !ph || !assigned || !b.description)
         return (
           send(res, 400, { error: "Project, assigned phase or task and description are required" }),

@@ -33,7 +33,7 @@ describe("action queue", () => {
     const sq = await queue(supplier);
     assert.deepEqual(
       sq.items.map((x) => [x.kind, x.link]),
-      [["invitation", "/supplier/projects"]],
+      [["invitation", `/supplier/projects?invite=${phase.tasks[1].id}`]],
     );
 
     const task = await assignAndAccept(app, customer, supplier, project, phase.tasks[0]);
