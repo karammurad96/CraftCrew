@@ -1,0 +1,36 @@
+/* Re-verify profile changes (reverify-ui.js). */
+.rz-panel p {
+  margin: 4px 0 10px;
+}
+.rz-rows {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+.rz-rows div {
+  display: grid;
+  grid-template-columns: minmax(110px, 180px) 1fr;
+  gap: 8px;
+}
+.rz-rows dt {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.rz-rows dd {
+  margin: 0;
+}
+.rz-list {
+  display: grid;
+  gap: 14px;
+}
+.rz-card .panel-title small {
+  color: var(--text-muted);
+}
+.rz-diff td:last-child {
+  color: #0a5c2b;
+}
+@media (max-width: 520px) {
+  .rz-rows div {
+    grid-template-columns: 1fr;
+  }
+}

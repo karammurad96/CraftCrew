@@ -36,7 +36,37 @@ const PRIVATE_SUPPLIER_FIELDS = [
   "notes",
   "internalNotes",
   "companyProfile",
+  "pendingVerification",
 ];
+// T86: company name, legal invoicing details and claimed certifications are the facts a customer actually
+// relies on, so once a supplier is live, changes to them wait for an admin to re-verify them. Everything
+// else (rates, description, team, catalog, availability) applies right away, as before.
+function reverifyProposal(s, acct, b, supplierFields) {
+  const next = {};
+  if (b.company !== undefined && String(b.company).trim() && b.company !== s.company)
+    next.company = String(b.company).trim().slice(0, 140);
+  if (b.companyProfile) {
+    const legal = {};
+    for (const k of ["legalName", "address", "taxId"]) {
+      const was = String(acct.companyProfile?.[k] || "").trim();
+      // Filling in a legal detail for the first time (application never collects these) applies right
+      // away, so a supplier can still invoice; only an already-verified detail needs re-verification.
+      if (b.companyProfile[k] !== undefined && was && String(b.companyProfile[k]) !== was)
+        legal[k] = String(b.companyProfile[k]).trim().slice(0, 300);
+    }
+    if (Object.keys(legal).length) next.companyProfile = legal;
+  }
+  // As with legal details: claiming a certification for the first time applies right away; changing an
+  // already-claimed list (a cert added or dropped) needs re-verification.
+  if (
+    supplierFields.certifications !== undefined &&
+    (s.certifications || []).length &&
+    JSON.stringify([...supplierFields.certifications].sort()) !==
+      JSON.stringify([...(s.certifications || [])].sort())
+  )
+    next.certifications = supplierFields.certifications;
+  return Object.keys(next).length ? next : null;
+}
 function publicSupplier(s) {
   const out = { ...s, reliability: sourcing.publicReliability(s.id) };
   for (const k of PRIVATE_SUPPLIER_FIELDS) delete out[k];
@@ -2965,6 +2995,9 @@ const NOTIFY_TEXT = {
     defectFixed: "Defect marked as fixed on {task}: {title}",
     defectVerified: "Defect fix accepted on {task}: {title}",
     defectReopened: "Defect reopened on {task}: {title}. {note}",
+    profileChangePending: "Profile change awaiting re-verification: {company}",
+    profileChangeApproved: "Your profile change for {company} was approved and is now live",
+    profileChangeRejected: "Your profile change for {company} was not approved. Reason: {note}",
   },
   de: {
     invoiceSubmitted: "Rechnung {number} zur Prüfung eingereicht",
@@ -3003,6 +3036,9 @@ const NOTIFY_TEXT = {
     defectFixed: "Mangel als behoben gemeldet bei {task}: {title}",
     defectVerified: "Mängelbeseitigung bestätigt bei {task}: {title}",
     defectReopened: "Mangel wieder geöffnet bei {task}: {title}. {note}",
+    profileChangePending: "Profiländerung wartet auf erneute Prüfung: {company}",
+    profileChangeApproved: "Ihre Profiländerung für {company} wurde freigegeben und ist jetzt aktiv",
+    profileChangeRejected: "Ihre Profiländerung für {company} wurde nicht freigegeben. Grund: {note}",
   },
 };
 const STATUS_DE = {
@@ -5862,6 +5898,69 @@ async function api(req, res, url) {
       }
       return (send(res, 400, { error: "Invoice is not eligible for this action" }), true);
     }
+    // T86: changes to a live supplier's company name, legal invoicing details or claimed certifications,
+    // held until an admin re-verifies them.
+    if (parts[1] === "admin" && parts[2] === "profile-changes" && !parts[3] && method === "GET") {
+      if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
+      return (
+        send(res, 200, {
+          changes: db.suppliers
+            .filter((s) => s.pendingVerification)
+            .map((s) => ({
+              supplierId: s.id,
+              company: s.company,
+              current: {
+                company: s.company,
+                companyProfile: {
+                  legalName: "",
+                  address: "",
+                  taxId: "",
+                  ...(supplierAccount(s.id)?.companyProfile || {}),
+                },
+                certifications: s.certifications || [],
+              },
+              proposed: s.pendingVerification,
+            })),
+        }),
+        true
+      );
+    }
+    if (parts[1] === "admin" && parts[2] === "profile-changes" && parts[3] && method === "PATCH") {
+      if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
+      const s = db.suppliers.find((x) => x.id === parts[3]);
+      if (!s?.pendingVerification)
+        return (send(res, 404, { error: "No pending change for this supplier" }), true);
+      const b = await body(req);
+      if (!["Approve", "Reject"].includes(b.action))
+        return (send(res, 400, { error: "Choose Approve or Reject" }), true);
+      const note = String(b.note ?? "").trim();
+      if (b.action === "Reject" && !note)
+        return (send(res, 400, { error: "Enter a reason for the supplier in the decision note." }), true);
+      const owner = supplierAccount(s.id),
+        proposal = s.pendingVerification;
+      if (b.action === "Approve") {
+        if (proposal.company) s.company = proposal.company;
+        if (proposal.companyProfile && owner) {
+          owner.companyProfile = { ...(owner.companyProfile || {}), ...proposal.companyProfile };
+          s.companyProfile = owner.companyProfile;
+          for (const member of db.users.filter((u) => u.orgOwnerId === owner.id))
+            member.companyProfile = owner.companyProfile;
+        }
+        if (proposal.certifications) s.certifications = proposal.certifications;
+      }
+      delete s.pendingVerification;
+      if (owner)
+        notify(
+          owner.id,
+          b.action === "Approve"
+            ? { key: "profileChangeApproved", params: { company: s.company } }
+            : { key: "profileChangeRejected", params: { company: s.company, note } },
+          "/supplier/profile",
+        );
+      activity(user, `${b.action === "Approve" ? "Approved" : "Rejected"} profile change for ${s.company}`);
+      save();
+      return (send(res, 200, { ok: true }), true);
+    }
     // Applications/admin
     if (parts[1] === "admin" && parts[2] === "applications" && method === "GET") {
       if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
@@ -7088,6 +7187,18 @@ async function api(req, res, url) {
       // Company data lives on the main account; a team member cannot rename the account holder.
       const acct = db.users.find((x) => x.id === user.id) || user;
       if (user.isMember) delete b.name;
+      const s = user.supplierId ? supplierForUser(user) : null;
+      if (user.supplierId && !s) return (send(res, 404, { error: "Supplier profile not found" }), true);
+      // T86: once a supplier is live, a changed company name, legal invoicing details (companyProfile's
+      // legalName/address/taxId) or claimed certifications wait for an admin to re-verify them before they
+      // show anywhere; everything else in this request still applies right away.
+      const proposal = s?.live ? reverifyProposal(s, acct, b, supplierFields) : null;
+      if (proposal) {
+        if (proposal.company) delete b.company;
+        if (proposal.companyProfile)
+          for (const k of Object.keys(proposal.companyProfile)) delete b.companyProfile[k];
+        if (proposal.certifications) delete supplierFields.certifications;
+      }
       Object.assign(acct, {
         name: b.name ?? acct.name,
         company: b.company ?? acct.company,
@@ -7099,9 +7210,7 @@ async function api(req, res, url) {
         companyProfile: acct.companyProfile,
         profileImage: acct.profileImage,
       });
-      if (user.supplierId) {
-        const s = supplierForUser(user);
-        if (!s) return (send(res, 404, { error: "Supplier profile not found" }), true);
+      if (s) {
         Object.assign(s, {
           company: b.company ?? s.company,
           location: b.location ?? s.location,
@@ -7112,12 +7221,34 @@ async function api(req, res, url) {
           companyProfile: user.companyProfile,
           profileImage: user.profileImage,
         });
+        if (proposal) {
+          // A later edit to a different field keeps an earlier pending change rather than dropping it;
+          // re-proposing the same field replaces its old proposed value.
+          const prior = s.pendingVerification || {};
+          s.pendingVerification = {
+            ...(prior.company !== undefined ? { company: prior.company } : {}),
+            ...(prior.companyProfile ? { companyProfile: prior.companyProfile } : {}),
+            ...(prior.certifications !== undefined ? { certifications: prior.certifications } : {}),
+            ...proposal,
+            ...(proposal.companyProfile
+              ? { companyProfile: { ...(prior.companyProfile || {}), ...proposal.companyProfile } }
+              : {}),
+            submittedAt: now(),
+            status: "Pending",
+          };
+          for (const admin of db.users.filter((x) => x.role === "admin"))
+            notify(
+              admin.id,
+              { key: "profileChangePending", params: { company: s.company } },
+              "/admin/profile-changes",
+            );
+        }
       }
       save();
       return (
         send(res, 200, {
           user: publicUser(user),
-          supplier: user.supplierId ? supplierForUser(user) : null,
+          supplier: s,
           companyProfile: user.companyProfile,
         }),
         true
