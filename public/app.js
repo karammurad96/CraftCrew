@@ -58,7 +58,8 @@ async function api(path, opts = {}) {
     try {
       d = await r.json();
     } catch {}
-    if (!r.ok) throw Object.assign(new Error(d.error || "Request failed"), { status: r.status });
+    if (!r.ok)
+      throw Object.assign(new Error(d.error || "Request failed"), { status: r.status, code: d.code });
     return d;
   } finally {
     if (busy) {

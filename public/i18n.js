@@ -1293,6 +1293,55 @@ Object.assign(I18N_DE, {
     "Dieses Projekt löschen? Projekte mit Rechnungen, Dokumenten oder angenommenen Lieferanten werden stattdessen archiviert.",
   "Project archived": "Projekt archiviert",
   "Please choose a new password first.": "Bitte wählen Sie zuerst ein neues Passwort.",
+  "Authentication code": "Bestätigungscode",
+  "6-digit code or recovery code": "6-stelliger Code oder Wiederherstellungscode",
+  "Admin accounts need two-factor sign-in. Turn it on to continue.":
+    "Admin-Konten brauchen die Zwei-Faktor-Anmeldung. Schalten Sie sie ein, um fortzufahren.",
+  "Two-factor sign-in": "Zwei-Faktor-Anmeldung",
+  Off: "Aus",
+  "Signing in needs your password and a code from your authenticator app.":
+    "Zur Anmeldung brauchen Sie Ihr Passwort und einen Code aus Ihrer Authenticator-App.",
+  "Protect your account with a second step: a 6-digit code from an authenticator app such as Microsoft Authenticator, Google Authenticator or 1Password.":
+    "Schützen Sie Ihr Konto mit einem zweiten Schritt: einem 6-stelligen Code aus einer Authenticator-App wie Microsoft Authenticator, Google Authenticator oder 1Password.",
+  "Recovery codes left:": "Verbleibende Wiederherstellungscodes:",
+  "Admin accounts must use two-factor sign-in.": "Admin-Konten müssen die Zwei-Faktor-Anmeldung nutzen.",
+  "Turn on": "Einschalten",
+  "Require two-factor sign-in for all admin accounts":
+    "Zwei-Faktor-Anmeldung für alle Admin-Konten verlangen",
+  "Turn on two-factor sign-in": "Zwei-Faktor-Anmeldung einschalten",
+  "Open your authenticator app and add an account.":
+    "Öffnen Sie Ihre Authenticator-App und fügen Sie ein Konto hinzu.",
+  "Open in authenticator app": "In der Authenticator-App öffnen",
+  "If you can't scan or open the link, enter this key by hand:":
+    "Wenn Sie den Link nicht öffnen können, geben Sie diesen Schlüssel von Hand ein:",
+  "Time-based, 6 digits, every 30 seconds.": "Zeitbasiert, 6 Ziffern, alle 30 Sekunden.",
+  "Enter the 6-digit code the app shows.": "Geben Sie den 6-stelligen Code aus der App ein.",
+  "Code from the app": "Code aus der App",
+  "Save your recovery codes": "Speichern Sie Ihre Wiederherstellungscodes",
+  "Each code signs you in once if you lose your phone. Store them somewhere safe, like a password manager. They are shown only now.":
+    "Jeder Code meldet Sie einmal an, falls Sie Ihr Telefon verlieren. Bewahren Sie sie sicher auf, etwa in einem Passwortmanager. Sie werden nur jetzt angezeigt.",
+  "Download as text file": "Als Textdatei herunterladen",
+  "I saved them": "Ich habe sie gespeichert",
+  "Turn off two-factor sign-in": "Zwei-Faktor-Anmeldung ausschalten",
+  "Code from the app or a recovery code": "Code aus der App oder ein Wiederherstellungscode",
+  "Two-factor sign-in turned off": "Zwei-Faktor-Anmeldung ausgeschaltet",
+  "Two-factor sign-in is now required for admins": "Zwei-Faktor-Anmeldung ist jetzt für Admins Pflicht",
+  "Requirement turned off": "Pflicht ausgeschaltet",
+  "Enter the 6-digit code from your authenticator app, or a recovery code.":
+    "Geben Sie den 6-stelligen Code aus Ihrer Authenticator-App oder einen Wiederherstellungscode ein.",
+  "That code is not right. Check the time on your phone and try again.":
+    "Der Code stimmt nicht. Prüfen Sie die Uhrzeit auf Ihrem Telefon und versuchen Sie es erneut.",
+  "Turn the admin two-factor requirement on or off":
+    "Schalten Sie die Zwei-Faktor-Pflicht für Admins ein oder aus",
+  "Turn on two-factor sign-in for your own account first.":
+    "Schalten Sie zuerst die Zwei-Faktor-Anmeldung für Ihr eigenes Konto ein.",
+  "Two-factor sign-in is already on. Turn it off first to set it up again.":
+    "Die Zwei-Faktor-Anmeldung ist schon an. Schalten Sie sie zuerst aus, um sie neu einzurichten.",
+  "Start the setup again; it expires after 15 minutes.":
+    "Starten Sie die Einrichtung neu; sie läuft nach 15 Minuten ab.",
+  "Two-factor sign-in is required for admin accounts.":
+    "Die Zwei-Faktor-Anmeldung ist für Admin-Konten Pflicht.",
+  "Your password is incorrect": "Ihr Passwort ist falsch",
   Calendar: "Kalender",
   On: "An",
   "Task due dates, phase dates, bid deadlines, contract notice dates and approved site visits appear in your own calendar as all-day events.":
@@ -1854,6 +1903,7 @@ const I18N_PATTERNS = [
   [/^(\d+)% left$/, "$1 % übrig"],
   [/^Showing the latest (\d+)$/, "Die neuesten $1"],
   [/^Overdue: (.+)$/, "Überfällig: $1"],
+  [/^Recovery code used\. (\d+) left\.$/, "Wiederherstellungscode verwendet. Noch $1 übrig."],
   [
     /^A calendar link was created on (.+)\. For safety it is only shown once\. Create a new link if you need it again; the old one then stops working\.$/,
     "Am $1 wurde ein Kalenderlink erstellt. Aus Sicherheitsgründen wird er nur einmal angezeigt. Erstellen Sie bei Bedarf einen neuen Link; der alte funktioniert dann nicht mehr.",
