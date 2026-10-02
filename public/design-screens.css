@@ -2580,3 +2580,229 @@ html body .ds-inv-row .btn.secondary {
     display: none;
   }
 }
+
+/* ---------- Phone: bottom bar and "Today" (T102, board PhoneToday) ---------- */
+html body .ds-today {
+  display: none;
+}
+@media (max-width: 640px) {
+  html body .app-shell,
+  html body .app-shell .dashboard-content {
+    background: var(--cc-page-phone);
+  }
+  html body .mnav-bottom {
+    padding: 6px 4px calc(4px + env(safe-area-inset-bottom));
+    background: rgba(249, 249, 249, 0.94);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: none;
+  }
+  html body .mnav-bottom a,
+  html body .mnav-bottom button {
+    gap: 3px;
+    color: var(--cc-muted);
+    font-size: 11px;
+    font-weight: 500;
+  }
+  html body .mnav-bottom svg {
+    width: 24px;
+    height: 24px;
+  }
+  html body .mnav-bottom a.active {
+    background: none;
+    color: var(--cc-blue);
+  }
+  /* Supplier "Today" */
+  html body .ds-today {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    margin: 0 0 22px !important;
+  }
+  html body .dashboard-content > .ds-today + .dash-top > div:first-child {
+    display: none;
+  }
+  html body .ds-today-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 4px 0;
+  }
+  html body .ds-today-date {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--cc-muted);
+  }
+  html body .ds-today-head .ds-today-title {
+    margin: 2px 0 0 !important;
+    font-size: 34px !important;
+    font-weight: 700;
+    letter-spacing: -0.02em !important;
+  }
+  html body .ds-today-me {
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--cc-blue);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  html body .ds-visit {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+    border-radius: 22px;
+    background: var(--cc-navy);
+    color: #fff;
+  }
+  html body .ds-visit > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+  html body .ds-visit-kicker {
+    font-size: 13px;
+    font-weight: 600;
+    color: #93c5fd;
+  }
+  html body .ds-visit b {
+    font-size: 20px;
+    font-weight: 700;
+  }
+  html body .ds-visit > div > span:last-child {
+    font-size: 14px;
+    color: #c7d2e0;
+  }
+  html body .ds-visit-btn {
+    height: 50px;
+    border: 0;
+    border-radius: 14px;
+    background: #fff;
+    color: var(--cc-navy);
+    font: inherit;
+    font-size: 17px;
+    font-weight: 600;
+  }
+  html body .ds-today-jobs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  html body .ds-today-label {
+    padding-left: 16px;
+    font-size: 13px;
+    text-transform: uppercase;
+    color: var(--cc-muted);
+  }
+  html body .ds-today-list {
+    overflow: hidden;
+    border-radius: 14px;
+    background: #fff;
+  }
+  html body .ds-today-list a {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 16px;
+    color: var(--cc-text);
+    position: relative;
+  }
+  html body .ds-today-list a + a::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 16px;
+    right: 0;
+    height: 1px;
+    background: rgba(60, 60, 67, 0.12);
+  }
+  html body .ds-today-list a span {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  html body .ds-today-list b {
+    font-size: 17px;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  html body .ds-today-list small {
+    font-size: 13px;
+    color: var(--cc-muted);
+  }
+  html body .ds-today-list i {
+    font-style: normal;
+    font-size: 20px;
+    color: #c7c7cc;
+  }
+  html body .ds-today-list .ds-week-none {
+    padding: 14px 16px;
+  }
+  html body .ds-quicks {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  html body .ds-quick {
+    min-height: 86px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 14px;
+    border: 0;
+    border-radius: 18px;
+    background: #fff;
+    color: var(--cc-blue);
+    font: inherit;
+    cursor: pointer;
+  }
+  html body .ds-quick svg {
+    width: 24px;
+    height: 24px;
+  }
+  html body .ds-quick span {
+    color: var(--cc-text);
+    font-size: 15px;
+    font-weight: 600;
+  }
+  html body .ds-quick-orange {
+    color: var(--cc-orange);
+  }
+}
+html body .ds-job-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+html body .ds-job-pick-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--cc-page);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+html body .ds-job-pick-row span {
+  font-size: 13px;
+  color: var(--cc-muted);
+}
