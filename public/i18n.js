@@ -2629,7 +2629,7 @@ function i18nApply(root = document.body) {
         !p ||
         !n.nodeValue.trim() ||
         p.closest(
-          "script, style, textarea, code, pre, [contenteditable], [data-no-i18n], .cc-chat-bubble p, .legal-body, .sr-note p, input",
+          "script, style, textarea, code, pre, [contenteditable], [data-no-i18n], [data-i18n=keys], .cc-chat-bubble p, .legal-body, .sr-note p, input",
         )
       )
         return NodeFilter.FILTER_REJECT;
@@ -2646,7 +2646,7 @@ function i18nApply(root = document.body) {
     }
   }
   for (const el of root.querySelectorAll("[placeholder], [title], [aria-label]"))
-    for (const attr of ["placeholder", "title", "aria-label"]) {
+    for (const attr of el.closest("[data-i18n=keys]") ? [] : ["placeholder", "title", "aria-label"]) {
       const v = el.getAttribute(attr);
       if (!v) continue;
       const t = v.trim(),
