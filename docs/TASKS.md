@@ -191,7 +191,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T122 GDPR: the deletion job (anonymise after 14 days, keep invoices 10 years) · M
 - [x] T123 GDPR: privacy policy text and admin view of deletions · S
 - [x] T124 Cookie sessions with CSRF protection instead of the localStorage token · M
-- [ ] T125 Frontend foundation: translation keys `t()`, `data-action` handlers, area modules, one route table · M
+- [x] T125 Frontend foundation: translation keys `t()`, `data-action` handlers, area modules, one route table · M
 - [ ] T126 Area: public pages, sign-in and sign-up · M
 - [ ] T127 Area: dashboards, sidebar, notifications and phone bar · M
 - [ ] T128 Area: projects, workspace, board and documents · L (split into two PRs if needed)
