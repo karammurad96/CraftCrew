@@ -2,8 +2,10 @@
 // Usage: node tools/audit/controls.js <base-url> <out.json>
 //   Run it against main and against your branch (each on a FRESH demo data folder, so both have the same data),
 //   then compare:  node tools/audit/controls.js --diff main.json branch.json
-// A control counts as the same when it does the same thing: same link target, same onclick code, same form or
-// field name. Hidden controls (closed tabs, collapsed menus) still count, because they are still reachable.
+// A control counts as the same when it does the same thing: same link target, same onclick code (or data-action
+// name), same form or field name. Hidden controls (closed tabs, collapsed menus) still count, because they are
+// still reachable. When a page moves to data-action handlers (T125–T135), tools/audit/control-map.json says which
+// new action replaces which old onclick code, so the diff still proves each one exists.
 const fs = require("fs");
 
 // Two demo servers create different random ids and timestamps; a button and a link to the same page do
@@ -17,10 +19,12 @@ const canon = (c) =>
 
 if (process.argv[2] === "--diff") {
   const [a, b] = process.argv.slice(3).map((f) => JSON.parse(fs.readFileSync(f, "utf8")));
+  const MAP = JSON.parse(fs.readFileSync(require("path").join(__dirname, "control-map.json"), "utf8"));
+  const moved = (c) => MAP[c] || c;
   let missing = 0;
   for (const page of Object.keys(a)) {
     const have = new Set((b[page] || []).map(canon));
-    const lost = [...new Set(a[page].map(canon))].filter((c) => !have.has(c));
+    const lost = [...new Set(a[page].map(canon).map(moved))].filter((c) => !have.has(c));
     if (!b[page]) console.log(`\n${page}: PAGE MISSING on the second run`);
     else if (lost.length) console.log(`\n${page}:\n  - ${lost.join("\n  - ")}`);
     missing += lost.length;
@@ -57,7 +61,7 @@ function inventory() {
       .trim();
   const out = new Set();
   for (const el of document.querySelectorAll(
-    "#app a[href], #app button, #app [onclick], #app summary, #app form, #app input, #app select, #app textarea, header.topbar a[href], header.topbar button",
+    "#app a[href], #app button, #app [onclick], #app [data-action], #app summary, #app form, #app input, #app select, #app textarea, header.topbar a[href], header.topbar button",
   )) {
     const tag = el.tagName.toLowerCase();
     if (tag === "a" && el.getAttribute("href")) {
@@ -65,6 +69,7 @@ function inventory() {
       if (href === "#" || href.startsWith("javascript:")) continue;
       out.add(`link ${href}`);
     } else if (el.getAttribute("onclick")) out.add(`action ${norm(el.getAttribute("onclick"))}`);
+    else if (el.dataset.action && tag !== "form") out.add(`action [${el.dataset.action}]`);
     else if (tag === "form")
       out.add(
         `form ${

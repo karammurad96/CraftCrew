@@ -900,53 +900,6 @@ function wfAddServiceRow() {
 function wfAddTeamRow() {
   document.getElementById("wfTeamRows")?.insertAdjacentHTML("beforeend", wfTeamRow());
 }
-function sidebar(role, active) {
-  const links =
-    role === "customer"
-      ? [
-          ["dashboard", "Dashboard"],
-          ["projects", "Projects"],
-          ["offers", "Offers overview"],
-          ["suppliers", "Find Suppliers"],
-          ["preferred", "Preferred suppliers"],
-          ["invoices", "Invoices"],
-          ["messages", "Messages"],
-          ["profile", "Profile / Settings"],
-        ]
-      : role === "supplier"
-        ? [
-            ["dashboard", "Dashboard"],
-            ["phases", "Assigned work"],
-            ["bids", "Bid opportunities"],
-            ["requests", "Quote Requests"],
-            ["projects", "Projects"],
-            ["invoices", "Invoices"],
-            ["suppliers", "Service Catalog"],
-            ["messages", "Messages"],
-            ["profile", "Profile / Billing"],
-          ]
-        : [
-            ["dashboard", "Admin Dashboard"],
-            ["applications", "Vetting Queue"],
-            ["profile-changes", "Profile changes"],
-            ["users", "Users"],
-            ["billing", "Payments & Billing"],
-            ["reports", "Reports & Analytics"],
-            ["disputes", "Escalations"],
-            ["profile", "Settings"],
-          ];
-  return `<aside class="sidebar"><div class="brand side-brand"><span class="brand-mark" role="img" aria-label="CraftCrew logo"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M14 50C24 42 40 22 50 14"/><circle cx="14" cy="50" r="8.5"/><circle cx="50" cy="14" r="8.5"/></svg></span><span class="brand-word">Craft<span>Crew</span></span></div><button class="user-mini wf-user-link" onclick="navigate('/${role}/profile')"><div class="avatar">${
-    state.user?.profileImage
-      ? `<img src="${esc(state.user?.profileImage)}" alt="">`
-      : esc(
-          (state.user?.name || "U")
-            .split(" ")
-            .map((x) => x[0])
-            .join("")
-            .slice(0, 2),
-        )
-  }</div><div><b>${esc(state.user?.name)}</b><small>${esc(state.user?.company || role)} · Profile</small></div></button><nav>${links.map(([k, t]) => `<a class="${active === k ? "active" : ""}" href="#/${role}/${k}">${t}</a>`).join("")}</nav><div class="help">Industrial services, coordinated end-to-end.<br><button class="btn small ghost" onclick="navigate('/faq')">Help & FAQ</button><button class="btn small danger" style="margin-top:8px;width:100%" onclick="logout()">Log out</button></div></aside>`;
-}
 const wfOldRoute = async () => {
   const h = (location.hash.replace(/^#/, "") || "/").split("?")[0] || "/",
     parts = h.split("?")[0].split("/").filter(Boolean);

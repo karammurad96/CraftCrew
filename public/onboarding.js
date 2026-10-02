@@ -205,13 +205,6 @@ window.route = async function () {
     // Company setup belongs to the main account, not to invited team members.
     if (state.user?.isMember) return result;
     if (state.user && /^\/(customer|supplier|admin)\/dashboard$/.test(path)) await obChecklist();
-    // Re-open the checklist from the sidebar help area.
-    const help = document.querySelector(".sidebar .help");
-    if (help && !help.querySelector(".ob-reopen"))
-      help.insertAdjacentHTML(
-        "beforeend",
-        `<button type="button" class="ui-link-btn ob-reopen" onclick="obShow()" ${obShow.allDone ? "hidden" : ""}>Getting started checklist</button>`,
-      );
   } catch (e) {
     console.error(e);
   }

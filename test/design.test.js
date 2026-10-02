@@ -13,15 +13,11 @@ const index = read("index.html");
 function loadScreens(extra = {}, expose = []) {
   const vm = require("node:vm");
   const ctx = {
-    NG_GROUPS: { customer: [], supplier: [], admin: [] },
-    ngGroup() {},
-    obEnhanceHome() {},
     topActions() {},
     aqHtml: () => "",
     inBoard: async () => {},
     srEvent: async () => {},
     invoiceDetailPage: async () => {},
-    MNAV_BOTTOM: { customer: [], supplier: [], admin: [[]] },
     ccNewTimeEntry: async () => {},
     ccTimeFilter: () => {},
     srApprovals: async () => {},
@@ -44,7 +40,7 @@ function loadScreens(extra = {}, expose = []) {
     Date,
     ...extra,
   };
-  const src = read("design-screens.js").replace("Object.assign(NG_GROUPS", "Object.assign(this.NG_GROUPS");
+  const src = read("design-screens.js");
   vm.runInNewContext(src + ";" + expose.map((n) => `this.${n}=${n};`).join(""), ctx);
   return ctx;
 }
@@ -87,7 +83,7 @@ describe("design 2026", () => {
         assert.equal(m[1], FLOW, `${f} has a .brand-mark that is not the Flow mark`);
       }
     }
-    assert.ok(marks >= 6, `expected at least 6 logos, found ${marks}`);
+    assert.ok(marks >= 4, `expected at least 4 logos (page header and footer, sign-in, shell), found ${marks}`);
   });
 
   it("loads design-screens.js after invitations.js and before i18n.js", () => {
@@ -143,23 +139,7 @@ describe("design 2026", () => {
     assert.deepEqual(sheets.slice(-2), ["design-2026.css", "design-screens.css"]);
   });
 
-  it("shows the daily pages first in the sidebar and has German for every label (T93)", () => {
-    const ctx = loadScreens({}, ["DS_SIDE_LABELS"]);
-    const NG_GROUPS = ctx.NG_GROUPS;
-    ctx.labels = ctx.DS_SIDE_LABELS;
-    const main = (role) => JSON.parse(JSON.stringify(NG_GROUPS[role][0][1]));
-    assert.deepEqual(main("customer"), ["dashboard", "projects", "approvals", "sourcing", "invoices", "messages"]);
-    assert.deepEqual(main("supplier"), ["dashboard", "projects", "planning", "bids", "invoices", "compliance"]);
-    assert.deepEqual(main("admin"), ["dashboard", "applications", "users", "billing", "disputes", "reports"]);
-    for (const role of ["customer", "supplier", "admin"]) {
-      assert.equal(NG_GROUPS[role].length, 1, "everything else lands under More");
-      assert.equal(NG_GROUPS[role][0][0], "", "the first group has no heading");
-      assert.deepEqual(JSON.parse(JSON.stringify(Object.keys(ctx.labels[role]))), main(role));
-    }
-    const de = read("i18n.js");
-    for (const label of [...Object.values(ctx.labels).flatMap(Object.values), "More"])
-      assert.match(de, new RegExp(`^  (${label}|"${label}"): "`, "m"), `no German for ${label}`);
-  });
+  // T93 (sidebar groups and labels) and the T102 bottom bar moved to the shell area: test/area-shell.test.js
 
   it("builds the customer dashboard header and decision rows from the queue (T95)", () => {
     const ctx = loadScreens(
@@ -313,12 +293,7 @@ describe("design 2026", () => {
     for (const k of ['"Approve and Schedule Payment"', '"Within order cap"', '"BILL TO"', "corrected by"]) assert.ok(de.includes(k), `no German for ${k}`);
   });
 
-  it("labels the phone bottom bar and gives suppliers a Today screen (T102)", () => {
-    const MNAV_BOTTOM = { customer: [], supplier: [], admin: [["dashboard", "Dashboard"], ["applications", "Vetting"]] };
-    const ctx = loadScreens({ MNAV_BOTTOM }, []);
-    const labels = (role) => JSON.parse(JSON.stringify(ctx.MNAV_BOTTOM[role]));
-    assert.deepEqual(labels("supplier"), [["dashboard", "Today"], ["projects", "Jobs"], ["time", "Time"], ["messages", "Messages"]]);
-    assert.deepEqual(labels("customer"), [["dashboard", "Today"], ["projects", "Projects"], ["approvals", "Approvals"], ["messages", "Messages"]]);
+  it("gives suppliers a Today screen on phones (T102)", () => {
     const src = read("design-screens.js");
     // The quick actions use the existing forms
     for (const fn of ["ccNewTimeEntry()", "drOpen(j.projectId, j.taskId)", "puOpen(j.projectId, j.taskId)", "cmSupplierVisit("])

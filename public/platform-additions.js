@@ -801,19 +801,6 @@ async function paOutboxPanel() {
     }</tbody></table></div></details>`,
   );
 }
-function paNav() {
-  const nav = document.querySelector(".sidebar nav");
-  if (!nav || state.user?.role !== "admin" || nav.querySelector('[href="#/admin/audit"]')) return;
-  const a = document.createElement("a"),
-    path = location.hash.split("?")[0];
-  a.href = "#/admin/audit";
-  a.textContent = "Audit log";
-  a.className = path === "#/admin/audit" ? "active" : "";
-  const reports = nav.querySelector('[href="#/admin/reports"]');
-  reports ? reports.after(a) : nav.appendChild(a);
-  if (path === "#/admin/audit")
-    nav.querySelectorAll("a").forEach((x) => x !== a && x.classList.remove("active"));
-}
 
 /* ---------- Session integrity ----------
    The stored user record is only a display cache. On load the session token is
@@ -898,7 +885,6 @@ window.route = async function () {
     } catch (e) {
       toast(e.message, "error");
     }
-    paNav();
     paRouteDone = Math.max(paRouteDone, seq);
     return;
   }
@@ -908,7 +894,6 @@ window.route = async function () {
   paRouteDone = Math.max(paRouteDone, seq);
   if (seq !== paRouteSeq) return result;
   try {
-    paNav();
     if (
       ["customer", "supplier"].includes(parts[0]) &&
       parts[1] === "projects" &&

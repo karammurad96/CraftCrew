@@ -1,43 +1,6 @@
 // Consolidated fixes for the latest browser review comments.
 const ccEsc = (s) => esc(s ?? "");
 const ccProjects = async () => (await api("/projects")).projects || [];
-function ccNav(role) {
-  const nav = document.querySelector(".sidebar nav");
-  if (!nav || nav.dataset.ccEnhanced) return;
-  nav.dataset.ccEnhanced = "1";
-  if (role === "supplier") {
-    const old = nav.querySelector('a[href*="/supplier/phases"]');
-    if (old) old.remove();
-    const a = [...nav.querySelectorAll("a")].find((x) => x.textContent.trim() === "Projects");
-    if (a) {
-      a.textContent = "Assigned work";
-      a.href = "#/supplier/projects";
-    }
-    const ref = nav.querySelector('a[href*="messages"]');
-    if (ref) {
-      const inbox = ref.cloneNode(true);
-      inbox.textContent = "Inbox";
-      inbox.href = "#/supplier/inbox";
-      nav.insertBefore(inbox, ref);
-      const time = ref.cloneNode(true);
-      time.textContent = "Time & approvals";
-      time.href = "#/supplier/time";
-      nav.insertBefore(time, ref);
-    }
-  } else if (role === "customer") {
-    const ref = nav.querySelector('a[href*="messages"]');
-    if (ref) {
-      const inbox = ref.cloneNode(true);
-      inbox.textContent = "Inbox";
-      inbox.href = "#/customer/inbox";
-      nav.insertBefore(inbox, ref);
-      const time = ref.cloneNode(true);
-      time.textContent = "Time approvals";
-      time.href = "#/customer/time";
-      nav.insertBefore(time, ref);
-    }
-  }
-}
 async function ccInbox(role) {
   const d = await api("/notifications"),
     rows = d.notifications || [];
@@ -865,7 +828,6 @@ window.route = async function () {
   try {
     if (parts[0] === "customer" && parts[1] === "inbox") {
       await ccInbox("customer");
-      ccNav(role);
       return;
     }
     if (
@@ -873,41 +835,33 @@ window.route = async function () {
       (parts[0] === "supplier" && (parts[1] === "offers" || parts[1] === "bids"))
     ) {
       await ccRenderOffers();
-      ccNav(role);
       return;
     }
     if (parts[0] === "supplier" && parts[1] === "inbox") {
       await ccInbox("supplier");
-      ccNav(role);
       return;
     }
     if (parts[1] === "time" && ["customer", "supplier"].includes(parts[0])) {
       await ccTimePage(parts[0]);
-      ccNav(role);
       return;
     }
     if (parts[0] === "customer" && parts[1] === "projects" && parts[2] && parts[3] === "phases" && parts[4]) {
       await ccProjectSubpage("phase", parts[4]);
-      ccNav(role);
       return;
     }
     if (parts[0] === "customer" && parts[1] === "projects" && parts[2] && parts[3] === "tasks" && parts[4]) {
       await ccProjectSubpage("task", parts[4]);
-      ccNav(role);
       return;
     }
     if (parts[0] === "supplier" && parts[1] === "projects" && parts[2] && parts[3] === "phases" && parts[4]) {
       await ccProjectSubpage("phase", parts[4]);
-      ccNav(role);
       return;
     }
     if (parts[0] === "supplier" && parts[1] === "projects" && parts[2] && parts[3] === "tasks" && parts[4]) {
       await ccProjectSubpage("task", parts[4]);
-      ccNav(role);
       return;
     }
     await ccBaseRoute();
-    if (role) ccNav(role);
     if (parts[0] === "supplier" && parts[1] === "invoices" && parts[2] === "new") ccInstallInvoiceSearch();
     if (
       ["customer", "supplier"].includes(parts[0]) &&
@@ -1033,18 +987,6 @@ function ccInstallInvoiceSearch() {
 }
 
 // Admin account controls and the persistent platform-configuration workspace.
-const ccPreviousNav = ccNav;
-ccNav = function (role) {
-  ccPreviousNav(role);
-  const nav = document.querySelector(".sidebar nav");
-  if (nav && role === "admin" && !nav.querySelector('a[href="#/admin/platform"]')) {
-    const link = document.createElement("a");
-    link.href = "#/admin/platform";
-    link.textContent = "Platform Management";
-    const reports = nav.querySelector('a[href="#/admin/reports"]');
-    nav.insertBefore(link, reports || null);
-  }
-};
 
 adminUsers = async function () {
   const [d, sd] = await Promise.all([api("/admin/users"), api("/admin/suppliers")]),
@@ -1143,7 +1085,6 @@ window.route = async function () {
   if (parts[0] === "admin" && parts[1] === "platform") {
     try {
       await ccAdminPlatform();
-      ccNav("admin");
       return;
     } catch (e) {
       toast(e.message, "error");

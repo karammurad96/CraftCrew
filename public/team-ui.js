@@ -222,33 +222,6 @@ async function tmRestore(id) {
   }
 }
 
-/* ---------- Sidebar: Team link for owners, limited navigation for members ---------- */
-function tmNav() {
-  const nav = document.querySelector(".sidebar nav"),
-    role = state.user?.role;
-  if (!nav || !["customer", "supplier"].includes(role)) return;
-  if (state.user.isMember) {
-    for (const a of nav.querySelectorAll('a[href^="#/"]')) {
-      const area = TM_NAV[role][a.getAttribute("href").split("/")[2]];
-      if (area) a.hidden = tmLevel(area) === "none";
-    }
-    const mini = document.querySelector(".sidebar .user-mini b");
-    if (mini && !mini.querySelector(".tm-badge"))
-      mini.insertAdjacentHTML("beforeend", ' <span class="tm-badge">Team</span>');
-    return;
-  }
-  if (nav.querySelector(`[href="#/${role}/team"]`)) return;
-  const a = document.createElement("a");
-  a.href = `#/${role}/team`;
-  a.textContent = "Team";
-  if (location.hash.split("?")[0] === `#/${role}/team`) {
-    nav.querySelectorAll("a.active").forEach((x) => x.classList.remove("active"));
-    a.className = "active";
-  }
-  const profile = nav.querySelector(`[href="#/${role}/profile"]`);
-  profile ? profile.before(a) : nav.appendChild(a);
-  if (typeof uiEnhanceSidebar === "function") uiEnhanceSidebar();
-}
 /* View-only areas: a quiet hint on the page so members know why actions are refused. */
 function tmViewHint(parts) {
   if (!state.user?.isMember) return;
@@ -303,40 +276,10 @@ window.route = async function () {
       console.error(e);
       toast(e.message, "error");
     }
-    if (typeof inNav === "function") inNav();
-    if (typeof srNav === "function") srNav();
-    if (typeof cmNav === "function") cmNav();
-    tmNav();
     return;
   }
   const result = await tmBaseRoute();
-  tmNav();
   tmViewHint(parts);
   return result;
 };
 
-/* Some pages (e.g. a supplier profile opened from the directory) render without the router,
-   so complete the sidebar whenever a fresh one appears. */
-function tmCompleteNav() {
-  const nav = document.querySelector(".sidebar nav");
-  if (!nav || nav.dataset.tmComplete || !state.user) return;
-  nav.dataset.tmComplete = "1";
-  for (const fn of ["inNav", "srNav", "cmNav"])
-    if (typeof window[fn] === "function")
-      try {
-        window[fn]();
-      } catch (e) {
-        console.error(e);
-      }
-  tmNav();
-  if (typeof uiEnhanceSidebar === "function") uiEnhanceSidebar();
-}
-let tmNavPending = false;
-new MutationObserver(() => {
-  if (tmNavPending) return;
-  tmNavPending = true;
-  requestAnimationFrame(() => {
-    tmNavPending = false;
-    tmCompleteNav();
-  });
-}).observe(document.getElementById("app"), { childList: true, subtree: false });

@@ -12,18 +12,6 @@ const ffOpt = (values) =>
     .map((v) => `<option value="${ffEsc(v)}">${ffEsc(v)}</option>`)
     .join("");
 
-/* Keep the message link selected only on the message route; hover stays neutral. */
-function ffFixSidebarState() {
-  const path = location.hash.replace(/^#/, "").split("?")[0];
-  document.querySelectorAll(".sidebar nav a").forEach((a) => {
-    const href = a.getAttribute("href") || "";
-    const active =
-      href === `#${path}` ||
-      (path.startsWith(href.replace(/\/$/, "") + "/") && /projects|phases|tasks/.test(href));
-    a.classList.toggle("active", !!active);
-  });
-}
-window.addEventListener("hashchange", () => setTimeout(ffFixSidebarState, 0));
 
 /* A compact task-level summary replaces the oversized project-wide workspace. */
 ccAddProjectLinks = async function (pid) {
@@ -80,7 +68,6 @@ ccTimePage = async function (role) {
   });
   form.addEventListener("reset", () => setTimeout(() => ccTimeFilter(), 0));
   ccTimeFilter();
-  ffFixSidebarState();
 };
 ccTimeFilter = function () {
   const form = document.getElementById("ffTimeFilters");
@@ -542,7 +529,6 @@ wfDocuments = async function (pid) {
 const ffRouteBase = window.route;
 window.route = async function () {
   const result = await ffRouteBase();
-  setTimeout(ffFixSidebarState, 0);
   return result;
 };
 

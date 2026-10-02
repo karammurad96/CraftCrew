@@ -53,7 +53,9 @@ const actions = (() => {
   });
   document.addEventListener("keydown", (event) => {
     const el = event.target.closest("[data-key]");
-    if (el && (el.dataset.keyOn || "Enter") === event.key) run(el.dataset.key, el, event);
+    // data-key-on: the keys that act, comma separated ("Enter,Space"); Enter by default
+    const keys = (el?.dataset.keyOn || "Enter").split(",").map((k) => (k === "Space" ? " " : k));
+    if (el && keys.includes(event.key)) run(el.dataset.key, el, event);
   });
   return { on, run, has: (name) => handlers.has(name) };
 })();

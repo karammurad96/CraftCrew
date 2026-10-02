@@ -576,24 +576,6 @@ adminReports = async function () {
 };
 
 /* ---------- Navigation: Analytics link, Board button on project pages ---------- */
-function inNav() {
-  const nav = document.querySelector(".sidebar nav"),
-    role = state.user?.role;
-  // Pages rendered here bypass the older router layers, so apply their sidebar additions too.
-  if (nav && role && !nav.dataset.ccEnhanced && typeof ccNav === "function") ccNav(role);
-  if (typeof ffFixSidebarState === "function") ffFixSidebarState();
-  if (!nav || !["customer", "supplier"].includes(role) || nav.querySelector(`[href="#/${role}/analytics"]`))
-    return;
-  const a = document.createElement("a"),
-    here = location.hash.split("?")[0] === `#/${role}/analytics`;
-  a.href = `#/${role}/analytics`;
-  a.textContent = "Analytics";
-  if (here) {
-    nav.querySelectorAll("a.active").forEach((x) => x.classList.remove("active"));
-    a.className = "active";
-  }
-  nav.querySelector(`[href="#/${role}/dashboard"]`)?.after(a);
-}
 function inBoardButton(role, pid) {
   const top =
     document
@@ -619,12 +601,10 @@ window.route = async function () {
   try {
     if (parts[1] === "analytics" && parts[0] === role && role === "customer") {
       await inCustomerAnalytics();
-      inNav();
       return;
     }
     if (parts[1] === "analytics" && parts[0] === role && role === "supplier") {
       await inSupplierAnalytics();
-      inNav();
       return;
     }
     if (
@@ -635,7 +615,6 @@ window.route = async function () {
       parts[3] === "board"
     ) {
       await inBoard(role, parts[2]);
-      inNav();
       return;
     }
   } catch (e) {
@@ -644,7 +623,6 @@ window.route = async function () {
     return;
   }
   const result = await inBaseRoute();
-  inNav();
   if (
     ["customer", "supplier"].includes(parts[0]) &&
     parts[1] === "projects" &&

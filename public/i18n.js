@@ -14,7 +14,6 @@ const I18N_DE = {
   Sourcing: "Beschaffung",
   Contracts: "Verträge",
   "Offers overview": "Angebotsübersicht",
-  "Find Suppliers": "Lieferanten finden",
   "Find suppliers": "Lieferanten finden",
   Invoices: "Rechnungen",
   Inbox: "Posteingang",
@@ -24,30 +23,23 @@ const I18N_DE = {
   "Bid opportunities": "Ausschreibungen",
   "Quote Requests": "Angebotsanfragen",
   "Assigned work": "Zugewiesene Arbeit",
-  "Service Catalog": "Leistungskatalog",
   "Time & approvals": "Zeiten & Freigaben",
-  "Profile / Billing": "Profil / Abrechnung",
   "Admin Dashboard": "Admin-Übersicht",
   "Vetting Queue": "Prüfwarteschlange",
   Users: "Benutzer",
   "Payments & Billing": "Zahlungen & Abrechnung",
-  "Platform Management": "Plattformverwaltung",
   "Reports & Analytics": "Berichte & Analysen",
   "Audit log": "Audit-Protokoll",
   Escalations: "Eskalationen",
   Settings: "Einstellungen",
   Search: "Suche",
-  "Help & FAQ": "Hilfe & FAQ",
   "Log out": "Abmelden",
   "Log in": "Anmelden",
   "How it works": "So funktioniert es",
   Pricing: "Preise",
   FAQ: "FAQ",
   "Industrial services, coordinated end-to-end.": "Industrielle Dienstleistungen, durchgängig koordiniert.",
-  "Getting started checklist": "Checkliste für den Start",
   Notifications: "Benachrichtigungen",
-  "Mark all as read": "Alle als gelesen markieren",
-  "Open inbox": "Posteingang öffnen",
   "You are all caught up.": "Alles erledigt.",
   "Building industry together.": "Gemeinsam Industrie gestalten.",
   Impressum: "Impressum",
@@ -1528,7 +1520,6 @@ Object.assign(I18N_DE, {
     "Ihr Unternehmen ist noch nicht verifiziert. Schließen Sie Ihre Bewerbung ab, um Angebotsanfragen zu erhalten.",
   "Complete your application": "Bewerbung abschließen",
   "View application status": "Bewerbungsstatus ansehen",
-  "Available once your company is verified.": "Verfügbar, sobald Ihr Unternehmen verifiziert ist.",
   // Safer destructive actions (T56)
   "Archive project?": "Projekt archivieren?",
   "Archive project": "Projekt archivieren",
@@ -2481,8 +2472,6 @@ function i18nSwitch() {
   const html = `<div class="i18n-switch" role="group" aria-label="Language"><button type="button" class="${i18nLang === "de" ? "on" : ""}" onclick="i18nSet('de')" data-no-i18n>DE</button><button type="button" class="${i18nLang === "en" ? "on" : ""}" onclick="i18nSet('en')" data-no-i18n>EN</button></div>`;
   const top = document.getElementById("topActions");
   if (top && !top.querySelector(".i18n-switch")) top.insertAdjacentHTML("afterbegin", html);
-  const help = document.querySelector(".sidebar .help");
-  if (help && !help.querySelector(".i18n-switch")) help.insertAdjacentHTML("afterbegin", html);
 }
 /* Translate toasts, modals and every re-render. */
 let i18nPending = false;

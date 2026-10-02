@@ -324,4 +324,94 @@ LOCALES.de = {
     "reference": "Referenz:",
     "browse": "Lieferanten ansehen"
   },
+  // App shell: sidebar, phone bar, notifications (T127a)
+  shell: {
+    "nav": {
+      "customer": {
+        "dashboard": "Heute",
+        "projects": "Projekte",
+        "approvals": "Freigaben",
+        "sourcing": "Beschaffung",
+        "invoices": "Rechnungen",
+        "messages": "Nachrichten",
+        "analytics": "Analysen",
+        "contracts": "Verträge",
+        "sites": "Standorte & Arbeitsschutz",
+        "offers": "Angebotsübersicht",
+        "suppliers": "Lieferanten finden",
+        "preferred": "Bevorzugte Anbieter",
+        "inbox": "Posteingang",
+        "time": "Zeitfreigaben",
+        "team": "Team",
+        "profile": "Profil / Einstellungen"
+      },
+      "supplier": {
+        "dashboard": "Heute",
+        "projects": "Arbeit",
+        "planning": "Teamplaner",
+        "bids": "Ausschreibungen",
+        "invoices": "Rechnungen",
+        "compliance": "Compliance",
+        "analytics": "Analysen",
+        "requests": "Angebotsanfragen",
+        "contracts": "Verträge",
+        "suppliers": "Leistungskatalog",
+        "inbox": "Posteingang",
+        "time": "Zeiten & Freigaben",
+        "messages": "Nachrichten",
+        "team": "Team",
+        "profile": "Profil / Abrechnung"
+      },
+      "admin": {
+        "dashboard": "Heute",
+        "applications": "Prüfung",
+        "users": "Benutzer",
+        "billing": "Zahlungen",
+        "disputes": "Eskalationen",
+        "reports": "Berichte",
+        "audit": "Audit-Protokoll",
+        "platform": "Plattformverwaltung",
+        "profile-changes": "Profiländerungen",
+        "profile": "Einstellungen"
+      }
+    },
+    "bottom": {
+      "customer": {
+        "dashboard": "Heute",
+        "projects": "Projekte",
+        "approvals": "Freigaben",
+        "messages": "Nachrichten"
+      },
+      "supplier": {
+        "dashboard": "Heute",
+        "projects": "Aufträge",
+        "time": "Zeiten",
+        "messages": "Nachrichten"
+      },
+      "admin": {
+        "dashboard": "Heute",
+        "applications": "Prüfung",
+        "billing": "Zahlungen",
+        "disputes": "Eskalationen"
+      }
+    },
+    "more": "Mehr",
+    "search": "Suche",
+    "help": "Hilfe & FAQ",
+    "logout": "Abmelden",
+    "checklist": "Checkliste für den Start",
+    "profile": "Profil",
+    "teamBadge": "Team",
+    "menu": "Menü",
+    "closeMenu": "Menü schließen",
+    "quickNav": "Schnellnavigation",
+    "language": "Sprache",
+    "bellLabel": "Benachrichtigungen, {n} ungelesen",
+    "countLabel": "{n} offen",
+    "lockTip": "Verfügbar, sobald Ihr Unternehmen verifiziert ist.",
+    "notifications": "Benachrichtigungen",
+    "markAll": "Alle als gelesen markieren",
+    "openInbox": "Posteingang öffnen",
+    "caughtUp": "Alles erledigt."
+  },
 };

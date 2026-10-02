@@ -2,26 +2,6 @@
    drawer from the left; a bottom bar holds the four most used pages per role plus "More". Tables get a
    data-label per cell so CSS can show them as stacked cards below 640 px. Works on whatever the page
    renderers produce: it watches #app and enhances each new app shell. */
-const MNAV_BOTTOM = {
-  customer: [
-    ["dashboard", "Dashboard"],
-    ["projects", "Projects"],
-    ["approvals", "Approvals"],
-    ["messages", "Messages"],
-  ],
-  supplier: [
-    ["dashboard", "Dashboard"],
-    ["projects", "Assigned work"],
-    ["time", "Time"],
-    ["messages", "Messages"],
-  ],
-  admin: [
-    ["dashboard", "Dashboard"],
-    ["applications", "Vetting"],
-    ["billing", "Payments"],
-    ["disputes", "Escalations"],
-  ],
-};
 const MNAV_MENU_ICON =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
 const MNAV_CLOSE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
@@ -40,7 +20,7 @@ function mnavSetOpen(open) {
   sidebar.closest(".app-shell")?.classList.toggle("mnav-drawer-open", open);
   document.body.classList.toggle("mnav-locked", open);
   btn.setAttribute("aria-expanded", String(open));
-  btn.setAttribute("aria-label", open ? "Close menu" : "Menu");
+  btn.setAttribute("aria-label", t(open ? "shell.closeMenu" : "shell.menu"));
   btn.innerHTML = open ? MNAV_CLOSE_ICON : MNAV_MENU_ICON;
   let backdrop = document.querySelector(".mnav-backdrop");
   if (open && !backdrop) {
@@ -83,44 +63,6 @@ document.addEventListener("keydown", (e) => {
 });
 window.addEventListener("hashchange", () => mnavIsOpen() && mnavSetOpen(false));
 
-function mnavEnhanceShell(shell) {
-  const sidebar = shell.querySelector(":scope > .sidebar");
-  if (!sidebar || sidebar.querySelector(".mnav-menu-btn")) return;
-  sidebar.id ||= "mnavSidebar";
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.className = "mnav-menu-btn";
-  btn.setAttribute("aria-controls", sidebar.id);
-  btn.setAttribute("aria-expanded", "false");
-  btn.setAttribute("aria-label", "Menu");
-  btn.innerHTML = MNAV_MENU_ICON;
-  btn.addEventListener("click", () => mnavSetOpen(!mnavIsOpen()));
-  sidebar.prepend(btn);
-  sidebar.querySelector("nav")?.addEventListener("click", (e) => {
-    if (e.target.closest("a")) mnavSetOpen(false);
-  });
-
-  const role = state.user?.role,
-    items = (MNAV_BOTTOM[role] || []).filter(([key]) =>
-      sidebar.querySelector(`nav a[href="#/${role}/${key}"]`),
-    );
-  if (!items.length || shell.querySelector(".mnav-bottom")) return;
-  const current = location.hash.split("?")[0],
-    bar = document.createElement("nav");
-  bar.className = "mnav-bottom";
-  bar.setAttribute("aria-label", "Quick navigation");
-  bar.innerHTML =
-    items
-      .map(([key, label]) => {
-        const href = `#/${role}/${key}`,
-          icon = sidebar.querySelector(`nav a[href="${href}"] svg`)?.outerHTML || "";
-        return `<a href="${href}" class="${current === href || current.startsWith(href + "/") ? "active" : ""}">${icon}<span>${label}</span></a>`;
-      })
-      .join("") +
-    `<button type="button" aria-controls="${sidebar.id}">${MNAV_MORE_ICON}<span>More</span></button>`;
-  bar.querySelector("button").addEventListener("click", () => mnavSetOpen(true));
-  shell.append(bar);
-}
 
 // Stacked table cards need each cell's column name.
 function mnavLabelTables(root) {
@@ -144,7 +86,6 @@ function mnavEnhance() {
   mnavQueued = false;
   const app = document.getElementById("app");
   if (!app) return;
-  for (const shell of app.querySelectorAll(".app-shell")) mnavEnhanceShell(shell);
   mnavLabelTables(app);
   // A re-rendered page replaces the open sidebar; drop the leftover lock and backdrop.
   if (!mnavIsOpen() && document.body.classList.contains("mnav-locked")) {

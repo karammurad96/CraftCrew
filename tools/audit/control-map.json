@@ -1,0 +1,5 @@
+{
+  "action uiToggleNotifications(event)": "action [shell.bell]",
+  "action uiSearchIndex=null;uiOpenSearch()": "action [shell.search]",
+  "action obShow()": "action [shell.checklist]"
+}
