@@ -1404,7 +1404,7 @@ invoiceDetailPage = async function (id) {
   panel.className = "ds-inv-panel";
   panel.innerHTML = `<span class="ds-inv-from">${esc(versions ? `Version ${versions + 1} · corrected by ${i.supplierCompany}` : `From ${i.supplierCompany}`)}</span>
     <b class="ds-inv-total">${money(total)}</b>
-    <span class="ds-inv-due">${esc([i.scheduledPayment ? `Due ${dsShortRange(i.scheduledPayment)}` : "", i.vatMode && Number(i.vatRate) ? `incl. ${Number(i.vatRate)} % VAT` : ""].filter(Boolean).join(" · "))}</span>
+    <span class="ds-inv-due">${esc([i.scheduledPayment || i.dueDate ? `Due ${dsShortRange(i.scheduledPayment || i.dueDate)}` : "", i.vatMode && Number(i.vatRate) ? `incl. ${Number(i.vatRate)} % VAT` : ""].filter(Boolean).join(" · "))}</span>
     <div><span class="status">${esc(i.status)}</span> ${rvInvoiceTiming(i, role)}</div>
     ${checks ? `<h3 class="ds-inv-h ds-ui">Checks</h3><div class="ds-checks">${checks}</div>` : ""}
     ${versions ? `<h3 class="ds-inv-h ds-ui">What changed</h3><div class="ds-inv-changed">${changeNote ? `<p><b class="ds-ui">You asked:</b> ${esc(changeNote)}</p>` : ""}${i.resubmitNote ? `<p><b>${esc(i.supplierCompany)}:</b> ${esc(i.resubmitNote)}</p>` : ""}<p>${amountChange ? esc(`The total changed by ${amountChange > 0 ? "+" : "−"}${money(Math.abs(amountChange))}.`) : '<span class="ds-ui">The total is unchanged.</span>'}</p></div>` : ""}`;

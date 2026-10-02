@@ -2312,6 +2312,7 @@ const I18N_PATTERNS = [
   [/^(.*) · (\d+) days remaining$/, "$1 · noch $2 Tage"],
   [/^Order not set · (.+)$/, "Kein Auftrag festgelegt · $1"],
   [/^([\d.,]+) \/ ([\d.,]+) h approved estimate$/, "$1 / $2 h freigegeben von der Schätzung"],
+  [/^(.*) · Payment terms: (\d+) days net\.$/, "$1 · Zahlungsbedingungen: $2 Tage netto."],
   [
     /^(.*) · Payment terms: As agreed in the project order\.$/,
     "$1 · Zahlungsbedingungen: Gemäß Projektauftrag.",
