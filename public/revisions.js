@@ -85,20 +85,3 @@ function rvRevisionList(revisions) {
     )
     .join("")}</details>`;
 }
-
-/* ---------- Offer: request changes (customer) ---------- */
-async function rvRequestOfferChanges(bidId, offerId) {
-  const note = await uiPrompt(
-    "What should the supplier change in this offer? They can then send a revised version.",
-    "",
-    { confirmLabel: "Send request", required: true },
-  );
-  if (!note) return;
-  try {
-    await api(`/bids/${bidId}`, { method: "PATCH", body: { action: "Request changes", offerId, note } });
-    toast("Change request sent to the supplier");
-    route();
-  } catch (x) {
-    toast(x.message, "error");
-  }
-}

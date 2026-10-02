@@ -83,16 +83,12 @@ const I18N_DE = {
   "+ New chat": "+ Neuer Chat",
   "+ Create invoice": "+ Rechnung erstellen",
   "+ Invite suppliers": "+ Lieferanten einladen",
-  "+ Request bids for a task": "+ Angebote für Aufgabe einholen",
   "+ Log time": "+ Zeit erfassen",
   "+ Upload document": "+ Dokument hochladen",
   "Open project": "Projekt öffnen",
   "Project documents": "Projektdokumente",
   "Project invoices": "Projektrechnungen",
   "Project messages": "Projektnachrichten",
-  "Compare offers": "Angebote vergleichen",
-  "Edit & resend request": "Anfrage bearbeiten & erneut senden",
-  "Close bidding": "Ausschreibung schließen",
   "Save weights": "Gewichtung speichern",
   "Close without award": "Ohne Zuschlag schließen",
   "Save review": "Prüfung speichern",
@@ -113,9 +109,6 @@ const I18N_DE = {
   "Edit company details": "Unternehmensdaten bearbeiten",
   "Manage service catalog and team": "Leistungskatalog & Team verwalten",
   "Manage team & service catalog": "Team & Leistungskatalog verwalten",
-  "Publish event": "Ausschreibung veröffentlichen",
-  "Send offer": "Angebot senden",
-  "Save and resend": "Speichern & erneut senden",
   "Create contract": "Vertrag anlegen",
   "Save contract": "Vertrag speichern",
   "Start a project": "Projekt starten",
@@ -265,16 +258,7 @@ const I18N_DE = {
   "Scope notes": "Leistungsumfang",
   Scope: "Leistungsumfang",
   Question: "Frage",
-  "Create sourcing event": "Ausschreibung anlegen",
-  "Event type": "Ausschreibungsart",
   Title: "Titel",
-  "Response deadline": "Antwortfrist",
-  "Baseline budget (€)": "Referenzbudget (€)",
-  "Submit offer": "Angebot abgeben",
-  "Revise offer": "Angebot überarbeiten",
-  "Total offer (€)": "Angebotssumme (€)",
-  "Delivery days": "Liefertage",
-  "Included scope & assumptions": "Enthaltener Umfang & Annahmen",
   "Offer document": "Angebotsdokument",
   Contract: "Vertrag",
   Value: "Wert",
@@ -476,9 +460,6 @@ Object.assign(I18N_DE, {
   "Depends on phases": "Abhängig von Phasen",
   "Depends on": "Abhängig von",
   "← Sourcing": "← Beschaffung",
-  "Compare price, delivery, supplier documents and scope.":
-    "Preis, Lieferzeit, Lieferantendokumente und Umfang vergleichen.",
-  "Waiting for supplier offers.": "Warten auf Lieferantenangebote.",
   "Ask for details": "Details anfragen",
   "Search, compare, open, export and review professional invoice records.":
     "Rechnungen suchen, vergleichen, öffnen, exportieren und prüfen.",
@@ -877,10 +858,6 @@ Object.assign(I18N_DE, {
   "Revise offer": "Angebot überarbeiten",
   "Request changes": "Änderungen anfordern",
   "Send request": "Anfrage senden",
-  "What should the supplier change in this offer? They can then send a revised version.":
-    "Was soll der Lieferant an diesem Angebot ändern? Er kann danach eine überarbeitete Fassung senden.",
-  "Change request sent to the supplier": "Änderungswunsch an den Lieferanten gesendet",
-  "The customer asked for changes:": "Der Kunde wünscht Änderungen:",
   "Save and resend": "Speichern und erneut senden",
   // Supplier certificates & proofs
   Open: "Öffnen",
@@ -1009,16 +986,12 @@ Object.assign(I18N_DE, {
   "Admin only": "Nur für Admins",
   "Choose Approve or Reject": "Wählen Sie Freigeben oder Ablehnen",
   "No pending change for this supplier": "Für diesen Anbieter liegt keine ausstehende Änderung vor",
-  "Hourly rate (€/h, optional)": "Stundensatz (€/h, optional)",
   "Enter the hourly rate in euros, or leave it empty":
     "Geben Sie den Stundensatz in Euro ein oder lassen Sie das Feld leer",
   "Preferred suppliers": "Bevorzugte Anbieter",
   Joined: "Beigetreten",
   "Invitation sent": "Einladung gesendet",
   Saved: "Gespeichert",
-  "Only they can send offers. Leave unticked to let every matching supplier bid.":
-    "Nur sie können Angebote abgeben. Ohne Haken können alle passenden Anbieter bieten.",
-  "Select my preferred suppliers": "Meine bevorzugten Anbieter auswählen",
   "Only customers keep a preferred-supplier list": "Nur Kunden führen eine Liste bevorzugter Anbieter",
   "Enter the supplier's email address": "Geben Sie die E-Mail-Adresse des Anbieters ein",
   "Enter the supplier's company name": "Geben Sie den Firmennamen des Anbieters ein",
@@ -1277,7 +1250,6 @@ Object.assign(I18N_DE, {
   "Project / task": "Projekt / Aufgabe",
   "Submitted time": "Eingereichte Zeit",
   "Approved order cap": "Freigegebene Auftragsobergrenze",
-  "Award task": "Aufgabe vergeben",
   "Customer project": "Kundenprojekt",
   // Accessibility labels (T57)
   "Filter by read state": "Nach Lesestatus filtern",
@@ -1402,7 +1374,6 @@ Object.assign(I18N_DE, {
   "All valid": "Alle gültig",
   "new to you": "neu für Sie",
   Eliminate: "Ausschließen",
-  "Compare offers ›": "Angebote vergleichen ›",
   // Invoice review (T101)
   "‹ Invoices": "‹ Rechnungen",
   INVOICE: "RECHNUNG",
@@ -1617,10 +1588,6 @@ Object.assign(I18N_DE, {
   "Add a short quote or next step (optional)": "Kurzes Angebot oder nächster Schritt (optional)",
   "Reason for declining (optional)": "Grund der Ablehnung (optional)",
   "Progress complete (0–100)": "Fortschritt (0–100)",
-  "Awarding confirms this task will be assigned to the selected supplier. Other offers will be marked not selected. Continue?":
-    "Mit dem Zuschlag wird die Aufgabe dem ausgewählten Lieferanten zugewiesen. Andere Angebote werden als nicht ausgewählt markiert. Fortfahren?",
-  "Closing bidding will stop new offers and close outstanding offers. Continue?":
-    "Das Schließen beendet die Ausschreibung und schließt offene Angebote. Fortfahren?",
   Customize: "Anpassen",
 });
 const I18N_CM_PATTERNS = [
