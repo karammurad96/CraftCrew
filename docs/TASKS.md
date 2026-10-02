@@ -186,22 +186,29 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T86 Re-verify supplier profile changes after approval
 
 **Wave 7 — Design 2026 (P1; in this order; read "Rules for every design task" first)**
-- [ ] T90 Design foundation: tokens, type, cards, buttons, forms · M · cheap model OK
-- [ ] T91 The new logo everywhere · S · cheap model OK
-- [ ] T92 Status chips, buttons, empty states and form errors · M · cheap model OK
-- [ ] T93 Sidebar like the boards · M · cheap model OK
-- [ ] T94 Landing page · M · cheap model OK
-- [ ] T95 Customer dashboard: decisions first · M · cheap model OK
-- [ ] T96 Supplier dashboard: the invitation first · M · cheap model OK
-- [ ] T97 Admin dashboard in the same style · S · cheap model OK
-- [ ] T98 Project workspace with tabs · L · cheap model OK if done in the order written
-- [ ] T99 Task board with a side panel · M · cheap model OK
-- [ ] T100 Offer comparison · M · cheap model OK
-- [ ] T101 Invoice review · M · cheap model OK
-- [ ] T102 Phone: bottom bar and "Today" for suppliers · M · cheap model OK
-- [ ] T103 Phone: "Log time" form · S · cheap model OK
-- [ ] T104 Phone: Approvals · S · cheap model OK
-- [ ] T105 Final check against every board, then merge · M
+- [x] T90 Design foundation: tokens, type, cards, buttons, forms · M · cheap model OK
+- [x] T91 The new logo everywhere · S · cheap model OK
+- [x] T92 Status chips, buttons, empty states and form errors · M · cheap model OK
+- [x] T93 Sidebar like the boards · M · cheap model OK
+- [x] T94 Landing page · M · cheap model OK
+- [x] T95 Customer dashboard: decisions first · M · cheap model OK
+- [x] T96 Supplier dashboard: the invitation first · M · cheap model OK
+- [x] T97 Admin dashboard in the same style · S · cheap model OK
+- [x] T98 Project workspace with tabs · L · cheap model OK if done in the order written
+- [x] T99 Task board with a side panel · M · cheap model OK
+- [x] T100 Offer comparison · M · cheap model OK
+- [x] T101 Invoice review · M · cheap model OK
+- [x] T102 Phone: bottom bar and "Today" for suppliers · M · cheap model OK
+- [x] T103 Phone: "Log time" form · S · cheap model OK
+- [x] T104 Phone: Approvals · S · cheap model OK
+- [x] T105 Final check against every board, then merge · M
+
+**Wave 7 follow-ups (found in T105; each needs a feature, not only layout)**
+- [ ] T106 Photos on time entries (PhoneLogTime "Photos" grid) · M
+- [ ] T107 Time of day for site visits ("Site visit · 07:30") · S
+- [ ] T108 Due date on submitted invoices (InvoiceReview "Due 11 October") · S
+- [ ] T109 Unread count on the project "Messages" tab (Workspace "Messages · 3") · S
+- [ ] T110 "Share" on the project workspace (Workspace board) · M · needs a human decision
 
 ---
 
@@ -2412,6 +2419,63 @@ access, compliance documents, invoices, time entries and more.
    - `npm test` (CI on Linux green).
 4. Tick T90–T105 in this file.
 5. **Ask Karam before merging `design-2026` into `main`.** Then merge and push.
+
+### Wave 7 follow-ups
+
+The boards show a few things the app has no data or feature for yet. T90–T105 left them out on purpose
+(rule 3: build board examples only when the task says how). Each one below says what is missing.
+
+#### T106 · Photos on time entries
+`P2 · M`
+
+**Board.** `PhoneLogTime` ("PHOTOS": thumbnails and a "+" tile).
+
+**Problem.** `POST /api/time-entries` stores no attachments and the "Log time" form has no upload field, so
+T103 could not reuse an "existing upload input". Photos on site already go through the daily site report.
+
+**Do.** Accept up to 6 images per time entry (same type allowlist and ownership rules as T21, `ownUpload`),
+show them as a 4-column thumbnail grid with a "+" tile in the T103 sheet, queue them offline like daily
+reports (`offline-sync.js`), and show them to the customer on `#/customer/time`. API test for type, size and
+ownership.
+
+#### T107 · Time of day for site visits
+`P2 · S`
+
+**Board.** `PhoneToday` ("Site visit · 07:30"), `Dashboard` ("Plant Regensburg · 07:30").
+
+**Problem.** Site visits store `date` and `endDate` only, so T95 and T102 show the site and permit instead.
+
+**Do.** Optional `startTime` (HH:MM) on the site-access request form and `POST /api/site-visits`, validated on
+the server; show it on the supplier "Today" card, the customer "This week" card and the site-access lists.
+
+#### T108 · Due date on submitted invoices
+`P2 · S`
+
+**Board.** `InvoiceReview` ("Due 11 October · incl. 19 % VAT").
+
+**Problem.** An invoice only gets a payment date (`scheduledPayment`) when it is approved. The review panel
+therefore shows the due date only for approved invoices.
+
+**Do.** Derive a due date from the payment terms when the invoice is submitted (for example "30 days net"),
+store it as `dueDate`, show it in the T101 panel and the invoice list, and use it for the T44 reminders.
+
+#### T109 · Unread count on the project "Messages" tab
+`P3 · S`
+
+**Board.** `Workspace` ("Messages · 3").
+
+**Problem.** `/api/nav-counts` counts unread message notifications for the whole account, not per project.
+
+**Do.** Return unread messages per project (for example `GET /api/nav-counts?project=<id>`), show
+"Messages · N" on the T98 tab when N > 0, with a German pattern.
+
+#### T110 · "Share" on the project workspace
+`P3 · M · needs a human decision`
+
+**Board.** `Workspace` (grey "Share" pill).
+
+**Problem.** There is no sharing feature. Decide first what "share" means: a read-only link for people
+outside CraftCrew, inviting a colleague of the same company, or exporting a status PDF.
 
 ---
 

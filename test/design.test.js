@@ -372,6 +372,17 @@ describe("design 2026", () => {
     assert.ok(read("i18n.js").includes('[/^All · (\\d+)$/, "Alle · $1"]'));
   });
 
+  it("keeps the fixes of the final check (T105)", () => {
+    const css = read("design-screens.css");
+    // The invoice paper stays a real table on phones instead of stacked cards
+    assert.match(css, /html body table\.ds-paper-lines\.mnav-cards \{\n    display: table !important;/);
+    // Bottom bar labels keep 4.5:1 over content showing through the frosted bar
+    assert.match(css, /html body \.mnav-bottom button \{\n    gap: 3px;\n[^}]*color: #545458;/);
+    // Follow-ups for board details that need a feature are written down
+    const tasks = readFileSync(path.join(__dirname, "..", "docs", "TASKS.md"), "utf8");
+    for (const t of ["T106", "T107", "T108", "T109", "T110"]) assert.match(tasks, new RegExp(`#### ${t} · `));
+  });
+
   it("uses a new service worker cache so installed apps load the new files", () => {
     assert.match(read("sw.js"), /const CACHE = "craftcrew-shell-v2"/);
   });
