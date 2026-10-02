@@ -2806,3 +2806,171 @@ html body .ds-job-pick-row span {
   font-size: 13px;
   color: var(--cc-muted);
 }
+
+/* ---------- "Log time" form (T103, board PhoneLogTime) ---------- */
+html body .ds-sheet .modal-head {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+html body .ds-sheet .modal-head h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  text-align: center;
+}
+html body .ds-sheet-cancel,
+html body .ds-sheet-save {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--cc-blue);
+  font: inherit;
+  font-size: 17px;
+  cursor: pointer;
+}
+html body .ds-sheet-cancel {
+  justify-self: start;
+  width: auto !important;
+  height: auto !important;
+}
+html body .ds-sheet-save {
+  justify-self: end;
+  font-weight: 600;
+}
+html body .ds-sheet form {
+  display: flex !important;
+  flex-direction: column;
+  gap: 18px;
+}
+html body .ds-offline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fff1e0;
+  color: var(--cc-chip-orange);
+  font-size: 13px;
+}
+html body .ds-offline[hidden] {
+  display: none;
+}
+html body .ds-offline svg {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+}
+html body .ds-group {
+  overflow: hidden;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--cc-hairline);
+}
+html body .ds-row {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  margin: 0 0 0 16px;
+  padding: 0 16px 0 0;
+}
+html body .ds-row + .ds-row {
+  border-top: 1px solid rgba(60, 60, 67, 0.12);
+}
+html body .ds-row-label {
+  font-size: 15px;
+  color: var(--cc-text);
+}
+html body .ds-row-value {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+html body .ds-row-value select,
+html body .ds-row-value input:not([type="checkbox"]) {
+  max-width: 100%;
+  min-height: 32px !important;
+  height: 32px;
+  padding: 0 10px !important;
+  font-size: 15px !important;
+  text-align: right;
+}
+html body .ds-row-value select {
+  background-color: transparent !important;
+  color: var(--cc-muted) !important;
+}
+html body .ds-row-value input[type="time"],
+html body .ds-row-value input[type="date"] {
+  width: auto;
+  background-color: #ececf0 !important;
+  border-radius: 8px !important;
+}
+html body .ds-break button {
+  min-width: 44px;
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+html body .ds-break button[aria-pressed="true"] {
+  background: #fff;
+  font-weight: 600;
+  box-shadow: var(--cc-seg-shadow);
+}
+html body .ds-group-label {
+  display: block;
+  margin: 0 0 8px 16px;
+  font-size: 13px;
+  text-transform: uppercase;
+  color: var(--cc-muted);
+}
+html body .ds-work textarea {
+  width: 100%;
+  min-height: 72px;
+  box-sizing: border-box;
+  padding: 12px 16px !important;
+  background-color: #fff !important;
+  box-shadow: 0 0 0 1px var(--cc-hairline) !important;
+  font-size: 17px !important;
+}
+html body .ds-details .ff-hours-calc {
+  margin-top: 10px;
+}
+html body .ds-sheet .btn.ds-sheet-submit {
+  width: 100%;
+  min-height: 52px;
+  border-radius: 14px !important;
+  font-size: 17px !important;
+  font-weight: 600 !important;
+}
+@media (max-width: 640px) {
+  html body .modal-backdrop:has(.ds-sheet) {
+    padding: 0 !important;
+    align-items: stretch;
+  }
+  html body .modal.ds-sheet {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
+    padding: 16px 16px 92px;
+    background: var(--cc-page-phone);
+  }
+  html body .ds-sheet .btn.ds-sheet-submit {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    width: auto;
+    z-index: 2;
+  }
+}

@@ -1565,6 +1565,112 @@ async function dsEnhanceToday(root) {
     <div class="ds-quicks ds-ui">${tile("time", "Log Time", "ccNewTimeEntry()")}${tile("photo", "Photo", "dsQuickJob('photo')")}${tile("report", "Site Report", "dsQuickJob('report')")}${tile("defect", "Defect", "dsQuickJob('defect')", "orange")}</div>`;
 }
 
+/* ---------- Phone: "Log time" form (T103, board PhoneLogTime) ----------
+   ccNewTimeEntry opens its modal form; the wrapper regroups the same fields (nothing is removed) into the
+   board's grouped rows. Up to 640 px the modal becomes a full-screen sheet. */
+const dsBaseNewTime = ccNewTimeEntry;
+ccNewTimeEntry = async function (...args) {
+  await dsBaseNewTime(...args);
+  const form = document.getElementById("ffTimeForm");
+  if (form && !form.dataset.ds) dsLogTimeSheet(form);
+};
+function dsLogTimeSheet(form) {
+  form.dataset.ds = "1";
+  const modalEl = form.closest(".modal"),
+    head = modalEl?.querySelector(".modal-head");
+  modalEl?.classList.add("ds-sheet");
+  if (head) {
+    const close = head.querySelector(".close"),
+      title = head.querySelector("h2");
+    if (close) {
+      close.className = "ds-sheet-cancel";
+      close.replaceChildren("Cancel");
+      head.prepend(close);
+    }
+    if (title) title.replaceChildren("Log Time");
+    head.insertAdjacentHTML("beforeend", '<button type="submit" form="ffTimeForm" class="ds-sheet-save">Save</button>');
+    head.classList.add("ds-ui");
+  }
+  const $ = (sel) => form.querySelector(sel),
+    target = $("#ffTimeTarget"),
+    search = $("#ffTimeSearch"),
+    employee = $('[name="employeeName"]'),
+    day = $('[name="workDate"]'),
+    place = $('[name="location"]'),
+    start = $('[name="startTime"]'),
+    end = $('[name="endTime"]'),
+    pause = $('[name="breakMinutes"]'),
+    calc = $(".ff-hours-calc"),
+    notes = $('[name="description"]'),
+    error = $("#ffTimeError"),
+    submit = [...form.querySelectorAll("button")].find((b) => !b.type || b.type === "submit");
+  const row = (label, ...els) => {
+    const r = document.createElement("div");
+    r.className = "ds-row";
+    r.innerHTML = `<span class="ds-row-label ds-ui">${label}</span>`;
+    const v = document.createElement("div");
+    v.className = "ds-row-value";
+    v.append(...els.filter(Boolean));
+    r.append(v);
+    return r;
+  };
+  const group = (...rows) => {
+    const g = document.createElement("div");
+    g.className = "ds-group";
+    g.append(...rows);
+    return g;
+  };
+  // Break as a segmented control that sets the (still editable) break field
+  const seg = document.createElement("div");
+  seg.className = "ds-seg ds-break";
+  seg.setAttribute("role", "group");
+  seg.setAttribute("aria-label", "Break");
+  seg.innerHTML = [0, 15, 30, 45].map((m) => `<button type="button" data-m="${m}">${m}</button>`).join("");
+  const syncSeg = () =>
+    seg.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.m) === Number(pause.value))));
+  seg.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-m]");
+    if (!b) return;
+    pause.value = b.dataset.m;
+    pause.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  const banner = document.createElement("div");
+  banner.className = "ds-offline ds-ui";
+  banner.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0M5.5 12a10 10 0 0 1 13 0M9 15.5a5 5 0 0 1 6 0M3 3l18 18"/></svg><span>No signal. Saved on this phone and sent later.</span>';
+  const online = () => (banner.hidden = navigator.onLine);
+  online();
+  window.addEventListener("online", online);
+  window.addEventListener("offline", online);
+  const work = document.createElement("div");
+  work.className = "ds-work";
+  work.innerHTML = '<span class="ds-group-label ds-ui">Work done</span>';
+  work.append(notes);
+  const details = document.createElement("div");
+  details.className = "ds-details";
+  details.innerHTML = '<span class="ds-group-label ds-ui">Details</span>';
+  details.append(group(row("Find job", search), row("Employee", employee), row("Location", place), row("Break (min)", pause)), calc);
+  const oldParts = [...form.children];
+  form.prepend(banner, group(row("Job", target), row("Date", day)), group(row("Start", start), row("End", end), row("Break", seg)), work, details);
+  if (error) form.append(error);
+  if (submit) {
+    submit.classList.add("ds-sheet-submit");
+    form.append(submit);
+  }
+  // The old labels and wrappers are empty now
+  oldParts.forEach((el) => {
+    if (el !== error && el !== submit && !el.querySelector("input, select, textarea, button")) el.remove();
+  });
+  const label = () => {
+    syncSeg();
+    const h = Number(form.dataset.hours);
+    if (submit) submit.replaceChildren(h > 0 ? `Submit ${h.toFixed(1)} Hours` : "Submit time for approval");
+  };
+  form.addEventListener("input", label);
+  form.addEventListener("change", label);
+  label();
+}
+
 /* ---------- Run the enhancers after every render ---------- */
 const DS_ENHANCERS = [dsEnhanceChips, dsEnhanceButtons, dsEnhanceEmpty, dsEnhanceSidebar, dsEnhanceDashboard, dsEnhanceWorkspace, dsEnhanceOffers, dsEnhanceToday];
 function dsEnhance() {
