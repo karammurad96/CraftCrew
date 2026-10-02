@@ -3152,7 +3152,14 @@ function notifyText(spec, lang) {
     return de && k === "status" ? STATUS_DE[v] || v : v;
   });
 }
-function notify(userId, spec, link = "") {
+// The project a message notification belongs to: stored since T109, or found from the chat in its link.
+function notificationProject(n) {
+  if (n.projectId) return n.projectId;
+  const chatId = String(n.link || "").match(/messages\?chat=([\w-]+)/)?.[1];
+  return (chatId && (db.chats || []).find((c) => c.id === chatId)?.projectId) || null;
+}
+// extra: fields kept on the notification, e.g. {projectId} for per-project unread counts (T109).
+function notify(userId, spec, link = "", extra = {}) {
   if (!userId) return;
   const recipient = db.users.find((x) => x.id === userId),
     role = recipient?.role || "customer",
@@ -3170,7 +3177,7 @@ function notify(userId, spec, link = "") {
       link = role === "supplier" ? "/supplier/requests" : "/customer/offers";
     else link = `/${role}/inbox`;
   }
-  db.notifications.unshift({ id: id("not"), userId, text, link, read: false, createdAt: now() });
+  db.notifications.unshift({ id: id("not"), userId, text, link, read: false, createdAt: now(), ...extra });
   trimNotifications(userId);
   const category = /message|chat/.test(lower)
     ? "messages"
@@ -4413,10 +4420,17 @@ async function api(req, res, url) {
     }
     if (parts[1] === "nav-counts" && method === "GET") {
       const counts = {},
-        unreadMessages = (db.notifications || []).filter(
+        unread = (db.notifications || []).filter(
           (n) => n.userId === user.id && !n.read && /\/messages/.test(n.link || ""),
-        ).length;
+        ),
+        unreadMessages = unread.length;
       counts.messages = unreadMessages;
+      // ?project=<id>: unread messages of one project, for the workspace "Messages · N" tab (T109).
+      const projectId = url.searchParams.get("project");
+      if (projectId) {
+        if (!projectFor(user, projectId)) return (send(res, 404, { error: "Project not found" }), true);
+        counts.projectMessages = unread.filter((n) => notificationProject(n) === projectId).length;
+      }
       if (user.role === "customer") {
         const mine = new Set(db.projects.filter((p) => projectFor(user, p.id)).map((p) => p.id));
         counts.approvals =
@@ -6740,6 +6754,12 @@ async function api(req, res, url) {
           send(res, 403, { error: "You are not an active participant in this project conversation" }),
           true
         );
+      // Opening a conversation reads it: its message notifications stop counting as unread (T109).
+      let seen = false;
+      for (const n of db.notifications || [])
+        if (n.userId === user.id && !n.read && String(n.link || "").endsWith(`messages?chat=${c.id}`))
+          seen = n.read = true;
+      if (seen) save();
       return (
         send(res, 200, {
           chat: c,
@@ -6781,6 +6801,7 @@ async function api(req, res, url) {
             uid,
             { key: "chatMessage", params: { chat: c.title } },
             `/${db.users.find((x) => x.id === uid)?.role || "customer"}/messages?chat=${c.id}`,
+            c.projectId ? { projectId: c.projectId } : {},
           );
       save();
       return (send(res, 201, { message: m }), true);
@@ -6848,7 +6869,7 @@ async function api(req, res, url) {
         read: false,
       };
       db.messages.push(m);
-      notify(recipient.id, { key: "newMessage", params: { name: user.name } });
+      notify(recipient.id, { key: "newMessage", params: { name: user.name } }, "", m.projectId ? { projectId: m.projectId } : {});
       save();
       return (send(res, 201, { message: m }), true);
     }

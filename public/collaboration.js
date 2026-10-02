@@ -506,7 +506,11 @@ async function messages(role) {
   const chats = (await api("/chats")).chats || [],
     q = new URLSearchParams(location.hash.split("?")[1] || ""),
     selected = q.get("chat"),
-    active = chats.find((c) => c.id === selected) || chats[0],
+    // From a project's Messages tab (?project=): open that project's conversation first (T109)
+    active =
+      chats.find((c) => c.id === selected) ||
+      (q.get("project") && chats.find((c) => c.projectId === q.get("project"))) ||
+      chats[0],
     detail = active ? await api(`/chats/${active.id}/messages`) : null,
     search = q.get("search") || "",
     matches = chats.filter((c) =>

@@ -433,6 +433,28 @@ describe("design 2026", () => {
     assert.ok(read("i18n.js").includes('[/^Due (\\d.+)$/, "Fällig $1"]'));
   });
 
+  it("shows the unread messages of the project on the Messages tab (T109)", async () => {
+    const calls = [],
+      btn = { label: "Messages", replaceChildren(t) { this.label = t; } };
+    const ctx = loadScreens(
+      {
+        api: async (p) => (calls.push(p), { counts: { projectMessages: 3 } }),
+        document: { addEventListener() {}, getElementById: () => null, querySelector: () => null, contains: () => true },
+      },
+      ["dsWsUnread"],
+    );
+    await ctx.dsWsUnread(btn, "prj 1");
+    assert.deepEqual(calls, ["/nav-counts?project=prj%201"]);
+    assert.equal(btn.label, "Messages · 3");
+    const quiet = loadScreens({ api: async () => ({ counts: { projectMessages: 0 } }) }, ["dsWsUnread"]);
+    const b2 = { label: "Messages", replaceChildren(t) { this.label = t; } };
+    await quiet.dsWsUnread(b2, "p");
+    assert.equal(b2.label, "Messages");
+    assert.ok(read("i18n.js").includes('[/^Messages · (\\d+)$/, "Nachrichten · $1"]'));
+    // The project's Messages button opens that project's conversation
+    assert.ok(read("collaboration.js").includes('(q.get("project") && chats.find((c) => c.projectId === q.get("project")))'));
+  });
+
   it("uses a new service worker cache so installed apps load the new files", () => {
     assert.match(read("sw.js"), /const CACHE = "craftcrew-shell-v2"/);
   });
