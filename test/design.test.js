@@ -16,7 +16,6 @@ function loadScreens(extra = {}, expose = []) {
     topActions() {},
     inBoard: async () => {},
     srEvent: async () => {},
-    invoiceDetailPage: async () => {},
     ccNewTimeEntry: async () => {},
     ccTimeFilter: () => {},
     srApprovals: async () => {},
@@ -142,20 +141,7 @@ describe("design 2026", () => {
 
   // T100 (offer cards) moved to the sourcing area: test/area-sourcing.test.js
 
-  it("lays out the invoice as paper and a review panel with the existing actions (T101)", () => {
-    const src = read("design-screens.js");
-    assert.match(src, /const dsBaseInvoiceDetail = invoiceDetailPage;/);
-    // The existing Approve / Request changes / Reject buttons move into the panel (their onclick stays)
-    assert.match(src, /\["Approve", "Request Changes", "invoiceReject"\]\.map/);
-    // A filled note is sent as the comment instead of opening the prompt
-    assert.match(src, /e\.stopImmediatePropagation\(\);[\s\S]{0,80}method: "PATCH", body: \{ action, comment: note \}/);
-    // Lines that are new against the previous revision get a "new" chip
-    assert.match(src, /prev && !prevLines\.some\(\(y\) => same\(x, y\)\)/);
-    // Notices, VAT notes, payment terms and the revision history stay below the paper
-    assert.match(src, /el\.matches\("\.invoice-paper-head, \.wf-stat-grid, \.cc-table-wrap, \.invoice-totals, \.action-row"\)/);
-    const de = read("i18n.js");
-    for (const k of ['"Approve and Schedule Payment"', '"Within order cap"', '"BILL TO"', "corrected by"]) assert.ok(de.includes(k), `no German for ${k}`);
-  });
+  // T101 (invoice paper and review panel) moved to the invoices area: test/area-invoices.test.js
 
   it("gives suppliers a Today screen on phones (T102)", () => {
     const src = read("areas/dashboards.js");
@@ -246,14 +232,7 @@ describe("design 2026", () => {
     assert.ok(de.includes('"Arrival time (optional)": "Ankunftszeit (optional)"'));
   });
 
-  it("shows the due date of submitted invoices in the review panel and the list (T108)", () => {
-    const src = read("design-screens.js"),
-      rv = read("reviews.js");
-    assert.ok(src.includes("i.scheduledPayment || i.dueDate ? `Due ${dsShortRange(i.scheduledPayment || i.dueDate)}`"));
-    assert.ok(rv.includes('${rvDue(i) ? `<small>Due ${date(rvDue(i))}</small>` : ""}'));
-    assert.match(rv, /if \(i\.status === "Submitted" && i\.dueDate && i\.dueDate < dsToday\(\)\)/);
-    assert.ok(read("i18n.js").includes('[/^Due (\\d.+)$/, "Fällig $1"]'));
-  });
+  // T108 (due dates of invoices) moved to the invoices area: test/area-invoices.test.js
 
   it("explains the GDPR self-service on the privacy page and lists pending deletions for admins (T123)", () => {
     // The privacy page itself moved to the public area (T126a, test/area-public.test.js)

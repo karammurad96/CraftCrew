@@ -150,51 +150,6 @@ function publicLayout(content) {
 function publicHero() {
   return `<section class="hero-lite"><div><div class="eyebrow">INDUSTRIAL SERVICES, COORDINATED</div><h1>Build complex projects with <span>trusted crews.</span></h1><p>CraftCrew connects SMEs with vetted mechanical, electrical, automation and industrial service specialists — managed through one transparent waterfall workflow.</p><div class="hero-actions"><button class="btn primary lg" onclick="navigate('/signup')">Start a project</button><button class="btn outline lg" onclick="navigate('/suppliers')">Explore suppliers</button></div><div class="trust-row"><div><b>20+</b><small>vetted suppliers</small></div><div><b>5-stage</b><small>waterfall delivery</small></div><div><b>1 place</b><small>projects & payments</small></div></div></div><div class="hero-box"><div class="small-label">LIVE PROJECT CONTROL</div><h3 style="font-size:20px;margin:10px 0">Line 15 Integration</h3><div class="progress"><i style="width:68%"></i></div><div style="font-size:11px;color:#9eabc0">68% complete · 12 days remaining</div><div class="mini"><div><div class="small-label">ACTIVE PHASE</div><b>Programming</b><p style="color:#9eabc0">SPS Experts GmbH</p></div><div><div class="small-label">NEXT MILESTONE</div><b>Installation</b><p style="color:#9eabc0">18 Sep 2026</p></div></div></div></section>`;
 }
-async function customerInvoices() {
-  const d = await api("/invoices");
-  app.innerHTML = dashboardShell(
-    "customer",
-    "invoices",
-    `<div class="dash-top"><div><h1>Invoices & payments</h1><p>Review submitted invoices before payment is scheduled.</p></div></div><div class="panel"><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Invoice</th><th>Project / Phase</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody>${d.invoices
-      .map((i) => {
-        const p = state.cache.projects?.find((x) => x.id === i.projectId);
-        return `<tr><td><b>${esc(invNo(i))}</b><small>${date(i.createdAt)}</small></td><td>${esc(p?.name || i.projectId)}<small>${i.phaseId}</small></td><td>${money(i.amount)}</td><td><span class="status ${i.status.toLowerCase().replaceAll(" ", "-")}">${esc(i.status)}</span></td><td><button class="btn small outline" onclick="reviewInvoice('${i.id}')">${i.status === "Submitted" ? "Review" : "View"}</button></td></tr>`;
-      })
-      .join("")}</tbody></table></div></div>`,
-  );
-  state.cache.projects = (await api("/projects")).projects;
-}
-async function reviewInvoice(id) {
-  const { invoice: i } = await api("/invoices/" + id);
-  modal(
-    "Invoice " + invNo(i),
-    `<div class="detail-grid"><div class="detail-box"><small>Amount</small><b>${money(i.amount)}</b></div><div class="detail-box"><small>Status</small><b>${esc(i.status)}</b></div></div><p>${esc(i.description)}</p>${i.comments ? `<div class="notice">${esc(i.comments)}</div>` : ""}${i.status === "Submitted" ? `<div class="action-row"><button class="btn success" onclick="invoiceAction('${id}','Approve')">Approve & schedule payment</button><button class="btn outline" onclick="invoiceAction('${id}','Request Changes')">Request changes</button><button class="btn danger" onclick="invoiceReject('${id}')">Reject</button></div>` : ""}`,
-  );
-}
-async function invoiceAction(id, action) {
-  let comment = "";
-  if (action === "Request Changes") comment = (await uiPrompt("What should the supplier change?")) || "";
-  await api("/invoices/" + id, { method: "PATCH", body: { action, comment } });
-  closeModal();
-  toast(action === "Approve" ? "Invoice approved; payment scheduled" : "Changes requested");
-  customerInvoices();
-}
-async function invoiceReject(id) {
-  const reason = await uiPrompt("Reason for rejection?");
-  if (!reason) return;
-  await api("/invoices/" + id, { method: "PATCH", body: { action: "Rejected", comment: reason } });
-  closeModal();
-  toast("Invoice rejected");
-  customerInvoices();
-}
-async function supplierInvoices() {
-  const d = await api("/invoices");
-  app.innerHTML = dashboardShell(
-    "supplier",
-    "invoices",
-    `<div class="dash-top"><div><h1>Invoices</h1><p>Submit invoices and resubmit changes requested by customers.</p></div><button class="btn primary" onclick="navigate('/supplier/invoices/new')">+ Create invoice</button></div><div class="panel"><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Invoice</th><th>Amount</th><th>Status</th><th>Comments</th><th>Action</th></tr></thead><tbody>${d.invoices.map((i) => `<tr><td><b>${esc(invNo(i))}</b><small>${date(i.createdAt)}</small></td><td>${money(i.amount)}</td><td><span class="status ${i.status.toLowerCase().replaceAll(" ", "-")}">${i.status}</span></td><td>${esc(i.comments || "—")}</td><td>${["Changes Requested", "Rejected"].includes(i.status) ? `<button class="btn small primary" onclick="resubmitInvoice('${i.id}')">Modify & resubmit</button>` : ""}</td></tr>`).join("")}</tbody></table></div></div>`,
-  );
-}
 async function newInvoice() {
   const d = await api("/projects"),
     selectedProject = new URLSearchParams(location.hash.split("?")[1] || "").get("project"),
@@ -228,26 +183,6 @@ async function newInvoice() {
     await api("/invoices", { method: "POST", body: { ...b, attachment, projectId, phaseId } });
     toast("Invoice submitted");
     navigate("/supplier/invoices");
-  };
-}
-async function resubmitInvoice(id) {
-  const { invoice: i } = await api("/invoices/" + id);
-  modal(
-    "Modify invoice",
-    `<form id="rif" class="modal-form"><label>Amount<input name="amount" type="number" value="${i.amount}" required></label><label>Description<textarea name="description" required>${esc(i.description)}</textarea></label><label>New attachment<input name="attachmentFile" type="file"></label><button class="btn primary">Resubmit for approval</button></form>`,
-  );
-  document.getElementById("rif").onsubmit = async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target),
-      b = Object.fromEntries(fd.entries());
-    const file = fd.get("attachmentFile");
-    delete b.attachmentFile;
-    let attachment = i.attachment;
-    if (file && file.size) attachment = await uploadFile(file);
-    await api("/invoices/" + id, { method: "PATCH", body: { action: "Resubmit", ...b, attachment } });
-    closeModal();
-    toast("Invoice resubmitted");
-    supplierInvoices();
   };
 }
 async function supplierCatalog() {
@@ -443,12 +378,10 @@ async function route() {
   try {
     const parts = h.split("/").filter(Boolean);
     if (parts[0] === "customer") {
-      if (parts[1] === "invoices") return customerInvoices();
       if (parts[1] === "messages") return messages("customer");
       if (parts[1] === "profile") return profilePage("customer");
     }
     if (parts[0] === "supplier") {
-      if (parts[1] === "invoices" && !parts[2]) return supplierInvoices();
       if (parts[1] === "invoices" && parts[2] === "new") return newInvoice();
       if (parts[1] === "suppliers") return supplierCatalog();
       if (parts[1] === "messages") return messages("supplier");

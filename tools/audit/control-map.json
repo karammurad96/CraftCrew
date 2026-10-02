@@ -284,5 +284,41 @@
     "action srCloseEvent('bid_demo_vision')": "action [src.close]",
     "action wfBidDecision('bid_demo_vision','offer_demo_a','Decline offer')": "action [src.eliminate]",
     "action wfBidDecision('bid_demo_vision','offer_demo_b','Decline offer')": "action [src.eliminate]"
+  },
+  "customer /customer/invoices": {
+    "action reviewInvoice('inv_demo_submitted')": "action [inv.review]",
+    "action wfInvoiceEmail('inv_demo_approved')": "action [inv.download]",
+    "action wfInvoiceEmail('inv_demo_submitted')": "action [inv.download]",
+    "action wfInvoicePrint('inv_demo_approved')": "action [inv.download]",
+    "action wfInvoicePrint('inv_demo_submitted')": "action [inv.download]",
+    "action navigate('/customer/invoices');customerInvoices()": "link #/customer/invoices",
+    "action reviewInvoiceCsv(<data>)": "action [inv.csv]"
+  },
+  "customer /customer/invoice/inv_demo_submitted": {
+    "action invoiceReject('inv_demo_submitted')": "action [inv.reject]",
+    "action wfDownloadInvoice('inv_demo_submitted','xrechnung')": "action [inv.download]",
+    "action wfInvoiceEmail('inv_demo_submitted')": "action [inv.download]",
+    "action wfInvoicePrint('inv_demo_submitted')": "action [inv.download]",
+    "action invoiceAction('inv_demo_submitted','Approve')": "action [inv.approve]",
+    "action invoiceAction('inv_demo_submitted','Request Changes')": "action [inv.changes]",
+    "action navigate(decodeURIComponent('%2Fcustomer%2Finvoices'))": "link #/customer/invoices"
+  },
+  "supplier /supplier/invoices": {
+    "action wfInvoiceEmail('inv_demo_submitted')": "action [inv.download]",
+    "action wfInvoiceEmail('inv_hist_0_0')": "action [inv.download]",
+    "action wfInvoiceEmail('inv_hist_0_1')": "action [inv.download]",
+    "action wfInvoiceEmail('inv_hist_0_2')": "action [inv.download]",
+    "action wfInvoicePrint('inv_demo_submitted')": "action [inv.download]",
+    "action wfInvoicePrint('inv_hist_0_0')": "action [inv.download]",
+    "action wfInvoicePrint('inv_hist_0_1')": "action [inv.download]",
+    "action wfInvoicePrint('inv_hist_0_2')": "action [inv.download]",
+    "action navigate('/supplier/invoices');supplierInvoices()": "link #/supplier/invoices",
+    "action reviewInvoiceCsv(<data>)": "action [inv.csv]"
+  },
+  "supplier /supplier/invoice/inv_demo_submitted": {
+    "action wfDownloadInvoice('inv_demo_submitted','xrechnung')": "action [inv.download]",
+    "action wfInvoiceEmail('inv_demo_submitted')": "action [inv.download]",
+    "action wfInvoicePrint('inv_demo_submitted')": "action [inv.download]",
+    "action navigate(decodeURIComponent('%2Fsupplier%2Finvoices'))": "link #/supplier/invoices"
   }
 }

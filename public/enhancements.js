@@ -230,48 +230,6 @@ function refreshInvoiceTotal() {
   check.className = "order-check " + (over > 0 ? "over" : "within");
 }
 
-async function supplierInvoices() {
-  const d = await api("/invoices");
-  app.innerHTML = dashboardShell(
-    "supplier",
-    "invoices",
-    `<div class="dash-top"><div><h1>Invoices</h1><p>Track customer review, requested changes and payment state.</p></div><button class="btn primary" onclick="navigate('/supplier/invoices/new')">+ Create invoice</button></div><div class="panel"><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Invoice</th><th>Order</th><th>Amount / order</th><th>Status</th><th>Comments</th><th>Action</th></tr></thead><tbody>${d.invoices.map((i) => `<tr><td><b>${esc(invNo(i))}</b><small>${date(i.createdAt)}</small></td><td>${esc(i.projectId)}<small>${esc(i.phaseId)}</small></td><td>${money(i.amount)}${i.orderedAmount ? `<small class="${i.exceedsOrder ? "danger-text" : "success-text"}">${i.exceedsOrder ? "Over by " + money(invNet(i) - i.orderedAmount) : "of " + money(i.orderedAmount)}</small>` : ""}</td><td><span class="status ${i.status.toLowerCase().replaceAll(" ", "-")}">${esc(i.status)}</span></td><td>${esc(i.comments || "—")}</td><td>${["Changes Requested", "Rejected"].includes(i.status) ? `<button class="btn small primary" onclick="resubmitInvoice('${i.id}')">Modify & resubmit</button>` : ""}</td></tr>`).join("") || '<tr><td colspan="6">No invoices yet.</td></tr>'}</tbody></table></div></div>`,
-  );
-}
-
-async function customerInvoices() {
-  const [d, pd] = await Promise.all([api("/invoices"), api("/projects")]);
-  state.cache.projects = pd.projects;
-  app.innerHTML = dashboardShell(
-    "customer",
-    "invoices",
-    `<div class="dash-top"><div><h1>Invoices & payments</h1><p>Check submitted positions against each phase order before approving payment.</p></div></div><div class="panel"><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Invoice</th><th>Order</th><th>Positions</th><th>Amount / cap</th><th>Status</th><th>Action</th></tr></thead><tbody>${
-      d.invoices
-        .map((i) => {
-          const p = pd.projects.find((x) => x.id === i.projectId),
-            ph = p?.phases.find((x) => x.id === i.phaseId);
-          return `<tr><td><b>${esc(invNo(i))}</b><small>${date(i.createdAt)}</small></td><td>${esc(p?.name || i.projectId)}<small>${esc(ph?.name || i.phaseId)}</small></td><td>${(i.lineItems || []).length || "—"}</td><td>${money(i.amount)}${i.orderedAmount || ph?.orderAmount ? `<small class="${i.exceedsOrder || invNet(i) > (ph?.orderAmount || i.orderedAmount) ? "danger-text" : "success-text"}">${i.exceedsOrder || invNet(i) > (ph?.orderAmount || i.orderedAmount) ? "Over approved order" : "Within approved order"} · ${money(ph?.orderAmount || i.orderedAmount)}</small>` : ""}</td><td><span class="status ${i.status.toLowerCase().replaceAll(" ", "-")}">${esc(i.status)}</span></td><td><button class="btn small outline" onclick="reviewInvoice('${i.id}')">${i.status === "Submitted" ? "Review" : "View"}</button></td></tr>`;
-        })
-        .join("") || '<tr><td colspan="6">No invoices to review.</td></tr>'
-    }</tbody></table></div></div>`,
-  );
-}
-
-async function reviewInvoice(id) {
-  const { invoice: i } = await api("/invoices/" + id),
-    over = i.orderedAmount && invNet(i) > i.orderedAmount,
-    lines = (i.lineItems || [])
-      .map(
-        (x) =>
-          `<tr><td>${esc(x.service)}</td><td>${Number(x.quantity)} ${x.unit === "hours" ? "hours" : "units"}</td><td>${money(x.unitPrice)}</td><td>${money(x.total)}</td></tr>`,
-      )
-      .join("");
-  modal(
-    "Invoice " + invNo(i),
-    `<div class="detail-grid"><div class="detail-box"><small>Invoice total</small><b>${money(i.amount)}</b></div><div class="detail-box"><small>Customer approved order</small><b>${i.orderedAmount ? money(i.orderedAmount) : "No cap recorded"}</b></div><div class="detail-box"><small>Variance</small><b class="${over ? "danger-text" : "success-text"}">${i.orderedAmount ? (over ? "Exceeds by " + money(invNet(i) - i.orderedAmount) : "Within order by " + money(i.orderedAmount - invNet(i))) : "No order cap"}</b></div><div class="detail-box"><small>Status</small><b>${esc(i.status)}</b></div></div>${lines ? `<h3>Invoice positions</h3><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Service</th><th>Quantity</th><th>Unit rate</th><th>Total</th></tr></thead><tbody>${lines}</tbody></table></div>` : ""}<p>${esc(i.description)}</p>${i.comments ? `<div class="notice">${esc(i.comments)}</div>` : ""}${over ? `<div class="notice order-warning">This invoice exceeds the approved phase order by ${money(invNet(i) - i.orderedAmount)}. Review the positions before approval.</div>` : ""}${i.status === "Submitted" ? `<div class="action-row"><button class="btn success" onclick="invoiceAction('${id}','Approve')">Approve & schedule payment</button><button class="btn outline" onclick="invoiceAction('${id}','Request Changes')">Request changes</button><button class="btn danger" onclick="invoiceReject('${id}')">Reject</button></div>` : ""}`,
-  );
-}
-
 
 async function route() {
   topActions();
@@ -284,12 +242,10 @@ async function route() {
   }
   try {
     if (parts[0] === "customer") {
-      if (parts[1] === "invoices") return customerInvoices();
       if (parts[1] === "messages") return messages("customer");
       if (parts[1] === "profile") return profilePage("customer");
     }
     if (parts[0] === "supplier") {
-      if (parts[1] === "invoices" && !parts[2]) return supplierInvoices();
       if (parts[1] === "invoices" && parts[2] === "new") return newInvoice();
       if (parts[1] === "suppliers") return supplierCatalog();
       if (parts[1] === "messages") return messages("supplier");
