@@ -552,7 +552,6 @@ async function route() {
   try {
     if (h === "/suppliers") return renderSuppliers();
     if (parts[0] === "customer") {
-      if (parts[1] === "dashboard") return customerDashboard();
       if (parts[1] === "projects" && !parts[2]) return customerProjects();
       if (parts[1] === "projects" && parts[2] === "new") return newProject();
       if (parts[1] === "projects" && parts[2]) return projectDetail(parts[2]);
@@ -563,7 +562,6 @@ async function route() {
       if (parts[1] === "profile") return profilePage("customer");
     }
     if (parts[0] === "supplier") {
-      if (parts[1] === "dashboard") return supplierDashboard();
       if (parts[1] === "phases" || parts[1] === "projects") return supplierPhases();
       if (parts[1] === "requests") return supplierRequests();
       if (parts[1] === "invoices" && !parts[2]) return supplierInvoices();
@@ -573,7 +571,6 @@ async function route() {
       if (parts[1] === "profile") return profilePage("supplier");
     }
     if (parts[0] === "admin") {
-      if (parts[1] === "dashboard") return adminDashboard();
       if (parts[1] === "applications") return adminApplications();
       if (parts[1] === "users") return adminUsers();
       if (parts[1] === "billing") return adminBilling();

@@ -437,6 +437,11 @@ table tbody tr:hover {
   border-radius: 8px;
   transition: background 0.15s;
 }
+/* Project rows that are links (dashboards, T127b) keep the text colours of the row */
+a.project-row,
+a.project-row:visited {
+  color: inherit;
+}
 .project-click:hover {
   background: #f8fbff;
 }

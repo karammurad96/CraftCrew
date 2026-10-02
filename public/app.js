@@ -186,23 +186,6 @@ async function supplierDetail(id) {
     `<div class="detail-grid"><div class="detail-box"><small>Location</small><b>${esc(s.location)}</b></div><div class="detail-box"><small>Badge / Rating</small><b>${esc(supplierBadge(s))} · ★ ${s.rating}</b></div><div class="detail-box"><small>Experience</small><b>${s.experience} years · ${s.projectsCompleted} projects</b></div><div class="detail-box"><small>Rates</small><b>${money(s.hourlyRate)}/h · from ${money(s.projectRate)}</b></div></div><p>${esc(s.description)}</p><h4>Services</h4><div>${s.services.map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</div><h4>Certifications</h4><div>${s.certifications.map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</div><h4>Reviews</h4>${s.reviews.map((r) => `<div class="notice">★ ${r.rating} — ${esc(r.text)}</div>`).join("")}`,
   );
 }
-async function customerDashboard() {
-  const d = await api("/dashboard");
-  const ps = d.projects;
-  app.innerHTML = dashboardShell(
-    "customer",
-    "dashboard",
-    `<div class="dash-top"><div><h1>Customer dashboard</h1><p>Coordinate active projects, phases and payments.</p></div><button class="btn primary" onclick="navigate('/customer/projects/new')">+ New project</button></div><div class="stats"><div><span class="cc-label">Active projects</span><strong>${ps.filter((p) => p.status === "In Progress").length}</strong></div><div><span class="cc-label">Completed</span><strong>${ps.filter((p) => p.status === "Completed").length}</strong></div><div><span class="cc-label">Pending invoices</span><strong>${d.invoices.filter((i) => i.status === "Submitted").length}</strong></div><div><span class="cc-label">Project value</span><strong>${money(ps.reduce((a, p) => a + p.budget, 0))}</strong></div></div><div class="dashboard-grid"><div class="panel"><div class="panel-title"><h3>Active projects</h3><a href="#/customer/projects">View all</a></div>${ps.map((p) => `<div class="project-row project-click" onclick="navigate('/customer/projects/${p.id}')"><div><b>${esc(p.name)}</b><small>${p.status} · due ${date(p.dueDate)}</small></div><div><div class="bar"><i style="width:${pct(p.phases)}%"></i></div></div><b>${pct(p.phases)}%</b></div>`).join("")}</div><div class="panel"><div class="panel-title"><h3>Invoices</h3><a href="#/customer/invoices">Review</a></div>${
-      d.invoices
-        .slice(0, 6)
-        .map(
-          (i) =>
-            `<div class="project-row" style="grid-template-columns:1fr auto"><div><b>${esc(invNo(i))}</b><small>${money(i.amount)}</small></div><span class="status ${i.status.toLowerCase().replaceAll(" ", "-")}">${esc(i.status)}</span></div>`,
-        )
-        .join("") || '<div class="empty">No invoices.</div>'
-    }</div></div>`,
-  );
-}
 async function customerProjects() {
   const d = await api("/projects");
   app.innerHTML = dashboardShell(
@@ -457,25 +440,10 @@ async function invoiceReject(id) {
   toast("Invoice rejected");
   customerInvoices();
 }
-async function supplierDashboard() {
-  const d = await api("/dashboard"),
-    s = (await api("/profile")).supplier;
-  const pending = [];
-  d.projects.forEach((p) =>
-    p.phases
-      .filter((ph) => ph.supplierId === s?.id && ph.acceptanceStatus === "Pending")
-      .forEach((ph) => pending.push({ p, ph })),
-  );
-  app.innerHTML = dashboardShell(
-    "supplier",
-    "dashboard",
-    `<div class="dash-top"><div><h1>Supplier dashboard</h1><p>${esc(s?.company || "Supplier workspace")} · ${esc(supplierBadge(s))}</p></div><button class="btn primary" onclick="navigate('/supplier/invoices')">+ Create invoice</button></div><div class="stats"><div><span class="cc-label">Assigned projects</span><strong>${d.projects.length}</strong></div><div><span class="cc-label">Pending invitations</span><strong>${pending.length}</strong></div><div><span class="cc-label">Invoices</span><strong>${d.invoices.length}</strong></div><div><span class="cc-label">Paid</span><strong>${d.invoices.filter((i) => i.status === "Paid").length}</strong></div></div><div class="dashboard-grid"><div class="panel"><div class="panel-title"><h3>Pending invitations</h3></div>${pending.map((x) => `<div class="project-row" style="grid-template-columns:1fr auto"><div><b>${esc(x.ph.name)}</b><small>${esc(x.p.name)} · due ${date(x.ph.dueDate)}</small></div><div class="cc-actions"><button class="btn small success" onclick="acceptPhase('${x.p.id}','${x.ph.id}',true)">Accept</button><button class="btn small danger" onclick="acceptPhase('${x.p.id}','${x.ph.id}',false)">Decline</button></div></div>`).join("") || '<div class="empty">No pending invitations.</div>'}</div><div class="panel"><div class="panel-title"><h3>Invoice status</h3></div>${d.invoices.map((i) => `<div class="project-row" style="grid-template-columns:1fr auto"><div><b>${esc(invNo(i))}</b><small>${money(i.amount)}</small></div><span class="status ${i.status.toLowerCase().replaceAll(" ", "-")}">${i.status}</span></div>`).join("")}</div></div>`,
-  );
-}
 async function acceptPhase(pid, phid, accept) {
   await api(`/projects/${pid}/accept`, { method: "POST", body: { phaseId: phid, accept } });
   toast(accept ? "Phase accepted" : "Phase declined");
-  supplierDashboard();
+  route();
 }
 async function supplierPhases() {
   const d = await api("/projects"),
@@ -662,22 +630,6 @@ async function importData(input) {
     toast(e.message, "error");
   }
 }
-async function adminDashboard() {
-  const [m, a] = await Promise.all([api("/admin/metrics"), api("/admin/applications")]);
-  app.innerHTML = dashboardShell(
-    "admin",
-    "dashboard",
-    `<div class="dash-top"><div><h1>Admin dashboard</h1><p>Marketplace quality, vetting and financial operations.</p></div></div><div class="stats"><div><span class="cc-label">Users</span><strong>${m.metrics.users}</strong></div><div><span class="cc-label">Live suppliers</span><strong>${m.metrics.suppliers}</strong></div><div><span class="cc-label">Projects</span><strong>${m.metrics.projects}</strong></div><div><span class="cc-label">Invoice volume</span><strong>${money(m.metrics.grossVolume)}</strong></div></div><div class="dashboard-grid"><div class="panel"><div class="panel-title"><h3>Vetting queue</h3><a href="#/admin/applications">Open queue</a></div>${
-      a.applications
-        .filter((x) => !["Approved", "Rejected"].includes(x.status))
-        .map(
-          (x) =>
-            `<div class="project-row" style="grid-template-columns:1fr auto"><div><b>${esc(x.company)}</b><small>${esc(x.email)} · ${x.stage}</small></div><button class="btn small outline" onclick="reviewApplication('${x.id}')">Review</button></div>`,
-        )
-        .join("") || '<div class="empty">Queue is clear.</div>'
-    }</div><div class="panel"><h3>Quality pipeline</h3><div class="stage-flow" style="flex-wrap:wrap"><span class="on">New</span><span>Verified</span><span>References</span><span>Approved</span><span>Badge</span><span>Live</span></div><p class="subtle">Every approved supplier receives an explicit Bronze, Silver or Gold badge.</p></div></div>`,
-  );
-}
 async function adminApplications() {
   const d = await api("/admin/applications");
   app.innerHTML = dashboardShell(
@@ -782,7 +734,6 @@ async function route() {
     if (h === "/suppliers") return renderSuppliers();
     const parts = h.split("/").filter(Boolean);
     if (parts[0] === "customer") {
-      if (parts[1] === "dashboard") return customerDashboard();
       if (parts[1] === "projects" && !parts[2]) return customerProjects();
       if (parts[1] === "projects" && parts[2] === "new") return newProject();
       if (parts[1] === "projects" && parts[2]) return projectDetail(parts[2]);
@@ -792,7 +743,6 @@ async function route() {
       if (parts[1] === "profile") return profilePage("customer");
     }
     if (parts[0] === "supplier") {
-      if (parts[1] === "dashboard") return supplierDashboard();
       if (parts[1] === "phases") return supplierPhases();
       if (parts[1] === "projects") return supplierPhases();
       if (parts[1] === "invoices" && !parts[2]) return supplierInvoices();
@@ -802,7 +752,6 @@ async function route() {
       if (parts[1] === "profile") return profilePage("supplier");
     }
     if (parts[0] === "admin") {
-      if (parts[1] === "dashboard") return adminDashboard();
       if (parts[1] === "applications") return adminApplications();
       if (parts[1] === "users") return adminUsers();
       if (parts[1] === "billing") return adminBilling();

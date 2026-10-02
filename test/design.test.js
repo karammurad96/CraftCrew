@@ -14,7 +14,6 @@ function loadScreens(extra = {}, expose = []) {
   const vm = require("node:vm");
   const ctx = {
     topActions() {},
-    aqHtml: () => "",
     inBoard: async () => {},
     srEvent: async () => {},
     invoiceDetailPage: async () => {},
@@ -141,77 +140,6 @@ describe("design 2026", () => {
 
   // T93 (sidebar groups and labels) and the T102 bottom bar moved to the shell area: test/area-shell.test.js
 
-  it("builds the customer dashboard header and decision rows from the queue (T95)", () => {
-    const ctx = loadScreens(
-      { money: (n) => `€${n}`, date: (d) => d, aqHtml: () => "base" },
-      ["dsDecisionLine", "dsGreeting", "dsCustomerRow"],
-    );
-    assert.equal(ctx.dsDecisionLine(0), "Nothing needs a decision. Everything is on track.");
-    assert.equal(ctx.dsDecisionLine(1), "One thing needs a decision. Everything else is on track.");
-    assert.equal(ctx.dsDecisionLine(4), "4 things need a decision. Everything else is on track.");
-    assert.match(ctx.dsGreeting("Maya Hartmann"), /^Good (morning|afternoon|evening), Maya\.$/);
-    const inv = ctx.dsCustomerRow({
-      kind: "invoice",
-      link: "/customer/invoice/inv_1",
-      invoiceId: "inv_1",
-      number: "2026-0001",
-      amount: 8806,
-      supplier: "Keller Automation",
-      sub: "Robot cell",
-    });
-    assert.match(inv, /Invoice 2026-0001 · €8806/);
-    assert.match(inv, /href="#\/customer\/invoice\/inv_1"[^>]*>Review</);
-    assert.match(inv, /dsApproveInvoice\('inv_1', this\)">Approve</);
-    const offer = ctx.dsCustomerRow({ kind: "offer", link: "/customer/offers?project=p", bidId: "bid_1", offers: 3, title: "Vision", best: { amount: 18900, supplier: "Rhein" } });
-    assert.match(offer, /3 offers · Vision/);
-    assert.match(offer, /href="#\/customer\/sourcing\/bid_1"[^>]*>Compare</);
-    // The row title keeps the old action-queue link, so no link is lost
-    assert.match(offer, /class="ds-dec-title" href="#\/customer\/offers\?project=p"/);
-    const time = ctx.dsCustomerRow({ kind: "time", link: "/customer/time", entries: 2, hours: 14.5, suppliers: ["Keller"] });
-    assert.match(time, /2 time entries · 14\.5 h/);
-    const late = ctx.dsCustomerRow({ kind: "overdue", link: "/customer/projects/p", projectId: "p", phaseId: "ph", taskId: "t", taskName: "PLC", dueDate: "2000-01-01" });
-    assert.match(late, /PLC is \d+ days late/);
-    assert.match(late, /\/customer\/messages\?project=p&amp;phase=ph&amp;task=t|\/customer\/messages\?project=p&phase=ph&task=t/);
-    const de = read("i18n.js");
-    for (const p of ["things need a decision", "is (\\\\d+) days late", "time entries", "offers · ", "Good morning"])
-      assert.ok(de.includes(p.replace(/\\\\/g, "\\")), `no German pattern for ${p}`);
-  });
-
-  it("shows the newest invitation as a card with the existing answer actions (T96)", () => {
-    const ctx = loadScreens({ money: (n) => `€${n}` }, ["dsInviteCard"]);
-    const v = { projectId: "p1", taskId: "t1", name: "Weld test", project: "Line 4", phase: "Build", customer: "MAKBERG", startDate: "2099-09-24", dueDate: "2099-10-11", orderAmount: 1000 };
-    const html = ctx.dsInviteCard({ kind: "invitation", link: "/supplier/projects?invite=t1", invite: v });
-    assert.match(html, /New invitation · MAKBERG/);
-    assert.match(html, /onclick="invAnswerTask\('p1', 't1', true\)">Accept Job</);
-    assert.match(html, /onclick="invAnswerTask\('p1', 't1', false\)">Decline</);
-    assert.match(html, /href="#\/supplier\/messages\?project=p1">Ask a question ›</);
-    assert.match(html, /€1000/);
-    const phase = ctx.dsInviteCard({ kind: "invitation", link: "/x", invite: { ...v, taskId: undefined, phaseId: "ph1" } });
-    assert.match(phase, /invAnswerPhase\('p1', 'ph1', true\)/);
-    const de = read("i18n.js");
-    for (const p of ["new jobs are waiting for your answer", "of (\\\\d+) free", '"Accept Job"', '"Paid this year"'])
-      assert.ok(de.includes(p.replace(/\\\\/g, "\\")), `no German for ${p}`);
-  });
-
-  it("gives the admin dashboard the same decision list and German labels (T97)", () => {
-    const ctx = loadScreens({ state: { user: { role: "admin", name: "Admin" } } }, ["aqHtml"]);
-    const html = ctx.aqHtml({
-      items: [
-        { kind: "application", text: "Vet application: NordWerk", sub: "New", link: "/admin/applications", action: "Review" },
-        { kind: "payment", text: "Mark invoice 2026-0001 as paid", sub: "Due 2026-10-04", link: "/admin/billing", action: "Record", amount: 32000 },
-      ],
-      total: 2,
-    });
-    assert.match(html, /Needs your decision/);
-    assert.match(html, /href="#\/admin\/applications"[^>]*>Review</);
-    assert.match(html, /href="#\/admin\/billing"[^>]*>Record</);
-    assert.match(html, /data-ds-fill="stats"/);
-    assert.match(html, /More on your dashboard/);
-    const de = read("i18n.js");
-    for (const k of ['"Live suppliers"', '"Invoice volume"', '"At a glance"'])
-      assert.ok(de.includes(k), `no German for ${k}`);
-  });
-
   it("files the project page into tabs and keeps the supplier away from the budget (T98)", () => {
     const ctx = loadScreens({ invNo: (i) => i.number }, ["dsWsUpNext", "dsWsSide", "dsWsPhases", "DS_WS_TASKS", "DS_WS_ACTIVITY"]);
     const t = (id, extra) => ({ id, name: id, status: "In Progress", dueDate: "2000-01-01", progress: 50, assignedSupplierId: "s1", acceptanceStatus: "Accepted", orderAmount: 1000, assignmentHistory: [{ supplierId: "s1", company: "Keller" }], ...extra });
@@ -294,7 +222,7 @@ describe("design 2026", () => {
   });
 
   it("gives suppliers a Today screen on phones (T102)", () => {
-    const src = read("design-screens.js");
+    const src = read("areas/dashboards.js");
     // The quick actions use the existing forms
     for (const fn of ["ccNewTimeEntry()", "drOpen(j.projectId, j.taskId)", "puOpen(j.projectId, j.taskId)", "cmSupplierVisit("])
       assert.ok(src.includes(fn), `Today uses ${fn}`);
@@ -370,11 +298,11 @@ describe("design 2026", () => {
   });
 
   it("shows the arrival time of site visits on Today, the week and the access lists (T107)", () => {
-    const src = read("design-screens.js"),
+    const src = read("areas/dashboards.js"),
       cm = read("compliance-ui.js"),
       de = read("i18n.js");
     assert.ok(src.includes('sub: [v.siteName, v.startTime, v.permitLabel].filter(Boolean).join(" · ")'));
-    assert.ok(src.includes('visit.status === "Checked in" ? "checked in" : visit.startTime || "today"'));
+    assert.ok(src.includes('visit.status === "Checked in" ? t("dash.today.checkedIn") : visit.startTime || t("dash.today.today")'));
     assert.ok(cm.includes('<label>Arrival time (optional)<input name="startTime" type="time"></label>'));
     assert.ok(cm.includes('startTime: f.get("startTime"),'));
     assert.equal(cm.split('${v.startTime ? " · " + cmEsc(v.startTime) : ""}').length, 3, "both access lists");

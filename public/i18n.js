@@ -40,7 +40,6 @@ const I18N_DE = {
   FAQ: "FAQ",
   "Industrial services, coordinated end-to-end.": "Industrielle Dienstleistungen, durchgängig koordiniert.",
   Notifications: "Benachrichtigungen",
-  "You are all caught up.": "Alles erledigt.",
   "Building industry together.": "Gemeinsam Industrie gestalten.",
   Impressum: "Impressum",
   "Privacy policy": "Datenschutzerklärung",
@@ -160,31 +159,11 @@ const I18N_DE = {
   "Supplier dashboard": "Lieferanten-Übersicht",
   "Admin dashboard": "Admin-Übersicht",
   "Coordinate active projects, phases and payments.": "Aktive Projekte, Phasen und Zahlungen koordinieren.",
-  "Active projects": "Aktive Projekte",
   Completed: "Abgeschlossen",
-  "Pending invoices": "Offene Rechnungen",
-  "Project value": "Projektvolumen",
-  "View all": "Alle ansehen",
-  "Delayed work": "Verzögerte Arbeiten",
-  "Upcoming deadlines": "Anstehende Termine",
   "Invoices to review": "Zu prüfende Rechnungen",
-  "Recent messages": "Neueste Nachrichten",
   "Nothing is overdue.": "Nichts ist überfällig.",
-  "No deadlines in the next 14 days.": "Keine Termine in den nächsten 14 Tagen.",
-  "No invoices are waiting for you.": "Keine Rechnungen warten auf Sie.",
   "No messages yet.": "Noch keine Nachrichten.",
-  "Revenue overview · platform fees": "Umsatzübersicht · Plattformgebühren",
-  Alerts: "Hinweise",
-  "Recent activity": "Letzte Aktivitäten",
-  "No alerts. Everything is on track.": "Keine Hinweise. Alles im Plan.",
   "Vetting queue": "Prüfwarteschlange",
-  "Queue is clear.": "Warteschlange ist leer.",
-  "Paid out": "Ausgezahlt",
-  "Approved · awaiting payment": "Freigegeben · Zahlung ausstehend",
-  "In review": "In Prüfung",
-  "Paid this month": "Diesen Monat bezahlt",
-  "Pending invitations": "Offene Einladungen",
-  "Assigned projects": "Zugewiesene Projekte",
   "Invoice status": "Rechnungsstatus",
   "Getting started": "Erste Schritte",
   // Onboarding
@@ -536,7 +515,6 @@ Object.assign(I18N_DE, {
   "Verify evidence and references, then approve with a badge.":
     "Nachweise und Referenzen prüfen, dann mit Badge freigeben.",
   // Page intros and panels
-  "No invoices.": "Keine Rechnungen.",
   "Budget, spend, schedule health and supplier spend across your projects.":
     "Budget, Ausgaben, Terminlage und Lieferantenausgaben über alle Projekte.",
   "Every sourcing event, contract and supplier in one view.":
@@ -611,15 +589,7 @@ Object.assign(I18N_DE, {
     "Mindestens 10 Zeichen mit Buchstaben und Zahlen. Andere angemeldete Geräte werden abgemeldet.",
   "In-app notifications are always on. Choose which events also send an email copy.":
     "Benachrichtigungen in der App sind immer aktiv. Wählen Sie, welche Ereignisse zusätzlich per E-Mail kommen.",
-  "Review work requests from customers.": "Arbeitsanfragen von Kunden prüfen.",
-  "No pending invitations.": "Keine offenen Einladungen.",
-  "Browse tasks and create an offer": "Aufgaben durchsuchen und Angebot erstellen",
-  "+ Find / create an offer": "+ Angebot finden / erstellen",
-  "Find task bids": "Ausschreibungen finden",
-  "Open a record for its full details, PDF and email draft.":
-    "Datensatz öffnen für Details, PDF und E-Mail-Entwurf.",
   "All invoices": "Alle Rechnungen",
-  "Filter by issue date, customer, project and amount.": "Nach Datum, Kunde, Projekt und Betrag filtern.",
   "Revenue, pipeline, bid success, delivery performance and team utilisation.":
     "Umsatz, Pipeline, Angebotserfolg, Lieferleistung und Teamauslastung.",
   "Respond to service enquiries, project-linked requests and certificate checks.":
@@ -642,10 +612,7 @@ Object.assign(I18N_DE, {
     "Schlüsselpersonen, Rollen und Zertifikate verwalten Sie im Leistungskatalog; sie erscheinen im öffentlichen Profil.",
   "Marketplace quality, vetting and financial operations.":
     "Marktplatzqualität, Lieferantenprüfung und Finanzen.",
-  "Open queue": "Warteschlange öffnen",
   "Signed in": "Angemeldet",
-  "Every approved supplier receives an explicit Bronze, Silver or Gold badge.":
-    "Jeder freigegebene Lieferant erhält ein Bronze-, Silber- oder Gold-Badge.",
   "Check evidence, record references and risk, then approve, hold or reject each application.":
     "Nachweise prüfen, Referenzen und Risiko erfassen, dann freigeben, zurückstellen oder ablehnen.",
   "Supplier verification pipeline": "Lieferantenprüfung",
@@ -1543,8 +1510,6 @@ Object.assign(I18N_DE, {
   "Sign out others": "Andere abmelden",
   // Dashboard action queue (T53)
   "Action queue": "Zu erledigen",
-  "You're all caught up": "Alles erledigt",
-  "Nothing needs your attention right now.": "Im Moment ist nichts zu tun.",
   "Next deadline:": "Nächste Frist:",
   Compare: "Vergleichen",
   Respond: "Antworten",
@@ -1621,34 +1586,11 @@ Object.assign(I18N_DE, {
   "Strategic sourcing": "Strategische Beschaffung",
   Suppliers: "Lieferanten",
   // Dashboards (T95)
-  "Needs your decision": "Braucht Ihre Entscheidung",
-  "At a glance": "Auf einen Blick",
-  "This week": "Diese Woche",
-  "Late tasks": "Verspätete Aufgaben",
-  "To pay this month": "Diesen Monat zu zahlen",
-  "Budget used": "Budget verbraucht",
-  "More on your dashboard": "Mehr auf Ihrer Übersicht",
-  "Nothing scheduled this week.": "Diese Woche ist nichts geplant.",
-  "Nothing needs a decision. Everything is on track.": "Nichts braucht eine Entscheidung. Alles läuft nach Plan.",
-  "One thing needs a decision. Everything else is on track.": "Eine Sache braucht eine Entscheidung. Alles andere läuft nach Plan.",
   Message: "Nachricht",
   "Invoice approved; payment scheduled": "Rechnung freigegeben; Zahlung geplant",
   // Supplier dashboard (T96)
-  "A new job is waiting for your answer.": "Ein neuer Auftrag wartet auf Ihre Antwort.",
-  "Also for you": "Außerdem für Sie",
-  "New invitation": "Neue Einladung",
   Dates: "Termine",
-  "Your crew": "Ihr Team",
-  "Nobody free": "Niemand frei",
-  "Accept Job": "Auftrag annehmen",
   Decline: "Ablehnen",
-  "Ask a question ›": "Eine Frage stellen ›",
-  "Paid this year": "Dieses Jahr bezahlt",
-  "No payments waiting": "Keine Zahlungen ausstehend",
-  "Crew this week": "Team diese Woche",
-  "Planner ›": "Planer ›",
-  "Blue job · teal site visit · orange absence": "Blau Auftrag · Türkis Baustellenbesuch · Orange Abwesenheit",
-  "Add your team in the planner to see who is free.": "Legen Sie Ihr Team im Planer an, um zu sehen, wer frei ist.",
   // Admin dashboard (T97)
   "Live suppliers": "Aktive Lieferanten",
   "Invoice volume": "Rechnungsvolumen",
@@ -1714,7 +1656,6 @@ Object.assign(I18N_DE, {
   XRechnung: "XRechnung",
   // Phone Today (T102)
   Jobs: "Aufträge",
-  "Your jobs": "Ihre Aufträge",
   "Log Time": "Zeit erfassen",
   Photo: "Foto",
   // GDPR self-service (T120)
@@ -1786,13 +1727,7 @@ Object.assign(I18N_DE, {
   "Attach up to 6 photos": "Hängen Sie bis zu 6 Fotos an",
   "Choose JPG or PNG photos.": "Wählen Sie Fotos im JPG- oder PNG-Format.",
   "This photo could not be read.": "Dieses Foto konnte nicht gelesen werden.",
-  "Site Report": "Baustellenbericht",
   Defect: "Mangel",
-  "Check In": "Einchecken",
-  "Check Out": "Auschecken",
-  "Which job?": "Welcher Auftrag?",
-  "No accepted jobs right now.": "Gerade keine angenommenen Aufträge.",
-  "Accept a job first": "Nehmen Sie zuerst einen Auftrag an",
   Profile: "Profil",
   // Log time sheet (T103)
   "Billable time": "Abrechenbare Zeit",
@@ -1926,15 +1861,6 @@ Object.assign(I18N_DE, {
   "Closing bidding will stop new offers and close outstanding offers. Continue?":
     "Das Schließen beendet die Ausschreibung und schließt offene Angebote. Fortfahren?",
   Customize: "Anpassen",
-  "Customize this page": "Seite anpassen",
-  "Drag cards to rearrange them, use the eye to hide or show a card, and the arrows to move whole sections.":
-    "Karten per Drag & Drop anordnen, mit dem Auge aus- oder einblenden und ganze Bereiche mit den Pfeilen verschieben.",
-  "Layout saved": "Layout gespeichert",
-  "Layout reset": "Layout zurückgesetzt",
-  "Move section up": "Bereich nach oben",
-  "Move section down": "Bereich nach unten",
-  "Hide or show card": "Karte aus-/einblenden",
-  "Hide or show section": "Bereich aus-/einblenden",
 });
 const I18N_CM_PATTERNS = [
   [/^(\d+) company visit\(s\)$/, "$1 Firmeneinsätze"],
