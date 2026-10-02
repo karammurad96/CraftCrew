@@ -209,9 +209,9 @@ Every task depends on **T00** and **T01** unless it says otherwise.
   - [x] T129a supplier directory, profile, preferred suppliers, quote requests (the supplier's service catalog page moves with T135)
   - [x] T129b offers and bids, with the bid dialogs and the preferred-supplier bid hooks
   - [x] T129c sourcing dashboard, offer comparison, contracts (the approvals inbox moves with T133, after its invoice, time and compliance rows)
-- [ ] T130 Area: invoices and payments · M
+- [x] T130 Area: invoices and payments · M
   - [x] T130a invoice lists, the invoice page (paper and review panel), review decisions, fix & resubmit, downloads
-  - [ ] T130b the supplier's new-invoice form (positions, VAT modes, order cap check)
+  - [x] T130b the supplier's new-invoice form (positions, VAT modes, order cap check)
 - [ ] T131 Area: time, site reports, punch list and acceptance · M
 - [ ] T132 Area: messages and chats · S
 - [ ] T133 Area: sites, compliance and calendar, and the approvals inbox · M
