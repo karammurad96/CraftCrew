@@ -398,49 +398,6 @@ function ccExportTime(role, type) {
   URL.revokeObjectURL(a.href);
 }
 
-async function ccProjectSubpage(type, id) {
-  const projects = await ccProjects();
-  let p, ph, task;
-  if (type === "phase") {
-    for (const pr of projects) {
-      const found = pr.phases.find((x) => x.id === id);
-      if (found) {
-        p = pr;
-        ph = found;
-        break;
-      }
-    }
-  } else {
-    for (const pr of projects) {
-      for (const phase of pr.phases) {
-        const found = (phase.tasks || []).find((x) => x.id === id);
-        if (found) {
-          p = pr;
-          ph = phase;
-          task = found;
-          break;
-        }
-      }
-      if (task) break;
-    }
-  }
-  if (!p) return;
-  const data = await api("/projects/" + p.id),
-    full = data.project,
-    entries =
-      (await api("/time-entries?projectId=" + p.id + (type === "phase" ? "&phaseId=" + id : "&taskId=" + id)))
-        .entries || [],
-    tasks = type === "phase" ? ph.tasks || [] : [task],
-    sum = entries.filter((e) => e.status === "Approved").reduce((a, x) => a + Number(x.hours), 0),
-    cap = tasks.reduce((a, x) => a + Number(x.orderAmount || 0), 0),
-    expected = tasks.reduce((a, x) => a + Number(x.estimatedHours || 0), 0);
-  app.innerHTML = dashboardShell(
-    state.user.role,
-    "projects",
-    `<div class="cc-page"><a class="breadcrumb" href="#/${state.user.role}/projects/${p.id}">← ${ccEsc(p.name)}</a><div class="dash-top"><div><div class="eyebrow">${type === "phase" ? "PROJECT PHASE" : "ASSIGNED TASK"}</div><h1>${ccEsc(type === "phase" ? ph.name : task.name)}</h1><p>${ccEsc(p.name)}${type === "task" ? " · " + ccEsc(ph.name) : ""}</p></div>${state.user.role === "supplier" ? `<button class="btn primary" onclick="ccNewTimeEntry()">+ Log time</button>` : ""}</div><div class="wf-stat-grid"><div class="cc-card"><span class="cc-label">Status</span><b>${ccEsc(type === "phase" ? ph.status : task.status)}</b></div><div class="cc-card"><span class="cc-label">Order amount</span><b>${money(cap)}</b></div><div class="cc-card"><span class="cc-label">Approved time</span><b>${sum.toFixed(1)} h</b></div><div class="cc-card"><span class="cc-label">Estimate</span><b>${expected ? expected + " h" : "Not set"}</b></div></div><section class="panel"><h3>Time vs estimate</h3><div class="cc-progress-track"><i style="width:${expected ? Math.min(100, (sum / expected) * 100) : 0}%"></i></div><p>${expected ? `${sum.toFixed(1)} of ${expected} hours approved (${Math.round((sum / expected) * 100)}%).` : "No hour estimate is set for this work item."} ${money(entries.filter((x) => x.status === "Approved").reduce((a, x) => a + Number(x.amount), 0))} approved time value.</p></section><section class="panel"><div class="panel-title"><h3>Tasks</h3><span>${tasks.length}</span></div><div class="cc-subpage-task-list">${tasks.map((t) => `<a class="cc-subpage-task" href="#/${state.user.role}/projects/${p.id}/tasks/${t.id}"><span><b>${ccEsc(t.name)}</b><small>${ccEsc(t.description || "")}</small></span><span>${ccEsc(t.status)} · ${Number(t.progress) || 0}%</span></a>`).join("")}</div></section><div class="cc-actions"><a class="btn outline" href="#/${state.user.role}/projects/${p.id}/documents?${type === "phase" ? "phase=" + ph.id : "phase=" + ph.id + "&task=" + task.id}">Documents</a><a class="btn outline" href="#/${state.user.role}/invoices?project=${p.id}&phase=${ph.id}${type === "task" ? "&task=" + task.id : ""}">Invoices</a><a class="btn outline" href="#/${state.user.role}/messages?project=${p.id}&phase=${ph.id}${type === "task" ? "&task=" + task.id : ""}">Messages</a></div></div>`,
-  );
-}
-
 // Replace native progress prompt with a small, validated form.
 async function wfUpdateProgress(pid, phid, tid, current) {
   modal(
@@ -843,22 +800,6 @@ window.route = async function () {
     }
     if (parts[1] === "time" && ["customer", "supplier"].includes(parts[0])) {
       await ccTimePage(parts[0]);
-      return;
-    }
-    if (parts[0] === "customer" && parts[1] === "projects" && parts[2] && parts[3] === "phases" && parts[4]) {
-      await ccProjectSubpage("phase", parts[4]);
-      return;
-    }
-    if (parts[0] === "customer" && parts[1] === "projects" && parts[2] && parts[3] === "tasks" && parts[4]) {
-      await ccProjectSubpage("task", parts[4]);
-      return;
-    }
-    if (parts[0] === "supplier" && parts[1] === "projects" && parts[2] && parts[3] === "phases" && parts[4]) {
-      await ccProjectSubpage("phase", parts[4]);
-      return;
-    }
-    if (parts[0] === "supplier" && parts[1] === "projects" && parts[2] && parts[3] === "tasks" && parts[4]) {
-      await ccProjectSubpage("task", parts[4]);
       return;
     }
     await ccBaseRoute();

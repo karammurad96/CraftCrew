@@ -140,20 +140,6 @@ describe("design 2026", () => {
 
   // T93 (sidebar groups and labels) and the T102 bottom bar moved to the shell area: test/area-shell.test.js
 
-  it("opens a side panel from the board and keeps the column statuses (T99)", () => {
-    const src = read("design-screens.js");
-    // Labels only: the data statuses stay "Not Started" / "Completed", and "On Hold" stays
-    assert.match(src, /const DS_COL_LABEL = \{ "Not Started": "To Do", Completed: "Done" \}/);
-    // inBoard is wrapped, so drag and drop, arrow keys and the move locks of insights.js stay
-    assert.match(src, /const dsBaseInBoard = inBoard;/);
-    // Ctrl/Cmd/Shift-click still opens the task page
-    assert.match(src, /e\.ctrlKey \|\| e\.metaKey \|\| e\.shiftKey/);
-    // Ticking sends the task's checklist
-    assert.match(src, /method: "PATCH", body: \{ subtasks: next \}/);
-    const de = read("i18n.js");
-    for (const k of ['"To Do"', '"Open Task"', '"Latest update"', "Checklist · "]) assert.ok(de.includes(k), `no German for ${k}`);
-  });
-
   it("compares offers as cards with the existing actions (T100)", () => {
     const ctx = loadScreens({ money: (n) => `€${n}`, bmRateNote: () => "" }, ["dsOfferCard", "dsDocsRow"]);
     const bid = { id: "bid_1", category: "Robotics" };

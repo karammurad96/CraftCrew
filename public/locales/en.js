@@ -927,4 +927,74 @@ LOCALES.en = {
       "closed": "Completed {date} · the project is closed for new work."
     }
   },
+  // Task and phase pages, task board (T128c)
+  sub: {
+    "item": {
+      "phaseEyebrow": "PROJECT PHASE",
+      "taskEyebrow": "ASSIGNED TASK",
+      "logTime": "+ Log time",
+      "status": "Status",
+      "order": "Order amount",
+      "approved": "Approved time",
+      "estimate": "Estimate",
+      "notSet": "Not set",
+      "hours": "{n} h",
+      "timeTitle": "Time vs estimate",
+      "timeOf": "{sum} of {est} hours approved ({pct}%).",
+      "noEstimate": "No hour estimate is set for this work item.",
+      "value": "{amount} approved time value.",
+      "tasks": "Tasks",
+      "taskState": "{status} · {n}%",
+      "documents": "Documents",
+      "invoices": "Invoices",
+      "messages": "Messages",
+      "updates": "Progress updates · {n}%",
+      "postUpdate": "Post update",
+      "noUpdates": "No progress updates posted yet."
+    },
+    "board": {
+      "title": "Board",
+      "hintCustomer": "Drag cards between columns to update their status. Drag phases on the right to change the delivery order.",
+      "hintSupplier": "Drag cards between columns to update their status. You can move the work assigned to your company.",
+      "phase": "Phase",
+      "allPhases": "All phases",
+      "listView": "List view",
+      "columns": {
+        "Not Started": "To Do",
+        "In Progress": "In Progress",
+        "On Hold": "On Hold",
+        "Completed": "Done"
+      },
+      "dropHere": "Drop cards here",
+      "locked": "Only the assigned supplier or the customer can move this card",
+      "lockedLabel": "Locked",
+      "awaiting": "Awaiting {supplier}",
+      "awaitingSupplier": "Awaiting supplier",
+      "late": {
+        "one": "{n} day late",
+        "other": "{n} days late"
+      },
+      "overdue": "Overdue",
+      "due": "due {date}",
+      "percent": "{n} %",
+      "noSupplier": "no supplier yet",
+      "done": "Done",
+      "accepted": "Accepted {date}",
+      "moved": "Moved to {status}",
+      "phaseOrder": "Phase order",
+      "phaseOrderHint": "Drag to reorder the waterfall sequence.",
+      "orderSaved": "Phase order saved",
+      "panel": {
+        "close": "Close",
+        "status": "Status",
+        "supplier": "Supplier",
+        "dates": "Dates",
+        "order": "Order",
+        "checklist": "Checklist · {done} of {n}",
+        "latest": "Latest update",
+        "message": "Message",
+        "openTask": "Open Task"
+      }
+    }
+  },
 };
