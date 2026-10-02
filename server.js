@@ -260,6 +260,12 @@ const gdpr = require("./gdpr")({
   supplierInvolvement: (...a) => supplierInvolvement(...a),
   rateLimited: (...a) => rateLimited(...a),
   normEmail,
+  body: (r) => body(r),
+  verifyPassword: (...a) => verifyPassword(...a),
+  twoFactor: { enabled: (...a) => twoFactor.enabled(...a), checkLogin: (...a) => twoFactor.checkLogin(...a) },
+  queueEmail: (...a) => queueEmail(...a),
+  notify: (...a) => notify(...a),
+  invoiceNo: (...a) => invoiceNo(...a),
 });
 const compliance = require("./compliance")({
   getDb: () => db,
@@ -4109,12 +4115,25 @@ async function api(req, res, url) {
           }),
           true
         );
+      // A pending account deletion (T121) is cancelled by signing in; its team members come back with it.
+      // A member can't cancel the company's deletion, and an account past its date is being deleted.
+      if (u.deleteAfter && (u.deletionViaOwner || u.deleteAfter <= now()))
+        return (
+          send(res, 403, {
+            error: u.deletionViaOwner
+              ? "This company account is being deleted. Contact your account owner."
+              : "This account is being deleted.",
+          }),
+          true
+        );
+      const deletionCancelled = gdpr.cancelOnLogin(u);
       u.lastLoginAt = now();
       const token = newSession(u);
       save();
       send(res, 200, {
         token,
         user: publicUser(acting),
+        ...(deletionCancelled ? { deletionCancelled: true } : {}),
         ...(recoveryCodesLeft !== undefined ? { recoveryCodesLeft } : {}),
       });
       return true;
