@@ -186,7 +186,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T86 Re-verify supplier profile changes after approval
 
 **Wave 6 split (decided with Karam on 2 October 2026; details under "Wave 6 — split into tasks")**
-- [ ] T120 GDPR: "Download my data" export · S
+- [x] T120 GDPR: "Download my data" export · S
 - [ ] T121 GDPR: request account deletion (blocked while business is open, 14-day grace period) · M
 - [ ] T122 GDPR: the deletion job (anonymise after 14 days, keep invoices 10 years) · M
 - [ ] T123 GDPR: privacy policy text and admin view of deletions · S

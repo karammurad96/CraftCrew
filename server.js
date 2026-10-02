@@ -250,6 +250,17 @@ const team = require("./team")({
   mailEnabled: () => mailer.enabled,
   normEmail,
 });
+// GDPR self-service: data export, deletion request and the deletion job (T120–T122).
+const gdpr = require("./gdpr")({
+  getDb: () => db,
+  save: () => save(),
+  send: (...a) => send(...a),
+  now: () => now(),
+  projectFor: (...a) => projectFor(...a),
+  supplierInvolvement: (...a) => supplierInvolvement(...a),
+  rateLimited: (...a) => rateLimited(...a),
+  normEmail,
+});
 const compliance = require("./compliance")({
   getDb: () => db,
   save: () => save(),
@@ -4357,6 +4368,7 @@ async function api(req, res, url) {
     const teamDenied = team.denied(user, parts, method);
     if (teamDenied) return (send(res, 403, { error: teamDenied }), true);
     if (await team.handle(req, res, url, parts, user)) return true;
+    if (await gdpr.handle(req, res, url, parts, user)) return true;
     // Archived projects are read-only for everyone who can see them.
     if (method !== "GET" && parts[1] === "projects" && parts[2]) {
       const p = projectFor(user, parts[2]);
