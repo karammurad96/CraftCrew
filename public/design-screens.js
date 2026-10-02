@@ -50,7 +50,7 @@ function dsTone(el) {
   return "";
 }
 function dsEnhanceChips(root) {
-  root.querySelectorAll(".status, .tag").forEach((el) => {
+  root.querySelectorAll(".status:not([data-ds-fixed]), .tag:not([data-ds-fixed])").forEach((el) => {
     const tone = dsTone(el);
     if (tone) el.dataset.dsTone = tone;
     else delete el.dataset.dsTone;
@@ -874,7 +874,7 @@ function dsWsSide(r, d) {
     const tone = { Working: "green", Late: "red", Invited: "orange", Done: "grey" };
     html += `<section class="ds-card ds-suppliers"><h3 class="ds-ui">Suppliers</h3>${
       [...bySupplier]
-        .map(([name, st]) => `<div class="ds-supplier-row"><span class="ds-avatar ds-tint-${tone[st] === "green" ? "blue" : tone[st] === "red" ? "orange" : "blue"}">${esc(dsInitials(name))}</span><span class="ds-supplier-name">${esc(name)}</span><span class="status" data-ds-tone="${tone[st]}">${st}</span></div>`)
+        .map(([name, st]) => `<div class="ds-supplier-row"><span class="ds-avatar ds-tint-${tone[st] === "green" ? "blue" : tone[st] === "red" ? "orange" : "blue"}">${esc(dsInitials(name))}</span><span class="ds-supplier-name">${esc(name)}</span><span class="status" data-ds-fixed data-ds-tone="${tone[st]}">${st}</span></div>`)
         .join("") || '<p class="ds-next-none">No supplier assigned yet.</p>'
     }</section>`;
   } else {
@@ -1059,8 +1059,8 @@ inBoard = async function (role, pid) {
       lockedNote = card.classList.contains("locked") ? '<span class="ds-lock" title="Only the assigned supplier or the customer can move this card" aria-label="Locked">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>' : "",
       chips = [
-        t && t.acceptanceStatus === "Pending" ? `<span class="status" data-ds-tone="orange">Awaiting ${esc(sup || "supplier")}</span>` : "",
-        late ? `<span class="status" data-ds-tone="red">${dsDaysLate(item.dueDate)}</span>` : "",
+        t && t.acceptanceStatus === "Pending" ? `<span class="status" data-ds-fixed data-ds-tone="orange">Awaiting ${esc(sup || "supplier")}</span>` : "",
+        late ? `<span class="status" data-ds-fixed data-ds-tone="red">${dsDaysLate(item.dueDate)}</span>` : "",
       ].join(""),
       due = item.dueDate ? `due ${dsShortRange(item.dueDate)}` : "",
       meta = sup && t ? [sup, `${pct} %`, due] : [ph.name, due, t && !sup ? "no supplier yet" : ""];
@@ -1162,8 +1162,142 @@ function dsOpenPanel(card) {
 }
 window.addEventListener("hashchange", () => document.querySelector(".ds-panel") && dsClosePanel());
 
+/* ---------- Offer comparison (T100, board OfferCompare) ----------
+   srEvent renders the weights panel and the ranked table; the wrapper adds the board's header and one card per
+   offer above them, using the same scoring (srScoreOffers) and the same actions (srAward, rvRequestOfferChanges,
+   reviewOfferTalk, wfBidDecision). The weights panel folds away behind "Change weights ›". */
+const dsBaseSrEvent = srEvent;
+srEvent = async function (bidId) {
+  await dsBaseSrEvent(bidId);
+  const content = document.querySelector(".dashboard-content"),
+    top = content?.querySelector(":scope > .dash-top");
+  if (!top || !document.getElementById("srResults")) return;
+  const [{ bids = [] }, { scorecards = [] }, { suppliers = [] }, { projects = [] }] = await Promise.all([
+    api("/bids"),
+    api("/scorecards").catch(() => ({})),
+    api("/suppliers"),
+    api("/projects").catch(() => ({})),
+  ]);
+  const bid = bids.find((b) => b.id === bidId);
+  if (!bid || !document.contains(top)) return;
+  content.classList.add("ds-compare");
+  const weightsPanel = content.querySelector(".sr-weights")?.closest("section"),
+    weights = () => {
+      const w = { ...SR_WEIGHTS, ...(bid.weights || {}) };
+      weightsPanel?.querySelectorAll("input[type=range]").forEach((i) => (w[i.name] = Number(i.value)));
+      return w;
+    };
+  if (weightsPanel) {
+    weightsPanel.id = "dsWeights";
+    weightsPanel.classList.add("ds-hidden");
+  }
+  // Header: kicker, question, the weights in one sentence; the toolbar stays on the right
+  const text = top.querySelector(":scope > div:first-child");
+  const kickerParts = [bid.projectName, bid.status, bid.dueDate ? `closes ${dsShortRange(bid.dueDate)}` : ""].filter(Boolean);
+  if (text) {
+    text.className = "ds-compare-head";
+    // The bid status is a noun here ("Open" = "Offen", not the verb "Öffnen"), so it is translated directly
+    const statusDe = { Open: "Offen", Shortlist: "Vorauswahl", "Second round": "Zweite Runde", "Final round": "Finale Runde", Awarded: "Vergeben", Closed: "Geschlossen" };
+    const label = (x) =>
+      x === bid.status && typeof i18nLang !== "undefined" && i18nLang === "de" && statusDe[x]
+        ? `<span data-no-i18n>${esc(statusDe[x])}</span>`
+        : `<span>${esc(x)}</span>`;
+    text.innerHTML = `<span class="ds-compare-kicker">${kickerParts.map(label).join("")}</span><h1 class="ds-ui">Which offer is right for you?</h1><p><span class="ds-weights-line"></span> <button type="button" class="ds-text-link ds-weights-toggle" aria-expanded="false" aria-controls="dsWeights">Change weights ›</button></p><span class="ds-compare-title">${esc(bid.title)}${bid.taskName ? ` · ${esc(bid.taskName)}` : ""}</span>`;
+    text.querySelector(".ds-weights-toggle").onclick = (e) => {
+      const open = weightsPanel?.classList.toggle("ds-hidden") === false;
+      e.currentTarget.setAttribute("aria-expanded", String(open));
+    };
+  }
+  const box = document.createElement("div");
+  box.className = "ds-offers-wrap";
+  top.after(box);
+  const jobsWith = (sid) =>
+    new Set(projects.filter((p) => (p.phases || []).some((ph) => (ph.tasks || []).some((t) => t.assignedSupplierId === sid && t.acceptanceStatus === "Accepted"))).map((p) => p.id)).size;
+  const render = () => {
+    const w = weights(),
+      total = Object.values(w).reduce((a, b) => a + b, 0) || 1,
+      pct = (k) => Math.round(((w[k] || 0) / total) * 100);
+    const line = text?.querySelector(".ds-weights-line");
+    if (line)
+      line.replaceChildren(
+        `Ranked by price ${pct("price")} %, delivery ${pct("delivery")} %, track record ${pct("quality")} % and experience ${pct("experience")} %.`,
+      );
+    const ranked = srScoreOffers(bid, scorecards, suppliers, w),
+      active = SR_ACTIVE.includes(bid.status),
+      fastest = [...ranked].sort((a, b) => (Number(a.o.deliveryDays) || 1e9) - (Number(b.o.deliveryDays) || 1e9))[0];
+    box.innerHTML = ranked.length
+      ? `<div class="ds-offers">${ranked.map((r, i) => dsOfferCard(bid, r, i, r === fastest, active, jobsWith(r.o.supplierId))).join("")}</div><p class="ds-offers-foot ds-ui">Awarding assigns the task to this supplier at the offered price, marks the other offers as not selected and creates a draft contract you can review first.</p>`
+      : "";
+  };
+  weightsPanel?.addEventListener("input", render);
+  weightsPanel?.querySelector("#srReset")?.addEventListener("click", () => setTimeout(render));
+  render();
+};
+function dsDocsRow(card) {
+  const texts = (card?.risks || []).map((r) => r.text);
+  if (!card) return "";
+  const expired = texts.find((t) => /compliance document\(s\) expired|insurance expired/i.test(t)),
+    soon = texts.map((t) => t.match(/insurance expires in (\d+) day/i)).find(Boolean);
+  if (expired) return `<span class="ds-red">${esc(expired)}</span>`;
+  if (soon) return `<span class="ds-orange">1 expires ${dsShortRange(dsIso(new Date(Date.now() + Number(soon[1]) * 86400000)))}</span>`;
+  if (texts.some((t) => /No insurance evidence/i.test(t))) return ""; // unknown: leave the row out
+  return '<span class="ds-green">All valid</span>';
+}
+function dsOfferCard(bid, r, i, isFastest, active, jobs) {
+  const o = r.o,
+    revised = (o.revisions || []).length > 0,
+    was = revised ? o.revisions.at(-1).amount : null,
+    chip =
+      i === 0
+        ? `<span class="ds-offer-chip ds-chip-best">Best match · ${r.score}</span>`
+        : revised
+          ? `<span class="status" data-ds-fixed data-ds-tone="orange">Revised · ${r.score}</span>`
+          : isFastest
+            ? `<span class="status" data-ds-fixed data-ds-tone="green">Fastest · ${r.score}</span>`
+            : `<span class="status" data-ds-fixed data-ds-tone="grey">${r.score}</span>`,
+    under = revised
+      ? `<span class="ds-muted">Was ${money(was)}</span>`
+      : r.savings === null
+        ? ""
+        : r.savings >= 0
+          ? `<span class="ds-green ds-strong">${money(r.savings)} under your budget</span>`
+          : `<span class="ds-red">${money(-r.savings)} over your budget</span>`,
+    rating = r.card?.metrics?.rating || r.s.rating,
+    docs = dsDocsRow(r.card),
+    short = String(o.supplierCompany || "").split(/\s+/)[0],
+    decided = !(active && o.status === "Submitted");
+  return `<article class="ds-offer${i === 0 ? " ds-offer-best" : ""}">
+    <div>${chip}</div>
+    <div class="ds-offer-name"><b>${esc(o.supplierCompany)}</b>${r.s.location ? `<span>${esc(r.s.location)}</span>` : ""}</div>
+    <div class="ds-offer-price"><b>${money(o.amount)}</b>${under}${o.hourlyRate ? bmRateNote(o.hourlyRate, bid.category || bid.taskName) : ""}</div>
+    <dl class="ds-offer-rows">
+      <div><dt class="ds-ui">Delivery</dt><dd>${o.deliveryDays ? `${Number(o.deliveryDays)} days` : "—"}</dd></div>
+      <div><dt class="ds-ui">Rating</dt><dd>${rating ? `★ ${rating} · ` : ""}${jobs ? `${jobs === 1 ? "1 job" : `${jobs} jobs`} with you` : "new to you"}</dd></div>
+      ${docs ? `<div><dt class="ds-ui">Documents</dt><dd>${docs}</dd></div>` : ""}
+      ${o.notes ? `<div><dt class="ds-ui">Includes</dt><dd class="ds-clamp">${esc(o.notes)}</dd></div>` : ""}
+    </dl>
+    ${
+      decided
+        ? `<div class="ds-offer-decided"><span class="status">${esc(o.status)}</span></div>`
+        : `<button type="button" class="btn ${i === 0 ? "primary" : "secondary"} ds-award" onclick="srAward('${esc(bid.id)}','${esc(o.id)}')">Award ${esc(short)}</button>
+    <div class="ds-offer-links"><button type="button" onclick="rvRequestOfferChanges('${esc(bid.id)}','${esc(o.id)}')">Request changes</button><button type="button" onclick="reviewOfferTalk('${esc(bid.id)}','${esc(o.id)}')">Ask for details</button><button type="button" class="ds-red" onclick="wfBidDecision('${esc(bid.id)}','${esc(o.id)}','Decline offer')">Eliminate</button></div>`
+    }
+  </article>`;
+}
+/* Offers overview: every bid with offers links to its comparison */
+function dsEnhanceOffers(root) {
+  if (!/^#\/customer\/offers/.test(location.hash)) return;
+  root.querySelectorAll(".wf-bid-card:not([data-ds])").forEach((card) => {
+    card.dataset.ds = "1";
+    const id = (card.innerHTML.match(/'(bid_[A-Za-z0-9_-]+)'/) || [])[1];
+    if (!id || !card.querySelector(".wf-offer-row")) return;
+    const head = card.querySelector("h3, h2") || card.firstElementChild;
+    head?.insertAdjacentHTML("afterend", `<a class="ds-text-link ds-compare-link" href="#/customer/sourcing/${encodeURIComponent(id)}">Compare offers ›</a>`);
+  });
+}
+
 /* ---------- Run the enhancers after every render ---------- */
-const DS_ENHANCERS = [dsEnhanceChips, dsEnhanceButtons, dsEnhanceEmpty, dsEnhanceSidebar, dsEnhanceDashboard, dsEnhanceWorkspace];
+const DS_ENHANCERS = [dsEnhanceChips, dsEnhanceButtons, dsEnhanceEmpty, dsEnhanceSidebar, dsEnhanceDashboard, dsEnhanceWorkspace, dsEnhanceOffers];
 function dsEnhance() {
   for (const root of [document.getElementById("app"), document.getElementById("modalRoot")])
     if (root) for (const fn of DS_ENHANCERS) fn(root);
