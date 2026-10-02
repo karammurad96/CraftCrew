@@ -2601,7 +2601,8 @@ html body .ds-today {
   html body .mnav-bottom a,
   html body .mnav-bottom button {
     gap: 3px;
-    color: var(--cc-muted);
+    /* #6E6E73 drops under 4.5:1 when blue content shows through the frosted bar */
+    color: #545458;
     font-size: 11px;
     font-weight: 500;
   }
@@ -3172,4 +3173,49 @@ html body .ds-pill-approve {
 }
 html body .ds-approvals .in-grid > section .ui-scroll:not(:has(*)) {
   display: none;
+}
+/* The invoice paper keeps a real table on phones (the stacked "card" tables of mobile-nav.css garble it) */
+@media (max-width: 639px) {
+  html body table.ds-paper-lines.mnav-cards {
+    display: table !important;
+    width: 100% !important;
+  }
+  html body table.ds-paper-lines.mnav-cards thead {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    display: table-header-group;
+  }
+  html body table.ds-paper-lines.mnav-cards tbody {
+    display: table-row-group !important;
+    width: auto !important;
+  }
+  html body table.ds-paper-lines.mnav-cards tr {
+    display: table-row !important;
+    width: auto !important;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+  html body table.ds-paper-lines.mnav-cards td {
+    display: table-cell !important;
+    width: auto !important;
+    padding: 12px 0 !important;
+    font-size: 13px;
+  }
+  html body table.ds-paper-lines.mnav-cards td:not(:first-child) {
+    padding-left: 10px !important;
+    text-align: right !important;
+  }
+  html body table.ds-paper-lines.mnav-cards td::before {
+    content: none;
+  }
+}
+@media (max-width: 639px) {
+  html body table.ds-paper-lines.mnav-cards td:nth-child(3) {
+    display: none !important;
+  }
 }
