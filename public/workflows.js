@@ -20,45 +20,6 @@ async function wfOpenDocument(url) {
     toast(e.message, "error");
   }
 }
-async function customerInvoices() {
-  const q = wfQuery(),
-    filters = ["project", "phase", "task"],
-    params = { projectId: q.get("project"), phaseId: q.get("phase"), taskId: q.get("task") },
-    query = new URLSearchParams(Object.entries(params).filter(([, v]) => v));
-  const [d, pd] = await Promise.all([
-      api("/invoices" + (query.toString() ? "?" + query : "")),
-      api("/projects"),
-    ]),
-    projects = pd.projects,
-    back = q.get("back") || "";
-  const scoped = filters.some((k) => q.has(k));
-  app.innerHTML = dashboardShell(
-    "customer",
-    "invoices",
-    `<div class="dash-top"><div><h1>${scoped ? "Work item invoices" : "Invoices & payments"}</h1><p>${scoped ? "Invoices scoped to the selected project, phase or task." : "Review invoices across your projects."}</p></div><div class="cc-actions">${back ? `<button class="btn outline" onclick="navigate(decodeURIComponent('${encodeURIComponent(back)}'))">← Back to project</button>` : ""}${scoped ? '<button class="btn outline" onclick="navigate(\'/customer/invoices\')">All invoices</button>' : ""}</div></div>${scoped ? `<div class="notice">${esc(projects.find((x) => x.id === params.projectId)?.name || "Project")} · ${esc(params.phaseId || "All phases")} · ${esc(params.taskId || "All tasks")}</div>` : ""}<div class="panel"><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Invoice</th><th>Project / phase / task</th><th>Positions</th><th>Amount / cap</th><th>Status</th><th>Actions</th></tr></thead><tbody>${
-      d.invoices
-        .map((i) => {
-          const p = projects.find((x) => x.id === i.projectId),
-            ph = p?.phases.find((x) => x.id === i.phaseId),
-            t = ph?.tasks?.find((x) => x.id === i.taskId);
-          return `<tr><td><b>${esc(invNo(i))}</b><small>${date(i.createdAt)}</small></td><td>${esc(p?.name || i.projectId)}<small>${esc(ph?.name || i.phaseId)} · ${esc(i.taskName || t?.name || "Phase")}</small></td><td>${(i.lineItems || []).length || "—"}</td><td>${money(i.amount)}${i.orderedAmount ? `<small>of ${money(i.orderedAmount)}</small>` : ""}</td><td>${esc(i.status)}</td><td><button class="btn small outline" onclick="reviewInvoice('${i.id}')">${i.status === "Submitted" ? "Review" : "View"}</button><button class="btn small outline" onclick="wfInvoicePrint('${i.id}')">PDF</button><button class="btn small outline" onclick="wfInvoiceEmail('${i.id}')">Email</button></td></tr>`;
-        })
-        .join("") || '<tr><td colspan="6">No invoices match this work item.</td></tr>'
-    }</tbody></table></div></div>`,
-  );
-}
-async function supplierInvoices() {
-  const q = wfQuery(),
-    params = new URLSearchParams();
-  for (const k of ["project", "phase", "task"]) if (q.get(k)) params.set(k + "Id", q.get(k));
-  const d = await api("/invoices" + (params.size ? "?" + params : "")),
-    back = q.get("back") || "";
-  app.innerHTML = dashboardShell(
-    "supplier",
-    "invoices",
-    `<div class="dash-top"><div><h1>Invoices</h1><p>Submit and track invoices for assigned work.</p></div><div class="cc-actions">${back ? `<button class="btn outline" onclick="navigate(decodeURIComponent('${encodeURIComponent(back)}'))">← Back to project</button>` : ""}<button class="btn primary" onclick="navigate('/supplier/invoices/new${location.hash.includes("?") ? "?" + location.hash.split("?")[1] : ""}')">+ Create invoice</button></div></div><div class="panel"><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Invoice</th><th>Order / task</th><th>Amount / cap</th><th>Status</th><th>Actions</th></tr></thead><tbody>${d.invoices.map((i) => `<tr><td>${esc(invNo(i))}<small>${date(i.createdAt)}</small></td><td>${esc(i.projectId)}<small>${esc(i.taskName || i.phaseId)}</small></td><td>${money(i.amount)}${i.orderedAmount ? `<small>of ${money(i.orderedAmount)}</small>` : ""}</td><td>${esc(i.status)}</td><td><button class="btn small outline" onclick="wfInvoicePrint('${i.id}')">PDF</button><button class="btn small outline" onclick="wfInvoiceEmail('${i.id}')">Email</button></td></tr>`).join("") || '<tr><td colspan="5">No invoices match.</td></tr>'}</tbody></table></div></div>`,
-  );
-}
 // VAT modes offered on the invoice form, with the rule each one applies.
 const WF_VAT_MODES = {
   standard: {
@@ -188,34 +149,6 @@ async function newInvoice() {
       document.getElementById("invoiceError").textContent = x.message;
     }
   };
-}
-async function wfInvoicePrint(id) {
-  const { invoice: i } = await api("/invoices/" + id),
-    p = (await api("/projects")).projects.find((x) => x.id === i.projectId),
-    s = (await api("/suppliers/" + i.supplierId).catch(() => ({ supplier: { company: "Supplier" } })))
-      .supplier;
-  const html = `<html><head><title>Invoice ${esc(invNo(i))}</title><style>body{font:14px Arial;color:#142238;padding:40px}h1{color:#245fe8}table{border-collapse:collapse;width:100%;margin-top:25px}td,th{padding:10px;border-bottom:1px solid #ddd;text-align:left}.total{text-align:right;font-size:20px;margin-top:30px}</style></head><body><h1>CraftCrew · Invoice</h1><h2>${esc(invNo(i))}</h2><p>${esc(p?.name || i.projectId)} · ${esc(i.taskName || i.phaseId)}<br>Supplier: ${esc(s?.company || "Supplier")}<br>Date: ${date(i.createdAt)}</p><p>${esc(i.description || "")}</p><table><thead><tr><th>Service</th><th>Quantity</th><th>Rate</th><th>Total</th></tr></thead><tbody>${(i.lineItems || []).map((x) => `<tr><td>${esc(x.service)}</td><td>${x.quantity} ${esc(x.unit)}</td><td>${money(x.unitPrice || x.rate)}</td><td>${money(x.total)}</td></tr>`).join("")}</tbody></table><div class="total">Total: <b>${money(i.amount)}</b></div><p>Order amount: ${money(i.orderedAmount || 0)} · Status: ${esc(i.status)}</p><script>window.onload=()=>window.print()</script></body></html>`;
-  const w = window.open("", "_blank");
-  if (!w) {
-    toast("Allow popups to print this invoice", "error");
-    return;
-  }
-  w.document.write(html);
-  w.document.close();
-}
-async function wfInvoiceEmail(id) {
-  const { invoice: i } = await api("/invoices/" + id),
-    p = (await api("/projects")).projects.find((x) => x.id === i.projectId),
-    contacts = (await api("/contacts")).users || [],
-    recipient =
-      state.user.role === "supplier"
-        ? contacts.find((x) => x.id === i.customerId)?.email
-        : contacts.find((x) => x.supplierId === i.supplierId)?.email,
-    subject = encodeURIComponent(`CraftCrew invoice ${invNo(i)} — ${p?.name || ""}`),
-    body = encodeURIComponent(
-      `Please find invoice ${invNo(i)} for ${p?.name || i.projectId} (${i.taskName || i.phaseId}), amount ${money(i.amount)}.\n\nUse the PDF button to print/save the invoice as PDF and attach it to this email.`,
-    );
-  location.href = `mailto:${recipient || ""}?subject=${subject}&body=${body}`;
 }
 function refreshInvoiceTotal() {
   const rows = [...document.querySelectorAll(".invoice-line")],
@@ -513,13 +446,11 @@ async function route() {
   }
   try {
     if (parts[0] === "customer") {
-      if (parts[1] === "invoices") return customerInvoices();
       if (parts[1] === "messages") return messages("customer");
       if (parts[1] === "profile") return profilePage("customer");
     }
     if (parts[0] === "supplier") {
       if (parts[1] === "invoices" && parts[2] === "new") return newInvoice();
-      if (parts[1] === "invoices") return supplierInvoices();
       if (parts[1] === "messages") return messages("supplier");
       if (parts[1] === "profile") return profilePage("supplier");
       if (parts[1] === "suppliers") return supplierCatalog();

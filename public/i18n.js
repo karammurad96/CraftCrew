@@ -78,12 +78,10 @@ const I18N_DE = {
   "Request a quote": "Angebot anfragen",
   Documents: "Dokumente",
   "+ New chat": "+ Neuer Chat",
-  "+ Create invoice": "+ Rechnung erstellen",
   "+ Log time": "+ Zeit erfassen",
   "+ Upload document": "+ Dokument hochladen",
   "Open project": "Projekt öffnen",
   "Project documents": "Projektdokumente",
-  "Project invoices": "Projektrechnungen",
   "Project messages": "Projektnachrichten",
   "Save review": "Prüfung speichern",
   "Put on hold": "Zurückstellen",
@@ -195,7 +193,6 @@ const I18N_DE = {
   "TASK BOARD": "AUFGABEN-BOARD",
   Tasks: "Aufgaben",
   Status: "Status",
-  "Order amount": "Auftragswert",
   Estimate: "Schätzung",
   "Supplier request history": "Anfragehistorie",
   "Progress updates": "Fortschrittsmeldungen",
@@ -278,19 +275,11 @@ const I18N_DE = {
   "Vetting funnel": "Prüftrichter",
   // Invoices, time, messages, settings
   "Invoices & payments": "Rechnungen & Zahlungen",
-  "Visible invoices": "Angezeigte Rechnungen",
-  "Visible total": "Angezeigte Summe",
-  "Awaiting review": "Warten auf Prüfung",
-  "Over order cap": "Über Auftragsgrenze",
   Find: "Suchen",
   From: "Von",
   To: "Bis",
-  "Sort by": "Sortieren nach",
-  Newest: "Neueste",
   Invoice: "Rechnung",
-  "Customer / supplier": "Kunde / Lieferant",
   "Project / phase / task": "Projekt / Phase / Aufgabe",
-  Positions: "Positionen",
   Amount: "Betrag",
   "Download PDF": "PDF herunterladen",
   "Approve & schedule payment": "Freigeben & Zahlung planen",
@@ -405,10 +394,6 @@ Object.assign(I18N_DE, {
   "downstream risk": "Folgerisiko",
   "Depends on phases": "Abhängig von Phasen",
   "Depends on": "Abhängig von",
-  "Search, compare, open, export and review professional invoice records.":
-    "Rechnungen suchen, vergleichen, öffnen, exportieren und prüfen.",
-  "Amount: high to low": "Betrag: absteigend",
-  "Amount: low to high": "Betrag: aufsteigend",
   "Messages, bid updates, document reviews and work notifications in one place.":
     "Nachrichten, Angebotsupdates, Dokumentprüfungen und Arbeitsmeldungen an einem Ort.",
   "Mark all read": "Alle als gelesen markieren",
@@ -431,7 +416,6 @@ Object.assign(I18N_DE, {
     "Mindestens 10 Zeichen mit Buchstaben und Zahlen. Andere angemeldete Geräte werden abgemeldet.",
   "In-app notifications are always on. Choose which events also send an email copy.":
     "Benachrichtigungen in der App sind immer aktiv. Wählen Sie, welche Ereignisse zusätzlich per E-Mail kommen.",
-  "All invoices": "Alle Rechnungen",
   "Revenue, pipeline, bid success, delivery performance and team utilisation.":
     "Umsatz, Pipeline, Angebotserfolg, Lieferleistung und Teamauslastung.",
   "Task invitations, supplier commitments, documentation and progress.":
@@ -779,24 +763,10 @@ Object.assign(I18N_DE, {
 });
 Object.assign(I18N_DE, {
   // Change requests on invoices and offers
-  "Fix & resubmit": "Korrigieren & erneut einreichen",
-  "Fix & resubmit invoice": "Rechnung korrigieren & erneut einreichen",
   "Requested changes": "Angeforderte Änderungen",
-  "Reason for rejection": "Ablehnungsgrund",
-  Position: "Position",
-  Qty: "Menge",
   Unit: "Einheit",
-  "Unit price €": "Einzelpreis €",
   Total: "Summe",
   "+ Add position": "+ Position hinzufügen",
-  "New total": "Neue Summe",
-  "Invoice description": "Rechnungsbeschreibung",
-  "What did you change?": "Was wurde geändert?",
-  "shown to the customer": "für den Kunden sichtbar",
-  "Replace attachment": "Anhang ersetzen",
-  "Resubmit for approval": "Zur Freigabe erneut einreichen",
-  "Invoice corrected and resubmitted": "Rechnung korrigiert und erneut eingereicht",
-  "Add at least one position": "Mindestens eine Position hinzufügen",
   "Changes requested": "Änderungen angefordert",
   Rejected: "Abgelehnt",
   "Request changes": "Änderungen anfordern",
@@ -890,9 +860,7 @@ Object.assign(I18N_DE, {
   Continue: "Fortfahren",
   Required: "Pflichtfeld",
   "What needs to be clarified or corrected?": "Was muss geklärt oder korrigiert werden?",
-  "What should the supplier change?": "Was soll der Lieferant ändern?",
   "What should be changed?": "Was soll geändert werden?",
-  "Reason for rejection?": "Grund der Ablehnung?",
   "Reason for rejecting this access request:": "Grund für die Ablehnung dieser Zutrittsanfrage:",
   "Tell the supplier why this document is rejected:": "Warum wird das Dokument abgelehnt?",
   "Compliance is incomplete for this request. Enter a reason to approve anyway (e.g. documents checked on paper at the gate):":
@@ -1289,7 +1257,6 @@ Object.assign(I18N_DE, {
   Suppliers: "Lieferanten",
   // Dashboards (T95)
   Message: "Nachricht",
-  "Invoice approved; payment scheduled": "Rechnung freigegeben; Zahlung geplant",
   // Supplier dashboard (T96)
   Dates: "Termine",
   Decline: "Ablehnen",
@@ -1299,7 +1266,6 @@ Object.assign(I18N_DE, {
   // Project workspace (T98)
   Phases: "Phasen",
   Progress: "Fortschritt",
-  "Review invoices": "Rechnungen prüfen",
   Working: "In Arbeit",
   Late: "Verspätet",
   "1 document to approve": "1 Dokument freizugeben",
@@ -1310,7 +1276,6 @@ Object.assign(I18N_DE, {
   // Offer comparison (T100)
   Includes: "Enthält",
   // Invoice review (T101)
-  "‹ Invoices": "‹ Rechnungen",
   INVOICE: "RECHNUNG",
   "BILL TO": "RECHNUNG AN",
   Rate: "Preis",
@@ -1318,17 +1283,10 @@ Object.assign(I18N_DE, {
   "not recorded": "nicht erfasst",
   new: "neu",
   Checks: "Prüfungen",
-  "What changed": "Was sich geändert hat",
-  "You asked:": "Ihre Anfrage:",
-  "The total is unchanged.": "Der Gesamtbetrag ist unverändert.",
   "Within order cap": "Innerhalb des Auftragsrahmens",
   "Over the order cap": "Über dem Auftragsrahmen",
   "Hours match approved time": "Stunden passen zur freigegebenen Zeit",
   "More hours than approved time": "Mehr Stunden als freigegeben",
-  "VAT ID on the invoice": "USt-IdNr. auf der Rechnung",
-  "No VAT ID on the invoice": "Keine USt-IdNr. auf der Rechnung",
-  "Partial invoice": "Teilrechnung",
-  "Approve and Schedule Payment": "Freigeben und Zahlung planen",
   "Request Changes": "Änderungen anfordern",
   VAT: "USt.",
   PDF: "PDF",
@@ -1418,7 +1376,6 @@ Object.assign(I18N_DE, {
   Show: "Anzeigen",
   // Sidebar (T93)
   Reports: "Berichte",
-  "Waiting for review since today": "Wartet seit heute auf Prüfung",
   // VAT on invoices (T41)
   "Net amounts – VAT not recorded": "Nettobeträge – Umsatzsteuer nicht erfasst",
   "Net amount": "Nettobetrag",
@@ -1447,10 +1404,6 @@ Object.assign(I18N_DE, {
     "Kleinunternehmerregelung (§19 UStG): Sie berechnen keine Umsatzsteuer, weil Ihr Umsatz unter der Grenze liegt.",
   "Intra-EU service: no German VAT; the business customer in another EU country pays the VAT. Both VAT IDs must be on the invoice.":
     "Innergemeinschaftliche Leistung: keine deutsche Umsatzsteuer, der Unternehmer als Kunde in einem anderen EU-Land schuldet die Steuer. Beide USt-IdNrn. müssen auf der Rechnung stehen.",
-  "Reverse charge: the recipient of the service is liable for VAT (§13b UStG).":
-    "Steuerschuldnerschaft des Leistungsempfängers (§13b UStG).",
-  "No VAT is charged under the small-business rule (§19 UStG).":
-    "Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.",
   "Reverse charge: intra-EU service, VAT is payable by the recipient.":
     "Steuerschuldnerschaft des Leistungsempfängers (innergemeinschaftliche Leistung).",
   "Add your legal company name, address and tax number or VAT ID to your company profile before creating an invoice.":

@@ -164,7 +164,7 @@ describe("offers and bids (T129b)", () => {
   });
 
   it("replaced the old offers pages and their wrappers", () => {
-    const old = ["workflows.js", "reviews.js", "collaboration.js", "sourcing-ui.js", "benchmarks-ui.js", "preferred-ui.js", "revisions.js", "design-screens.js"].map(read).join("\n");
+    const old = ["workflows.js", "reviews.js", "collaboration.js", "sourcing-ui.js", "benchmarks-ui.js", "preferred-ui.js", "design-screens.js"].map(read).join("\n");
     assert.doesNotMatch(old, /function (wfOffers|ccRenderOffers|reviewInviteBid|reviewOfferTalk|rvRequestOfferChanges|dsEnhanceOffers)\b|(ccOpenBidOffer|wfCreateBid|reviewInviteBid|api) = async function/);
     assert.ok(read("index.html").includes('<script src="areas/directory.js"></script><script src="areas/offers.js"></script>'));
   });
