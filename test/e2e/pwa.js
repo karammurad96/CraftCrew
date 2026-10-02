@@ -78,7 +78,7 @@ async function main() {
     const login = await (
       await fetch(base + "/api/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Client": "api" },
         body: JSON.stringify({ email: "supplier.demo@craftcrew.local", password: "CraftCrew2026!" }),
       })
     ).json();

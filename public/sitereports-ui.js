@@ -56,9 +56,7 @@ async function drOpen(projectId, taskId) {
       e.preventDefault();
       const f = new FormData(exportForm);
       try {
-        const res = await fetch(`/api${base}.pdf?from=${f.get("from")}&to=${f.get("to")}`, {
-          headers: { Authorization: "Bearer " + state.token },
-        });
+        const res = await fetch(`/api${base}.pdf?from=${f.get("from")}&to=${f.get("to")}`, { credentials: "same-origin" });
         if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Download failed");
         const a = document.createElement("a");
         a.href = URL.createObjectURL(await res.blob());

@@ -39,6 +39,10 @@ Tests run the server with `NODE_ENV=production` (no demo data). Create data thro
 helpers in `test/helpers.js`: `startApp()`, `app.signup(role, email)`, `app.login(email, pw)`,
 `app.call(method, path, body, token)`. The test admin is `admin@test.local` / `Admin-Password-2026!`.
 
+Sessions (T124): browsers sign in with an HttpOnly cookie, and every cookie-authenticated change needs the
+header `X-CSRF: 1` (the frontend's `api()` sends it). Scripts and tests are API clients: send `X-Client: api`
+when signing in to get the token in the response body, then use `Authorization: Bearer <token>`.
+
 ## Rules
 
 1. **Find code by searching, not by line number.** For a page, search `public/*.js` for its route (for example

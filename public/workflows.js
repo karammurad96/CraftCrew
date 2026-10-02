@@ -352,7 +352,7 @@ async function wfReviewDocument(id, status) {
 }
 async function wfOpenDocument(url) {
   try {
-    const r = await fetch(url, { headers: { Authorization: "Bearer " + state.token } });
+    const r = await fetch(url, { credentials: "same-origin" });
     if (!r.ok) throw new Error("Could not open this document");
     const blob = await r.blob(),
       link = document.createElement("a");

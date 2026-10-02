@@ -108,7 +108,7 @@ new MutationObserver(() => {
 const nfLoginApi = api;
 api = async function (path, opts = {}) {
   const result = await nfLoginApi(path, opts);
-  if (path === "/auth/login" && result?.token)
+  if (path === "/auth/login" && result?.user)
     try {
       nfReturnTo = sessionStorage.getItem("cc_return");
       sessionStorage.removeItem("cc_return");

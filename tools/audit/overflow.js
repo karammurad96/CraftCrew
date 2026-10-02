@@ -61,7 +61,7 @@ function check() {
       const d = await (
         await fetch(BASE + "/api/auth/login", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-Client": "api" },
           body: JSON.stringify({ email, password }),
         })
       ).json();

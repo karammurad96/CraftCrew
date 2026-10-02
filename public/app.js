@@ -1,4 +1,5 @@
-/* CraftCrew frontend. Business data is server-persisted; localStorage stores only session token/user and UI preferences. */
+/* CraftCrew frontend. Business data is server-persisted. The session lives in an HttpOnly cookie that scripts
+   can't read (T124); localStorage keeps only the signed-in user's profile and UI preferences. */
 const API = "/api";
 // A supplier's badge for display: the tier, "Verified" without a tier, or "Not yet verified" — never "None".
 const supplierBadge = (s) =>
@@ -8,11 +9,31 @@ let apiBusy = 0;
 const invNo = (i) => i?.number || i?.id || "";
 // Net amount of an invoice; older invoices without VAT data only have `amount`, which is net.
 const invNet = (i) => Number(i?.netAmount ?? i?.amount) || 0;
+// state.token is only a "signed in" marker now; the secret itself is in the cookie.
 const state = {
   user: JSON.parse(localStorage.getItem("cc_user") || "null"),
-  token: localStorage.getItem("cc_token") || "",
+  token: localStorage.getItem("cc_user") ? "session" : "",
   cache: {},
 };
+// Browsers signed in before T124 still hold the token in localStorage: move it to the cookie once, then forget it.
+const ccSessionReady = (() => {
+  const legacy = localStorage.getItem("cc_token");
+  if (!legacy) return Promise.resolve();
+  localStorage.removeItem("cc_token");
+  return fetch("/api/auth/upgrade", { method: "POST", headers: { Authorization: "Bearer " + legacy } })
+    .then(async (r) => {
+      await r.text(); // read the reply, so the request is finished and not left open
+      if (r.ok) state.token = "session";
+    })
+    .catch(() => {});
+})();
+// After a successful sign-in or sign-up: remember who is signed in (the server has set the cookie).
+function ccSignedIn(user) {
+  state.user = user;
+  state.token = "session";
+  localStorage.setItem("cc_user", JSON.stringify(user));
+  localStorage.removeItem("cc_token");
+}
 const app = document.getElementById("app"),
   modalRoot = document.getElementById("modalRoot"),
   toastEl = document.getElementById("toast");
@@ -36,10 +57,10 @@ function toast(msg, type = "success") {
   setTimeout(() => (toastEl.style.display = "none"), 2800);
 }
 async function api(path, opts = {}) {
-  opts.headers = {
-    ...(opts.headers || {}),
-    ...(state.token ? { Authorization: "Bearer " + state.token } : {}),
-  };
+  await ccSessionReady;
+  // The cookie goes along automatically; X-CSRF proves the request comes from this page (T124).
+  opts.credentials = "same-origin";
+  opts.headers = { ...(opts.headers || {}), "X-CSRF": "1" };
   if (opts.body && typeof opts.body !== "string") {
     opts.headers["Content-Type"] = "application/json";
     opts.body = JSON.stringify(opts.body);
@@ -115,8 +136,8 @@ async function logout() {
   localStorage.removeItem("cc_token");
   document.body.classList.remove("authenticated");
   try {
-    if (token)
-      await fetch(API + "/auth/logout", { method: "POST", headers: { Authorization: "Bearer " + token } });
+    // Ends the session on the server and clears the cookie
+    if (token) await (await fetch(API + "/auth/logout", { method: "POST", headers: { "X-CSRF": "1" } })).text();
   } catch (e) {}
   topActions();
   navigate("/");
@@ -243,10 +264,7 @@ async function renderAuth(mode) {
     const b = Object.fromEntries(new FormData(e.target));
     try {
       const d = await api("/auth/" + mode, { method: "POST", body: b });
-      state.user = d.user;
-      state.token = d.token;
-      localStorage.setItem("cc_user", JSON.stringify(d.user));
-      localStorage.setItem("cc_token", d.token);
+      ccSignedIn(d.user);
       topActions();
       toast(mode === "login" ? "Signed in" : "Account created");
       navigate("/" + d.user.role + "/dashboard");

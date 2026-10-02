@@ -162,10 +162,7 @@ function authCard(title, text, inner = "") {
   );
 }
 function authSignIn(d) {
-  state.user = d.user;
-  state.token = d.token;
-  localStorage.setItem("cc_user", JSON.stringify(d.user));
-  localStorage.setItem("cc_token", d.token);
+  ccSignedIn(d.user);
   document.body.classList.add("authenticated");
   topActions();
   navigate("/" + d.user.role + "/dashboard");

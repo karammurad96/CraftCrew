@@ -126,7 +126,12 @@ async function startApp({ smtp, env = {}, dataDir: keepDir } = {}) {
   const call = async (method, url, body, token) => {
     const r = await fetch(base + "/api" + url, {
       method,
-      headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) },
+      // Tests are an API client: they get the session token in the body (T124) and send it as Bearer.
+      headers: {
+        "Content-Type": "application/json",
+        "X-Client": "api",
+        ...(token ? { Authorization: "Bearer " + token } : {}),
+      },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     let data = {};
