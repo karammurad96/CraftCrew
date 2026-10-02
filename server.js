@@ -6642,6 +6642,8 @@ async function api(req, res, url) {
       if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
       const target = db.users.find((x) => x.id === parts[3]);
       if (!target) return (send(res, 404, { error: "User not found" }), true);
+      if (target.status === "Deleted")
+        return (send(res, 409, { error: "This account was deleted and can't be changed." }), true);
       const b = await body(req);
       if (!["Active", "Suspended"].includes(b.status))
         return (send(res, 400, { error: "Status must be Active or Suspended" }), true);

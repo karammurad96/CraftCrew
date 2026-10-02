@@ -116,6 +116,13 @@ describe("account deletion job", () => {
     assert.equal((await fetch(app.base + kept, { headers: { Authorization: "Bearer " + customer } })).status, 200);
   });
 
+  it("doesn't let an admin bring a deleted account back (T123)", async () => {
+    const r = await app.call("PATCH", `/admin/users/${supplierUserId}`, { status: "Active" }, admin);
+    assert.equal(r.status, 409);
+    const pending = (await app.call("GET", "/admin/users", undefined, admin)).users.filter((u) => u.deleteAfter);
+    assert.deepEqual(pending.map((u) => u.id), [later], "only the account still in its grace period is pending");
+  });
+
   it("leaves accounts whose grace period is not over", async () => {
     const db = (await app.call("GET", "/backup/export", undefined, admin)).data;
     assert.equal(db.users.find((x) => x.id === later).email, "job-later@test.local");
