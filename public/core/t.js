@@ -37,6 +37,16 @@ t.plural = function (key, n, params) {
   const form = new Intl.PluralRules(ccLang === "de" ? "de-DE" : "en-GB").select(Number(n));
   return ccFill(forms[form] ?? forms.other, { n, ...params });
 };
+// t.list("public.pricing.customer.items") → the array stored under the key (empty when missing).
+t.list = function (key) {
+  const list = ccLookup(ccLang, key) || ccLookup("en", key);
+  if (Array.isArray(list)) return list;
+  if (!ccMissingKeys.has(key)) {
+    ccMissingKeys.add(key);
+    console.warn("Missing translation list:", key);
+  }
+  return [];
+};
 // Dates, amounts and numbers in the user's language.
 const fmt = {
   locale: () => (ccLang === "de" ? "de-DE" : "en-GB"),

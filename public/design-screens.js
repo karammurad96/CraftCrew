@@ -250,69 +250,6 @@ function dsEnhanceSidebar(root) {
 }
 
 /* ---------- Landing page (T94, board Landing) ---------- */
-// The route wrapper in onboarding.js calls obEnhanceHome after renderHome; the new page renders those parts itself.
-obEnhanceHome = async function () {};
-renderHome = async function () {
-  const step = (label, lead, text) =>
-    `<div class="ds-step"><span class="ds-step-label">${label}</span><span class="ds-step-lead">${lead}</span><span class="ds-step-text">${text}</span></div>`;
-  const phase = (name, width, colour, end) =>
-    `<div class="ds-win-phase"><span>${name}</span><div class="ds-win-bar"><i style="width:${width}%;background:${colour}"></i></div><span class="ds-win-end">${end}</span></div>`;
-  const note = (kicker, title, sub) =>
-    `<div class="ds-win-note"><span>${kicker}</span><b>${title}</b><small>${sub}</small></div>`;
-  const tile = (title, text) => `<article class="ds-tile"><h3>${title}</h3><p>${text}</p></article>`;
-  app.innerHTML = publicLayout(`<div class="ds-landing">
-  <section class="ds-hero ds-ui">
-    <span class="ds-hero-kicker">Industrial services, coordinated.</span>
-    <h1>Every crew. One project. Zero chaos.</h1>
-    <p class="ds-hero-sub">Find vetted industrial specialists, compare their offers side by side and run the whole job — from site safety to the final invoice — in one place.</p>
-    <div class="ds-hero-cta"><a class="btn primary lg" href="#/signup">Start a project</a><a class="ds-text-link" href="#/suppliers">Explore suppliers ›</a></div>
-    <div class="ds-window-frame" aria-hidden="true"><div class="ds-window">
-      <div class="ds-window-bar"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i><span>craftcrew · Regensburg Line 4</span></div>
-      <div class="ds-window-body">
-        <div class="ds-win-main"><div class="ds-win-title"><span>Project</span><b>Robot Cell Upgrade</b></div>
-          <div class="ds-win-phases">${phase("Engineering", 100, "#34C759", "Done")}${phase("Build & integration", 55, "#2563EB", "55 %")}${phase("Site acceptance", 0, "#2563EB", "Oct")}</div></div>
-        <div class="ds-win-notes">${note("Waiting for you", "Invoice 2026-0001 · €8,806", "All checks passed")}${note("On site today", "2 people · Keller Automation", "Briefed and checked in")}</div>
-      </div></div></div>
-  </section>
-  <section class="ds-steps-band ds-ui"><div class="ds-wrap">
-    <h2>From request to paid invoice. <span>Without the spreadsheets.</span></h2>
-    <div class="ds-steps">${step("Describe", "Phases, tasks and budget from a template.", "Commissioning, retrofit or shutdown — set up in minutes.")}${step("Compare", "Vetted offers, side by side.", "Price, delivery and track record, weighted the way you decide.")}${step("Run", "One workspace for everyone.", "Each company sees only its own part — nothing more.")}</div>
-  </div></section>
-  <section class="ds-bento-band ds-ui"><div class="ds-bento">
-    <div class="ds-bento-sourcing"><div><span class="ds-bento-label">Sourcing</span><h3>The best offer is obvious.</h3></div><div class="ds-bento-bars" aria-hidden="true"><i></i><i></i><i></i></div></div>
-    <div class="ds-bento-safety"><div><span class="ds-bento-label">Site safety</span><h3>Who's on site. Right now.</h3></div><span class="ds-bento-big" aria-hidden="true">2</span></div>
-    <div class="ds-bento-plain"><span class="ds-bento-label">Invoices</span><h3>Checked against the order before you approve.</h3><p>VAT, sequential numbers and XRechnung export included.</p></div>
-    <div class="ds-bento-plain"><span class="ds-bento-label">Field app</span><h3>Time and photos in two taps.</h3><p>Works without signal on the shop floor and syncs later.</p></div>
-  </div></section>
-  <section class="ds-partners-band" id="dsPartners" hidden><div class="ds-wrap"></div></section>
-  <section class="ds-tiles-band ds-ui"><div class="ds-wrap">
-    <div class="ds-band-head"><span class="ds-hero-kicker">Strategic sourcing</span><h2>From sourcing event to signed contract</h2><p>Run competitive sourcing the way large procurement teams do — sized for industrial SMEs.</p></div>
-    <div class="ds-tiles">${tile("Sourcing events", "RFQ, RFP and RFI with supplier questionnaires, multiple rounds and clarifications.")}${tile("Weighted evaluation", "Rank offers on price, delivery, supplier performance and experience — with an automatic summary.")}${tile("Contract management", "Awarded offers become contracts with value, term, notice deadline and renewal alerts.")}${tile("Scorecards & risk", "On-time delivery, invoice quality, responsiveness and insurance or vetting risk per supplier.")}${tile("Approvals inbox", "Invoices, documents, time entries, offers and contracts waiting for you — in one list.")}${tile("Full audit trail", "Every change is recorded with who, what and when for compliance and disputes.")}</div>
-    <div class="ds-band-head ds-band-head-2"><span class="ds-hero-kicker">For both sides</span><h2>A professional operating layer for industrial work.</h2></div>
-    <div class="ds-tiles">${tile("For SMEs", "Find vetted specialists, coordinate phases, approve invoices and close projects with reviews.")}${tile("For suppliers", "Show your capabilities, receive phase invitations, deliver work and get paid through one workflow.")}${tile("For operations teams", "Use badges, vetting stages, metrics and activity data to maintain marketplace quality.")}</div>
-  </div></section>
-  <section class="ds-final-cta ds-ui">
-    <h2>Your next project starts here.</h2>
-    <p>Free for customers. Suppliers join after a 5-step verification.</p>
-    <div class="ds-hero-cta"><a class="btn primary lg" href="#/signup">Start a project</a><a class="ds-text-link" href="#/supplier-application">Apply as a supplier ›</a></div>
-  </section>
-</div>`);
-  // Featured suppliers from the real directory, as obEnhanceHome did
-  const { suppliers = [] } = await api("/suppliers").catch(() => ({}));
-  const band = document.getElementById("dsPartners");
-  if (!band || !suppliers.length) return;
-  const rank = { Gold: 3, Silver: 2, Bronze: 1 };
-  const featured = [...suppliers]
-    .sort((a, b) => (b.rating || 0) - (a.rating || 0) || (rank[b.badge] || 0) - (rank[a.badge] || 0))
-    .slice(0, 6);
-  band.querySelector(".ds-wrap").innerHTML = `<div class="ds-partners-head"><h2>Vetted partners for your next project.</h2><a class="ds-text-link" href="#/suppliers">See all ${suppliers.length} suppliers ›</a></div><div class="ds-partners">${featured
-    .map(
-      (s) =>
-        `<a class="ds-partner" href="#/suppliers?q=${encodeURIComponent(s.company)}"><span class="ds-partner-avatar">${esc(s.avatar || s.company.slice(0, 2))}</span><span class="ds-partner-text"><b>${esc(s.company)}</b><small>${esc([s.location, ...(s.services || []).slice(0, 2)].filter(Boolean).join(" · "))}</small></span><span class="badge ${esc(String(s.badge || "").toLowerCase())}">${esc(supplierBadge(s))}</span></a>`,
-    )
-    .join("")}</div>`;
-  band.hidden = false;
-};
 
 /* Top bar for visitors: "Sign in" as a text link and a small "Start a project" pill (board Landing) */
 const dsBaseTopActions = topActions;

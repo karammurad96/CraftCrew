@@ -673,12 +673,8 @@ async function route() {
     return;
   }
   try {
-    if (h === "/" || h === "/home") return renderHome();
     if (h === "/suppliers") return renderSuppliers();
     if (h === "/supplier-application") return supplierApplication();
-    if (h === "/pricing") return renderStatic("pricing");
-    if (h === "/how-it-works") return renderStatic("how_it_works");
-    if (h === "/faq") return renderStatic("faq");
     if (h === "/login") return renderAuth("login");
     if (h === "/signup") return renderAuth("signup");
     if (parts[0] === "customer") {

@@ -1153,21 +1153,6 @@ window.route = async function () {
   return ccRouteWithAdmin();
 };
 
-const ccBaseRenderStatic = renderStatic;
-renderStatic = function (type) {
-  if (type !== "faq") return ccBaseRenderStatic(type);
-  ccPublicHelp();
-};
-async function ccPublicHelp() {
-  const cfg = await api("/platform-config");
-  if (!cfg.faqContent) {
-    ccBaseRenderStatic("faq");
-    return;
-  }
-  app.innerHTML = publicLayout(
-    `<div class="cc-page"><div class="eyebrow">FAQ / HELP CENTER</div><h1>Help & support</h1><div class="panel"><p>${ccEsc(cfg.faqContent).replaceAll("\n", "<br>")}</p><p>Need more help? Contact <a href="mailto:${ccEsc(cfg.supportEmail)}">${ccEsc(cfg.supportEmail)}</a>.</p></div></div>`,
-  );
-}
 
 const ccSupplierApplication = supplierApplication;
 supplierApplication = async function () {

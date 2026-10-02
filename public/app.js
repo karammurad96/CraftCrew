@@ -190,12 +190,6 @@ function dashboardShell(role, active, content) {
 function publicHero() {
   return `<section class="hero-lite"><div><div class="eyebrow">INDUSTRIAL SERVICES, COORDINATED</div><h1>Build complex projects with <span>trusted crews.</span></h1><p>CraftCrew connects SMEs with vetted mechanical, electrical, automation and industrial service specialists — managed through one transparent waterfall workflow.</p><div class="hero-actions"><button class="btn primary lg" onclick="navigate('/signup')">Start a project</button><button class="btn outline lg" onclick="navigate('/suppliers')">Explore suppliers</button></div><div class="trust-row"><div><b>20+</b><small>vetted suppliers</small></div><div><b>5-stage</b><small>waterfall delivery</small></div><div><b>1 place</b><small>projects & payments</small></div></div></div><div class="hero-box"><div class="small-label">LIVE PROJECT CONTROL</div><h3 style="font-size:20px;margin:10px 0">Line 15 Integration</h3><div class="progress"><i style="width:68%"></i></div><div style="font-size:11px;color:#9eabc0">68% complete · 12 days remaining</div><div class="mini"><div><div class="small-label">ACTIVE PHASE</div><b>Programming</b><p style="color:#9eabc0">SPS Experts GmbH</p></div><div><div class="small-label">NEXT MILESTONE</div><b>Installation</b><p style="color:#9eabc0">18 Sep 2026</p></div></div></div></section>`;
 }
-async function renderHome() {
-  app.innerHTML = publicLayout(
-    publicHero() +
-      `<section class="section"><div class="section-heading center"><div class="eyebrow">WHY CRAFTCREW</div><h2>One platform for the whole industrial <span>delivery chain.</span></h2></div><div class="feature-grid"><article><div class="feature-icon">✓</div><h3>Vetted suppliers</h3><p>Every supplier passes an explicit application, verification, reference and badge process.</p></article><article><div class="feature-icon">↘</div><h3>Waterfall control</h3><p>Break projects into phases, assign specialists, track dates and handoffs.</p></article><article><div class="feature-icon">€</div><h3>Invoice workflow</h3><p>Supplier submits → customer reviews → approves → payment is scheduled.</p></article><article><div class="feature-icon">↗</div><h3>Industrial collaboration</h3><p>Keep messages, updates, deliverables and decisions connected to the project.</p></article></div></section><section class="dark-section"><div><div class="eyebrow blue">HOW IT WORKS</div><h2>From supplier application to <span class="blue">project completion.</span></h2><p>Customers coordinate a waterfall project. Suppliers accept assigned phases. CraftCrew handles the operational workflow, vetting, documentation and invoice lifecycle.</p></div><div class="flow-mini"><div>Project</div><i>→</i><div>Design</div><i>→</i><div>Manufacturing</div><i>→</i><div>Programming</div><i>→</i><div>Installation</div><i>→</i><div>Commissioning</div></div></section><section class="section" id="solutions"><div class="section-heading center"><div class="eyebrow">FOR BOTH SIDES</div><h2>A professional operating layer for industrial work.</h2></div><div class="cc-grid"><div class="cc-card"><h3>For SMEs</h3><p>Find vetted specialists, coordinate phases, approve invoices and close projects with reviews.</p></div><div class="cc-card"><h3>For suppliers</h3><p>Show your capabilities, receive phase invitations, deliver work and get paid through one workflow.</p></div><div class="cc-card"><h3>For operations teams</h3><p>Use badges, vetting stages, metrics and activity data to maintain marketplace quality.</p></div></div></section>`,
-  );
-}
 async function renderSuppliers() {
   const q = document.getElementById("sq")?.value || "";
   let data;
@@ -230,29 +224,6 @@ async function supplierDetail(id) {
   modal(
     s.company,
     `<div class="detail-grid"><div class="detail-box"><small>Location</small><b>${esc(s.location)}</b></div><div class="detail-box"><small>Badge / Rating</small><b>${esc(supplierBadge(s))} · ★ ${s.rating}</b></div><div class="detail-box"><small>Experience</small><b>${s.experience} years · ${s.projectsCompleted} projects</b></div><div class="detail-box"><small>Rates</small><b>${money(s.hourlyRate)}/h · from ${money(s.projectRate)}</b></div></div><p>${esc(s.description)}</p><h4>Services</h4><div>${s.services.map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</div><h4>Certifications</h4><div>${s.certifications.map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</div><h4>Reviews</h4>${s.reviews.map((r) => `<div class="notice">★ ${r.rating} — ${esc(r.text)}</div>`).join("")}`,
-  );
-}
-function renderStatic(type) {
-  const pages = {
-    pricing: [
-      "PRICING",
-      "Simple platform economics",
-      '<div class="pricing-grid"><div class="price-card"><h3>Customer</h3><div class="price">Free</div><p>Create projects and coordinate vetted suppliers.</p><button class="btn outline full" onclick="navigate(\'/signup\')">Get started</button></div><div class="price-card featured"><label>CORE</label><h3>CraftCrew Managed</h3><div class="price">3%</div><p>Project coordination and payment workflow fee.</p><button class="btn primary full" onclick="navigate(\'/signup\')">Start a project</button></div><div class="price-card"><h3>Supplier</h3><div class="price">Free to apply</div><p>Build a vetted profile and receive phase assignments.</p><button class="btn outline full" onclick="navigate(\'/supplier-application\')">Apply</button></div></div>',
-    ],
-    how_it_works: [
-      "how-it-works",
-      "HOW IT WORKS",
-      '<div class="cc-grid"><div class="cc-card"><h3>1. Create</h3><p>Customer creates a project, adds dated phases and tasks, and links dependencies.</p></div><div class="cc-card"><h3>2. Assign</h3><p>Invite a supplier to a task or open a bid and compare supplier offers.</p></div><div class="cc-card"><h3>3. Accept</h3><p>Supplier accepts or declines. Declines return the phase for reassignment.</p></div><div class="cc-card"><h3>4. Deliver</h3><p>Track dates and progress, flag downstream delays, and exchange task-scoped messages and documents.</p></div><div class="cc-card"><h3>5. Approve</h3><p>Supplier submits invoice; customer requests changes or approves.</p></div><div class="cc-card"><h3>6. Complete</h3><p>Final phase accepted, project closed, supplier reviewed.</p></div></div>',
-    ],
-    faq: [
-      "faq",
-      "FAQ / HELP",
-      '<div class="cc-grid"><div class="cc-card"><h3>Is this a real payment gateway?</h3><p>The MVP has a backend payment state machine. Connect Stripe or another provider for live money movement.</p></div><div class="cc-card"><h3>How does vetting work?</h3><p>Application → New → Verified → References → Approved/Rejected → badge assignment → live supplier.</p></div><div class="cc-card"><h3>Can suppliers bid?</h3><p>Customers can publish a bid against a project task. Suppliers submit comparable scope, price and delivery offers, and the customer awards one supplier per task.</p></div><div class="cc-card"><h3>What are documents?</h3><p>Project files are organized by phase, task and supplier. Each upload can be shared directly or sent through customer approval, with change requests and version tracking.</p></div></div>',
-    ],
-  };
-  const p = pages[type];
-  app.innerHTML = publicLayout(
-    `<div class="cc-page"><div class="eyebrow">${p[0]}</div><h1>${p[1]}</h1><div style="margin-top:30px">${p[2]}</div></div>`,
   );
 }
 async function renderAuth(mode) {
@@ -898,12 +869,8 @@ async function route() {
     return;
   }
   try {
-    if (h === "/" || h === "/home") return renderHome();
     if (h === "/suppliers") return renderSuppliers();
     if (h === "/supplier-application") return supplierApplication();
-    if (h === "/pricing") return renderStatic("pricing");
-    if (h === "/how-it-works") return renderStatic("how_it_works");
-    if (h === "/faq") return renderStatic("faq");
     if (h === "/login") return renderAuth("login");
     if (h === "/signup") return renderAuth("signup");
     const parts = h.split("/").filter(Boolean);

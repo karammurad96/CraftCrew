@@ -69,27 +69,6 @@ async function gdExport(btn) {
   }
 }
 
-/* Privacy policy (T123): the operator's own text comes first; below it, how CraftCrew's self-service rights
-   work. These facts come from the product itself (export, 14 days, retention), so they stay correct. */
-const gdBaseLegalPage = legalPage;
-legalPage = async function (key) {
-  await gdBaseLegalPage(key);
-  if (key !== "privacy") return;
-  const nav = document.querySelector(".legal-page .legal-links");
-  if (!nav || document.getElementById("gdRights")) return;
-  const support = (await api("/platform-config").catch(() => ({}))).supportEmail || "";
-  nav.insertAdjacentHTML(
-    "beforebegin",
-    `<article class="gd-rights" id="gdRights"><h2>Your rights on CraftCrew</h2>
-    <h3>Access and a copy of your data</h3><p>Under Art. 15 and 20 GDPR you can see the personal data we store about you and take it with you. Signed in, open your profile and choose "Download my data". You get a JSON file with your account, messages, notifications, projects, invoices and activity. Passwords and security keys are never included.</p>
-    <h3>Correcting your data</h3><p>You can change your name, contact details and company profile on your profile page at any time (Art. 16 GDPR). For verified suppliers, changes to legal details are checked again before they show as verified.</p>
-    <h3>Deleting your account</h3><p>You can delete your account on your profile page (Art. 17 GDPR). While projects, accepted work, unpaid invoices or escalations are still open, they have to be finished or handed over first, because the other party depends on them.</p><p>After you confirm with your password, your account is locked at once and deleted after 14 days. Signing in during these 14 days cancels the deletion. Then your name, email, phone, company profile, notifications and files are removed. Messages you sent stay visible to their recipients as coming from "Deleted user".</p>
-    <h3>What we have to keep</h3><p>Invoices must be kept for 10 years (§ 147 AO, § 14b UStG). They keep the company name, address and tax ID they were issued with, but not your personal contact details. Time entries that back an invoice are kept for the same reason.</p>
-    <h3>Team members</h3><p>A team member who deletes their account removes only their own login. When the main account is deleted, its team members' logins are deleted with it.</p>
-    <h3>Questions and complaints</h3>${support ? `<p><span>Contact:</span> <a href="mailto:${esc(support)}" data-no-i18n>${esc(support)}</a></p>` : ""}<p>You also have the right to complain to a data protection supervisory authority.</p></article>`,
-  );
-};
-
 /* Admin (T123): accounts with a pending deletion, read-only. */
 const gdBaseAdminUsers = adminUsers;
 adminUsers = async function (...args) {

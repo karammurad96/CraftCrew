@@ -19,19 +19,6 @@ function legalHtml(text) {
     )
     .join("");
 }
-async function legalPage(key) {
-  const legal = await legalContent(),
-    body = legal[key];
-  app.innerHTML = publicLayout(
-    `<div class="cc-page legal-page"><div class="eyebrow">LEGAL</div><h1>${LEGAL_PAGES[key]}</h1>${body ? `<article class="legal-body">${legalHtml(body)}</article>` : '<div class="panel"><p>This page has not been published yet. Please contact us via the support address.</p></div>'}<nav class="legal-links">${Object.entries(
-      LEGAL_PAGES,
-    )
-      .filter(([k]) => k !== key)
-      .map(([k, t]) => `<a href="#/${k}">${t}</a>`)
-      .join("")}</nav></div>`,
-  );
-  window.scrollTo(0, 0);
-}
 function legalFooter() {
   const footer = document.querySelector("body > footer");
   if (!footer || footer.querySelector(".legal-footer-links")) return;
@@ -311,12 +298,6 @@ const legalBaseRoute = window.route;
 window.route = async function () {
   const path = location.hash.replace(/^#/, "").split("?")[0];
   const key = path.replace(/^\//, "");
-  if (LEGAL_PAGES[key]) {
-    topActions();
-    await legalPage(key);
-    legalFooter();
-    return;
-  }
   if (key === "verify") {
     topActions();
     await authVerifyPage();

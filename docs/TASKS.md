@@ -192,7 +192,10 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T123 GDPR: privacy policy text and admin view of deletions · S
 - [x] T124 Cookie sessions with CSRF protection instead of the localStorage token · M
 - [x] T125 Frontend foundation: translation keys `t()`, `data-action` handlers, area modules, one route table · M
-- [ ] T126 Area: public pages, sign-in and sign-up · M
+- [ ] T126 Area: public pages, sign-in and sign-up · M (in three PRs)
+  - [x] T126a landing, pricing, how it works, FAQ, legal pages
+  - [ ] T126b sign-in, sign-up, forgot/reset/verify
+  - [ ] T126c supplier application
 - [ ] T127 Area: dashboards, sidebar, notifications and phone bar · M
 - [ ] T128 Area: projects, workspace, board and documents · L (split into two PRs if needed)
 - [ ] T129 Area: sourcing, offers, bids, contracts and the directory · M
