@@ -4744,6 +4744,13 @@ async function api(req, res, url) {
           send(res, 400, { error: "Enter a team member, date, start/end time, location and valid hours" }),
           true
         );
+      // Photos from site (T106): up to 6 of this account's uploaded JPG or PNG files.
+      const sentPhotos = b.photoUrls === undefined ? [] : b.photoUrls;
+      if (!Array.isArray(sentPhotos) || sentPhotos.length > 6)
+        return (send(res, 400, { error: "Attach up to 6 photos" }), true);
+      const photoUrls = [...new Set(sentPhotos)];
+      if (photoUrls.some((u) => !ownUpload(user, u) || !/\.(png|jpe?g)$/i.test(u)))
+        return (send(res, 400, { error: "Upload the photos first (JPG or PNG), then attach them." }), true);
       const customer = db.users.find((u) => u.id === p.customerId),
         supplier = supplierForUser(user);
       const entry = {
@@ -4771,6 +4778,7 @@ async function api(req, res, url) {
         hourlyRate: Math.max(0, rate),
         amount: Math.round(hours * rate * 100) / 100,
         description: String(b.description || "").slice(0, 2000),
+        photoUrls,
         status: "Pending approval",
         submittedAt: now(),
         createdAt: now(),
@@ -8039,6 +8047,14 @@ const server = http.createServer(async (req, res) => {
               o.supplierId === user.supplierId ||
               (user.role === "customer" && !!projectFor(user, bd.projectId))),
         ),
+      ) ||
+      // Time entry photos (T106): the supplier who logged them and the customer's project team.
+      (db.timeEntries || []).some(
+        (t) =>
+          (t.photoUrls || []).includes(fileUrl) &&
+          (user.role === "admin" ||
+            (user.role === "supplier" && t.supplierId === user.supplierId) ||
+            (user.role === "customer" && !!projectFor(user, t.projectId))),
       ) ||
       (db.rfqs || []).some(
         (r) =>

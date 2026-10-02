@@ -23,6 +23,7 @@ function loadScreens(extra = {}, expose = []) {
     invoiceDetailPage: async () => {},
     MNAV_BOTTOM: { customer: [], supplier: [], admin: [[]] },
     ccNewTimeEntry: async () => {},
+    ccTimeFilter: () => {},
     srApprovals: async () => {},
     window: { addEventListener() {} },
     route() {},
@@ -381,6 +382,33 @@ describe("design 2026", () => {
     // Follow-ups for board details that need a feature are written down
     const tasks = readFileSync(path.join(__dirname, "..", "docs", "TASKS.md"), "utf8");
     for (const t of ["T106", "T107", "T108", "T109", "T110"]) assert.match(tasks, new RegExp(`#### ${t} · `));
+  });
+
+  it("sends time entry photos with the entry and queues both offline (T106)", async () => {
+    const calls = [];
+    const ctx = loadScreens({
+      api: async (p, o) => (calls.push(["api", p]), {}),
+      oflPostWithPhotos: async (p, body, files) => (calls.push(["photos", p, body.hours, files.length]), {}),
+    });
+    const vm = require("node:vm");
+    await ctx.api("/time-entries", { method: "POST", body: { hours: 8 } });
+    vm.runInContext('dsTimePhotos = [{ filename: "a.jpg", content: "data:" }];', ctx);
+    await ctx.api("/time-entries", { method: "POST", body: { hours: 8 } });
+    await ctx.api("/time-entries", { method: "POST", body: { hours: 7 } });
+    assert.deepEqual(calls, [
+      ["api", "/time-entries"],
+      ["photos", "/time-entries", 8, 1],
+      ["api", "/time-entries"],
+    ]);
+    assert.equal(
+      vm.runInContext('dsTimeThumbs(["/uploads/a.png"])', ctx),
+      '<div class="ds-thumbs"><a href="/uploads/a.png" aria-label="Photo 1"><img data-ds-src="/uploads/a.png" alt=""></a></div>',
+    );
+    // The offline replay uploads the queued photos before it posts the entry
+    assert.match(read("offline-sync.js"), /body: \{ \.\.\.item\.body\.body, photoUrls: await oflUploadAll\(item\.body\.uploads\) \}/);
+    assert.match(read("design-screens.css"), /\.ds-photo-grid \{\n  display: grid;\n  grid-template-columns: repeat\(4, minmax\(0, 1fr\)\);/);
+    const de = read("i18n.js");
+    for (const k of ['Photos: "Fotos"', '"Add photo": "Foto hinzufügen"', '"Attach up to 6 photos"']) assert.ok(de.includes(k), k);
   });
 
   it("uses a new service worker cache so installed apps load the new files", () => {
