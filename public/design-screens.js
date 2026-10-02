@@ -17,9 +17,12 @@ function dsText(el) {
 
 /* "5 days late" for a date in the past (YYYY-MM-DD); "Overdue" when the date is unknown. */
 function dsDaysLate(isoDate) {
-  const due = Date.parse(String(isoDate || "").slice(0, 10));
-  if (!due) return "Overdue";
-  const days = Math.max(1, Math.floor((Date.now() - due) / 86400000));
+  const due = String(isoDate || "").slice(0, 10);
+  if (!Date.parse(due)) return "Overdue";
+  // Calendar days in the user's time zone, not 24-hour periods since midnight UTC
+  const now = new Date(),
+    today = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10),
+    days = Math.max(1, Math.round((Date.parse(today) - Date.parse(due)) / 86400000));
   return days === 1 ? "1 day late" : `${days} days late`;
 }
 
@@ -983,6 +986,181 @@ function dsEnhanceWorkspace(root) {
     );
   });
 }
+
+/* ---------- Task board with a side panel (T99, board BoardDrawer) ----------
+   inBoard renders the columns and binds drag and drop, arrow keys and the move locks; the wrapper restyles the
+   header, the columns and the cards, and opens a side panel instead of a new page. */
+const DS_COL_LABEL = { "Not Started": "To Do", Completed: "Done" }; // labels only; statuses stay
+let dsBoard = null; // { role, project, suppliers }
+const dsBaseInBoard = inBoard;
+inBoard = async function (role, pid) {
+  await dsBaseInBoard(role, pid);
+  const content = document.querySelector(".dashboard-content");
+  if (!content) return;
+  const { project: p, suppliers = [] } = await api(`/projects/${pid}`).catch(() => ({}));
+  if (!p || !document.contains(content)) return;
+  dsBoard = { role, project: p, suppliers };
+  content.classList.add("ds-board");
+  // Header: project name as the way back, "Board" as the title; the old breadcrumb link moves here
+  const top = content.querySelector(":scope > .dash-top"),
+    text = top?.querySelector(":scope > div:first-child"),
+    crumb = content.querySelector(":scope > .breadcrumb");
+  if (text) {
+    const back = crumb?.querySelector("a");
+    const hint = text.querySelector("p");
+    text.className = "ds-board-head";
+    text.replaceChildren();
+    if (back) {
+      back.className = "ds-board-back";
+      back.replaceChildren(p.name);
+      text.append(back);
+    }
+    text.insertAdjacentHTML("beforeend", '<h1 class="ds-ui">Board</h1>');
+    if (hint) text.append(hint);
+    crumb?.remove();
+  }
+  // Phase filter as a segmented control (the select stays for more than 4 phases)
+  const toolbar = top?.querySelector(".in-toolbar"),
+    select = toolbar?.querySelector("#inPhase"),
+    phases = p.phases || [];
+  if (select && phases.length <= 4) {
+    const current = new URLSearchParams(location.hash.split("?")[1] || "").get("phase") || "";
+    const seg = (id, label) =>
+      `<a role="tab" aria-selected="${id === current}" href="#/${role}/projects/${pid}/board${id ? "?phase=" + encodeURIComponent(id) : ""}">${esc(label)}</a>`;
+    select.classList.add("ds-hidden");
+    select.insertAdjacentHTML(
+      "afterend",
+      `<div class="ds-seg" role="tablist" aria-label="Phase">${seg("", "All phases")}${phases.map((ph) => seg(ph.id, String(ph.name).split(/[\s&]+/)[0])).join("")}</div>`,
+    );
+  }
+  // Columns: labels, dots, counts
+  for (const col of content.querySelectorAll(".in-col")) {
+    const b = col.querySelector("header b"),
+      label = DS_COL_LABEL[col.dataset.status];
+    if (b && label) b.replaceChildren(label);
+    col.classList.add("ds-col-" + String(col.dataset.status).toLowerCase().replace(/\s+/g, "-"));
+  }
+  // Cards
+  const today = dsToday(),
+    company = (id) => suppliers.find((s) => s.id === id)?.company || "",
+    tasks = new Map(phases.flatMap((ph) => (ph.tasks || []).map((t) => [t.id, { ph, t }])));
+  for (const card of content.querySelectorAll(".in-card")) {
+    const hit = tasks.get(card.dataset.task),
+      ph = hit?.ph || phases.find((x) => x.id === card.dataset.phase),
+      t = hit?.t,
+      item = t || ph;
+    if (!item) continue;
+    const link = card.querySelector("a"),
+      status = card.closest(".in-col")?.dataset.status,
+      done = status === "Completed",
+      late = !done && item.dueDate && item.dueDate < today,
+      sup = company(t ? t.assignedSupplierId : ph.supplierId),
+      pct = Number(t?.progress) || 0,
+      lockedNote = card.classList.contains("locked") ? '<span class="ds-lock" title="Only the assigned supplier or the customer can move this card" aria-label="Locked">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>' : "",
+      chips = [
+        t && t.acceptanceStatus === "Pending" ? `<span class="status" data-ds-tone="orange">Awaiting ${esc(sup || "supplier")}</span>` : "",
+        late ? `<span class="status" data-ds-tone="red">${dsDaysLate(item.dueDate)}</span>` : "",
+      ].join(""),
+      due = item.dueDate ? `due ${dsShortRange(item.dueDate)}` : "",
+      meta = sup && t ? [sup, `${pct} %`, due] : [ph.name, due, t && !sup ? "no supplier yet" : ""];
+    link.className = "ds-card-title";
+    card.innerHTML = "";
+    card.append(link);
+    card.insertAdjacentHTML(
+      "beforeend",
+      `${lockedNote}${chips ? `<div class="ds-card-chips">${chips}</div>` : ""}${!done && status === "In Progress" && t ? `<div class="ds-card-bar"><i style="width:${pct}%"></i></div>` : ""}<div class="ds-card-meta">${done ? `<span class="ds-accepted ds-ui" data-task="${esc(t?.id || "")}">Done</span>` : esc(meta.filter(Boolean).join(" · "))}</div>`,
+    );
+    card.classList.toggle("ds-done", done);
+    if (t) card.dataset.dsPanel = "1";
+  }
+  // "Accepted <date>" for finished tasks with a signed acceptance report
+  for (const el of content.querySelectorAll(".ds-accepted[data-task]:not([data-task=''])"))
+    api(`/projects/${pid}/tasks/${el.dataset.task}/acceptance`)
+      .then(({ acceptance: a }) => {
+        if (a && ["accepted", "accepted_with_defects"].includes(a.result))
+          el.replaceChildren(`Accepted ${dsShortRange(String(a.createdAt).slice(0, 10))}`);
+      })
+      .catch(() => {});
+};
+function dsBoardCard(el) {
+  return el?.closest?.('.ds-board .in-card[data-ds-panel="1"]');
+}
+// A click or Enter on a card opens the side panel; ctrl/cmd/shift-click and the middle button still open the page.
+document.addEventListener(
+  "click",
+  (e) => {
+    const card = dsBoardCard(e.target);
+    if (!card || e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+    e.preventDefault();
+    dsOpenPanel(card);
+  },
+  true,
+);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && document.querySelector(".ds-panel")) return dsClosePanel();
+  const card = dsBoardCard(e.target);
+  if (card && e.key === "Enter" && e.target === card) {
+    e.preventDefault();
+    dsOpenPanel(card);
+  }
+});
+function dsClosePanel() {
+  const panel = document.querySelector(".ds-panel"),
+    card = document.querySelector(".in-card.ds-selected");
+  panel?.remove();
+  document.querySelector(".ds-board")?.classList.remove("ds-panel-open");
+  card?.classList.remove("ds-selected");
+  card?.focus();
+}
+function dsOpenPanel(card) {
+  if (!dsBoard) return;
+  const { role, project: p, suppliers } = dsBoard,
+    ph = (p.phases || []).find((x) => x.id === card.dataset.phase),
+    t = ph?.tasks?.find((x) => x.id === card.dataset.task);
+  if (!t) return;
+  document.querySelector(".ds-panel")?.remove();
+  document.querySelectorAll(".in-card.ds-selected").forEach((c) => c.classList.remove("ds-selected"));
+  card.classList.add("ds-selected");
+  const sup = suppliers.find((s) => s.id === t.assignedSupplierId)?.company || "",
+    mineSupplier = role === "supplier" && t.assignedSupplierId === state.user?.supplierId,
+    canTick = role === "customer" || (mineSupplier && t.acceptanceStatus === "Accepted"),
+    status = card.closest(".in-col")?.dataset.status || t.status,
+    items = t.subtasks || [],
+    upd = (t.progressUpdates || [])[0],
+    fact = (label, value) => `<div><span class="ds-ui">${label}</span><b>${esc(value)}</b></div>`;
+  const panel = document.createElement("aside");
+  panel.className = "ds-panel";
+  panel.setAttribute("role", "dialog");
+  panel.setAttribute("aria-label", t.name);
+  panel.innerHTML = `<div class="ds-panel-head"><div><span>${esc(ph.name)}</span><h2>${esc(t.name)}</h2></div><button type="button" class="ds-panel-close" aria-label="Close" onclick="dsClosePanel()">×</button></div>
+    <div class="ds-panel-facts">${fact("Status", `${status} · ${Number(t.progress) || 0} %`)}${fact("Supplier", sup || "—")}${fact("Dates", dsShortRange(t.startDate, t.dueDate))}${role === "customer" || mineSupplier ? fact("Order", t.orderAmount ? money(t.orderAmount) : "—") : ""}</div>
+    ${t.description ? `<p class="ds-panel-desc">${esc(t.description)}</p>` : ""}
+    ${items.length ? `<h3 class="ds-panel-h">Checklist · ${items.filter((x) => x.done).length} of ${items.length}</h3><div class="ds-panel-list">${items.map((x, i) => `<label><input type="checkbox" data-i="${i}" ${x.done ? "checked" : ""} ${canTick ? "" : "disabled"}> <span>${esc(x.name || x.text)}</span></label>`).join("")}</div>` : ""}
+    ${upd ? `<h3 class="ds-panel-h">Latest update</h3><blockquote class="ds-panel-quote"><p>“${esc(upd.note || upd.milestone || `${upd.status} · ${upd.progress} %`)}”</p><span>${esc([upd.byName, upd.company, dsShortRange(String(upd.at).slice(0, 10))].filter(Boolean).join(" · "))}</span></blockquote>` : ""}
+    <div class="ds-panel-foot"><a class="btn secondary" href="#/${role}/messages?project=${encodeURIComponent(p.id)}&phase=${encodeURIComponent(ph.id)}&task=${encodeURIComponent(t.id)}">Message</a><a class="btn primary" href="#/${role}/projects/${encodeURIComponent(p.id)}/tasks/${encodeURIComponent(t.id)}">Open Task</a></div>`;
+  panel.querySelectorAll('input[type="checkbox"]').forEach((box) =>
+    box.addEventListener("change", async () => {
+      const next = items.map((x, i) => (i === Number(box.dataset.i) ? { ...x, done: box.checked } : x));
+      box.disabled = true;
+      try {
+        await api(`/projects/${p.id}/phases/${ph.id}/tasks/${t.id}`, { method: "PATCH", body: { subtasks: next } });
+        t.subtasks = next;
+        items.splice(0, items.length, ...next);
+        panel.querySelector(".ds-panel-h").replaceChildren(`Checklist · ${next.filter((x) => x.done).length} of ${next.length}`);
+      } catch (err) {
+        box.checked = !box.checked;
+        toast(err.message, "error");
+      } finally {
+        box.disabled = false;
+      }
+    }),
+  );
+  document.body.append(panel);
+  document.querySelector(".ds-board")?.classList.add("ds-panel-open");
+  panel.querySelector(".ds-panel-close").focus();
+}
+window.addEventListener("hashchange", () => document.querySelector(".ds-panel") && dsClosePanel());
 
 /* ---------- Run the enhancers after every render ---------- */
 const DS_ENHANCERS = [dsEnhanceChips, dsEnhanceButtons, dsEnhanceEmpty, dsEnhanceSidebar, dsEnhanceDashboard, dsEnhanceWorkspace];

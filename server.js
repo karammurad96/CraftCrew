@@ -5074,6 +5074,12 @@ async function api(req, res, url) {
           description: b.description ?? t.description,
         });
         if (t.status === "Completed") t.progress = 100;
+        // The supplier ticks checklist items on the board (T99); only the customer adds, renames or removes them.
+        if (Array.isArray(b.subtasks))
+          for (const item of t.subtasks || []) {
+            const sent = b.subtasks.find((x) => x && x.id === item.id);
+            if (sent && typeof sent.done === "boolean") item.done = sent.done;
+          }
         const note = String(b.note || "")
             .trim()
             .slice(0, 2000),
