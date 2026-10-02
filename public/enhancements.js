@@ -71,48 +71,6 @@ async function requestSupplierQuote(supplierId) {
 
 
 
-function customerProjectCard(p) {
-  return `<article class="cc-card click project-card" role="link" tabindex="0" onclick="openCustomerProject('${esc(p.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openCustomerProject('${esc(p.id)}')}"><div class="project-card-head"><b>${esc(p.name)}</b><span class="status ${p.status.toLowerCase().replaceAll(" ", "-")}">${esc(p.status)}</span></div><p>${esc(p.description)}</p><div class="timeline-line"><i style="width:${pct(p.phases)}%"></i></div><div class="supplier-meta"><span>${pct(p.phases)}% complete</span><span>Due ${date(p.dueDate)}</span></div><span class="btn small outline project-open">Open project →</span></article>`;
-}
-async function openCustomerProject(id) {
-  try {
-    navigate("/customer/projects/" + id);
-    await projectDetail(id);
-  } catch (err) {
-    toast(err.message, "error");
-  }
-}
-
-async function customerProjects() {
-  const d = await api("/projects");
-  app.innerHTML = dashboardShell(
-    "customer",
-    "projects",
-    `<div class="dash-top"><div><h1>Projects</h1><p>Waterfall delivery across your industrial work.</p></div><button class="btn primary" onclick="navigate('/customer/projects/new')">+ New project</button></div><div class="cc-grid">${d.projects.map(customerProjectCard).join("") || '<div class="empty">No projects yet. Create your first project to start planning work.</div>'}</div>`,
-  );
-}
-
-async function newProject() {
-  app.innerHTML = dashboardShell(
-    "customer",
-    "projects",
-    `<div class="form-card"><div class="breadcrumb"><a href="#/customer/projects">← Back to projects</a></div><h1>Create new project</h1><p>Set the project envelope. CraftCrew creates five default waterfall phases that you can edit, reorder and assign.</p><form id="newProjectForm"><div class="two"><label>Project name *<input name="name" required maxlength="140"></label><label>Budget (€) *<input name="budget" type="number" min="1" step="0.01" required></label></div><label>Description *<textarea name="description" required maxlength="5000"></textarea></label><div class="two"><label>Start date<input name="startDate" type="date" value="${new Date().toISOString().slice(0, 10)}"></label><label>Due date *<input name="dueDate" type="date" min="${new Date().toISOString().slice(0, 10)}" required></label></div><div id="projectError" class="form-error" role="alert"></div><div class="action-row"><button class="btn primary">Create project</button><button type="button" class="btn outline" onclick="navigate('/customer/projects')">Cancel</button></div></form></div>`,
-  );
-  document.getElementById("newProjectForm").onsubmit = async (e) => {
-    e.preventDefault();
-    const error = document.getElementById("projectError");
-    error.textContent = "";
-    try {
-      const d = await api("/projects", { method: "POST", body: Object.fromEntries(new FormData(e.target)) });
-      toast("Project created");
-      navigate("/customer/projects/" + d.project.id);
-      await projectDetail(d.project.id);
-    } catch (err) {
-      error.textContent = err.message;
-    }
-  };
-}
-
 function timelinePosition(p, ph) {
   const start = new Date(p.startDate).getTime(),
     end = new Date(p.dueDate).getTime(),
@@ -552,8 +510,6 @@ async function route() {
   try {
     if (h === "/suppliers") return renderSuppliers();
     if (parts[0] === "customer") {
-      if (parts[1] === "projects" && !parts[2]) return customerProjects();
-      if (parts[1] === "projects" && parts[2] === "new") return newProject();
       if (parts[1] === "projects" && parts[2]) return projectDetail(parts[2]);
       if (parts[1] === "suppliers" && parts[2]) return supplierDetail(parts[2]);
       if (parts[1] === "suppliers") return renderSuppliers();
@@ -562,7 +518,6 @@ async function route() {
       if (parts[1] === "profile") return profilePage("customer");
     }
     if (parts[0] === "supplier") {
-      if (parts[1] === "phases" || parts[1] === "projects") return supplierPhases();
       if (parts[1] === "requests") return supplierRequests();
       if (parts[1] === "invoices" && !parts[2]) return supplierInvoices();
       if (parts[1] === "invoices" && parts[2] === "new") return newInvoice();

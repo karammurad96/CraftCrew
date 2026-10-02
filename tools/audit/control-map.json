@@ -15,5 +15,17 @@
   "admin /admin/dashboard": {
     "action reviewApplication('app_demo_nordwerk')": "action [dash.application]",
     "action reviewApplication('app_demo_mechacore')": "action [dash.application]"
+  },
+  "customer /customer/projects": {
+    "action openCustomerProject('prj_demo_line4')": "link #/customer/projects/prj_demo_line4",
+    "action openCustomerProject('prj_demo_vision')": "link #/customer/projects/prj_demo_vision"
+  },
+  "supplier /supplier/projects": {
+    "action wfUpdateProgress('prj_demo_line4','ph_demo_build','tsk_demo_fabrication',55)": "action [projects.progress]",
+    "action wfUpdateProgress('prj_demo_line4','ph_demo_handover','tsk_demo_training',0)": "action [projects.progress]",
+    "action wfUpdateProgress('prj_demo_vision','ph_demo_visionplan','tsk_demo_scope',55)": "action [projects.progress]",
+    "action wfUpdateProgress('prj_hist_press2','ph_hist_0','tsk_hist_0_0',100)": "action [projects.progress]",
+    "action wfUpdateProgress('prj_hist_press2','ph_hist_0','tsk_hist_0_1',100)": "action [projects.progress]",
+    "action wfUpdateProgress('prj_hist_press2','ph_hist_0','tsk_hist_0_2',100)": "action [projects.progress]"
   }
 }

@@ -647,4 +647,69 @@ LOCALES.de = {
     "saved": "Layout gespeichert",
     "resetDone": "Layout zurückgesetzt"
   },
+  // Projects (T128)
+  projects: {
+    "list": {
+      "title": "Projekte",
+      "intro": "Phasen und Aufgaben planen, Lieferantenangebote, Dokumente und Lieferung steuern.",
+      "showArchived": "Archivierte anzeigen",
+      "offers": "Angebotsübersicht",
+      "new": "+ Neues Projekt",
+      "complete": "{n} % abgeschlossen",
+      "due": "Fällig {date}",
+      "open": "Projekt öffnen →",
+      "empty": "Noch keine Projekte."
+    },
+    "create": {
+      "back": "← Zurück zu den Projekten",
+      "title": "Neues Projekt anlegen",
+      "intro": "Beschreiben Sie die Arbeit, wählen Sie eine Vorlage für Phasen und Aufgaben und weisen Sie dann auf der Projektseite Lieferanten zu.",
+      "name": "Projektname *",
+      "budget": "Budget (€) *",
+      "description": "Beschreibung *",
+      "descriptionHint": "Ziel und Umfang des Projekts",
+      "requirements": "Anforderungen",
+      "requirementsHint": "Technische Anforderungen, Normen, Abnahmekriterien, Gegebenheiten vor Ort",
+      "location": "Standort",
+      "locationHint": "z. B. Regensburg, Deutschland",
+      "template": "Projektvorlage",
+      "templates": {
+        "waterfall": "Klassisches Wasserfallmodell (5 Phasen)",
+        "robotcell": "Roboterzelle / Automatisierungszelle",
+        "retrofit": "Maschinen-Retrofit",
+        "lineexpansion": "Erweiterung einer Fertigungslinie",
+        "blank": "Leer beginnen (eine Planungsphase)"
+      },
+      "start": "Startdatum",
+      "dueDate": "Fälligkeitsdatum *",
+      "files": "Anhänge (Spezifikationen, Zeichnungen, Stückliste · optional)",
+      "submit": "Projekt erstellen",
+      "cancel": "Abbrechen",
+      "created": "Projekt angelegt"
+    },
+    "work": {
+      "title": "Zugewiesene Arbeit",
+      "intro": "Beantworten Sie neue Einladungen und melden Sie dann Fortschritt, Dokumente und Rechnungen für angenommene Arbeiten.",
+      "findMore": "Weitere Aufträge finden",
+      "waiting": "Wartet auf Ihre Antwort",
+      "hint": "Der Kunde hat Sie eingeladen. Erst nach Ihrer Zusage beginnt die Arbeit – abgelehnte Aufträge gehen an den Kunden zurück.",
+      "accepted": "Angenommene Arbeiten",
+      "empty": "Noch keine angenommenen Arbeiten. Beantworten Sie oben eine Einladung oder sehen Sie sich Ausschreibungen an.",
+      "taskInvite": "Aufgabeneinladung",
+      "phaseInvite": "Phaseneinladung",
+      "schedule": "Zeitplan",
+      "orderValue": "Auftragswert",
+      "notSet": "Nicht festgelegt",
+      "invited": "Eingeladen",
+      "acceptTask": "Aufgabe annehmen",
+      "acceptPhase": "Phase annehmen",
+      "decline": "Ablehnen",
+      "viewProject": "Projekt ansehen",
+      "complete": "{n} % abgeschlossen",
+      "updateProgress": "Fortschritt aktualisieren",
+      "documents": "Dokumente",
+      "invoices": "Rechnungen",
+      "messages": "Nachrichten"
+    }
+  },
 };

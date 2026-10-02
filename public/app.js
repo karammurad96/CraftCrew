@@ -186,32 +186,6 @@ async function supplierDetail(id) {
     `<div class="detail-grid"><div class="detail-box"><small>Location</small><b>${esc(s.location)}</b></div><div class="detail-box"><small>Badge / Rating</small><b>${esc(supplierBadge(s))} · ★ ${s.rating}</b></div><div class="detail-box"><small>Experience</small><b>${s.experience} years · ${s.projectsCompleted} projects</b></div><div class="detail-box"><small>Rates</small><b>${money(s.hourlyRate)}/h · from ${money(s.projectRate)}</b></div></div><p>${esc(s.description)}</p><h4>Services</h4><div>${s.services.map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</div><h4>Certifications</h4><div>${s.certifications.map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</div><h4>Reviews</h4>${s.reviews.map((r) => `<div class="notice">★ ${r.rating} — ${esc(r.text)}</div>`).join("")}`,
   );
 }
-async function customerProjects() {
-  const d = await api("/projects");
-  app.innerHTML = dashboardShell(
-    "customer",
-    "projects",
-    `<div class="dash-top"><div><h1>Projects</h1><p>Waterfall delivery across your industrial work.</p></div><button class="btn primary" onclick="navigate('/customer/projects/new')">+ New project</button></div><div class="cc-grid">${d.projects.map((p) => `<article class="cc-card click" onclick="navigate('/customer/projects/${p.id}')"><div style="display:flex;justify-content:space-between"><b>${esc(p.name)}</b><span class="status ${p.status.toLowerCase().replaceAll(" ", "-")}">${p.status}</span></div><p>${esc(p.description)}</p><div class="timeline-line"><i style="width:${pct(p.phases)}%"></i></div><div class="supplier-meta"><span>${pct(p.phases)}% complete</span><span>Due ${date(p.dueDate)}</span></div></article>`).join("")}</div>`,
-  );
-}
-async function newProject() {
-  app.innerHTML = dashboardShell(
-    "customer",
-    "projects",
-    `<div class="form-card"><h1>Create new project</h1><p>Set the project envelope. CraftCrew creates five default waterfall phases that you can edit, reorder and assign.</p><form id="newProjectForm"><div class="two"><label>Project name *<input name="name" required></label><label>Budget (€) *<input name="budget" type="number" min="1" required></label></div><label>Description *<textarea name="description" required></textarea></label><div class="two"><label>Start date<input name="startDate" type="date" value="${new Date().toISOString().slice(0, 10)}"></label><label>Due date *<input name="dueDate" type="date" required></label></div><button class="btn primary">Create project</button></form></div>`,
-  );
-  document.getElementById("newProjectForm").onsubmit = async (e) => {
-    e.preventDefault();
-    const b = Object.fromEntries(new FormData(e.target));
-    try {
-      const d = await api("/projects", { method: "POST", body: b });
-      toast("Project created");
-      navigate("/customer/projects/" + d.project.id);
-    } catch (err) {
-      toast(err.message, "error");
-    }
-  };
-}
 async function projectDetail(pid) {
   const d = await api("/projects/" + pid),
     p = d.project;
@@ -445,19 +419,6 @@ async function acceptPhase(pid, phid, accept) {
   toast(accept ? "Phase accepted" : "Phase declined");
   route();
 }
-async function supplierPhases() {
-  const d = await api("/projects"),
-    s = (await api("/profile")).supplier;
-  const rows = [];
-  d.projects.forEach((p) =>
-    p.phases.filter((ph) => ph.supplierId === s.id).forEach((ph) => rows.push({ p, ph })),
-  );
-  app.innerHTML = dashboardShell(
-    "supplier",
-    "phases",
-    `<div class="dash-top"><div><h1>Assigned phases</h1><p>Your accepted and pending work packages.</p></div></div><div class="cc-grid">${rows.map((x) => `<article class="cc-card"><div style="display:flex;justify-content:space-between"><b>${esc(x.ph.name)}</b><span class="tag ${x.ph.acceptanceStatus === "Accepted" ? "green" : "orange"}">${x.ph.acceptanceStatus}</span></div><p>${esc(x.p.name)} · ${esc(x.ph.description)}</p><div class="supplier-meta"><span>Due ${date(x.ph.dueDate)}</span><span>${x.ph.status}</span></div>${x.ph.acceptanceStatus === "Pending" ? `<div class="cc-actions" style="margin-top:12px"><button class="btn small success" onclick="acceptPhase('${x.p.id}','${x.ph.id}',true)">Accept</button><button class="btn small danger" onclick="acceptPhase('${x.p.id}','${x.ph.id}',false)">Decline</button></div>` : ""}<div class="cc-actions" style="margin-top:12px"><button class="btn small outline" onclick="supplierPhaseUpdate('${x.p.id}','${x.ph.id}')">Update phase</button><button class="btn small primary" onclick="navigate('/supplier/invoices/new?project=${x.p.id}&phase=${x.ph.id}')">Create invoice</button></div></article>`).join("")}</div>`,
-  );
-}
 async function supplierPhaseUpdate(pid, phid) {
   const { project: p } = await api("/projects/" + pid),
     ph = p.phases.find((x) => x.id === phid);
@@ -474,7 +435,7 @@ async function supplierPhaseUpdate(pid, phid) {
     });
     closeModal();
     toast("Phase updated");
-    supplierPhases();
+    route();
   };
 }
 async function supplierInvoices() {
@@ -734,8 +695,6 @@ async function route() {
     if (h === "/suppliers") return renderSuppliers();
     const parts = h.split("/").filter(Boolean);
     if (parts[0] === "customer") {
-      if (parts[1] === "projects" && !parts[2]) return customerProjects();
-      if (parts[1] === "projects" && parts[2] === "new") return newProject();
       if (parts[1] === "projects" && parts[2]) return projectDetail(parts[2]);
       if (parts[1] === "suppliers") return renderSuppliers();
       if (parts[1] === "invoices") return customerInvoices();
@@ -743,8 +702,6 @@ async function route() {
       if (parts[1] === "profile") return profilePage("customer");
     }
     if (parts[0] === "supplier") {
-      if (parts[1] === "phases") return supplierPhases();
-      if (parts[1] === "projects") return supplierPhases();
       if (parts[1] === "invoices" && !parts[2]) return supplierInvoices();
       if (parts[1] === "invoices" && parts[2] === "new") return newInvoice();
       if (parts[1] === "suppliers") return supplierCatalog();

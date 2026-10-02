@@ -702,33 +702,6 @@ function reviewSetOfferSort(sort) {
   navigate(`/${state.user.role}/offers?${q}`);
   wfOffers();
 }
-async function supplierPhases() {
-  const d = await reviewProjects(),
-    s = (await api("/profile")).supplier,
-    items = [];
-  for (const p of d)
-    for (const ph of p.phases || [])
-      for (const t of ph.tasks || []) if (t.assignedSupplierId === s?.id) items.push({ p, ph, t });
-  app.innerHTML = dashboardShell(
-    "supplier",
-    "phases",
-    `<div class="dash-top"><div><h1>Assigned work</h1><p>Task invitations, supplier commitments, documentation and progress.</p></div><button class="btn outline" onclick="navigate('/supplier/bids')">Find more work</button></div><div class="review-work-grid">${
-      items
-        .map(
-          (x) =>
-            `<article class="panel review-work-card"><div class="project-card-head"><div><span class="eyebrow">${reviewEsc(x.p.name)} · ${reviewEsc(x.ph.name)}</span><h3>${reviewEsc(x.t.name)}</h3></div><span class="status ${String(
-              x.t.status || "Not Started",
-            )
-              .toLowerCase()
-              .replaceAll(
-                " ",
-                "-",
-              )}">${reviewEsc(x.t.status || "Not Started")}</span></div><p>${reviewEsc(x.t.description || "")}</p><div class="wf-task-meta"><span>${date(x.t.startDate)} → ${date(x.t.dueDate)}</span><span>${reviewEsc(x.t.acceptanceStatus || "Assigned")}</span><span>${Number(x.t.progress) || 0}% complete</span></div><div class="timeline-line"><i style="width:${Math.min(100, Number(x.t.progress) || 0)}%"></i></div><div class="cc-actions"><button class="btn small outline" onclick="wfUpdateProgress('${x.p.id}','${x.ph.id}','${x.t.id}',${Number(x.t.progress) || 0})">Update progress</button><button class="btn small outline" onclick="navigate('/supplier/projects/${x.p.id}/documents?phase=${x.ph.id}&task=${x.t.id}')">Documents</button><button class="btn small outline" onclick="navigate('/supplier/invoices?project=${x.p.id}&phase=${x.ph.id}&task=${x.t.id}&back='+encodeURIComponent('/supplier/projects/${x.p.id}'))">Invoices</button><button class="btn small outline" onclick="navigate('/supplier/messages?project=${x.p.id}&phase=${x.ph.id}&task=${x.t.id}&back='+encodeURIComponent('/supplier/projects/${x.p.id}'))">Messages</button></div></article>`,
-        )
-        .join("") || '<div class="empty">No assignable tasks yet. Browse task bids to find work.</div>'
-    }</div>`,
-  );
-}
 async function messages(role) {
   const projects = await reviewProjects(),
     list = (await api("/chats")).chats || [],

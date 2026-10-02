@@ -457,7 +457,7 @@ async function wfUpdateProgress(pid, phid, tid, current) {
       });
       closeModal();
       toast("Task progress updated");
-      supplierPhases();
+      route();
     } catch (x) {
       document.getElementById("ccProgressError").textContent = x.message;
     }
