@@ -77,7 +77,7 @@ function cmVisitRow(v) {
         : v.status === "Checked in"
           ? `<button class="btn small outline" onclick="cmDecideVisit('${v.id}','checkout')">Check out</button>`
           : "";
-  return `<div class="cm-visit"><div><b>${cmEsc(v.supplierCompany)} · ${v.workers.map((w) => cmEsc(w.name)).join(", ")}</b><small>${cmEsc(v.siteName)} · ${date(v.date)}${v.endDate !== v.date ? " – " + date(v.endDate) : ""}${v.projectName ? " · " + cmEsc(v.projectName) : ""}${v.permitType !== "none" ? " · " + cmEsc(v.permitLabel) : ""}</small>${v.override ? `<small class="danger-text">Approved without full compliance: ${cmEsc(v.override)}</small>` : ""}</div><div class="cm-visit-side">${cmTag(v.status)}${v.status === "Requested" ? (v.ready ? '<span class="status completed">Compliant</span>' : '<span class="status rejected">Incomplete</span>') : ""}<div class="cc-actions">${act}</div></div></div>`;
+  return `<div class="cm-visit"><div><b>${cmEsc(v.supplierCompany)} · ${v.workers.map((w) => cmEsc(w.name)).join(", ")}</b><small>${cmEsc(v.siteName)} · ${date(v.date)}${v.endDate !== v.date ? " – " + date(v.endDate) : ""}${v.startTime ? " · " + cmEsc(v.startTime) : ""}${v.projectName ? " · " + cmEsc(v.projectName) : ""}${v.permitType !== "none" ? " · " + cmEsc(v.permitLabel) : ""}</small>${v.override ? `<small class="danger-text">Approved without full compliance: ${cmEsc(v.override)}</small>` : ""}</div><div class="cm-visit-side">${cmTag(v.status)}${v.status === "Requested" ? (v.ready ? '<span class="status completed">Compliant</span>' : '<span class="status rejected">Incomplete</span>') : ""}<div class="cc-actions">${act}</div></div></div>`;
 }
 function cmDocReviewRow(d) {
   return `<div class="cm-visit"><div><b>${cmEsc(cmReqLabel(cmCatalog || { requirements: {} }, d.requirementKey))}</b><small>${cmEsc(d.supplierCompany)}${d.workerName ? " · " + cmEsc(d.workerName) : ""}${d.expiresAt ? " · valid until " + date(d.expiresAt) : ""}</small></div><div class="cm-visit-side"><div class="cc-actions"><a class="btn small outline" href="${cmEsc(d.url)}">View</a><button class="btn small primary" onclick="cmReviewDoc('${d.id}','Accepted')">Accept</button><button class="btn small outline" onclick="cmReviewDoc('${d.id}','Rejected')">Reject</button></div></div></div>`;
@@ -324,7 +324,7 @@ async function cmSupplierPage() {
         )
         .join("") || '<p class="pa-empty">Add the people who work on customer sites.</p>'
     }</section>
-    <section class="panel"><div class="panel-title"><h3>Site access</h3><span class="ui-count">${visits.length}</span></div>${visits.map((v) => `<div class="cm-visit"><div><b>${cmEsc(v.siteName)} · ${date(v.date)}${v.endDate !== v.date ? " – " + date(v.endDate) : ""}</b><small>${v.workers.map((w) => cmEsc(w.name)).join(", ")}${v.permitType !== "none" ? " · " + cmEsc(v.permitLabel) : ""}</small></div><div class="cm-visit-side">${cmTag(v.status)}<div class="cc-actions">${v.status === "Approved" && v.date <= cmToday() && cmToday() <= v.endDate ? `<button class="btn small primary" onclick="cmSupplierVisit('${v.id}','checkin')">Check in</button>` : ""}${v.status === "Checked in" ? `<button class="btn small outline" onclick="cmSupplierVisit('${v.id}','checkout')">Check out</button>` : ""}${["Requested", "Approved"].includes(v.status) ? `<button class="btn small outline" onclick="cmSupplierVisit('${v.id}','cancel')">Cancel</button>` : ""}</div></div></div>`).join("") || '<p class="pa-empty">No access requests yet.</p>'}</section>`,
+    <section class="panel"><div class="panel-title"><h3>Site access</h3><span class="ui-count">${visits.length}</span></div>${visits.map((v) => `<div class="cm-visit"><div><b>${cmEsc(v.siteName)} · ${date(v.date)}${v.endDate !== v.date ? " – " + date(v.endDate) : ""}${v.startTime ? " · " + cmEsc(v.startTime) : ""}</b><small>${v.workers.map((w) => cmEsc(w.name)).join(", ")}${v.permitType !== "none" ? " · " + cmEsc(v.permitLabel) : ""}</small></div><div class="cm-visit-side">${cmTag(v.status)}<div class="cc-actions">${v.status === "Approved" && v.date <= cmToday() && cmToday() <= v.endDate ? `<button class="btn small primary" onclick="cmSupplierVisit('${v.id}','checkin')">Check in</button>` : ""}${v.status === "Checked in" ? `<button class="btn small outline" onclick="cmSupplierVisit('${v.id}','checkout')">Check out</button>` : ""}${["Requested", "Approved"].includes(v.status) ? `<button class="btn small outline" onclick="cmSupplierVisit('${v.id}','cancel')">Cancel</button>` : ""}</div></div></div>`).join("") || '<p class="pa-empty">No access requests yet.</p>'}</section>`,
   );
 }
 async function cmSupplierVisit(id, action) {
@@ -445,7 +445,7 @@ async function cmAccessForm(siteId) {
     permits = ["none", ...(site.permitTypes || [])];
   modal(
     "Request site access",
-    `<form id="cmAccessForm" class="modal-form"><label>Site<select name="siteId" onchange="cmAccessForm(this.value)">${sites.map((s) => `<option value="${s.id}" ${s.id === site.id ? "selected" : ""}>${cmEsc(s.name)}</option>`).join("")}</select></label><label>Project<select name="projectId">${detail.projects.map((p) => `<option value="${p.id}">${cmEsc(p.name)}</option>`).join("")}</select></label><div class="two"><label>From<input name="date" type="date" min="${cmToday()}" value="${cmToday()}" required></label><label>Until<input name="endDate" type="date" min="${cmToday()}" value="${cmToday()}"></label></div>
+    `<form id="cmAccessForm" class="modal-form"><label>Site<select name="siteId" onchange="cmAccessForm(this.value)">${sites.map((s) => `<option value="${s.id}" ${s.id === site.id ? "selected" : ""}>${cmEsc(s.name)}</option>`).join("")}</select></label><label>Project<select name="projectId">${detail.projects.map((p) => `<option value="${p.id}">${cmEsc(p.name)}</option>`).join("")}</select></label><div class="two"><label>From<input name="date" type="date" min="${cmToday()}" value="${cmToday()}" required></label><label>Until<input name="endDate" type="date" min="${cmToday()}" value="${cmToday()}"></label></div><label>Arrival time (optional)<input name="startTime" type="time"></label>
     <fieldset class="cm-fieldset"><legend>Workers</legend><div class="cm-checks">${
       workers
         .filter((w) => w.active !== false)
@@ -478,6 +478,7 @@ async function cmAccessForm(siteId) {
       projectId: f.get("projectId"),
       date: f.get("date"),
       endDate: f.get("endDate"),
+      startTime: f.get("startTime"),
       workerIds: f.getAll("workerIds"),
       permitType: k,
       checklist: cat.permits[k].checklist.map((_, i) => f.has("check_" + i)),

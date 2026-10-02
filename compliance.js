@@ -538,6 +538,10 @@ module.exports = function createCompliance(ctx) {
         db.workers.some((w) => w.id === wid && w.supplierId === user.supplierId && w.active !== false),
       );
       if (!workerIds.length) return (send(res, 400, { error: "Choose at least one worker" }), true);
+      // Optional time of arrival on the first day (T107)
+      const startTime = b.startTime === undefined || b.startTime === null ? "" : b.startTime;
+      if (startTime !== "" && !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(startTime)))
+        return (send(res, 400, { error: "Enter the start time as HH:MM, for example 07:30" }), true);
       const permitType = PERMITS[b.permitType] ? b.permitType : "none";
       const checklist = PERMITS[permitType].checklist.map((item, i) => ({
         item,
@@ -555,6 +559,7 @@ module.exports = function createCompliance(ctx) {
         date: b.date,
         endDate:
           /^\d{4}-\d{2}-\d{2}$/.test(String(b.endDate || "")) && b.endDate >= b.date ? b.endDate : b.date,
+        startTime,
         permitType,
         checklist,
         description: String(b.description || "").slice(0, 1000),

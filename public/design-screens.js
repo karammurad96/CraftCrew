@@ -664,7 +664,7 @@ async function dsFillCustomerSide(root) {
             date: v.date,
             tone: "blue",
             title: `${v.supplierCompany} crew on site`,
-            sub: [v.siteName, v.permitLabel].filter(Boolean).join(" · "),
+            sub: [v.siteName, v.startTime, v.permitLabel].filter(Boolean).join(" · "),
           })),
         ...unpaid
           .filter((i) => inWeek(i.scheduledPayment))
@@ -1551,7 +1551,7 @@ async function dsEnhanceToday(root) {
   box.innerHTML = `<div class="ds-today-head"><div><span class="ds-today-date" data-no-i18n>${esc(dsKickerDate())}</span><h2 class="ds-ui ds-today-title">Today</h2></div><a class="ds-today-me" href="#/supplier/profile" aria-label="Profile">${esc(dsInitials(state.user.name))}</a></div>
     ${
       visit
-        ? `<div class="ds-visit"><div><span class="ds-visit-kicker">${esc(`Site visit · ${visit.status === "Checked in" ? "checked in" : "today"}`)}</span><b>${esc(visit.siteName || "Site")}</b><span>${esc([names.length ? (names.length <= 2 ? names.join(lang === "de-DE" ? " und " : " and ") : `${names.length} workers`) : "", visit.permitLabel].filter(Boolean).join(" · "))}</span></div><button type="button" class="ds-visit-btn" onclick="cmSupplierVisit('${esc(visit.id)}','${visit.status === "Checked in" ? "checkout" : "checkin"}')">${visit.status === "Checked in" ? "Check Out" : "Check In"}</button></div>`
+        ? `<div class="ds-visit"><div><span class="ds-visit-kicker">${esc(`Site visit · ${visit.status === "Checked in" ? "checked in" : visit.startTime || "today"}`)}</span><b>${esc(visit.siteName || "Site")}</b><span>${esc([names.length ? (names.length <= 2 ? names.join(lang === "de-DE" ? " und " : " and ") : `${names.length} workers`) : "", visit.permitLabel].filter(Boolean).join(" · "))}</span></div><button type="button" class="ds-visit-btn" onclick="cmSupplierVisit('${esc(visit.id)}','${visit.status === "Checked in" ? "checkout" : "checkin"}')">${visit.status === "Checked in" ? "Check Out" : "Check In"}</button></div>`
         : ""
     }
     <div class="ds-today-jobs"><span class="ds-today-label ds-ui">Your jobs</span><div class="ds-today-list">${
