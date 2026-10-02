@@ -2478,6 +2478,7 @@ function ensureComplianceDemoV1() {
     workerIds: ["wrk_demo_weber"],
     date: day(1),
     endDate: day(2),
+    startTime: "07:30",
     permitType: "electrical",
     checklist: [
       "Isolated and secured against reconnection",

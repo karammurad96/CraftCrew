@@ -411,6 +411,19 @@ describe("design 2026", () => {
     for (const k of ['Photos: "Fotos"', '"Add photo": "Foto hinzufügen"', '"Attach up to 6 photos"']) assert.ok(de.includes(k), k);
   });
 
+  it("shows the arrival time of site visits on Today, the week and the access lists (T107)", () => {
+    const src = read("design-screens.js"),
+      cm = read("compliance-ui.js"),
+      de = read("i18n.js");
+    assert.ok(src.includes('sub: [v.siteName, v.startTime, v.permitLabel].filter(Boolean).join(" · ")'));
+    assert.ok(src.includes('visit.status === "Checked in" ? "checked in" : visit.startTime || "today"'));
+    assert.ok(cm.includes('<label>Arrival time (optional)<input name="startTime" type="time"></label>'));
+    assert.ok(cm.includes('startTime: f.get("startTime"),'));
+    assert.equal(cm.split('${v.startTime ? " · " + cmEsc(v.startTime) : ""}').length, 3, "both access lists");
+    assert.ok(de.includes('[/^Site visit · (\\d\\d:\\d\\d)$/, "Baustellenbesuch · $1"]'));
+    assert.ok(de.includes('"Arrival time (optional)": "Ankunftszeit (optional)"'));
+  });
+
   it("uses a new service worker cache so installed apps load the new files", () => {
     assert.match(read("sw.js"), /const CACHE = "craftcrew-shell-v2"/);
   });

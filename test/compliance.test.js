@@ -298,4 +298,26 @@ describe("on-site contractor compliance", () => {
       "check-in only on the booked day",
     );
   });
+
+  it("stores an optional arrival time for site visits and refuses bad times (T107)", async () => {
+    const visit = (startTime) =>
+      app.call(
+        "POST",
+        "/site-visits",
+        { siteId: site.id, projectId: project.id, date: inDays(2), workerIds: [worker.id], permitType: "none", startTime },
+        supplier,
+      );
+    const ok = await visit("07:30");
+    assert.equal(ok.status, 201);
+    assert.equal(ok.visit.startTime, "07:30");
+    const seen = (await app.call("GET", "/site-visits", undefined, customer)).visits.find((v) => v.id === ok.visit.id);
+    assert.equal(seen.startTime, "07:30");
+    assert.equal((await visit(undefined)).visit.startTime, "");
+    assert.equal((await visit("")).visit.startTime, "");
+    for (const bad of ["7:30", "24:00", "07:60", 730, "07:30<script>"]) {
+      const r = await visit(bad);
+      assert.equal(r.status, 400, String(bad));
+      assert.match(r.error, /HH:MM/);
+    }
+  });
 });
