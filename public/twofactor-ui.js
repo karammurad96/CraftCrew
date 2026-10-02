@@ -14,29 +14,12 @@ api = async function (path, opts = {}) {
       setTimeout(() => toast(`Recovery code used. ${result.recoveryCodesLeft} left.`), 600);
     return result;
   } catch (e) {
-    if (e.code === "TOTP_REQUIRED" || e.code === "TOTP_INVALID") tfCodeField();
     if (e.code === "TOTP_SETUP_REQUIRED") tfRequireSetup();
     throw e;
   }
 };
 
 // Sign-in: the code field appears after the password was right; the form sends it with the next submit.
-function tfCodeField() {
-  const form = document.getElementById("authForm");
-  if (!form) return;
-  let input = form.querySelector('input[name="code"]');
-  if (!input) {
-    form
-      .querySelector("button.primary, button[type=submit], button:not([type])")
-      ?.insertAdjacentHTML(
-        "beforebegin",
-        '<label>Authentication code<input name="code" autocomplete="one-time-code" maxlength="20" required placeholder="6-digit code or recovery code"></label>',
-      );
-    input = form.querySelector('input[name="code"]');
-  }
-  input.value = "";
-  input.focus();
-}
 
 let tfRedirecting = false;
 function tfRequireSetup() {

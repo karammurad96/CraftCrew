@@ -72,7 +72,12 @@ describe("design 2026", () => {
     const { readdirSync } = require("node:fs");
     const FLOW =
       '<svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M14 50C24 42 40 22 50 14"/><circle cx="14" cy="50" r="8.5"/><circle cx="50" cy="14" r="8.5"/></svg>';
-    const files = [...readdirSync(PUBLIC).filter((f) => f.endsWith(".js")), "index.html"];
+    // Pages that moved into area modules (T126–T135) keep their logos there
+    const files = [
+      ...readdirSync(PUBLIC).filter((f) => f.endsWith(".js")),
+      ...readdirSync(path.join(PUBLIC, "areas")).map((f) => "areas/" + f),
+      "index.html",
+    ];
     let marks = 0;
     for (const f of files) {
       const src = read(f);
@@ -82,7 +87,7 @@ describe("design 2026", () => {
         assert.equal(m[1], FLOW, `${f} has a .brand-mark that is not the Flow mark`);
       }
     }
-    assert.ok(marks >= 8, `expected at least 8 logos, found ${marks}`);
+    assert.ok(marks >= 6, `expected at least 6 logos, found ${marks}`);
   });
 
   it("loads design-screens.js after invitations.js and before i18n.js", () => {

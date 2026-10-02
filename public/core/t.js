@@ -47,6 +47,16 @@ t.list = function (key) {
   }
   return [];
 };
+// A text with markup inside, e.g. a link: the translated text is escaped, then each {name} is replaced by the
+// given HTML, which the caller has built and escaped itself.
+function tHtml(key, html = {}) {
+  return esc(t(key)).replace(/\{(\w+)\}/g, (m, name) => (name in html ? html[name] : m));
+}
+// A toast whose text comes from t(): marked so the old DOM translation leaves it alone.
+function tToast(text, type) {
+  toast(text, type, { translated: true });
+  toastEl.dataset.i18n = "keys";
+}
 // Dates, amounts and numbers in the user's language.
 const fmt = {
   locale: () => (ccLang === "de" ? "de-DE" : "en-GB"),
