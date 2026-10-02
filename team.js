@@ -37,7 +37,11 @@ function moduleFor(parts, method) {
     )
   )
     return null;
-  if (p1 === "auth" || (p1 === "account" && ["password", "sessions", "preferences", "layout"].includes(p2)))
+  // Personal rights (password, sessions, GDPR export and deletion) are always the member's own
+  if (
+    p1 === "auth" ||
+    (p1 === "account" && ["password", "sessions", "preferences", "layout", "export", "deletion"].includes(p2))
+  )
     return null;
   if (p1 === "profile") return method === "GET" ? null : "settings";
   if (p1 === "account" && p2 === "payout") return "settings";

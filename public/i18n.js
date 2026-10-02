@@ -1902,6 +1902,14 @@ Object.assign(I18N_DE, {
   "Your jobs": "Ihre Aufträge",
   "Log Time": "Zeit erfassen",
   Photo: "Foto",
+  // GDPR self-service (T120)
+  "Your data": "Ihre Daten",
+  "Download a copy of the personal data CraftCrew stores about you: your account, messages, notifications, projects, invoices and activity. Passwords and security keys are never included.":
+    "Laden Sie eine Kopie der personenbezogenen Daten herunter, die CraftCrew über Sie speichert: Konto, Nachrichten, Benachrichtigungen, Projekte, Rechnungen und Aktivitäten. Passwörter und Sicherheitsschlüssel sind nie enthalten.",
+  "Download my data": "Meine Daten herunterladen",
+  "Your data was downloaded": "Ihre Daten wurden heruntergeladen",
+  "You can download your data 5 times per hour. Please try again later.":
+    "Sie können Ihre Daten 5-mal pro Stunde herunterladen. Bitte versuchen Sie es später erneut.",
   // Share a project (T110)
   Share: "Teilen",
   "Share project": "Projekt teilen",
