@@ -14,12 +14,6 @@ const dashUtcToday = () => new Date().toISOString().slice(0, 10);
 const dashDaysFrom = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
 const dashTime = (d) => (d ? new Date(d).toLocaleString(fmt.locale(), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
 const dashKicker = () => new Date().toLocaleDateString(fmt.locale(), { weekday: "long", day: "numeric", month: "long" });
-// "24 Sep – 11 Oct" (the year only when it is not this year)
-function dashRange(a, b) {
-  const year = String(new Date().getFullYear()),
-    f = (d) => (d ? new Date(d + "T12:00:00").toLocaleDateString(fmt.locale(), { day: "numeric", month: "short", ...(d.startsWith(year) ? {} : { year: "numeric" }) }) : "");
-  return a && b && a !== b ? `${f(a)} – ${f(b)}` : f(a || b) || "—";
-}
 // A team member only sees shortcuts into areas they may open; "+ New project" needs full project rights.
 function dashCan(to) {
   if (!state.user?.isMember || typeof TM_NAV === "undefined" || typeof tmLevel !== "function") return true;
@@ -302,7 +296,7 @@ async function dashSupplier() {
     names = (visit?.workers || []).map((w) => String(w.name).split(" ")[0]),
     weekday = (x) => {
       const n = Math.round((Date.parse(x) - Date.parse(today)) / 86400000);
-      return n >= 0 && n < 7 ? new Date(x + "T12:00:00").toLocaleDateString(fmt.locale(), { weekday: "long" }) : dashRange(x);
+      return n >= 0 && n < 7 ? new Date(x + "T12:00:00").toLocaleDateString(fmt.locale(), { weekday: "long" }) : fmt.range(x);
     };
   const quick = (key, label, tone) =>
     `<button type="button" class="ds-quick${tone ? " ds-quick-" + tone : ""}" data-action="dash.quick" data-quick="${key}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${DASH_QUICK_ICONS[key]}</svg><span>${label}</span></button>`;
@@ -349,7 +343,7 @@ async function dashSupplier() {
   const crewHead = `<span></span>${days.map((day) => `<span class="ds-crew-day">${esc(new Date(day + "T12:00:00").toLocaleDateString(fmt.locale(), { weekday: "narrow" }))}</span>`).join("")}`;
   const v = first?.invite;
   const inviteCard = first
-    ? `<article class="ds-invite" data-ds-invite="${esc(v.projectId)}"><div class="ds-invite-head"><span class="ds-invite-kicker">${v.customer ? dk("invite.kickerFrom", { customer: v.customer }) : dk("invite.kicker")}</span><a class="ds-invite-title" href="#${esc(first.link)}">${esc(v.name)}</a><span class="ds-invite-sub">${[esc(v.project), v.taskId && v.phase ? dashDom(v.phase) : ""].filter(Boolean).join(" · ")}</span></div><div class="ds-facts"><div><span class="ds-ui">${dk("invite.dates")}</span><b>${esc(dashRange(v.startDate, v.dueDate))}</b></div><div><span class="ds-ui">${dk("invite.orderValue")}</span><b>${v.orderAmount ? esc(fmt.money(v.orderAmount)) : "—"}</b></div><div><span class="ds-ui">${dk("invite.yourCrew")}</span><b class="ds-crew-count${crewTone ? " " + crewTone : ""}">${esc(crewFree)}</b></div></div><div class="ds-invite-actions">${dashAnswer(v.projectId, v.taskId, v.phaseId, true, "btn primary ds-invite-accept", dk("invite.accept"))}${dashAnswer(v.projectId, v.taskId, v.phaseId, false, "btn secondary ds-invite-decline", dk("invite.decline"))}<a class="ds-text-link" href="#/supplier/messages?project=${encodeURIComponent(v.projectId)}">${dk("invite.ask")}</a></div></article>`
+    ? `<article class="ds-invite" data-ds-invite="${esc(v.projectId)}"><div class="ds-invite-head"><span class="ds-invite-kicker">${v.customer ? dk("invite.kickerFrom", { customer: v.customer }) : dk("invite.kicker")}</span><a class="ds-invite-title" href="#${esc(first.link)}">${esc(v.name)}</a><span class="ds-invite-sub">${[esc(v.project), v.taskId && v.phase ? dashDom(v.phase) : ""].filter(Boolean).join(" · ")}</span></div><div class="ds-facts"><div><span class="ds-ui">${dk("invite.dates")}</span><b>${esc(fmt.range(v.startDate, v.dueDate))}</b></div><div><span class="ds-ui">${dk("invite.orderValue")}</span><b>${v.orderAmount ? esc(fmt.money(v.orderAmount)) : "—"}</b></div><div><span class="ds-ui">${dk("invite.yourCrew")}</span><b class="ds-crew-count${crewTone ? " " + crewTone : ""}">${esc(crewFree)}</b></div></div><div class="ds-invite-actions">${dashAnswer(v.projectId, v.taskId, v.phaseId, true, "btn primary ds-invite-accept", dk("invite.accept"))}${dashAnswer(v.projectId, v.taskId, v.phaseId, false, "btn secondary ds-invite-decline", dk("invite.decline"))}<a class="ds-text-link" href="#/supplier/messages?project=${encodeURIComponent(v.projectId)}">${dk("invite.ask")}</a></div></article>`
     : "";
   const decisions = dashBase(
     inviteCard +

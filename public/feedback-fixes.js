@@ -13,31 +13,6 @@ const ffOpt = (values) =>
     .join("");
 
 
-/* A compact task-level summary replaces the oversized project-wide workspace. */
-ccAddProjectLinks = async function (pid) {
-  const [pd, td] = await Promise.all([
-    api("/projects/" + pid),
-    api("/time-entries?projectId=" + encodeURIComponent(pid)).catch(() => ({ entries: [] })),
-  ]);
-  const p = pd.project,
-    entries = td.entries || [];
-  if (!p || document.querySelector(".cc-project-explorer")) return;
-  const tasks = p.phases.flatMap((ph) => (ph.tasks || []).map((t) => ({ ph, t })));
-  const rows = tasks
-    .map(({ ph, t }) => {
-      const approved = entries.filter((e) => e.taskId === t.id && e.status === "Approved");
-      const hours = approved.reduce((n, e) => n + Number(e.hours || 0), 0),
-        est = Number(t.estimatedHours || 0);
-      return `<a class="ff-task-time-row" href="#/${state.user.role}/projects/${p.id}/tasks/${t.id}"><span><b>${ffEsc(t.name)}</b><small>${ffEsc(ph.name)} · ${ffEsc(t.status || "Not started")}</small></span><span>${hours.toFixed(1)} h${est ? ` / ${est} h estimate` : ""}</span><span>${money(approved.reduce((n, e) => n + Number(e.amount || 0), 0))}</span></a>`;
-    })
-    .join("");
-  const details = document.createElement("details");
-  details.className = "ff-task-time-details";
-  details.innerHTML = `<summary><span>Task time & cost</span><small>${tasks.length} tasks · approved supplier time compared with estimates</small><span class="ff-details-chevron">⌄</span></summary><div class="ff-task-time-table"><div class="ff-task-time-head"><span>Task</span><span>Approved / estimate</span><span>Approved value</span></div>${rows || '<p class="subtle">No tasks have been added yet.</p>'}</div>`;
-  const target = document.getElementById("phaseList") || document.querySelector(".dashboard-content .panel");
-  target?.parentNode?.insertBefore(details, target.nextSibling);
-};
-
 /* Time approvals: searchable filters, day/time/site detail and scoped Excel export. */
 ccTimePage = async function (role) {
   const [pd, profile, d] = await Promise.all([ccProjects(), api("/profile"), api("/time-entries")]);

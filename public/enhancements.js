@@ -71,45 +71,6 @@ async function requestSupplierQuote(supplierId) {
 
 
 
-function timelinePosition(p, ph) {
-  const start = new Date(p.startDate).getTime(),
-    end = new Date(p.dueDate).getTime(),
-    a = new Date(ph.startDate || p.startDate).getTime(),
-    b = new Date(ph.dueDate || p.dueDate).getTime(),
-    span = Math.max(1, end - start);
-  const left = Math.max(0, Math.min(100, ((a - start) / span) * 100)),
-    width = Math.max(3, Math.min(100 - left, ((b - a) / span) * 100));
-  return `left:${left}%;width:${width}%`;
-}
-
-function phaseCard(p, ph, i, sups) {
-  const s = sups.find((x) => x.id === ph.supplierId),
-    tasks = Array.isArray(ph.subtasks) ? ph.subtasks : [],
-    history = ph.assignmentHistory || [];
-  return `<article class="phase-card task-card"><div class="phase-card-head"><div><div class="task-title"><span class="phase-dot ${ph.status === "Completed" ? "done" : ph.status === "In Progress" ? "active" : ""}">${i + 1}</span><div><h3>${esc(ph.name)}</h3><span class="status ${ph.status.toLowerCase().replaceAll(" ", "-")}">${esc(ph.status)}</span></div></div><p>${esc(ph.description || "No task details yet.")}</p></div><div class="cc-actions"><button class="btn small outline" onclick="editPhase('${p.id}','${ph.id}')">Edit task</button><button class="btn small danger" onclick="deletePhase('${p.id}','${ph.id}')">Delete</button></div></div><div class="phase-timeline-bar"><span>${date(ph.startDate)}</span><div class="gantt-track"><i class="${ph.status === "Completed" ? "done" : ""}" style="${timelinePosition(p, ph)}"></i></div><span>${date(ph.dueDate)}</span></div><div class="detail-grid"><div class="detail-box"><small>Supplier / invitation</small>${s ? `<div class="supplier-inline"><span class="supplier-avatar">${esc(s.avatar || "CC")}</span><b>${esc(s.company)}</b><span class="tag ${ph.acceptanceStatus === "Accepted" ? "green" : "orange"}">${esc(ph.acceptanceStatus)}</span></div>` : '<span class="muted">Unassigned · planning</span>'}${ph.orderAmount ? `<small class="order-limit">Order limit: ${money(ph.orderAmount)}</small>` : ""}</div><div class="detail-box"><small>Deliverables & current status</small><b>${(ph.deliverables || []).length} files · ${esc(ph.status)}</b><small>${tasks.filter((t) => typeof t === "object" && t.done).length}/${tasks.length} subtasks done</small></div></div>${
-    tasks.length
-      ? `<div class="subtask-list"><b>Task checklist</b>${tasks
-          .map((t, n) => {
-            const x = typeof t === "string" ? { text: t, done: false } : t;
-            return `<label class="subtask"><input type="checkbox" ${x.done ? "checked" : ""} onchange="toggleSubtask('${p.id}','${ph.id}',${n},this.checked)"><span>${esc(x.text)}</span></label>`;
-          })
-          .join("")}</div>`
-      : ""
-  }<div class="phase-tools"><button class="btn small primary" onclick="assignSupplier('${p.id}','${ph.id}')">${s ? "Invite another supplier" : "Request supplier"}</button><label class="btn small outline">Upload document<input type="file" hidden onchange="uploadDeliverable('${p.id}','${ph.id}',this)"></label><button class="btn small outline" onclick="navigate('/customer/invoices')">Invoices</button><button class="btn small outline" onclick="navigate('/customer/messages')">Project messages</button></div>${history.length ? `<details class="assignment-history"><summary>Request and assignment archive · ${history.length}</summary>${history.map((h) => `<div class="history-row"><span>${esc(h.company)}</span><span>${esc(h.status)}</span><small>${date(h.at)}</small></div>`).join("")}</details>` : ""}${(ph.deliverables || []).length ? `<div class="deliverable-list">${ph.deliverables.map((f) => `<span class="tag">📎 ${esc(f.filename)}</span>`).join("")}</div>` : ""}</article>`;
-}
-
-async function projectDetail(pid) {
-  const d = await api("/projects/" + pid),
-    p = d.project,
-    canComplete = p.phases.length && p.phases.every((x) => x.status === "Completed");
-  const timeline = `<section class="panel project-timeline"><div class="panel-title"><div><h3>Project timeline</h3><small>Ordered phases from planning through delivery</small></div><span>${pct(p.phases)}% complete</span></div><div class="gantt-head"><span>Task</span><span>Schedule</span><span>Status</span></div>${p.phases.map((ph, i) => `<div class="gantt-row"><b>${i + 1}. ${esc(ph.name)}</b><div class="gantt-track"><i class="${ph.status === "Completed" ? "done" : ""}" style="${timelinePosition(p, ph)}"></i></div><span class="status ${ph.status.toLowerCase().replaceAll(" ", "-")}">${esc(ph.status)}</span></div>`).join("")}</section>`;
-  app.innerHTML = dashboardShell(
-    "customer",
-    "projects",
-    `<div class="breadcrumb"><a href="#/customer/projects">Projects</a> / ${esc(p.name)}</div><div class="dash-top"><div><div class="eyebrow">PROJECT WORKSPACE</div><h1>${esc(p.name)}</h1><p>${esc(p.description)}</p></div><div class="cc-actions"><button class="btn outline" onclick="editProject('${p.id}')">Edit project</button><button class="btn outline" onclick="openSupport('${p.id}')">Escalate / support</button><button class="btn danger" onclick="deleteProject('${p.id}')">Delete</button></div></div><div class="health"><div class="cc-card"><span class="cc-label">Budget</span><b>${money(p.budget)}</b></div><div class="cc-card"><span class="cc-label">Timeline</span><b>${date(p.startDate)} → ${date(p.dueDate)}</b></div><div class="cc-card"><span class="cc-label">Overall progress</span><b>${pct(p.phases)}%</b><div class="progress"><i style="width:${pct(p.phases)}%"></i></div></div></div>${timeline}<div class="panel project-task-panel"><div class="panel-title"><div><h3>Tasks & supplier requests</h3><small>Plan work, compare supplier responses and track delivery</small></div><button class="btn small primary" onclick="addPhase('${p.id}')">+ Add task</button></div><div id="phaseList">${p.phases.map((ph, i) => phaseCard(p, ph, i, d.suppliers)).join("") || '<div class="empty">Add a task to build the project plan.</div>'}</div><div class="action-row"><button class="btn success" ${canComplete ? "" : "disabled"} onclick="completeProject('${p.id}')">Mark project complete</button>${p.status === "Completed" ? `<button class="btn primary" onclick="reviewProjectSuppliers('${p.id}')">Review suppliers</button>` : '<span class="subtle">All tasks must be completed before closing the project.</span>'}</div></div>`,
-  );
-}
-
 function taskFromLines(text) {
   return String(text || "")
     .split(/\r?\n/)
@@ -510,7 +471,6 @@ async function route() {
   try {
     if (h === "/suppliers") return renderSuppliers();
     if (parts[0] === "customer") {
-      if (parts[1] === "projects" && parts[2]) return projectDetail(parts[2]);
       if (parts[1] === "suppliers" && parts[2]) return supplierDetail(parts[2]);
       if (parts[1] === "suppliers") return renderSuppliers();
       if (parts[1] === "invoices") return customerInvoices();

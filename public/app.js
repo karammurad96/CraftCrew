@@ -186,38 +186,6 @@ async function supplierDetail(id) {
     `<div class="detail-grid"><div class="detail-box"><small>Location</small><b>${esc(s.location)}</b></div><div class="detail-box"><small>Badge / Rating</small><b>${esc(supplierBadge(s))} · ★ ${s.rating}</b></div><div class="detail-box"><small>Experience</small><b>${s.experience} years · ${s.projectsCompleted} projects</b></div><div class="detail-box"><small>Rates</small><b>${money(s.hourlyRate)}/h · from ${money(s.projectRate)}</b></div></div><p>${esc(s.description)}</p><h4>Services</h4><div>${s.services.map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</div><h4>Certifications</h4><div>${s.certifications.map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</div><h4>Reviews</h4>${s.reviews.map((r) => `<div class="notice">★ ${r.rating} — ${esc(r.text)}</div>`).join("")}`,
   );
 }
-async function projectDetail(pid) {
-  const d = await api("/projects/" + pid),
-    p = d.project;
-  const canComplete = p.phases.length && p.phases.every((x) => x.status === "Completed");
-  app.innerHTML = dashboardShell(
-    "customer",
-    "projects",
-    `<div class="breadcrumb"><a href="#/customer/projects">Projects</a> / ${esc(p.name)}</div><div class="dash-top"><div><h1>${esc(p.name)}</h1><p>${esc(p.description)}</p></div><div class="cc-actions"><button class="btn outline" onclick="editProject('${p.id}')">Edit</button><button class="btn outline" onclick="openSupport('${p.id}')">Escalate / Support</button><button class="btn danger" onclick="deleteProject('${p.id}')">Delete</button></div></div><div class="health"><div class="cc-card"><span class="cc-label">Budget</span><b>${money(p.budget)}</b></div><div class="cc-card"><span class="cc-label">Timeline</span><b>${date(p.startDate)} → ${date(p.dueDate)}</b></div><div class="cc-card"><span class="cc-label">Overall progress</span><b>${pct(p.phases)}%</b><div class="progress"><i style="width:${pct(p.phases)}%"></i></div></div></div><div class="panel" style="margin-top:15px"><div class="panel-title"><h3>Waterfall phases</h3><button class="btn small primary" onclick="addPhase('${p.id}')">+ Add phase</button></div><div id="phaseList">${p.phases.map((ph, i) => phaseCard(p, ph, i, d.suppliers)).join("")}</div>${p.status !== "Completed" ? `<div class="action-row"><button class="btn success" ${canComplete ? "" : "disabled"} onclick="completeProject('${p.id}')">Mark project complete</button><span class="subtle">All phases must be completed first. Final completion closes the lifecycle.</span></div>` : `<div class="action-row"><button class="btn primary" onclick="reviewProjectSuppliers('${p.id}')">Review suppliers</button></div>`}</div>`,
-  );
-}
-function phaseCard(p, ph, i, sups) {
-  const s = sups.find((x) => x.id === ph.supplierId);
-  return `<div class="phase-card" draggable="true" data-id="${ph.id}" ondragstart="dragStart(event)" ondragover="event.preventDefault()" ondrop="dropPhase(event,'${p.id}')"><div class="phase-card-head"><div><div style="display:flex;gap:8px;align-items:center"><span class="phase-dot ${ph.status === "Completed" ? "done" : ph.status === "In Progress" ? "active" : ""}">${i + 1}</span><h3>${esc(ph.name)}</h3><span class="status ${ph.status.toLowerCase().replaceAll(" ", "-")}">${ph.status}</span></div><p>${esc(ph.description)}</p></div><div class="cc-actions"><button class="btn small outline" onclick="editPhase('${p.id}','${ph.id}')">Edit</button><button class="btn small danger" onclick="deletePhase('${p.id}','${ph.id}')">Delete</button></div></div><div class="detail-grid"><div class="detail-box"><small>Timeline</small><b>${date(ph.startDate)} → ${date(ph.dueDate)}</b></div><div class="detail-box"><small>Supplier</small>${s ? `<div class="supplier-inline"><span class="supplier-avatar">${esc(s.avatar)}</span><b>${esc(s.company)}</b><span class="tag ${ph.acceptanceStatus === "Accepted" ? "green" : "orange"}">${esc(ph.acceptanceStatus)}</span></div>` : '<span class="muted">Unassigned</span>'}</div></div><div class="phase-tools"><button class="btn small primary" onclick="assignSupplier('${p.id}','${ph.id}')">${s ? "Reassign supplier" : "Assign supplier"}</button><label class="btn small outline">Upload deliverable<input type="file" hidden onchange="uploadDeliverable('${p.id}','${ph.id}',this)"></label>${(ph.deliverables || []).map((f) => `<span class="tag">📎 ${esc(f.filename)}</span>`).join("")}</div></div>`;
-}
-let dragged = null;
-function dragStart(e) {
-  dragged = e.currentTarget.dataset.id;
-  e.dataTransfer.effectAllowed = "move";
-}
-async function dropPhase(e, pid) {
-  const target = e.currentTarget.dataset.id;
-  if (!dragged || dragged === target) return;
-  const cards = [...document.querySelectorAll(".phase-card")],
-    ids = cards.map((x) => x.dataset.id),
-    a = ids.indexOf(dragged),
-    b = ids.indexOf(target);
-  ids.splice(a, 1);
-  ids.splice(b, 0, dragged);
-  await api(`/projects/${pid}/reorder`, { method: "POST", body: { phaseIds: ids } });
-  toast("Phase order saved");
-  projectDetail(pid);
-}
 async function editProject(id) {
   const { project: p } = await api("/projects/" + id);
   modal(
@@ -695,7 +663,6 @@ async function route() {
     if (h === "/suppliers") return renderSuppliers();
     const parts = h.split("/").filter(Boolean);
     if (parts[0] === "customer") {
-      if (parts[1] === "projects" && parts[2]) return projectDetail(parts[2]);
       if (parts[1] === "suppliers") return renderSuppliers();
       if (parts[1] === "invoices") return customerInvoices();
       if (parts[1] === "messages") return messages("customer");

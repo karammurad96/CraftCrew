@@ -11,24 +11,6 @@ const AC_RESULTS = {
   rejected: "Not accepted",
 };
 
-const acBaseTaskCard = wfTaskCard;
-wfTaskCard = function (p, ph, t, sups) {
-  const html = acBaseTaskCard(p, ph, t, sups),
-    a = t.acceptance,
-    handedOver = ["Under Review", "Completed"].includes(t.status) && t.acceptanceStatus === "Accepted",
-    canSign =
-      state.user?.role === "customer" &&
-      handedOver &&
-      !["accepted", "accepted_with_defects"].includes(a?.result);
-  const strip = a
-    ? `<div class="ac-strip ac-${acEsc(a.result)}"><span class="status ${a.result === "rejected" ? "rejected" : "completed"}">${AC_RESULTS[a.result] || ""}</span><small>${acEsc(a.signerName)} · ${date(a.date)}</small>${a.url ? `<a class="btn small outline" href="${acEsc(a.url)}" target="_blank" rel="noopener">Acceptance report</a>` : ""}</div>`
-    : "";
-  const button = canSign
-    ? `<button class="btn small primary" onclick="acOpen('${acEsc(p.id)}','${acEsc(t.id)}')">Accept work</button>`
-    : "";
-  return html.replace('<div class="wf-task-actions">', `${strip}<div class="wf-task-actions">${button}`);
-};
-
 async function acOpen(projectId, taskId) {
   const d = await api(`/projects/${projectId}/tasks/${taskId}/acceptance`),
     today = new Date().toISOString().slice(0, 10);

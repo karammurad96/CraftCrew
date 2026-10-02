@@ -712,4 +712,218 @@ LOCALES.de = {
       "messages": "Nachrichten"
     }
   },
+  // Project workspace (T128b)
+  ws: {
+    "projects": "Projekte",
+    "head": {
+      "board": "▦ Board-Ansicht",
+      "share": "Teilen",
+      "compareOffers": "Angebote vergleichen",
+      "edit": "Projekt bearbeiten",
+      "support": "Eskalieren / Support",
+      "more": "Weitere Aktionen",
+      "delete": "Projekt löschen oder archivieren …",
+      "reviewInvoices": "Rechnungen prüfen"
+    },
+    "tabs": {
+      "label": "Projektbereiche",
+      "overview": "Übersicht",
+      "tasks": "Aufgaben",
+      "files": "Dateien ({n})",
+      "messages": "Nachrichten",
+      "messagesCount": "Nachrichten · {n}",
+      "invoices": "Rechnungen",
+      "activity": "Aktivität"
+    },
+    "stats": {
+      "budget": "Budget",
+      "remaining": "{remaining} übrig · {invoiced} abgerechnet",
+      "schedule": "Zeitplan",
+      "overdueOpen": "{late} überfällig · {open} offene Aufgaben",
+      "delivery": "Lieferung",
+      "complete": "{n} % abgeschlossen",
+      "tasksComplete": "{done}/{total} Aufgaben erledigt",
+      "desk": "Projektschreibtisch",
+      "deskDocs": "{docs} Dokumente · {approvals} Freigaben",
+      "deskInvoices": "{invoices} Rechnungen · {suppliers} verfügbare Lieferanten",
+      "orderValue": "Ihr Auftragswert",
+      "invoicedByYou": "{amount} von Ihnen abgerechnet",
+      "invoicesFromYou": "{n} Rechnung(en) von Ihnen"
+    },
+    "invited": {
+      "one": "Sie sind zu einer Aufgabe in diesem Projekt eingeladen. Nehmen Sie an, um Umfang, Dokumente und Nachrichten zu sehen.",
+      "many": "Sie sind zu {n} Aufgaben in diesem Projekt eingeladen. Nehmen Sie an, um Umfang, Dokumente und Nachrichten zu sehen.",
+      "acceptTask": "Aufgabe annehmen",
+      "acceptNamed": "{name} annehmen",
+      "decline": "Ablehnen"
+    },
+    "next": {
+      "title": "Als Nächstes",
+      "none": "In diesem Projekt wartet nichts auf Sie.",
+      "invoice": "Rechnung {number} · {amount}",
+      "review": "Prüfen",
+      "time": {
+        "one": "{n} Zeiteintrag freigeben",
+        "other": "{n} Zeiteinträge freigeben"
+      },
+      "hours": "{n} h",
+      "waiting": "{task} wartet auf {supplier}",
+      "theSupplier": "den Lieferanten",
+      "noAnswer": "Noch keine Antwort",
+      "open": "Öffnen",
+      "docs": {
+        "one": "{n} Dokument freizugeben",
+        "other": "{n} Dokumente freizugeben"
+      },
+      "late": {
+        "one": "{task} · {n} Tag verspätet",
+        "other": "{task} · {n} Tage verspätet"
+      },
+      "invitation": "{task} · Einladung",
+      "respond": "Antworten",
+      "changes": "Änderungen an Rechnung {number} angefragt",
+      "fix": "Korrigieren"
+    },
+    "phases": {
+      "title": "Phasen",
+      "none": "Noch keine Phasen.",
+      "tasks": {
+        "one": "{done} von {n} Aufgabe",
+        "other": "{done} von {n} Aufgaben"
+      },
+      "late": "{text} · {n} verspätet",
+      "done": "Fertig"
+    },
+    "side": {
+      "progress": "Fortschritt",
+      "percent": "{n} %",
+      "complete": "erledigt",
+      "left": {
+        "one": "erledigt · noch {n} Tag",
+        "other": "erledigt · noch {n} Tage"
+      },
+      "over": {
+        "one": "erledigt · {n} Tag überzogen",
+        "other": "erledigt · {n} Tage überzogen"
+      },
+      "tasksComplete": "{done} von {total} Aufgaben erledigt",
+      "overdueOpen": "{late} überfällig · {open} offene Aufgaben",
+      "budgetLeft": "{remaining} Budget übrig · {invoiced} abgerechnet",
+      "docs": "{n} Dokumente · {pending} freizugeben",
+      "invoices": {
+        "one": "{n} Rechnung",
+        "other": "{n} Rechnungen"
+      },
+      "available": "{n} verfügbare Lieferanten",
+      "budget": "Budget",
+      "invoiced": "Abgerechnet",
+      "ordered": "Beauftragt",
+      "free": "Frei",
+      "orderValue": "Ihr Auftragswert",
+      "invoicedByYou": "Von Ihnen abgerechnet",
+      "toInvoice": "Noch abzurechnen",
+      "suppliers": "Lieferanten",
+      "state": {
+        "Working": "In Arbeit",
+        "Done": "Fertig",
+        "Late": "Verspätet",
+        "Invited": "Eingeladen"
+      },
+      "noSupplier": "Noch kein Lieferant zugewiesen."
+    },
+    "lateNotice": "{n} überfällige Aufgabe(n). Prüfen Sie abhängige Termine, Lieferantenpläne und das Restbudget.",
+    "gantt": {
+      "title": "Projektzeitplan",
+      "hint": "Phasen enthalten Aufgaben · Abhängigkeits- und Verzugswarnungen",
+      "complete": "{n} % abgeschlossen",
+      "item": "Phase / Aufgabe",
+      "schedule": "Zeitplan",
+      "owner": "Verantwortlich / Status",
+      "risk": "⚠ Risiko für Folgephasen",
+      "due": "{date} · {n}%"
+    },
+    "time": {
+      "title": "Aufgabenzeit & Kosten",
+      "hint": "{n} Aufgaben · freigegebene Lieferantenzeit im Vergleich zur Schätzung",
+      "task": "Aufgabe",
+      "approved": "Freigegeben / Schätzung",
+      "value": "Freigegebener Wert",
+      "hours": "{n} h",
+      "estimate": "{n} h / {est} h Schätzung",
+      "none": "Es wurden noch keine Aufgaben angelegt."
+    },
+    "panel": {
+      "title": "Projektphasen",
+      "hint": "Jede Phase in zuweisbare Aufgaben gliedern",
+      "supplierHint": "Es werden nur die Aufgaben Ihres Unternehmens angezeigt.",
+      "addPhase": "+ Phase hinzufügen",
+      "empty": "Fügen Sie eine Phase hinzu, um mit der Planung zu beginnen.",
+      "complete": "Projekt abschließen"
+    },
+    "phase": {
+      "noScope": "Phasenumfang nicht festgelegt",
+      "edit": "Phase bearbeiten",
+      "addTask": "+ Aufgabe hinzufügen",
+      "warning": "Terminwarnung: Überfällige Aufgaben können diese Phase, Folgephasen und das Budget beeinflussen.",
+      "depends": "Abhängig von Phasen: {names}",
+      "noTasks": "Noch keine Aufgaben. Fügen Sie dieser Phase zuweisbare Arbeit hinzu.",
+      "footer": "{n} Aufgaben · {done} erledigt · {docs} Dokumente",
+      "documents": "Phasendokumente öffnen"
+    },
+    "task": {
+      "eyebrow": "ZUWEISBARE AUFGABE",
+      "noDescription": "Keine Aufgabenbeschreibung",
+      "noSupplier": "Kein Lieferant zugewiesen",
+      "order": "Auftrag {amount} · {n}%",
+      "orderNotSet": "Kein Auftrag festgelegt · {n}%",
+      "depends": "Abhängig von: {names}",
+      "overdue": "Diese Aufgabe ist überfällig. Abhängige Arbeiten können sich verschieben und Kosten erhöhen.",
+      "edit": "Aufgabe bearbeiten",
+      "changeSupplier": "Lieferant wechseln",
+      "selectSupplier": "Lieferant auswählen",
+      "compareBids": "Angebote vergleichen",
+      "requestBids": "Angebote einholen",
+      "accept": "Akzeptieren",
+      "decline": "Ablehnen",
+      "updateProgress": "Fortschritt aktualisieren",
+      "submitOffer": "Angebot abgeben",
+      "documents": "Dokumente",
+      "invoices": "Rechnungen",
+      "messages": "Nachrichten",
+      "history": "Anfrageverlauf ({n})",
+      "siteReports": "Bautagesberichte",
+      "defects": "Mängel",
+      "defectsOpen": "{n} offen",
+      "acceptWork": "Leistung abnehmen",
+      "acceptanceReport": "Abnahmeprotokoll",
+      "result": {
+        "accepted": "Leistung abgenommen",
+        "accepted_with_defects": "Abgenommen mit Mängeln",
+        "rejected": "Nicht abgenommen"
+      },
+      "waitingAnswer": "Wartet auf Ihre Antwort",
+      "awaiting": "Wartet auf Zusage",
+      "sentOn": "Einladung an {company} am {date} gesendet. Arbeit, Zeitnachweise und Rechnungen beginnen nach der Zusage.",
+      "sent": "Einladung an {company} gesendet. Arbeit, Zeitnachweise und Rechnungen beginnen nach der Zusage.",
+      "theSupplier": "Der Lieferant",
+      "withdraw": "Einladung zurückziehen",
+      "invitedYou": "Sie sind zu dieser Aufgabe eingeladen. Nehmen Sie sie an, um Fortschritte zu melden.",
+      "declinedReason": "{company} hat diese Aufgabe abgelehnt: „{reason}“ Wählen Sie einen anderen Lieferanten oder holen Sie Angebote ein.",
+      "declined": "{company} hat diese Aufgabe abgelehnt. Wählen Sie einen anderen Lieferanten oder holen Sie Angebote ein."
+    },
+    "activity": {
+      "title": "Aktivitätsprotokoll",
+      "count": "{n} protokollierte Aktion(en)",
+      "empty": "Änderungen an diesem Projekt werden hier aufgeführt."
+    },
+    "reviews": {
+      "title": "Projekt abgeschlossen · Lieferantenbewertungen",
+      "review": "{n} Lieferant(en) bewerten",
+      "notReviewed": "Noch nicht bewertet",
+      "reviewed": "Bewertet",
+      "pending": "Ausstehend",
+      "none": "An diesem Projekt hat kein Lieferant gearbeitet.",
+      "closed": "Abgeschlossen am {date} · keine neuen Arbeiten mehr."
+    }
+  },
 };

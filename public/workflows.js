@@ -5,60 +5,6 @@ const wfQuery = () => new URLSearchParams(location.hash.split("?")[1] || "");
 function wfSupplier(sups, id) {
   return sups.find((s) => s.id === id);
 }
-function wfTaskCard(p, ph, t, sups) {
-  const s = wfSupplier(sups, t.assignedSupplierId),
-    late = t.status !== "Completed" && t.dueDate < wfToday(),
-    deps = (t.dependencies || []).map((x) => ph.tasks?.find((z) => z.id === x)).filter(Boolean);
-  return `<article class="wf-task ${late ? "wf-late" : ""}"><div class="wf-task-head"><div><div class="eyebrow">ASSIGNABLE TASK</div><h4>${esc(t.name)}</h4><p>${esc(t.description || "No task description")}</p></div><span class="status ${String(
-    t.status || "Not Started",
-  )
-    .toLowerCase()
-    .replaceAll(
-      " ",
-      "-",
-    )}">${esc(t.status || "Not Started")}</span></div><div class="wf-task-meta"><span>${date(t.startDate)} → ${date(t.dueDate)}</span><span>${s ? esc(s.company) + " · " + esc(t.acceptanceStatus || "Invited") : "No supplier assigned"}</span><span>Order ${t.orderAmount ? money(t.orderAmount) : "not set"} · ${Number(t.progress) || 0}%</span></div>${deps.length ? `<small>Depends on: ${deps.map((x) => esc(x.name)).join(", ")}</small>` : ""}${late ? `<div class="notice order-warning">This task is overdue. Dependent work may slip and extend project cost.</div>` : ""}<div class="wf-task-actions">${state.user.role === "customer" ? `<button class="btn small outline" onclick="wfEditTask('${p.id}','${ph.id}','${t.id}')">Edit task</button><button class="btn small outline" onclick="wfAssignTask('${p.id}','${t.id}')">${s ? "Change supplier" : "Select supplier"}</button><button class="btn small primary" onclick="wfCreateBid('${p.id}','${ph.id}','${t.id}')">${t.offers?.length ? "Compare bids" : "Request bids"}</button>` : `${t.assignedSupplierId === state.user.supplierId && t.acceptanceStatus === "Pending" ? `<button class="btn small success" onclick="wfAcceptTask('${p.id}','${t.id}',true)">Accept</button><button class="btn small outline" onclick="wfAcceptTask('${p.id}','${t.id}',false)">Decline</button>` : ""}<button class="btn small outline" onclick="wfUpdateProgress('${p.id}','${ph.id}','${t.id}',${Number(t.progress) || 0})">Update progress</button><button class="btn small primary" onclick="wfSupplierBid('${p.id}','${ph.id}','${t.id}')">Submit offer</button>`}<button class="btn small outline" onclick="navigate('/${state.user.role}/projects/${p.id}/documents?phase=${ph.id}&task=${t.id}')">Documents</button><button class="btn small outline" onclick="navigate('/${state.user.role}/invoices?project=${p.id}&phase=${ph.id}&task=${t.id}&back='+encodeURIComponent('/${state.user.role}/projects/${p.id}'))">Invoices</button><button class="btn small outline" onclick="navigate('/${state.user.role}/messages?project=${p.id}&phase=${ph.id}&task=${t.id}&back='+encodeURIComponent('/${state.user.role}/projects/${p.id}'))">Messages</button></div>${t.assignmentHistory?.length ? `<details><summary>Supplier request history (${t.assignmentHistory.length})</summary>${t.assignmentHistory.map((x) => `<div class="history-row"><span>${esc(x.company)}</span><span>${esc(x.status)}</span><small>${date(x.at)}</small></div>`).join("")}</details>` : ""}</article>`;
-}
-function wfPhaseCard(p, ph, i, sups) {
-  const tasks = ph.tasks || [],
-    late = tasks.some((t) => t.status !== "Completed" && t.dueDate < wfToday()),
-    docsCount = (window.__wfDocs || []).filter((d) => d.phaseId === ph.id).length;
-  return `<section class="wf-phase"><div class="wf-phase-head"><div class="wf-phase-title"><span class="phase-dot ${ph.status === "Completed" ? "done" : ph.status === "In Progress" ? "active" : ""}">${i + 1}</span><div><h3>${esc(ph.name)}</h3><p>${esc(ph.description || "Phase scope not set")}</p><span class="status ${String(ph.status).toLowerCase().replaceAll(" ", "-")}">${esc(ph.status)}</span></div></div><div class="cc-actions"><button class="btn small outline" onclick="wfEditPhase('${p.id}','${ph.id}')">Edit phase</button><button class="btn small primary" onclick="wfAddTask('${p.id}','${ph.id}')">+ Add task</button></div></div><div class="phase-timeline-bar"><span>${date(ph.startDate)}</span><div class="gantt-track"><i class="${ph.status === "Completed" ? "done" : ""}" style="${timelinePosition(p, ph)}"></i></div><span>${date(ph.dueDate)}</span></div>${late ? '<div class="notice order-warning">Schedule warning: overdue tasks may affect this phase, its successors and the project budget.</div>' : ""}${
-    ph.dependencies?.length
-      ? `<small>Depends on phases: ${ph.dependencies
-          .map((id) => p.phases.find((x) => x.id === id)?.name)
-          .filter(Boolean)
-          .map(esc)
-          .join(", ")}</small>`
-      : ""
-  }<div class="wf-task-list">${tasks.map((t) => wfTaskCard(p, ph, t, sups)).join("") || '<div class="empty">No tasks yet. Add assignable work under this phase.</div>'}</div><div class="wf-phase-footer"><span>${tasks.length} tasks · ${tasks.filter((t) => t.status === "Completed").length} complete · ${docsCount} documents</span><button class="btn small outline" onclick="navigate('/${state.user.role}/projects/${p.id}/documents?phase=${ph.id}')">Open phase documents</button></div></section>`;
-}
-async function projectDetail(pid) {
-  const [d, docs] = await Promise.all([
-    api("/projects/" + pid),
-    api(`/projects/${pid}/documents`).catch(() => ({ documents: [] })),
-  ]);
-  const p = d.project;
-  window.__wfDocs = docs.documents || [];
-  const allTasks = p.phases.flatMap((ph) => ph.tasks || []),
-    completed = allTasks.filter((t) => t.status === "Completed").length,
-    late = allTasks.filter((t) => t.status !== "Completed" && t.dueDate < wfToday()),
-    pendingDocs = window.__wfDocs.filter((x) => x.status === "Pending approval").length,
-    projectInvoices = d.invoices || [],
-    spent = projectInvoices
-      .filter((i) => !["Rejected", "Changes Requested"].includes(i.status))
-      .reduce((a, i) => a + Number(i.amount || 0), 0),
-    openTasks = allTasks.filter((t) => t.status !== "Completed").length;
-  const duePhaseIds = new Set(
-    p.phases
-      .filter((ph) => late.length && ph.status !== "Completed")
-      .flatMap((ph) =>
-        p.phases.filter((next) => (next.dependencies || []).includes(ph.id)).map((next) => next.id),
-      ),
-  );
-  const gantt = `<section class="panel project-timeline"><div class="panel-title"><div><h3>Project schedule</h3><small>Phases contain tasks · dependency and delay warnings</small></div><span>${allTasks.length ? Math.round((completed / allTasks.length) * 100) : 0}% complete</span></div><div class="wf-gantt-head"><span>Phase / task</span><span>Schedule</span><span>Owner / status</span></div>${p.phases.map((ph, i) => `<div class="wf-gantt-phase"><b>${i + 1}. ${esc(ph.name)}</b><span>${date(ph.startDate)} → ${date(ph.dueDate)}</span><span>${esc(ph.status)}${duePhaseIds.has(ph.id) ? " · ⚠ downstream risk" : ""}</span></div>${(ph.tasks || []).map((t) => `<div class="wf-gantt-task"><span>${esc(t.name)}</span><div class="gantt-track"><i class="${t.status === "Completed" ? "done" : t.dueDate < wfToday() ? "late" : ""}" style="${timelinePosition(p, t)}"></i></div><span>${date(t.dueDate)} · ${Number(t.progress) || 0}%</span></div>`).join("")}`).join("")}</section>`;
-  const content = `<div class="breadcrumb"><a href="#/${state.user.role}/projects">Projects</a> / ${esc(p.name)}</div><div class="dash-top"><div><div class="eyebrow">PROJECT WORKSPACE</div><h1>${esc(p.name)}</h1><p>${esc(p.description)}</p></div><div class="cc-actions"><button class="btn outline" onclick="editProject('${p.id}')">Edit project</button><button class="btn outline" onclick="openSupport('${p.id}')">Escalate / support</button>${state.user.role === "customer" ? saMoreMenu(p.id) : ""}</div></div><div class="wf-stat-grid"><div class="cc-card"><span class="cc-label">Budget</span><b>${money(p.budget)}</b><small>${money(Math.max(0, p.budget - spent))} remaining · ${money(spent)} invoiced</small></div><div class="cc-card"><span class="cc-label">Schedule</span><b>${date(p.startDate)} → ${date(p.dueDate)}</b><small>${late.length} overdue tasks · ${openTasks} open tasks</small></div><div class="cc-card"><span class="cc-label">Delivery</span><b>${allTasks.length ? Math.round((completed / allTasks.length) * 100) : 0}% complete</b><small>${completed}/${allTasks.length} tasks complete</small></div><div class="cc-card"><span class="cc-label">Project desk</span><b>${window.__wfDocs.length} documents · ${pendingDocs} approvals</b><small>${projectInvoices.length} invoices · ${(d.suppliers || []).length} available suppliers</small></div></div>${late.length ? `<div class="notice order-warning">${late.length} overdue task(s). Review dependent dates, supplier schedules and remaining budget.</div>` : ""}${gantt}<div class="wf-project-nav"><button class="btn outline" onclick="navigate('/${state.user.role}/projects/${p.id}/documents')">📁 Project documents (${window.__wfDocs.length})</button><button class="btn outline" onclick="navigate('/${state.user.role}/offers?project=${p.id}')">Compare offers</button><button class="btn outline" onclick="navigate('/${state.user.role}/invoices?project=${p.id}&back='+encodeURIComponent('/${state.user.role}/projects/${p.id}'))">Project invoices</button><button class="btn outline" onclick="navigate('/${state.user.role}/messages?project=${p.id}&back='+encodeURIComponent('/${state.user.role}/projects/${p.id}'))">Project messages</button></div><section class="panel project-task-panel"><div class="panel-title"><div><h3>Project phases</h3><small>Break each phase into supplier-assignable tasks</small></div>${state.user.role === "customer" ? `<button class="btn small primary" onclick="wfAddPhase('${p.id}')">+ Add phase</button>` : ""}</div><div>${p.phases.map((ph, i) => wfPhaseCard(p, ph, i, d.suppliers || [])).join("") || '<div class="empty">Add a phase to start planning.</div>'}</div><div class="action-row"><button class="btn success" ${p.phases.length && p.phases.every((x) => x.status === "Completed") ? "" : "disabled"} onclick="completeProject('${p.id}')">Mark project complete</button></div></section>`;
-  app.innerHTML = dashboardShell(state.user.role, "projects", content);
-}
 async function wfAddPhase(pid) {
   const { project: p } = await api("/projects/" + pid);
   modal(
@@ -84,7 +30,7 @@ async function wfEditPhase(pid, phid) {
     ph = p.phases.find((x) => x.id === phid);
   modal(
     "Edit project phase",
-    `<form id="wfF" class="modal-form"><label>Phase name<input name="name" value="${esc(ph.name)}" required></label><label>Scope<textarea name="description">${esc(ph.description || "")}</textarea></label><div class="two"><label>Start date<input name="startDate" type="date" value="${ph.startDate || ""}"></label><label>Due date<input name="dueDate" type="date" value="${ph.dueDate || ""}" required></label></div><div class="two"><label>Status<select name="status">${["Not Started", "In Progress", "Under Review", "Completed", "On Hold"].map((x) => `<option ${x === ph.status ? "selected" : ""}>${x}</option>`).join("")}</select></label><label>Depends on phase<select name="dependency"><option value="">No dependency</option>${p.phases
+    `<form id="wfF" class="modal-form"><label>Phase name<input name="name" value="${esc(ph.name)}" required></label><label>Scope<textarea name="description">${esc(ph.description || "")}</textarea></label><div class="two"><label>Start date<input name="startDate" type="date" value="${ph.startDate || ""}"></label><label>Due date<input name="dueDate" type="date" value="${ph.dueDate || ""}" required></label></div><div class="two"><label>Status<select name="status">${["Not Started", "In Progress", "Under Review", "Completed", "On Hold"].map((x) => `<option value="${x}" ${x === ph.status ? "selected" : ""}>${x}</option>`).join("")}</select></label><label>Depends on phase<select name="dependency"><option value="">No dependency</option>${p.phases
       .filter((x) => x.id !== phid)
       .map(
         (x) =>
@@ -125,7 +71,7 @@ async function wfEditTask(pid, phid, tid) {
     t = ph.tasks.find((x) => x.id === tid);
   modal(
     "Edit project task",
-    `<form id="wfF" class="modal-form"><label>Task name<input name="name" value="${esc(t.name)}" required></label><label>Scope<textarea name="description">${esc(t.description || "")}</textarea></label><div class="two"><label>Start date<input name="startDate" type="date" value="${t.startDate || ""}"></label><label>Due date<input name="dueDate" type="date" value="${t.dueDate || ""}" required></label></div><div class="two"><label>Status<select name="status">${["Not Started", "In Progress", "Under Review", "Completed", "On Hold"].map((x) => `<option ${x === t.status ? "selected" : ""}>${x}</option>`).join("")}</select></label><label>Progress (%)<input name="progress" type="number" min="0" max="100" value="${Number(t.progress) || 0}"></label></div><label>Order amount (€)<input name="orderAmount" type="number" min="0" step="0.01" value="${t.orderAmount || ""}"></label><div class="action-row"><button class="btn primary">Save task</button><button type="button" class="btn danger" onclick="wfDeleteTask('${pid}','${phid}','${tid}')">Delete task</button></div></form>`,
+    `<form id="wfF" class="modal-form"><label>Task name<input name="name" value="${esc(t.name)}" required></label><label>Scope<textarea name="description">${esc(t.description || "")}</textarea></label><div class="two"><label>Start date<input name="startDate" type="date" value="${t.startDate || ""}"></label><label>Due date<input name="dueDate" type="date" value="${t.dueDate || ""}" required></label></div><div class="two"><label>Status<select name="status">${["Not Started", "In Progress", "Under Review", "Completed", "On Hold"].map((x) => `<option value="${x}" ${x === t.status ? "selected" : ""}>${x}</option>`).join("")}</select></label><label>Progress (%)<input name="progress" type="number" min="0" max="100" value="${Number(t.progress) || 0}"></label></div><label>Order amount (€)<input name="orderAmount" type="number" min="0" step="0.01" value="${t.orderAmount || ""}"></label><div class="action-row"><button class="btn primary">Save task</button><button type="button" class="btn danger" onclick="wfDeleteTask('${pid}','${phid}','${tid}')">Delete task</button></div></form>`,
   );
   document.getElementById("wfF").onsubmit = async (e) => {
     e.preventDefault();
@@ -910,7 +856,6 @@ async function route() {
   try {
     if (parts[0] === "customer") {
       if (parts[1] === "projects" && parts[2] && parts[3] === "documents") return wfDocuments(parts[2]);
-      if (parts[1] === "projects" && parts[2]) return projectDetail(parts[2]);
       if (parts[1] === "offers") return wfOffers();
       if (parts[1] === "invoices") return customerInvoices();
       if (parts[1] === "messages") return messages("customer");
@@ -921,7 +866,6 @@ async function route() {
     }
     if (parts[0] === "supplier") {
       if (parts[1] === "projects" && parts[2] && parts[3] === "documents") return wfDocuments(parts[2]);
-      if (parts[1] === "projects" && parts[2]) return projectDetail(parts[2]);
       if (parts[1] === "bids" || parts[1] === "offers") return supplierBids();
       if (parts[1] === "invoices" && parts[2] === "new") return newInvoice();
       if (parts[1] === "invoices") return supplierInvoices();

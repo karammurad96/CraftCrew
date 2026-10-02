@@ -7,17 +7,6 @@ const puEsc = (s) =>
 const PU_SEVERITY = { minor: "Minor", major: "Major", critical: "Critical" };
 const PU_STATUS = { open: "Open", fixed: "Fixed – to verify", verified: "Verified" };
 
-const puBaseTaskCard = wfTaskCard;
-wfTaskCard = function (p, ph, t, sups) {
-  const html = puBaseTaskCard(p, ph, t, sups);
-  if (!t.assignedSupplierId || t.acceptanceStatus !== "Accepted") return html;
-  // Suppliers only see the defects of their own tasks.
-  if (state.user?.role === "supplier" && t.assignedSupplierId !== state.user.supplierId) return html;
-  const open = (t.defects || []).filter((d) => d.status !== "verified").length,
-    button = `<button class="btn small outline" onclick="puOpen('${puEsc(p.id)}','${puEsc(t.id)}')">Defects${open ? ` <span class="pu-count" aria-label="${open} open">${open}</span>` : ""}</button>`;
-  return html.replace('<div class="wf-task-actions">', `<div class="wf-task-actions">${button}`);
-};
-
 async function puFiles(input) {
   const urls = [];
   for (const file of [...(input?.files || [])].slice(0, 5)) urls.push((await uploadFile(file)).url);

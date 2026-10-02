@@ -7,17 +7,6 @@ const drEsc = (s) =>
   );
 const drToday = () => new Date().toISOString().slice(0, 10);
 
-const drBaseTaskCard = wfTaskCard;
-wfTaskCard = function (p, ph, t, sups) {
-  const html = drBaseTaskCard(p, ph, t, sups);
-  if (!t.assignedSupplierId || t.acceptanceStatus !== "Accepted") return html;
-  if (state.user?.role === "supplier" && t.assignedSupplierId !== state.user.supplierId) return html;
-  return html.replace(
-    '<div class="wf-task-actions">',
-    `<div class="wf-task-actions"><button class="btn small outline" onclick="drOpen('${drEsc(p.id)}','${drEsc(t.id)}')">Site reports</button>`,
-  );
-};
-
 async function drOpen(projectId, taskId) {
   const base = `/projects/${projectId}/tasks/${taskId}/site-reports`,
     d = await api(base),

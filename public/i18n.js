@@ -70,7 +70,6 @@ const I18N_DE = {
   Map: "Karte",
   "List view": "Listenansicht",
   "Board view": "Board-Ansicht",
-  "▦ Board view": "▦ Board-Ansicht",
   "Open in new tab": "In neuem Tab öffnen",
   Send: "Senden",
   Submit: "Absenden",
@@ -87,10 +86,7 @@ const I18N_DE = {
   "Edit task": "Aufgabe bearbeiten",
   "Edit phase": "Phase bearbeiten",
   "Edit project": "Projekt bearbeiten",
-  "Change supplier": "Lieferant wechseln",
   "Select supplier": "Lieferant auswählen",
-  "+ Add task": "+ Aufgabe hinzufügen",
-  "+ Add phase": "+ Phase hinzufügen",
   "+ New contract": "+ Neuer Vertrag",
   "+ New chat": "+ Neuer Chat",
   "+ Create invoice": "+ Rechnung erstellen",
@@ -99,8 +95,6 @@ const I18N_DE = {
   "+ Log time": "+ Zeit erfassen",
   "+ Upload document": "+ Dokument hochladen",
   "Open project": "Projekt öffnen",
-  "Open phase documents": "Phasendokumente öffnen",
-  "Mark project complete": "Projekt abschließen",
   "Escalate / support": "Eskalieren / Support",
   "Project documents": "Projektdokumente",
   "Project invoices": "Projektrechnungen",
@@ -109,7 +103,6 @@ const I18N_DE = {
   "Edit & resend request": "Anfrage bearbeiten & erneut senden",
   "Close bidding": "Ausschreibung schließen",
   "Post update": "Update veröffentlichen",
-  "Update progress": "Fortschritt aktualisieren",
   "Save progress": "Fortschritt speichern",
   "Upload deliverable": "Ergebnis hochladen",
   "Save weights": "Gewichtung speichern",
@@ -235,13 +228,9 @@ const I18N_DE = {
   "Choose a new password": "Neues Passwort wählen",
   "Password changed": "Passwort geändert",
   // Projects & work
-  "Project phases": "Projektphasen",
-  "Project schedule": "Projektzeitplan",
   Budget: "Budget",
   Schedule: "Zeitplan",
   Delivery: "Lieferung",
-  "Project desk": "Projektschreibtisch",
-  "ASSIGNABLE TASK": "ZUWEISBARE AUFGABE",
   "ASSIGNED TASK": "ZUGEWIESENE AUFGABE",
   "PROJECT WORKSPACE": "PROJEKTARBEITSBEREICH",
   "TASK BOARD": "AUFGABEN-BOARD",
@@ -253,7 +242,6 @@ const I18N_DE = {
   "Time vs estimate": "Zeit vs. Schätzung",
   "Not set": "Nicht gesetzt",
   "Supplier request history": "Anfragehistorie",
-  "Activity log": "Aktivitätsprotokoll",
   "Progress updates": "Fortschrittsmeldungen",
   "No progress updates posted yet.": "Noch keine Fortschrittsmeldungen.",
   "Phase order": "Phasenreihenfolge",
@@ -529,15 +517,7 @@ Object.assign(I18N_DE, {
     "Noch keine Verträge. Ein Zuschlag erzeugt automatisch einen Entwurf.",
   "Active agreements with your customers.": "Aktive Vereinbarungen mit Ihren Kunden.",
   "No contracts shared with you yet.": "Noch keine Verträge mit Ihnen geteilt.",
-  "Phases contain tasks · dependency and delay warnings":
-    "Phasen enthalten Aufgaben · Abhängigkeits- und Verzugswarnungen",
   "downstream risk": "Folgerisiko",
-  "Break each phase into supplier-assignable tasks": "Jede Phase in zuweisbare Aufgaben gliedern",
-  "Schedule warning: overdue tasks may affect this phase, its successors and the project budget.":
-    "Terminwarnung: Überfällige Aufgaben können diese Phase, Folgephasen und das Budget beeinflussen.",
-  "This task is overdue. Dependent work may slip and extend project cost.":
-    "Diese Aufgabe ist überfällig. Abhängige Arbeiten können sich verschieben und Kosten erhöhen.",
-  "No supplier assigned": "Kein Lieferant zugewiesen",
   "Depends on phases": "Abhängig von Phasen",
   "Depends on": "Abhängig von",
   "Drag cards between columns to update their status. Drag phases on the right to change the delivery order.":
@@ -1241,7 +1221,6 @@ Object.assign(I18N_DE, {
     "Kalenderlink ausschalten? Kalender, die ihn nutzen, werden nicht mehr aktualisiert.",
   "Calendar link turned off": "Kalenderlink ausgeschaltet",
   "Link copied": "Link kopiert",
-  "Site reports": "Bautagesberichte",
   "Daily site reports": "Bautagesberichte",
   Acknowledged: "Zur Kenntnis genommen",
   "Not acknowledged yet": "Noch nicht zur Kenntnis genommen",
@@ -1451,11 +1430,9 @@ Object.assign(I18N_DE, {
   "Choose service": "Leistung wählen",
   "Approved value": "Freigegebener Wert",
   "Approved hours": "Freigegebene Stunden",
-  "Approved / estimate": "Freigegeben / Schätzung",
   "Phase / task": "Phase / Aufgabe",
   "Project / task": "Projekt / Aufgabe",
   "Submitted time": "Eingereichte Zeit",
-  "Changes to this project will be listed here.": "Änderungen an diesem Projekt werden hier aufgeführt.",
   "Approved order cap": "Freigegebene Auftragsobergrenze",
   "Award task": "Aufgabe vergeben",
   "Apply as supplier": "Als Lieferant bewerben",
@@ -1489,8 +1466,6 @@ Object.assign(I18N_DE, {
   "It has a supplier assignment or invoices. Remove the assignment and resolve the invoices first.":
     "Sie hat eine Lieferantenzuweisung oder Rechnungen. Entfernen Sie zuerst die Zuweisung und klären Sie die Rechnungen.",
   "The name does not match. Nothing was deleted.": "Der Name stimmt nicht überein. Es wurde nichts gelöscht.",
-  "Delete or archive project…": "Projekt löschen oder archivieren …",
-  "More actions": "Weitere Aktionen",
   "Sign out all your other sessions? Other browsers and devices will need to sign in again.":
     "Alle anderen Sitzungen abmelden? Andere Browser und Geräte müssen sich erneut anmelden.",
   "Sign out others": "Andere abmelden",
@@ -1535,7 +1510,6 @@ Object.assign(I18N_DE, {
   Money: "Finanzen",
   "Site safety": "Standortsicherheit",
   Sales: "Vertrieb",
-  Overview: "Übersicht",
   "Suppliers & users": "Lieferanten & Benutzer",
   Platform: "Plattform",
   // XRechnung e-invoices (T43)
@@ -1566,7 +1540,6 @@ Object.assign(I18N_DE, {
   Engineering: "Engineering",
   "Build & integration": "Bau & Integration",
   "Site acceptance": "Abnahme vor Ort",
-  "Waiting for you": "Wartet auf Sie",
   Describe: "Beschreiben",
   Run: "Umsetzen",
   "Strategic sourcing": "Strategische Beschaffung",
@@ -1581,24 +1554,13 @@ Object.assign(I18N_DE, {
   "Live suppliers": "Aktive Lieferanten",
   "Invoice volume": "Rechnungsvolumen",
   // Project workspace (T98)
-  Activity: "Aktivität",
-  "Up next": "Als Nächstes",
   Phases: "Phasen",
   Progress: "Fortschritt",
-  Ordered: "Beauftragt",
-  Free: "Frei",
-  "Invoiced by you": "Von Ihnen abgerechnet",
-  "Still to invoice": "Noch abzurechnen",
   "Review invoices": "Rechnungen prüfen",
   Working: "In Arbeit",
   Late: "Verspätet",
-  "Nothing is waiting for you on this project.": "In diesem Projekt wartet nichts auf Sie.",
-  "No phases yet.": "Noch keine Phasen.",
-  "No supplier assigned yet.": "Noch kein Lieferant zugewiesen.",
-  "No answer yet": "Noch keine Antwort",
   "1 document to approve": "1 Dokument freizugeben",
   "1 invoice": "1 Rechnung",
-  "Project sections": "Projektbereiche",
   // Task board (T99)
   Board: "Board",
   "To Do": "Zu erledigen",
@@ -1868,7 +1830,6 @@ const I18N_CM_PATTERNS = [
 ];
 // Task and phase invitations
 Object.assign(I18N_DE, {
-  "Waiting for your answer": "Wartet auf Ihre Antwort",
   "Accepted work": "Angenommene Arbeiten",
   "Task invitation": "Aufgabeneinladung",
   "Phase invitation": "Phaseneinladung",
@@ -1881,14 +1842,10 @@ Object.assign(I18N_DE, {
   "Task accepted — it is now in your assigned work": "Aufgabe angenommen – sie steht jetzt bei Ihren Aufträgen",
   "Phase accepted": "Phase angenommen",
   "Invitation declined": "Einladung abgelehnt",
-  "Awaiting acceptance": "Wartet auf Zusage",
-  "Withdraw invitation": "Einladung zurückziehen",
   Withdraw: "Zurückziehen",
   "Withdraw this invitation? The supplier is told and the task is free again.":
     "Einladung zurückziehen? Der Lieferant wird informiert und die Aufgabe ist wieder frei.",
   "Invitation withdrawn": "Einladung zurückgezogen",
-  "You are invited to this task. Accept it to start reporting progress.":
-    "Sie sind zu dieser Aufgabe eingeladen. Nehmen Sie sie an, um Fortschritte zu melden.",
   "The supplier receives an invitation and has to accept it before the task starts.":
     "Der Lieferant erhält eine Einladung und muss sie annehmen, bevor die Aufgabe beginnt.",
   "Invitation sent — waiting for the supplier to accept": "Einladung gesendet – wartet auf die Zusage des Lieferanten",
@@ -1897,8 +1854,6 @@ Object.assign(I18N_DE, {
   "Accept the invitation before invoicing this work.": "Nehmen Sie die Einladung an, bevor Sie diese Arbeit abrechnen.",
   "This invitation has already been answered.": "Diese Einladung wurde bereits beantwortet.",
   "There is no open invitation on this task.": "Für diese Aufgabe gibt es keine offene Einladung.",
-  "Your order value": "Ihr Auftragswert",
-  "Only the tasks given to your company are shown.": "Es werden nur die Aufgaben Ihres Unternehmens angezeigt.",
 });
 const I18N_STATUS = { ...I18N_DE, Open: "Offen", Completed: "Abgeschlossen", Paid: "Bezahlt", New: "Neu" };
 const I18N_PATTERNS = [

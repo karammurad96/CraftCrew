@@ -140,10 +140,6 @@ if (typeof paSignOutOthers === "function") {
   };
 }
 
-// The project page keeps delete and archive out of the main button row, in a "More" (⋯) menu.
-function saMoreMenu(pid) {
-  return `<details class="sa-more"><summary class="btn outline" aria-label="More actions">⋯</summary><div class="sa-more-list" role="menu"><button type="button" role="menuitem" class="sa-danger" onclick="this.closest('details').open=false;deleteProject('${pid}')">Delete or archive project…</button></div></details>`;
-}
 document.addEventListener("click", (e) => {
   for (const d of document.querySelectorAll("details.sa-more[open]"))
     if (!d.contains(e.target)) d.open = false;
