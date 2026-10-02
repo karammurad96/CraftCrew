@@ -165,7 +165,7 @@ async function wfAssignSupplier(pid, tid, sid) {
 }
 async function wfAcceptTask(pid, tid, accept) {
   await api(`/projects/${pid}/tasks/${tid}/accept`, { method: "POST", body: { accept } });
-  await supplierPhases();
+  await route();
 }
 async function wfUpdateProgress(pid, phid, tid, current) {
   const value = await uiPrompt("Progress complete (0–100)", String(current));
@@ -364,36 +364,8 @@ async function wfOpenDocument(url) {
     toast(e.message, "error");
   }
 }
-async function supplierPhases() {
-  const d = await api("/projects"),
-    items = [];
-  for (const p of d.projects) {
-    const full = await api("/projects/" + p.id);
-    for (const ph of full.project.phases)
-      for (const t of ph.tasks || [])
-        if (t.assignedSupplierId === state.user.supplierId)
-          items.push({ p: full.project, ph, t, sups: full.suppliers || [] });
-    for (const ph of full.project.phases)
-      if (ph.supplierId === state.user.supplierId)
-        items.push({ p: full.project, ph, t: null, sups: full.suppliers || [] });
-  }
-  app.innerHTML = dashboardShell(
-    "supplier",
-    "phases",
-    `<div class="dash-top"><div><h1>Assigned work</h1><p>Task invitations, project documents, progress and deadlines.</p></div><button class="btn outline" onclick="navigate('/supplier/bids')">Bid opportunities</button></div><div class="wf-bid-grid">${items.map(({ p, ph, t, sups }) => (t ? `<article class="panel"><span class="eyebrow">${esc(p.name)} · ${esc(ph.name)}</span>${wfTaskCard(p, ph, t, sups)}</article>` : `<article class="panel"><h3>${esc(p.name)} · ${esc(ph.name)}</h3><p>${esc(ph.status)} · ${date(ph.dueDate)}</p><button class="btn outline" onclick="navigate('/supplier/projects/${p.id}/documents?phase=${ph.id}')">Project documents</button></article>`)).join("") || '<div class="empty">No work assigned yet.</div>'}</div>`,
-  );
-}
 async function supplierBids() {
   await wfOffers();
-}
-async function customerProjects() {
-  const showArchived = new URLSearchParams(location.hash.split("?")[1] || "").get("archived") === "1",
-    d = await api("/projects" + (showArchived ? "?archived=1" : ""));
-  app.innerHTML = dashboardShell(
-    "customer",
-    "projects",
-    `<div class="dash-top"><div><h1>Projects</h1><p>Plan phases and tasks, manage supplier offers, documents and delivery.</p></div><div class="cc-actions"><label class="btn outline"><input type="checkbox" ${showArchived ? "checked" : ""} onchange="navigate('/customer/projects' + (this.checked ? '?archived=1' : ''))"> Show archived</label><button class="btn outline" onclick="navigate('/customer/offers')">Offers overview</button><button class="btn primary" onclick="navigate('/customer/projects/new')">+ New project</button></div></div><div class="cc-grid">${d.projects.map(customerProjectCard).join("") || '<div class="empty">No projects yet.</div>'}</div>`,
-  );
 }
 async function supplierDetail(id) {
   const { supplier: s } = await api("/suppliers/" + encodeURIComponent(id));
@@ -907,7 +879,6 @@ const wfOldRoute = async () => {
   // Public supplier profile, shareable as a link (T61).
   if (parts[0] === "suppliers" && parts[1] && !parts[2]) return supplierDetail(parts[1]);
   if (parts[0] === "customer") {
-    if (parts[1] === "projects" && parts[2] === "new") return newProject();
     if (parts[1] === "profile") return profilePage("customer");
   }
   if (parts[0] === "supplier") {
@@ -938,10 +909,8 @@ async function route() {
   }
   try {
     if (parts[0] === "customer") {
-      if (parts[1] === "projects" && parts[2] === "new") return wfOldRoute();
       if (parts[1] === "projects" && parts[2] && parts[3] === "documents") return wfDocuments(parts[2]);
       if (parts[1] === "projects" && parts[2]) return projectDetail(parts[2]);
-      if (parts[1] === "projects" && !parts[2]) return customerProjects();
       if (parts[1] === "offers") return wfOffers();
       if (parts[1] === "invoices") return customerInvoices();
       if (parts[1] === "messages") return messages("customer");
@@ -951,10 +920,8 @@ async function route() {
       if (parts[1] === "preferred") return pvPage();
     }
     if (parts[0] === "supplier") {
-      if (parts[1] === "projects" && parts[2] === "new") return wfOldRoute();
       if (parts[1] === "projects" && parts[2] && parts[3] === "documents") return wfDocuments(parts[2]);
       if (parts[1] === "projects" && parts[2]) return projectDetail(parts[2]);
-      if (parts[1] === "projects" || parts[1] === "phases") return supplierPhases();
       if (parts[1] === "bids" || parts[1] === "offers") return supplierBids();
       if (parts[1] === "invoices" && parts[2] === "new") return newInvoice();
       if (parts[1] === "invoices") return supplierInvoices();

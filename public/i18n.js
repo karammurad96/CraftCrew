@@ -91,7 +91,6 @@ const I18N_DE = {
   "Select supplier": "Lieferant auswählen",
   "+ Add task": "+ Aufgabe hinzufügen",
   "+ Add phase": "+ Phase hinzufügen",
-  "+ New project": "+ Neues Projekt",
   "+ New contract": "+ Neuer Vertrag",
   "+ New chat": "+ Neuer Chat",
   "+ Create invoice": "+ Rechnung erstellen",
@@ -133,7 +132,6 @@ const I18N_DE = {
   "Edit company details": "Unternehmensdaten bearbeiten",
   "Manage service catalog and team": "Leistungskatalog & Team verwalten",
   "Manage team & service catalog": "Team & Leistungskatalog verwalten",
-  "Create project": "Projekt erstellen",
   "Publish event": "Ausschreibung veröffentlichen",
   "Send offer": "Angebot senden",
   "Save and resend": "Speichern & erneut senden",
@@ -262,13 +260,8 @@ const I18N_DE = {
   "All phases": "Alle Phasen",
   "Drop cards here": "Karten hier ablegen",
   Unassigned: "Nicht zugewiesen",
-  "Create new project": "Neues Projekt anlegen",
-  "Project name *": "Projektname *",
-  "Budget (€) *": "Budget (€) *",
   "Description *": "Beschreibung *",
   Requirements: "Anforderungen",
-  "Site location": "Standort",
-  "Project template": "Projektvorlage",
   "Start date": "Startdatum",
   "Due date *": "Fälligkeitsdatum *",
   Project: "Projekt",
@@ -536,9 +529,6 @@ Object.assign(I18N_DE, {
     "Noch keine Verträge. Ein Zuschlag erzeugt automatisch einen Entwurf.",
   "Active agreements with your customers.": "Aktive Vereinbarungen mit Ihren Kunden.",
   "No contracts shared with you yet.": "Noch keine Verträge mit Ihnen geteilt.",
-  "Plan phases and tasks, manage supplier offers, documents and delivery.":
-    "Phasen und Aufgaben planen, Lieferantenangebote, Dokumente und Lieferung steuern.",
-  "Open project →": "Projekt öffnen →",
   "Phases contain tasks · dependency and delay warnings":
     "Phasen enthalten Aufgaben · Abhängigkeits- und Verzugswarnungen",
   "downstream risk": "Folgerisiko",
@@ -555,10 +545,7 @@ Object.assign(I18N_DE, {
   "Drag cards between columns to update their status. You can move the work assigned to your company.":
     "Karten zwischen Spalten ziehen, um den Status zu ändern. Sie können die Ihrem Unternehmen zugewiesene Arbeit verschieben.",
   "Drag to reorder the waterfall sequence.": "Ziehen, um die Phasenreihenfolge zu ändern.",
-  "← Back to projects": "← Zurück zu den Projekten",
   "← Sourcing": "← Beschaffung",
-  "Describe the work, pick a template to generate phases and tasks, then assign suppliers from the project page.":
-    "Beschreiben Sie die Arbeit, wählen Sie eine Vorlage für Phasen und Aufgaben und weisen Sie dann auf der Projektseite Lieferanten zu.",
   "Compare price, delivery, supplier documents and scope.":
     "Preis, Lieferzeit, Lieferantendokumente und Umfang vergleichen.",
   "Waiting for supplier offers.": "Warten auf Lieferantenangebote.",
@@ -596,7 +583,6 @@ Object.assign(I18N_DE, {
     "Auf Leistungsanfragen, projektbezogene Anfragen und Zertifikatsprüfungen antworten.",
   "Task invitations, supplier commitments, documentation and progress.":
     "Aufgabeneinladungen, Zusagen, Dokumentation und Fortschritt.",
-  "Find more work": "Weitere Aufträge finden",
   "YOUR MARKETPLACE PROFILE": "IHR MARKTPLATZPROFIL",
   "Manage individually priced services and the people qualified to deliver them.":
     "Einzeln bepreiste Leistungen und qualifiziertes Personal verwalten.",
@@ -1842,7 +1828,6 @@ Object.assign(I18N_DE, {
     "Senden Sie phaseIds als Liste der Phasen-IDs dieses Projekts, jede nur einmal.",
   "Project deleted": "Projekt gelöscht",
   "Phase deleted": "Phase gelöscht",
-  "Show archived": "Archivierte anzeigen",
   Archived: "Archiviert",
   "This project is archived and can no longer be changed.":
     "Dieses Projekt ist archiviert und kann nicht mehr geändert werden.",
@@ -1884,22 +1869,12 @@ const I18N_CM_PATTERNS = [
 // Task and phase invitations
 Object.assign(I18N_DE, {
   "Waiting for your answer": "Wartet auf Ihre Antwort",
-  "The customer has invited you. Nothing starts until you accept — declined work goes back to the customer.":
-    "Der Kunde hat Sie eingeladen. Erst nach Ihrer Zusage beginnt die Arbeit – abgelehnte Aufträge gehen an den Kunden zurück.",
-  "Answer new invitations, then report progress, documents and invoices on the work you accepted.":
-    "Beantworten Sie neue Einladungen und melden Sie dann Fortschritt, Dokumente und Rechnungen für angenommene Arbeiten.",
   "Accepted work": "Angenommene Arbeiten",
   "Task invitation": "Aufgabeneinladung",
   "Phase invitation": "Phaseneinladung",
-  "Order value": "Auftragswert",
   Invited: "Eingeladen",
   "Not set": "Nicht festgelegt",
-  "Accept task": "Aufgabe annehmen",
-  "Accept phase": "Phase annehmen",
   "Decline task": "Aufgabe ablehnen",
-  "View project": "Projekt ansehen",
-  "No accepted work yet. Answer an invitation above or browse task bids.":
-    "Noch keine angenommenen Arbeiten. Beantworten Sie oben eine Einladung oder sehen Sie sich Ausschreibungen an.",
   "Decline this task? You can tell the customer why (optional).":
     "Diese Aufgabe ablehnen? Sie können dem Kunden den Grund nennen (optional).",
   "Decline this phase invitation?": "Diese Phaseneinladung ablehnen?",

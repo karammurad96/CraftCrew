@@ -39,51 +39,6 @@ async function invAnswerPhase(pid, phid, accept) {
 wfAcceptTask = (pid, tid, accept) => invAnswerTask(pid, tid, accept);
 acceptPhase = (pid, phid, accept) => invAnswerPhase(pid, phid, accept);
 
-/* ---------- Supplier: "Assigned work" with invitations first ---------- */
-function invWorkCard(x) {
-  const t = x.t,
-    pct = Math.min(100, Number(t.progress) || 0),
-    q = `project=${x.p.id}&phase=${x.ph.id}&task=${t.id}`,
-    back = `&back=${encodeURIComponent("/supplier/projects/" + x.p.id)}`;
-  return `<article class="panel review-work-card"><div class="project-card-head"><div><span class="eyebrow">${invEsc(x.p.name)} · ${invEsc(x.ph.name)}</span><h3>${invEsc(t.name)}</h3></div><span class="status ${String(t.status || "Not Started").toLowerCase().replaceAll(" ", "-")}">${invEsc(t.status || "Not Started")}</span></div><p>${invEsc(t.description || "")}</p><div class="wf-task-meta"><span>${date(t.startDate)} → ${date(t.dueDate)}</span><span>${pct}% complete</span></div><div class="timeline-line"><i style="width:${pct}%"></i></div><div class="cc-actions"><button class="btn small outline" onclick="wfUpdateProgress('${x.p.id}','${x.ph.id}','${t.id}',${pct})">Update progress</button><button class="btn small outline" onclick="navigate('/supplier/projects/${x.p.id}/documents?phase=${x.ph.id}&task=${t.id}')">Documents</button><button class="btn small outline" onclick="navigate('/supplier/invoices?${q}${back}')">Invoices</button><button class="btn small outline" onclick="navigate('/supplier/messages?${q}${back}')">Messages</button></div></article>`;
-}
-function invInviteCard(x, highlight) {
-  const item = x.t || x.ph,
-    invited = invLastEntry(item, "Invited")?.at || item.invitedAt,
-    answer = x.t
-      ? `invAnswerTask('${x.p.id}','${x.t.id}',`
-      : `invAnswerPhase('${x.p.id}','${x.ph.id}',`;
-  return `<article class="inv-card ${highlight ? "inv-highlight" : ""}" id="inv-${item.id}"><div class="inv-card-main"><span class="eyebrow">${x.t ? "Task invitation" : "Phase invitation"} · ${invEsc(x.p.name)}${x.t ? " · " + invEsc(x.ph.name) : ""}</span><h3>${invEsc(item.name)}</h3>${item.description ? `<p>${invEsc(item.description)}</p>` : ""}<div class="inv-facts"><span><small>Schedule</small><b>${date(item.startDate)} → ${date(item.dueDate)}</b></span><span><small>Order value</small><b>${item.orderAmount ? money(item.orderAmount) : "Not set"}</b></span>${invited ? `<span><small>Invited</small><b>${date(invited)}</b></span>` : ""}</div></div><div class="inv-card-actions"><button class="btn primary" onclick="${answer}true)">Accept ${x.t ? "task" : "phase"}</button><button class="btn outline" onclick="${answer}false)">Decline</button><button class="btn ghost small" onclick="navigate('/supplier/projects/${x.p.id}')">View project</button></div></article>`;
-}
-supplierPhases = async function () {
-  const projects = await reviewProjects(),
-    sid = state.user.supplierId,
-    invites = [],
-    work = [];
-  for (const p of projects)
-    for (const ph of p.phases || []) {
-      if (ph.supplierId === sid && ph.acceptanceStatus === "Pending") invites.push({ p, ph });
-      for (const t of ph.tasks || []) {
-        if (t.assignedSupplierId !== sid) continue;
-        (t.acceptanceStatus === "Pending" ? invites : work).push({ p, ph, t });
-      }
-    }
-  const highlight = invQuery().get("invite");
-  app.innerHTML = dashboardShell(
-    "supplier",
-    "phases",
-    `<div class="dash-top"><div><h1>Assigned work</h1><p>Answer new invitations, then report progress, documents and invoices on the work you accepted.</p></div><button class="btn outline" onclick="navigate('/supplier/bids')">Find more work</button></div>
-    ${
-      invites.length
-        ? `<section class="panel inv-panel"><div class="panel-title"><h3>Waiting for your answer</h3><span class="ui-count">${invites.length}</span></div><p class="subtle inv-hint">The customer has invited you. Nothing starts until you accept — declined work goes back to the customer.</p><div class="inv-list">${invites.map((x) => invInviteCard(x, highlight && highlight === (x.t || x.ph).id)).join("")}</div></section>`
-        : ""
-    }
-    <div class="panel-title inv-work-title"><h3>Accepted work</h3><span class="ui-count">${work.length}</span></div>
-    <div class="review-work-grid">${work.map(invWorkCard).join("") || '<div class="empty">No accepted work yet. Answer an invitation above or browse task bids.</div>'}</div>`,
-  );
-  if (highlight) document.getElementById("inv-" + highlight)?.scrollIntoView({ block: "center" });
-};
-
 /* ---------- Customer: invitation state on the task card ---------- */
 async function invWithdraw(pid, tid) {
   if (!(await uiConfirm("Withdraw this invitation? The supplier is told and the task is free again.", { confirmLabel: "Withdraw" })))

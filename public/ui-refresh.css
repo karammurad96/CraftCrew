@@ -437,10 +437,15 @@ table tbody tr:hover {
   border-radius: 8px;
   transition: background 0.15s;
 }
-/* Project rows that are links (dashboards, T127b) keep the text colours of the row */
+/* Project rows and cards that are links (dashboards T127b, projects T128) keep the text colours of the row */
 a.project-row,
-a.project-row:visited {
+a.project-row:visited,
+a.project-card,
+a.project-card:visited {
   color: inherit;
+}
+a.project-card {
+  display: block;
 }
 .project-click:hover {
   background: #f8fbff;

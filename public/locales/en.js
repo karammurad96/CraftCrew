@@ -648,4 +648,69 @@ LOCALES.en = {
     "saved": "Layout saved",
     "resetDone": "Layout reset"
   },
+  // Projects (T128)
+  projects: {
+    "list": {
+      "title": "Projects",
+      "intro": "Plan phases and tasks, manage supplier offers, documents and delivery.",
+      "showArchived": "Show archived",
+      "offers": "Offers overview",
+      "new": "+ New project",
+      "complete": "{n}% complete",
+      "due": "Due {date}",
+      "open": "Open project →",
+      "empty": "No projects yet."
+    },
+    "create": {
+      "back": "← Back to projects",
+      "title": "Create new project",
+      "intro": "Describe the work, pick a template to generate phases and tasks, then assign suppliers from the project page.",
+      "name": "Project name *",
+      "budget": "Budget (€) *",
+      "description": "Description *",
+      "descriptionHint": "Goal and scope of the project",
+      "requirements": "Requirements",
+      "requirementsHint": "Technical requirements, standards, acceptance criteria, site constraints",
+      "location": "Site location",
+      "locationHint": "e.g. Regensburg, Germany",
+      "template": "Project template",
+      "templates": {
+        "waterfall": "Classic waterfall (5 phases)",
+        "robotcell": "Robot cell / automation cell",
+        "retrofit": "Machine retrofit",
+        "lineexpansion": "Production line expansion",
+        "blank": "Start empty (single planning phase)"
+      },
+      "start": "Start date",
+      "dueDate": "Due date *",
+      "files": "Attachments (specs, drawings, BOM · optional)",
+      "submit": "Create project",
+      "cancel": "Cancel",
+      "created": "Project created"
+    },
+    "work": {
+      "title": "Assigned work",
+      "intro": "Answer new invitations, then report progress, documents and invoices on the work you accepted.",
+      "findMore": "Find more work",
+      "waiting": "Waiting for your answer",
+      "hint": "The customer has invited you. Nothing starts until you accept — declined work goes back to the customer.",
+      "accepted": "Accepted work",
+      "empty": "No accepted work yet. Answer an invitation above or browse task bids.",
+      "taskInvite": "Task invitation",
+      "phaseInvite": "Phase invitation",
+      "schedule": "Schedule",
+      "orderValue": "Order value",
+      "notSet": "Not set",
+      "invited": "Invited",
+      "acceptTask": "Accept task",
+      "acceptPhase": "Accept phase",
+      "decline": "Decline",
+      "viewProject": "View project",
+      "complete": "{n}% complete",
+      "updateProgress": "Update progress",
+      "documents": "Documents",
+      "invoices": "Invoices",
+      "messages": "Messages"
+    }
+  },
 };
