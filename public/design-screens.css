@@ -3373,3 +3373,18 @@ html body .gd-blockers li + li {
 html body .gd-delete-form {
   max-width: 420px;
 }
+
+/* ---------- Privacy: your rights (T123) ---------- */
+html body .gd-rights {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(60, 60, 67, 0.12);
+}
+html body .gd-rights h3 {
+  margin: 20px 0 6px;
+  font-size: 17px;
+}
+html body .gd-rights p {
+  max-width: 760px;
+  line-height: 1.6;
+}

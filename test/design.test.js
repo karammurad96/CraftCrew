@@ -467,6 +467,21 @@ describe("design 2026", () => {
       assert.ok(de.includes(k), k);
   });
 
+  it("explains the GDPR self-service on the privacy page and lists pending deletions for admins (T123)", () => {
+    const src = read("gdpr-ui.js"),
+      de = read("i18n.js");
+    assert.ok(src.includes("const gdBaseLegalPage = legalPage;"));
+    assert.ok(src.includes('if (key !== "privacy") return;'));
+    for (const t of ["deleted after 14 days", "kept for 10 years (§ 147 AO, § 14b UStG)", "Download my data"]) assert.ok(src.includes(t), t);
+    assert.ok(src.includes("const gdBaseAdminUsers = adminUsers;"));
+    for (const k of ['"Your rights on CraftCrew": "Ihre Rechte bei CraftCrew"', '"Pending account deletions": "Anstehende Kontolöschungen"', '"Deleted user": "Gelöschter Nutzer"'])
+      assert.ok(de.includes(k), k);
+    // Loaded after the files whose pages it extends, before the design layer and the translation
+    const order = [...index.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]);
+    for (const f of ["legal-security.js", "collaboration.js", "calendar-ui.js"]) assert.ok(order.indexOf(f) < order.indexOf("gdpr-ui.js"), f);
+    assert.ok(order.indexOf("gdpr-ui.js") < order.indexOf("design-screens.js"));
+  });
+
   it("uses a new service worker cache so installed apps load the new files", () => {
     assert.match(read("sw.js"), /const CACHE = "craftcrew-shell-v2"/);
   });
