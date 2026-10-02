@@ -20,6 +20,7 @@ function loadScreens(extra = {}, expose = []) {
     aqHtml: () => "",
     inBoard: async () => {},
     srEvent: async () => {},
+    invoiceDetailPage: async () => {},
     window: { addEventListener() {} },
     route() {},
     money: (n) => String(n),
@@ -308,6 +309,21 @@ describe("design 2026", () => {
     assert.match(ctx.dsDocsRow({ risks: [{ text: "Liability insurance expires in 19 day(s)" }] }), /ds-orange">1 expires/);
     // A decided offer shows its status instead of the actions
     assert.doesNotMatch(ctx.dsOfferCard(bid, r({ status: "Accepted" }), 0, false, true, 0), /srAward/);
+  });
+
+  it("lays out the invoice as paper and a review panel with the existing actions (T101)", () => {
+    const src = read("design-screens.js");
+    assert.match(src, /const dsBaseInvoiceDetail = invoiceDetailPage;/);
+    // The existing Approve / Request changes / Reject buttons move into the panel (their onclick stays)
+    assert.match(src, /\["Approve", "Request Changes", "invoiceReject"\]\.map/);
+    // A filled note is sent as the comment instead of opening the prompt
+    assert.match(src, /e\.stopImmediatePropagation\(\);[\s\S]{0,80}method: "PATCH", body: \{ action, comment: note \}/);
+    // Lines that are new against the previous revision get a "new" chip
+    assert.match(src, /prev && !prevLines\.some\(\(y\) => same\(x, y\)\)/);
+    // Notices, VAT notes, payment terms and the revision history stay below the paper
+    assert.match(src, /el\.matches\("\.invoice-paper-head, \.wf-stat-grid, \.cc-table-wrap, \.invoice-totals, \.action-row"\)/);
+    const de = read("i18n.js");
+    for (const k of ['"Approve and Schedule Payment"', '"Within order cap"', '"BILL TO"', "corrected by"]) assert.ok(de.includes(k), `no German for ${k}`);
   });
 
   it("uses a new service worker cache so installed apps load the new files", () => {
