@@ -90,20 +90,6 @@ window.route = async function () {
   if (nfMissing) renderNotFound(nfMissing);
   return result;
 };
-// The login form says why the user has to sign in again, however often the page is re-rendered.
-new MutationObserver(() => {
-  const form = document.querySelector(".login-card form");
-  if (!form || document.querySelector(".nf-expired")) return;
-  let expired = false;
-  try {
-    expired = sessionStorage.getItem("cc_expired") === "1";
-  } catch {}
-  if (expired)
-    form.insertAdjacentHTML(
-      "beforebegin",
-      `<div class="notice warn nf-expired" role="status">Your session has expired. Please sign in again.</div>`,
-    );
-}).observe(document.getElementById("app"), { childList: true, subtree: true });
 // A successful sign-in picks up the saved page.
 const nfLoginApi = api;
 api = async function (path, opts = {}) {

@@ -154,14 +154,6 @@ const I18N_DE = {
   "Start as a customer": "Als Kunde starten",
   "Apply as a supplier": "Als Lieferant bewerben",
   "Browse the full directory →": "Zum vollständigen Verzeichnis →",
-  "Sign up": "Registrieren",
-  "Create account": "Konto erstellen",
-  "Forgot password?": "Passwort vergessen?",
-  "Send reset link": "Link zum Zurücksetzen senden",
-  "Save new password": "Neues Passwort speichern",
-  "Send the link again": "Link erneut senden",
-  "Back to sign in": "Zurück zur Anmeldung",
-  "Go to sign in": "Zur Anmeldung",
   "Sign in": "Anmelden",
   "Try again": "Erneut versuchen",
   Retry: "Erneut versuchen",
@@ -265,21 +257,12 @@ const I18N_DE = {
   "More filters": "Weitere Filter",
   Service: "Leistung",
   Badge: "Badge",
-  "Welcome back": "Willkommen zurück",
-  "Sign in to your CraftCrew workspace.": "Melden Sie sich bei Ihrem CraftCrew-Arbeitsbereich an.",
-  "Create your account": "Konto erstellen",
-  "Start coordinating industrial work.": "Starten Sie mit der Koordination industrieller Arbeit.",
   Name: "Name",
   Company: "Unternehmen",
-  "Account type": "Kontotyp",
   Customer: "Kunde",
   Supplier: "Lieferant",
   Email: "E-Mail",
   Password: "Passwort",
-  "No account?": "Noch kein Konto?",
-  "Already registered?": "Bereits registriert?",
-  "Check your inbox": "Prüfen Sie Ihr Postfach",
-  "Forgot your password?": "Passwort vergessen?",
   "Choose a new password": "Neues Passwort wählen",
   "Password changed": "Passwort geändert",
   // Projects & work
@@ -1263,8 +1246,6 @@ Object.assign(I18N_DE, {
     "Dieser Anbieter ist schon auf CraftCrew. Fügen Sie ihn über das Anbieterverzeichnis hinzu.",
   "You already invited this supplier.": "Sie haben diesen Anbieter bereits eingeladen.",
   "Your list can hold up to 500 suppliers": "Ihre Liste kann bis zu 500 Anbieter enthalten",
-  "Authentication code": "Bestätigungscode",
-  "6-digit code or recovery code": "6-stelliger Code oder Wiederherstellungscode",
   "Admin accounts need two-factor sign-in. Turn it on to continue.":
     "Admin-Konten brauchen die Zwei-Faktor-Anmeldung. Schalten Sie sie ein, um fortzufahren.",
   "Two-factor sign-in": "Zwei-Faktor-Anmeldung",
@@ -1625,8 +1606,6 @@ Object.assign(I18N_DE, {
     "Dieses Lieferantenprofil gibt es nicht oder es ist nicht mehr gelistet.",
   "Back to suppliers": "Zurück zu den Lieferanten",
   Back: "Zurück",
-  "Your session has expired. Please sign in again.":
-    "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
   // Phone navigation (T51)
   More: "Mehr",
   Vetting: "Prüfung",
@@ -1787,6 +1766,7 @@ Object.assign(I18N_DE, {
   "Deleted company": "Gelöschtes Unternehmen",
   "Deleted worker": "Gelöschte Arbeitskraft",
   "Deleted": "Gelöscht",
+  "Invalid email or password": "E-Mail oder Passwort ist falsch",
   // Account deletion (T121)
   "Delete account": "Konto löschen",
   "This deletes your own login. The company account and its data stay.":
@@ -2474,6 +2454,9 @@ function i18nText(raw, el) {
   }
   return out === null ? raw : lead + out + trail;
 }
+// Pages drawn with translation keys (T125) are already in the right language; the nearest data-i18n decides,
+// so data-i18n="dom" inside such a page marks text from the server (error messages) that still needs this layer.
+const i18nKeyPage = (el) => el.closest("[data-i18n]")?.dataset.i18n === "keys";
 function i18nApply(root = document.body) {
   if (i18nLang !== "de" || !root) return;
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
@@ -2483,8 +2466,9 @@ function i18nApply(root = document.body) {
         !p ||
         !n.nodeValue.trim() ||
         p.closest(
-          "script, style, textarea, code, pre, [contenteditable], [data-no-i18n], [data-i18n=keys], .cc-chat-bubble p, .legal-body, .sr-note p, input",
-        )
+          "script, style, textarea, code, pre, [contenteditable], [data-no-i18n], .cc-chat-bubble p, .legal-body, .sr-note p, input",
+        ) ||
+        i18nKeyPage(p)
       )
         return NodeFilter.FILTER_REJECT;
       return NodeFilter.FILTER_ACCEPT;
@@ -2500,7 +2484,7 @@ function i18nApply(root = document.body) {
     }
   }
   for (const el of root.querySelectorAll("[placeholder], [title], [aria-label]"))
-    for (const attr of el.closest("[data-i18n=keys]") ? [] : ["placeholder", "title", "aria-label"]) {
+    for (const attr of i18nKeyPage(el) ? [] : ["placeholder", "title", "aria-label"]) {
       const v = el.getAttribute(attr);
       if (!v) continue;
       const t = v.trim(),
@@ -2535,8 +2519,9 @@ new MutationObserver(() => {
   });
 }).observe(document.body, { childList: true, subtree: true, characterData: false });
 const i18nBaseToast = toast;
-toast = function (msg, type) {
-  return i18nBaseToast(i18nLang === "de" ? i18nText(String(msg)) : msg, type);
+// opts.translated: the text comes from t() (tToast) and is already in the right language
+toast = function (msg, type, opts) {
+  return i18nBaseToast(i18nLang === "de" && !opts?.translated ? i18nText(String(msg)) : msg, type);
 };
 /* The chosen language travels with sign-ups and applications (for German emails) and is kept on the account. */
 const i18nBaseApi = api;

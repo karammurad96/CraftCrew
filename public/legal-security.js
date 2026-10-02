@@ -31,17 +31,6 @@ function legalFooter() {
 }
 
 /* Sign-up: explicit acceptance of terms and privacy policy. */
-function legalSignupConsent() {
-  const form = [...document.querySelectorAll("#app form")].find(
-    (f) => f.querySelector("input[type=password]") && /sign ?up|create/i.test(f.textContent + location.hash),
-  );
-  if (!form || !/signup/.test(location.hash) || form.querySelector("[name=legalConsent]")) return;
-  const submit = form.querySelector("button[type=submit], button:not([type])");
-  submit?.insertAdjacentHTML(
-    "beforebegin",
-    `<label class="legal-consent"><input type="checkbox" name="legalConsent" required> <span>I accept the <a href="#/terms" target="_blank">terms of use</a> and have read the <a href="#/privacy" target="_blank">privacy policy</a>.</span></label>`,
-  );
-}
 
 /* Admin: legal page editor on Platform management. */
 async function legalAdminPanel() {
@@ -142,137 +131,6 @@ api = async function (path, opts = {}) {
   return result;
 };
 
-/* ---------- Email verification, forgotten password, reset link ---------- */
-function authCard(title, text, inner = "") {
-  app.innerHTML = publicLayout(
-    `<div class="simple-page center-page"><div class="login-card"><a class="brand" href="#/"><span class="brand-mark" role="img" aria-label="CraftCrew logo"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M14 50C24 42 40 22 50 14"/><circle cx="14" cy="50" r="8.5"/><circle cx="50" cy="14" r="8.5"/></svg></span><span class="brand-word">Craft<span>Crew</span></span></a><h1>${title}</h1><p>${text}</p>${inner}</div></div>`,
-  );
-}
-function authSignIn(d) {
-  ccSignedIn(d.user);
-  document.body.classList.add("authenticated");
-  topActions();
-  navigate("/" + d.user.role + "/dashboard");
-}
-function authCheckInbox(email) {
-  authCard(
-    "Check your inbox",
-    `We sent a confirmation link to <b>${esc(email)}</b>. Open it to activate your account. The link is valid for 48 hours.`,
-    `<button class="btn outline full" id="authResend">Send the link again</button><p class="auth-switch"><a href="#/login">Back to sign in</a></p>`,
-  );
-  document.getElementById("authResend").onclick = async (e) => {
-    e.target.disabled = true;
-    try {
-      await legalBaseApi("/auth/resend-verification", { method: "POST", body: { email } });
-      toast("A new link is on its way");
-    } catch (x) {
-      toast(x.message, "error");
-    }
-    setTimeout(() => (e.target.disabled = false), 30000);
-  };
-}
-async function authVerifyPage() {
-  const token = new URLSearchParams(location.hash.split("?")[1] || "").get("token");
-  authCard("Confirming your email…", "One moment please.");
-  try {
-    const d = await legalBaseApi("/auth/verify", { method: "POST", body: { token } });
-    toast("Email confirmed — welcome to CraftCrew");
-    authSignIn(d);
-  } catch (x) {
-    authCard(
-      "Link not valid",
-      esc(x.message),
-      '<a class="btn primary full" href="#/login">Go to sign in</a>',
-    );
-  }
-}
-function authForgotPage() {
-  authCard(
-    "Forgot your password?",
-    "Enter your account email and we will send you a link to choose a new password.",
-    `<form id="authForgot"><label>Email<input name="email" type="email" autocomplete="email" required></label><div class="form-error" role="alert"></div><button class="btn primary full" style="margin-top:15px">Send reset link</button></form><p class="auth-switch"><a href="#/login">Back to sign in</a></p>`,
-  );
-  document.getElementById("authForgot").onsubmit = async (e) => {
-    e.preventDefault();
-    const email = new FormData(e.target).get("email");
-    try {
-      await legalBaseApi("/auth/forgot", { method: "POST", body: { email } });
-      authCard(
-        "Check your inbox",
-        `If an account exists for <b>${esc(email)}</b>, a reset link is on its way. It is valid for one hour.`,
-        '<p class="auth-switch"><a href="#/login">Back to sign in</a></p>',
-      );
-    } catch (x) {
-      e.target.querySelector(".form-error").textContent = x.message;
-    }
-  };
-}
-function authResetPage() {
-  const token = new URLSearchParams(location.hash.split("?")[1] || "").get("token");
-  authCard(
-    "Choose a new password",
-    "At least 12 characters with letters and numbers.",
-    `<form id="authReset"><label>New password<input name="newPassword" type="password" autocomplete="new-password" minlength="12" required></label><label>Repeat new password<input name="confirm" type="password" autocomplete="new-password" minlength="12" required></label><div class="form-error" role="alert"></div><button class="btn primary full" style="margin-top:15px">Save new password</button></form>`,
-  );
-  document.getElementById("authReset").onsubmit = async (e) => {
-    e.preventDefault();
-    const f = Object.fromEntries(new FormData(e.target)),
-      err = e.target.querySelector(".form-error");
-    if (f.newPassword !== f.confirm) {
-      err.textContent = "The passwords do not match";
-      return;
-    }
-    try {
-      await legalBaseApi("/auth/reset", { method: "POST", body: { token, newPassword: f.newPassword } });
-      authCard(
-        "Password changed",
-        "You can now sign in with your new password. All other sessions were signed out.",
-        '<a class="btn primary full" href="#/login">Sign in</a>',
-      );
-    } catch (x) {
-      err.textContent = x.message;
-    }
-  };
-}
-async function authLoginExtras() {
-  const form = document.getElementById("authForm");
-  if (!form || !/^#\/login/.test(location.hash) || form.querySelector(".auth-forgot")) return;
-  const cfg = await api("/platform-config").catch(() => ({}));
-  if (cfg.mailEnabled)
-    form
-      .querySelector("input[type=password]")
-      ?.closest("label")
-      ?.insertAdjacentHTML("afterend", '<a class="auth-forgot" href="#/forgot">Forgot password?</a>');
-  // Unconfirmed accounts get a one-click way to receive the confirmation link again.
-  new MutationObserver(() => {
-    const err = document.getElementById("authError");
-    if (err && /confirm your email/i.test(err.textContent) && !err.querySelector("button")) {
-      const email = form.querySelector("[name=email]").value;
-      err.insertAdjacentHTML(
-        "beforeend",
-        ' <button type="button" class="ui-link-btn">Send the link again</button>',
-      );
-      err.querySelector("button").onclick = async () => {
-        try {
-          await legalBaseApi("/auth/resend-verification", { method: "POST", body: { email } });
-          toast("A new confirmation link is on its way");
-        } catch (x) {
-          toast(x.message, "error");
-        }
-      };
-    }
-  }).observe(document.getElementById("authError"), { childList: true, characterData: true, subtree: true });
-}
-/* Sign-up with email delivery: show "check your inbox" instead of signing in. */
-const legalSignupApi = api;
-api = async function (path, opts = {}) {
-  const result = await legalSignupApi(path, opts);
-  if (path === "/auth/signup" && result?.verificationRequired) {
-    authCheckInbox(result.email);
-    return new Promise(() => {});
-  }
-  return result;
-};
 async function adminTestEmail() {
   try {
     const r = await api("/admin/test-email", { method: "POST", body: {} });
@@ -298,29 +156,12 @@ const legalBaseRoute = window.route;
 window.route = async function () {
   const path = location.hash.replace(/^#/, "").split("?")[0];
   const key = path.replace(/^\//, "");
-  if (key === "verify") {
-    topActions();
-    await authVerifyPage();
-    return;
-  }
-  if (key === "forgot") {
-    topActions();
-    authForgotPage();
-    return;
-  }
-  if (key === "reset") {
-    topActions();
-    authResetPage();
-    return;
-  }
   if (state.user?.mustChangePassword && /^\/(customer|supplier|admin)(\/|$)/.test(path)) {
     legalForceChangePage();
     return;
   }
   const result = await legalBaseRoute();
   legalFooter();
-  legalSignupConsent();
-  await authLoginExtras();
   if (path === "/admin/platform") {
     await legalAdminPanel();
     adminMailStatus();

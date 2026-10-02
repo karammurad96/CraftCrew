@@ -129,31 +129,6 @@ async function supplierApplication() {
   };
 }
 
-function renderAuth(mode) {
-  app.innerHTML = publicLayout(
-    `<div class="simple-page center-page"><div class="login-card"><a class="brand" href="#/"><span class="brand-mark" role="img" aria-label="CraftCrew logo"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M14 50C24 42 40 22 50 14"/><circle cx="14" cy="50" r="8.5"/><circle cx="50" cy="14" r="8.5"/></svg></span><span class="brand-word">Craft<span>Crew</span></span></a><h1>${mode === "login" ? "Welcome back" : "Create your account"}</h1><p>${mode === "login" ? "Sign in to your CraftCrew workspace." : "Start coordinating industrial work."}</p><form id="authForm">${mode === "signup" ? `<label>Name<input name="name" autocomplete="name" required></label><label>Company<input name="company" autocomplete="organization"></label><label>Account type<select name="role" required><option value="customer">Customer</option><option value="supplier">Supplier</option></select></label>` : ""}<label>Email<input name="email" type="email" autocomplete="email" required></label><label>Password<input name="password" type="password" autocomplete="${mode === "login" ? "current-password" : "new-password"}" minlength="${mode === "login" ? 1 : 12}" required></label><div id="authError" class="form-error" role="alert" aria-live="polite"></div><button class="btn primary full" style="margin-top:15px">${mode === "login" ? "Log in" : "Create account"}</button></form>${mode === "login" ? '<p class="auth-switch">No account? <a href="#/signup">Sign up</a></p>' : '<p class="auth-switch">Already registered? <a href="#/login">Log in</a></p>'}</div></div>`,
-  );
-  document.getElementById("authForm").onsubmit = async (e) => {
-    e.preventDefault();
-    const error = document.getElementById("authError");
-    error.textContent = "";
-    const b = Object.fromEntries(new FormData(e.target));
-    try {
-      const d = await api("/auth/" + mode, { method: "POST", body: b });
-      ccSignedIn(d.user);
-      topActions();
-      document.body.classList.add("authenticated");
-      toast(mode === "login" ? "Signed in" : "Account created");
-      navigate("/" + d.user.role + "/dashboard");
-      route();
-    } catch (err) {
-      error.textContent =
-        err.message === "Email already registered"
-          ? "This email already has an account. Log in instead, or use a different email."
-          : err.message;
-    }
-  };
-}
 
 function customerProjectCard(p) {
   return `<article class="cc-card click project-card" role="link" tabindex="0" onclick="openCustomerProject('${esc(p.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openCustomerProject('${esc(p.id)}')}"><div class="project-card-head"><b>${esc(p.name)}</b><span class="status ${p.status.toLowerCase().replaceAll(" ", "-")}">${esc(p.status)}</span></div><p>${esc(p.description)}</p><div class="timeline-line"><i style="width:${pct(p.phases)}%"></i></div><div class="supplier-meta"><span>${pct(p.phases)}% complete</span><span>Due ${date(p.dueDate)}</span></div><span class="btn small outline project-open">Open project →</span></article>`;
@@ -675,8 +650,6 @@ async function route() {
   try {
     if (h === "/suppliers") return renderSuppliers();
     if (h === "/supplier-application") return supplierApplication();
-    if (h === "/login") return renderAuth("login");
-    if (h === "/signup") return renderAuth("signup");
     if (parts[0] === "customer") {
       if (parts[1] === "dashboard") return customerDashboard();
       if (parts[1] === "projects" && !parts[2]) return customerProjects();

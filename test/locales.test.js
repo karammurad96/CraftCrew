@@ -160,7 +160,9 @@ describe("route table", () => {
 
   it("keeps the DOM translation away from pages that use keys", () => {
     const src = read("i18n.js");
-    assert.ok(src.includes("[data-no-i18n], [data-i18n=keys],"));
-    assert.ok(src.includes('el.closest("[data-i18n=keys]") ? [] :'));
+    // The nearest data-i18n decides: "keys" pages are skipped, "dom" spots inside them (server messages) are not
+    assert.ok(src.includes('const i18nKeyPage = (el) => el.closest("[data-i18n]")?.dataset.i18n === "keys";'));
+    assert.ok(src.includes("i18nKeyPage(p)"));
+    assert.ok(src.includes('for (const attr of i18nKeyPage(el) ? [] : ["placeholder", "title", "aria-label"])'));
   });
 });
