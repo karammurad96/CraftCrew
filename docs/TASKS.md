@@ -185,6 +185,25 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T85 GDPR self-service: data export, account deletion with invoice retention
 - [x] T86 Re-verify supplier profile changes after approval
 
+**Wave 6 split (decided with Karam on 2 October 2026; details under "Wave 6 — split into tasks")**
+- [ ] T120 GDPR: "Download my data" export · S
+- [ ] T121 GDPR: request account deletion (blocked while business is open, 14-day grace period) · M
+- [ ] T122 GDPR: the deletion job (anonymise after 14 days, keep invoices 10 years) · M
+- [ ] T123 GDPR: privacy policy text and admin view of deletions · S
+- [ ] T124 Cookie sessions with CSRF protection instead of the localStorage token · M
+- [ ] T125 Frontend foundation: translation keys `t()`, `data-action` handlers, area modules, one route table · M
+- [ ] T126 Area: public pages, sign-in and sign-up · M
+- [ ] T127 Area: dashboards, sidebar, notifications and phone bar · M
+- [ ] T128 Area: projects, workspace, board and documents · L (split into two PRs if needed)
+- [ ] T129 Area: sourcing, offers, bids, contracts and the directory · M
+- [ ] T130 Area: invoices and payments · M
+- [ ] T131 Area: time, site reports, punch list and acceptance · M
+- [ ] T132 Area: messages and chats · S
+- [ ] T133 Area: sites, compliance and calendar · M
+- [ ] T134 Area: admin (applications, disputes, billing, reports, audit, platform) · M
+- [ ] T135 Area: profile, settings, team and two-factor · M
+- [ ] T136 Strict CSP without `'unsafe-inline'` scripts; remove the DOM translation layer and the old files · S
+
 **Wave 7 — Design 2026 (P1; in this order; read "Rules for every design task" first)**
 - [x] T90 Design foundation: tokens, type, cards, buttons, forms · M · cheap model OK
 - [x] T91 The new logo everywhere · S · cheap model OK
@@ -1424,6 +1443,208 @@ with Karam, then split each into S/M tasks in this file.
   data but keeps invoices for the legal retention period (10 years). Needs a privacy policy update.
 - **T86 Re-verify profile changes.** After approval, changes to company name, legal details or claimed
   certifications should go to admin review ("pending verification") before they show as verified.
+
+### Wave 6 — split into tasks
+
+**Decisions (Karam, 2 October 2026).**
+- T85: a deletion request is **blocked while business is open** and takes effect after a **14-day grace
+  period**. Signing in during the grace period cancels it.
+- T82 + T83: rebuild the frontend **area by area, in place**. Cookie sessions come first. Each area task then
+  moves its pages into one module with one route table, translation keys and no inline handlers. The app
+  ships after every task; strict CSP comes last.
+- T82: **semantic keys**, for example `t("invoice.due", { date })`, in `public/locales/en.js` and
+  `public/locales/de.js`.
+
+Every task below follows the usual rules: one branch and PR per task, regression tests, the control diff
+("No control is missing."), the overflow checks (4 runs), German for every text, and screenshots for UI changes.
+
+#### T120 · GDPR: "Download my data" export
+`P1 · S`
+
+**Problem.** "Export JSON" on the profile page calls the admin backup route (`/backup/export`). That route
+is either refused or far too broad. Article 20 GDPR gives every person a copy of their own data.
+
+**Do.**
+1. Add `GET /api/account/export`. It returns a JSON file (`Content-Disposition: attachment`) with:
+   - the user record without secrets (no password hash or salt, no 2FA secret, no session hashes);
+   - the company and supplier profile;
+   - projects the user owns or takes part in (name, dates, their role);
+   - their invoices, time entries, messages sent and received, notifications, reviews, applications,
+     workers and compliance documents;
+   - sessions (device, created, last seen);
+   - the audit log entries about them;
+   - their uploaded files as a list of name, size and URL.
+2. A team member gets their own login data and what they created, not the whole company.
+3. Rate limit: 5 exports per hour.
+4. Profile page: "Download my data" calls the new route, with German text.
+
+**Tests.** Customer, supplier and team member exports contain their data. They contain no other user's
+email, no password hash, no TOTP secret and no session token hash.
+
+#### T121 · GDPR: request account deletion
+`P1 · M · depends on T120`
+
+**Do.**
+1. Add `GET /api/account/deletion`. It returns `{ blockers: [...], requestedAt, deleteAfter }`. Blockers:
+   - customer: projects that are not Completed or Archived; invoices that are Submitted or Approved but not
+     Paid; open disputes;
+   - supplier: accepted tasks that are not Completed; invoices not Paid; open disputes; site visits that are
+     Approved or Checked in.
+   Each blocker has a label and a link.
+2. Add `POST /api/account/deletion` with the password, and a TOTP code when 2FA is on.
+   - It returns 409 with the blocker list while anything is open.
+   - Otherwise it sets `deletionRequestedAt` and `deleteAfter` (+14 days), ends every session, and emails a
+     confirmation.
+3. A team member's request deletes only their own login. The main account's request covers its team members
+   too, and the blockers are checked for the company.
+4. Signing in before `deleteAfter` cancels the request. The person sees a notice "Your account deletion was
+   cancelled" and gets an email.
+5. Admins cannot be deleted this way (409 "Ask another admin").
+6. UI on the profile page: a "Delete account" section with the blocker list (links) or the password form,
+   with the 14 days explained.
+
+**Tests.**
+- Blockers for each role.
+- Wrong password → 400.
+- Success ends sessions.
+- Signing in cancels the request.
+- A team member deletes only themselves.
+
+#### T122 · GDPR: the deletion job
+`P1 · M · depends on T121`
+
+**Do.** An hourly job, like the invoice reminders, handles every user past `deleteAfter`:
+1. **Before anonymising:** freeze the legal details on every invoice of the user's company as a snapshot on
+   the invoice, so invoices stay printable for 10 years (§147 AO, §14b UStG). This covers names, addresses,
+   tax and VAT IDs and payout details.
+2. **User:**
+   - name "Deleted user", email `deleted-<id>@invalid`;
+   - remove phone, password, 2FA, sessions, notification preferences, layouts, payout details and
+     `companyProfile` contact fields;
+   - set `status: "Deleted"` and `deletedAt`.
+3. **Supplier company (main account):**
+   - hide it from the directory, search and invites (`status: "Deleted"`);
+   - remove the public profile text, logo and contact details;
+   - workers: delete names and certificates.
+4. **Messages:** keep the text for the other party, and show the sender as "Deleted user".
+5. **Notifications:** delete the user's notifications.
+6. **Outbox:** delete the user's pending mails.
+7. **Uploads:** delete files the user owns that no retained record (invoice, contract, acceptance report)
+   points to.
+8. **Audit log:** replace the user's email with the user id.
+9. Write one audit entry "Account deleted".
+
+**Tests.**
+- The run deletes after 14 days and not before.
+- The invoice PDF still shows the supplier's legal details.
+- The deleted supplier is gone from the directory.
+- The other party's chat still shows the messages from "Deleted user".
+- Signing in with the old email fails.
+
+#### T123 · GDPR: privacy policy and admin view
+`P2 · S`
+
+**Do.**
+1. Privacy policy sections, EN and DE, in the legal pages:
+   - "Your rights";
+   - "Download your data";
+   - "Deleting your account (14 days, invoices kept 10 years)";
+   - "Contact".
+   Mark the text as a draft for legal review in the PR.
+2. Admin: a list of accounts with a pending deletion (name, requested, deletes on) on the users page,
+   read-only.
+
+#### T124 · Cookie sessions with CSRF protection
+`P1 · M`
+
+**Problem.** The session token lives in `localStorage`, so any injected script can steal it. `/uploads/`
+files need a fetch with the header, because a plain link or `<img>` cannot send it.
+
+**Do.**
+1. **Sign-in, sign-up and 2FA:**
+   - also set `cc_session=<token>; HttpOnly; Secure; SameSite=Strict; Path=/`, with the same lifetime as the
+     session; leave out `Secure` on plain `http://localhost`;
+   - stop returning the token in the response body to browsers (`credentials: "include"` clients).
+     API clients that send `X-Client: api` keep getting it.
+2. **`auth()`** accepts the cookie, or the `Authorization: Bearer` header for tests and API clients.
+3. **CSRF:** for cookie-authenticated requests other than GET or HEAD, require the `Origin` (or `Referer`)
+   to be the app's own origin, and require the header `X-CSRF: 1`, which `api()` sends. Otherwise return
+   403.
+4. **Sign-out** clears the cookie; "sign out everywhere" ends all sessions as today.
+5. **Frontend:**
+   - `state.token` and `localStorage cc_token` go away;
+   - `api()` uses `credentials: "same-origin"`;
+   - `/uploads/` links and images work directly; keep the viewer overlay.
+6. **Migration:** a browser that still has `cc_token` sends it once to `POST /api/auth/upgrade`. That route
+   sets the cookie, and the browser then deletes the token.
+
+**Tests.**
+- The cookie flags are set.
+- A cookie POST without `X-CSRF` → 403.
+- A cookie POST from another origin → 403.
+- Bearer still works.
+- Sign-out clears the cookie.
+- The e2e smoke and PWA tests pass, including offline sync.
+
+#### T125 · Frontend foundation
+`P1 · M · depends on T124`
+
+**Do.**
+1. **Translations:**
+   - `public/locales/en.js` and `de.js` define `LOCALES.en` and `LOCALES.de` as nested objects.
+   - `t(key, params)` with `{name}` placeholders, `t.plural(key, n)` (`one`/`other`), and `fmt.date`,
+     `fmt.money` and `fmt.number` by language.
+   - A missing key shows the key and logs it once.
+   - Switching the language re-renders the current route instead of rewriting the DOM.
+2. **Actions:**
+   - `public/core/actions.js` has one delegated listener for click, change, input, submit and keydown.
+   - Markup uses `data-action="invoice.approve" data-id="…"`; areas register handlers with
+     `actions.on("invoice.approve", (el, event) => …)`.
+3. **Routes:**
+   - `public/core/router.js` has one route table: `routes.add("/customer/invoices", page)`, and parameters
+     like `/customer/invoice/:id`.
+   - Old pages keep working through a fallback to the current `route()` chain until their area moves.
+4. **Areas** live in `public/areas/<area>.js` and are loaded after the old files and before
+   `design-screens.js`.
+5. **The DOM translation layer** (`i18n.js`) is skipped for any element inside `[data-i18n="keys"]`, which
+   area pages set on their root.
+6. **Tests:**
+   - every key in `en.js` exists in `de.js` and the other way round, with the same placeholders;
+   - `t()` and plurals work;
+   - an unknown action is logged, not thrown.
+
+#### T126–T135 · Areas
+`P1/P2 · M each · in this order · each depends on T125`
+
+For each area:
+1. Move its pages into `public/areas/<area>.js`. It is registered in the route table and takes the *last*
+   definition of each page from the old files (search them all; later files win), including the
+   design-screens wrapper for that page.
+2. Every text is a `t()` key. Move the matching German from `I18N_DE` and `I18N_PATTERNS`, and delete the
+   entries that become unused.
+3. Use no `onclick`, `onchange`, `onsubmit` or `oninput` attributes; use `data-action`.
+4. Delete the old definitions and route wrappers of these pages from the older files.
+5. Prove nothing is lost:
+   - the control diff for every role, EN and DE;
+   - the overflow runs;
+   - the smoke test;
+   - a German screenshot of each page, compared with `main`.
+
+Areas: T126 public pages and auth · T127 dashboards, sidebar, notifications, phone bar · T128 projects,
+workspace, board, documents · T129 sourcing, offers, bids, contracts, directory · T130 invoices and payments ·
+T131 time, site reports, punch list, acceptance · T132 messages · T133 sites, compliance, calendar ·
+T134 admin · T135 profile, settings, team, 2FA.
+
+#### T136 · Strict CSP and clean-up
+`P1 · S · after T126–T135`
+
+**Do.**
+1. `grep` finds no `on[a-z]+=` attributes and no inline `<script>`. The service worker registration moves
+   to `public/core/boot.js`.
+2. The CSP becomes `script-src 'self'`. `style-src` may keep `'unsafe-inline'` for `style=` attributes.
+3. Remove `i18n.js`'s DOM layer and the empty old files from `index.html`.
+4. Bump the service worker cache.
+5. Run the crawl with axe, the control diff and the smoke test.
 
 ---
 
