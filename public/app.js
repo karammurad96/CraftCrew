@@ -147,47 +147,6 @@ async function logout() {
 function publicLayout(content) {
   return `<div class="cc-shell">${content}</div>`;
 }
-function sidebar(role, active) {
-  const links =
-    role === "customer"
-      ? [
-          ["dashboard", "Dashboard"],
-          ["projects", "Projects"],
-          ["suppliers", "Find Suppliers"],
-          ["invoices", "Invoices"],
-          ["messages", "Messages"],
-          ["profile", "Profile / Settings"],
-        ]
-      : role === "supplier"
-        ? [
-            ["dashboard", "Dashboard"],
-            ["phases", "Assigned Phases"],
-            ["projects", "Projects"],
-            ["invoices", "Invoices"],
-            ["suppliers", "Service Catalog"],
-            ["messages", "Messages"],
-            ["profile", "Profile / Billing"],
-          ]
-        : [
-            ["dashboard", "Admin Dashboard"],
-            ["applications", "Vetting Queue"],
-            ["users", "Users"],
-            ["billing", "Payments & Billing"],
-            ["reports", "Reports & Analytics"],
-            ["disputes", "Escalations"],
-            ["profile", "Settings"],
-          ];
-  return `<aside class="sidebar"><div class="brand side-brand"><span class="brand-mark" role="img" aria-label="CraftCrew logo"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M14 50C24 42 40 22 50 14"/><circle cx="14" cy="50" r="8.5"/><circle cx="50" cy="14" r="8.5"/></svg></span><span class="brand-word">Craft<span>Crew</span></span></div><div class="user-mini"><div class="avatar">${esc(
-    (state.user?.name || "U")
-      .split(" ")
-      .map((x) => x[0])
-      .join("")
-      .slice(0, 2),
-  )}</div><div><b>${esc(state.user?.name)}</b><small>${esc(state.user?.company || role)}</small></div></div><nav>${links.map(([k, t]) => `<a class="${active === k ? "active" : ""}" href="#/${role}/${k}">${t}</a>`).join("")}</nav><div class="help">Industrial services, coordinated end-to-end.<br><button class="btn small ghost" onclick="navigate('/faq')">Help & FAQ</button><button class="btn small danger" style="margin-top:8px;width:100%" onclick="logout()">Log out</button></div></aside>`;
-}
-function dashboardShell(role, active, content) {
-  return `<div class="app-shell">${sidebar(role, active)}<section class="dashboard-content">${content}</section></div>`;
-}
 function publicHero() {
   return `<section class="hero-lite"><div><div class="eyebrow">INDUSTRIAL SERVICES, COORDINATED</div><h1>Build complex projects with <span>trusted crews.</span></h1><p>CraftCrew connects SMEs with vetted mechanical, electrical, automation and industrial service specialists — managed through one transparent waterfall workflow.</p><div class="hero-actions"><button class="btn primary lg" onclick="navigate('/signup')">Start a project</button><button class="btn outline lg" onclick="navigate('/suppliers')">Explore suppliers</button></div><div class="trust-row"><div><b>20+</b><small>vetted suppliers</small></div><div><b>5-stage</b><small>waterfall delivery</small></div><div><b>1 place</b><small>projects & payments</small></div></div></div><div class="hero-box"><div class="small-label">LIVE PROJECT CONTROL</div><h3 style="font-size:20px;margin:10px 0">Line 15 Integration</h3><div class="progress"><i style="width:68%"></i></div><div style="font-size:11px;color:#9eabc0">68% complete · 12 days remaining</div><div class="mini"><div><div class="small-label">ACTIVE PHASE</div><b>Programming</b><p style="color:#9eabc0">SPS Experts GmbH</p></div><div><div class="small-label">NEXT MILESTONE</div><b>Installation</b><p style="color:#9eabc0">18 Sep 2026</p></div></div></div></section>`;
 }

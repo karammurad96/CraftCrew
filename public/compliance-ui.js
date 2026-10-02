@@ -515,22 +515,6 @@ srApprovals = async function () {
 };
 
 /* ================= Navigation & routing ================= */
-function cmNav() {
-  const nav = document.querySelector(".sidebar nav"),
-    role = state.user?.role;
-  if (!nav || !["customer", "supplier"].includes(role)) return;
-  const key = role === "customer" ? "sites" : "compliance",
-    label = role === "customer" ? "Sites & safety" : "Compliance";
-  if (nav.querySelector(`[href="#/${role}/${key}"]`)) return;
-  const a = document.createElement("a");
-  a.href = `#/${role}/${key}`;
-  a.textContent = label;
-  if (location.hash.split("?")[0].startsWith(`#/${role}/${key}`)) {
-    nav.querySelectorAll("a.active").forEach((x) => x.classList.remove("active"));
-    a.className = "active";
-  }
-  (nav.querySelector(`[href="#/${role}/contracts"]`) || nav.lastElementChild).after(a);
-}
 const cmBaseRoute = window.route;
 window.route = async function () {
   const parts = location.hash.replace(/^#/, "").split("?")[0].split("/").filter(Boolean),
@@ -539,16 +523,10 @@ window.route = async function () {
     if (role === "customer" && parts[0] === "customer" && parts[1] === "sites") {
       await cmCat();
       parts[2] ? await cmSiteDetail(parts[2]) : await cmSites();
-      inNav();
-      srNav();
-      cmNav();
       return;
     }
     if (role === "supplier" && parts[0] === "supplier" && parts[1] === "compliance") {
       await cmSupplierPage();
-      inNav();
-      srNav();
-      cmNav();
       return;
     }
   } catch (e) {
@@ -557,6 +535,5 @@ window.route = async function () {
     return;
   }
   const result = await cmBaseRoute();
-  cmNav();
   return result;
 };

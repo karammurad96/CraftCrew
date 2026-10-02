@@ -547,28 +547,6 @@ async function srAdminScorecards() {
 }
 
 /* ---------- Navigation and routing ---------- */
-function srNav() {
-  const nav = document.querySelector(".sidebar nav"),
-    role = state.user?.role;
-  if (!nav || !["customer", "supplier"].includes(role)) return;
-  const here = location.hash.split("?")[0],
-    add = (key, label, after) => {
-      if (nav.querySelector(`[href="#/${role}/${key}"]`)) return;
-      const a = document.createElement("a");
-      a.href = `#/${role}/${key}`;
-      a.textContent = label;
-      if (here.startsWith(`#/${role}/${key}`)) {
-        nav.querySelectorAll("a.active").forEach((x) => x.classList.remove("active"));
-        a.className = "active";
-      }
-      (nav.querySelector(`[href="#/${role}/${after}"]`) || nav.lastElementChild).after(a);
-    };
-  if (role === "customer") {
-    add("approvals", "Approvals", "analytics");
-    add("sourcing", "Sourcing", "projects");
-    add("contracts", "Contracts", "sourcing");
-  } else add("contracts", "Contracts", "invoices");
-}
 const srBaseRoute = window.route;
 window.route = async function () {
   const path = location.hash.replace(/^#/, "").split("?")[0],
@@ -578,20 +556,14 @@ window.route = async function () {
   try {
     if (own && role === "customer" && parts[1] === "sourcing") {
       parts[2] ? await srEvent(parts[2]) : await srDashboard();
-      inNav();
-      srNav();
       return;
     }
     if (own && role === "customer" && parts[1] === "approvals") {
       await srApprovals();
-      inNav();
-      srNav();
       return;
     }
     if (own && ["customer", "supplier"].includes(role) && parts[1] === "contracts") {
       await srContracts(role);
-      inNav();
-      srNav();
       return;
     }
   } catch (e) {
@@ -600,7 +572,6 @@ window.route = async function () {
     return;
   }
   const result = await srBaseRoute();
-  srNav();
   try {
     if (parts[0] === "customer" && parts[1] === "suppliers" && parts[2])
       await srScorecardPanel(

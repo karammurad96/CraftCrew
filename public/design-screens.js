@@ -107,150 +107,6 @@ document.addEventListener(
   true,
 );
 
-/* ---------- Sidebar (T93, boards Dashboard / SupplierDash / Workspace) ----------
-   Five or six daily pages on top, everything else under a collapsible "More". Labels change, routes do not. */
-Object.assign(NG_GROUPS, {
-  customer: [["", ["dashboard", "projects", "approvals", "sourcing", "invoices", "messages"]]],
-  supplier: [["", ["dashboard", "projects", "planning", "bids", "invoices", "compliance"]]],
-  admin: [["", ["dashboard", "applications", "users", "billing", "disputes", "reports"]]],
-});
-const DS_SIDE_LABELS = {
-  customer: {
-    dashboard: "Today",
-    projects: "Projects",
-    approvals: "Approvals",
-    sourcing: "Sourcing",
-    invoices: "Invoices",
-    messages: "Messages",
-  },
-  supplier: {
-    dashboard: "Today",
-    projects: "Work",
-    planning: "Team planner",
-    bids: "Opportunities",
-    invoices: "Invoices",
-    compliance: "Compliance",
-  },
-  admin: {
-    dashboard: "Today",
-    applications: "Vetting",
-    users: "Users",
-    billing: "Payments",
-    disputes: "Escalations",
-    reports: "Reports",
-  },
-};
-// The project list under "Projects" is not one of the grouped links: keep it right after "Projects" while
-// nav-groups.js sorts the rest. Working on a view of the children means a stable sidebar is never touched.
-const dsBaseNgGroup = ngGroup;
-ngGroup = function (nav, role) {
-  const sub = nav.querySelector(":scope > .ds-side-projects");
-  if (!sub) return dsBaseNgGroup(nav, role);
-  dsBaseNgGroup(
-    {
-      children: [...nav.children].filter((el) => el !== sub),
-      replaceChildren: (...els) => {
-        els.splice(els.findIndex((el) => el.dataset?.uiIcon === "projects") + 1, 0, sub);
-        nav.replaceChildren(...els);
-      },
-    },
-    role,
-  );
-};
-function dsMoreOpen() {
-  try {
-    return localStorage.getItem("cc_sidebar_more") === "1";
-  } catch {
-    return false;
-  }
-}
-function dsSetMore(nav, open) {
-  nav.classList.toggle("ds-more-closed", !open);
-  nav.querySelector(':scope > .ng-title[data-title="More"]')?.setAttribute("aria-expanded", String(open));
-}
-function dsToggleMore(title) {
-  const nav = title.parentElement,
-    open = nav.classList.contains("ds-more-closed");
-  dsSetMore(nav, open);
-  try {
-    localStorage.setItem("cc_sidebar_more", open ? "1" : "0");
-  } catch {}
-}
-document.addEventListener("click", (e) => {
-  const t = e.target.closest?.('.sidebar nav > .ng-title[data-title="More"]');
-  if (t) dsToggleMore(t);
-});
-document.addEventListener("keydown", (e) => {
-  const t = e.target.closest?.('.sidebar nav > .ng-title[data-title="More"]');
-  if (t && (e.key === "Enter" || e.key === " ")) {
-    e.preventDefault();
-    dsToggleMore(t);
-  }
-});
-let dsSideProjects = null;
-function dsSideProjectList() {
-  dsSideProjects ||= api("/projects")
-    .then((d) => (d.projects || []).slice(0, 5))
-    .catch(() => (dsSideProjects = null) || []);
-  return dsSideProjects;
-}
-function dsEnhanceSidebar(root) {
-  const side = root.querySelector(".app-shell > .sidebar"),
-    nav = side?.querySelector(":scope > nav"),
-    role = state.user?.role;
-  if (!nav || !role) return;
-  nav.dataset.dsRole = role;
-  // Labels of the main links (the icon and count stay; only the text node changes)
-  const labels = DS_SIDE_LABELS[role] || {};
-  for (const a of nav.querySelectorAll(":scope > a")) {
-    const label = labels[a.dataset.uiIcon || ngKey(a)];
-    if (!label) continue;
-    const text = [...a.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
-    // A new text node (not an edit), so i18n.js sees a childList change and translates it
-    if (text && dsText({ nodeType: 1, childNodes: [text] }) !== label) text.replaceWith(document.createTextNode(label));
-  }
-  // "More": a keyboard-friendly toggle, collapsed unless the user opened it
-  const more = nav.querySelector(':scope > .ng-title[data-title="More"]');
-  if (more && !more.hasAttribute("role")) {
-    more.setAttribute("role", "button");
-    more.setAttribute("tabindex", "0");
-    more.classList.add("ds-ui");
-  }
-  if (more && !nav.dataset.dsMore) {
-    nav.dataset.dsMore = "1";
-    dsSetMore(nav, dsMoreOpen());
-  }
-  // Help row: no tagline, language switch + help + log out in one row
-  const help = side.querySelector(":scope > .help");
-  if (help && !help.dataset.ds) {
-    help.dataset.ds = "1";
-    for (const n of [...help.childNodes])
-      if (n.nodeType === 3 && /Industrial services, coordinated end-to-end\./.test(dsText({ nodeType: 1, childNodes: [n] }))) {
-        if (n.nextSibling?.nodeName === "BR") n.nextSibling.remove();
-        n.remove();
-      }
-  }
-  // Projects of this user under "Projects", on any page inside a project
-  const m = location.hash.match(/^#\/(customer|supplier)\/projects\/([^/?]+)/);
-  const projectsLink = nav.querySelector(':scope > a[data-ui-icon="projects"]');
-  projectsLink?.classList.toggle("ds-section-active", !!m);
-  if (m && projectsLink && !nav.querySelector(":scope > .ds-side-projects")) {
-    const sub = document.createElement("div");
-    sub.className = "ds-side-projects";
-    projectsLink.after(sub);
-    dsSideProjectList().then((list) => {
-      sub.innerHTML = list
-        .map(
-          (p) =>
-            `<a href="#/${role}/projects/${encodeURIComponent(p.id)}"${p.id === m[2] ? ' class="ds-current" aria-current="page"' : ""}>${esc(p.name)}</a>`,
-        )
-        .join("");
-    });
-  }
-}
-
-/* ---------- Landing page (T94, board Landing) ---------- */
-
 /* Top bar for visitors: "Sign in" as a text link and a small "Start a project" pill (board Landing) */
 const dsBaseTopActions = topActions;
 topActions = function () {
@@ -1485,19 +1341,6 @@ invoiceDetailPage = async function (id) {
 
 /* ---------- Phone: bottom bar and "Today" for suppliers (T102, board PhoneToday) ---------- */
 // Labels only; the routes and the "More" button of mobile-nav.js stay.
-MNAV_BOTTOM.customer = [
-  ["dashboard", "Today"],
-  ["projects", "Projects"],
-  ["approvals", "Approvals"],
-  ["messages", "Messages"],
-];
-MNAV_BOTTOM.supplier = [
-  ["dashboard", "Today"],
-  ["projects", "Jobs"],
-  ["time", "Time"],
-  ["messages", "Messages"],
-];
-MNAV_BOTTOM.admin[0] = ["dashboard", "Today"];
 const DS_QUICK_ICONS = {
   time: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   photo: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
@@ -1908,7 +1751,7 @@ async function dsApprovalDo(fn) {
 }
 
 /* ---------- Run the enhancers after every render ---------- */
-const DS_ENHANCERS = [dsEnhanceChips, dsEnhanceButtons, dsEnhanceEmpty, dsEnhanceSidebar, dsEnhanceDashboard, dsEnhanceWorkspace, dsEnhanceOffers, dsEnhanceToday];
+const DS_ENHANCERS = [dsEnhanceChips, dsEnhanceButtons, dsEnhanceEmpty, dsEnhanceDashboard, dsEnhanceWorkspace, dsEnhanceOffers, dsEnhanceToday];
 function dsEnhance() {
   for (const root of [document.getElementById("app"), document.getElementById("modalRoot")])
     if (root) for (const fn of DS_ENHANCERS) fn(root);

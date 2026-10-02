@@ -325,4 +325,94 @@ LOCALES.en = {
     "reference": "Reference:",
     "browse": "Browse suppliers"
   },
+  // App shell: sidebar, phone bar, notifications (T127a)
+  shell: {
+    "nav": {
+      "customer": {
+        "dashboard": "Today",
+        "projects": "Projects",
+        "approvals": "Approvals",
+        "sourcing": "Sourcing",
+        "invoices": "Invoices",
+        "messages": "Messages",
+        "analytics": "Analytics",
+        "contracts": "Contracts",
+        "sites": "Sites & safety",
+        "offers": "Offers overview",
+        "suppliers": "Find Suppliers",
+        "preferred": "Preferred suppliers",
+        "inbox": "Inbox",
+        "time": "Time approvals",
+        "team": "Team",
+        "profile": "Profile / Settings"
+      },
+      "supplier": {
+        "dashboard": "Today",
+        "projects": "Work",
+        "planning": "Team planner",
+        "bids": "Opportunities",
+        "invoices": "Invoices",
+        "compliance": "Compliance",
+        "analytics": "Analytics",
+        "requests": "Quote Requests",
+        "contracts": "Contracts",
+        "suppliers": "Service Catalog",
+        "inbox": "Inbox",
+        "time": "Time & approvals",
+        "messages": "Messages",
+        "team": "Team",
+        "profile": "Profile / Billing"
+      },
+      "admin": {
+        "dashboard": "Today",
+        "applications": "Vetting",
+        "users": "Users",
+        "billing": "Payments",
+        "disputes": "Escalations",
+        "reports": "Reports",
+        "audit": "Audit log",
+        "platform": "Platform Management",
+        "profile-changes": "Profile changes",
+        "profile": "Settings"
+      }
+    },
+    "bottom": {
+      "customer": {
+        "dashboard": "Today",
+        "projects": "Projects",
+        "approvals": "Approvals",
+        "messages": "Messages"
+      },
+      "supplier": {
+        "dashboard": "Today",
+        "projects": "Jobs",
+        "time": "Time",
+        "messages": "Messages"
+      },
+      "admin": {
+        "dashboard": "Today",
+        "applications": "Vetting",
+        "billing": "Payments",
+        "disputes": "Escalations"
+      }
+    },
+    "more": "More",
+    "search": "Search",
+    "help": "Help & FAQ",
+    "logout": "Log out",
+    "checklist": "Getting started checklist",
+    "profile": "Profile",
+    "teamBadge": "Team",
+    "menu": "Menu",
+    "closeMenu": "Close menu",
+    "quickNav": "Quick navigation",
+    "language": "Language",
+    "bellLabel": "Notifications, {n} unread",
+    "countLabel": "{n} open",
+    "lockTip": "Available once your company is verified.",
+    "notifications": "Notifications",
+    "markAll": "Mark all as read",
+    "openInbox": "Open inbox",
+    "caughtUp": "You are all caught up."
+  },
 };

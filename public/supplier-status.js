@@ -1,7 +1,8 @@
 /* Suppliers who are not verified yet: every supplier page shows a banner that leads to the application (or its
    status), and "Bid opportunities" and "Create invoice" carry a lock with a tooltip, because the server
    refuses those actions until the company is approved. */
-const SS_LOCK_TIP = "Available once your company is verified.";
+// The tooltip of locked links and buttons (T127a: from the shell keys)
+const ssLockTip = () => t("shell.lockTip");
 const SS_LOCK_ICON =
   '<svg class="ss-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
 let ssStatus = null,
@@ -51,8 +52,8 @@ function ssDecorate(status) {
   for (const el of locked)
     if (!el.classList.contains("ss-locked")) {
       el.classList.add("ss-locked");
-      el.title = SS_LOCK_TIP;
-      el.setAttribute("aria-description", SS_LOCK_TIP);
+      el.title = ssLockTip();
+      el.setAttribute("aria-description", ssLockTip());
       el.insertAdjacentHTML("beforeend", SS_LOCK_ICON);
     }
 }

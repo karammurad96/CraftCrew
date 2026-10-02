@@ -374,24 +374,6 @@ function plBindDrag() {
 }
 
 /* ---------- Navigation & routing ---------- */
-function plNav() {
-  const nav = document.querySelector(".sidebar nav");
-  if (!nav || state.user?.role !== "supplier" || nav.querySelector('[href="#/supplier/planning"]')) return;
-  if (state.user.isMember && typeof tmLevel === "function" && tmLevel("projects") === "none") return;
-  const a = document.createElement("a");
-  a.href = "#/supplier/planning";
-  a.textContent = "Team planner";
-  if (location.hash.split("?")[0] === "#/supplier/planning") {
-    nav.querySelectorAll("a.active").forEach((x) => x.classList.remove("active"));
-    a.className = "active";
-  }
-  (
-    nav.querySelector('[href="#/supplier/projects"]') ||
-    nav.querySelector('[href="#/supplier/phases"]') ||
-    nav.lastElementChild
-  ).after(a);
-  if (typeof uiEnhanceSidebar === "function") uiEnhanceSidebar();
-}
 const plBaseRoute = window.route;
 window.route = async function () {
   const parts = location.hash.replace(/^#/, "").split("?")[0].split("/").filter(Boolean);
@@ -407,19 +389,8 @@ window.route = async function () {
       console.error(e);
       toast(e.message, "error");
     }
-    for (const fn of ["inNav", "srNav", "cmNav", "tmNav"])
-      if (typeof window[fn] === "function")
-        try {
-          window[fn]();
-        } catch {}
-    plNav();
     return;
   }
   const result = await plBaseRoute();
-  plNav();
   return result;
 };
-// Pages rendered outside the router get the planner link too.
-new MutationObserver(() => requestAnimationFrame(plNav)).observe(document.getElementById("app"), {
-  childList: true,
-});

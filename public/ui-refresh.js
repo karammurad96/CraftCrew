@@ -57,41 +57,6 @@ const UI_NAV_ICONS = {
   disputes: "disputes",
 };
 
-function uiEnhanceSidebar() {
-  const sidebar = document.querySelector(".sidebar");
-  if (!sidebar || !state.user) return;
-  const role = state.user.role;
-  for (const a of sidebar.querySelectorAll("nav a")) {
-    const key = (a.getAttribute("href") || "").split("?")[0].split("/").pop();
-    if (a.dataset.uiIcon === key && a.querySelector(".ui-icon")) continue;
-    a.querySelector(".ui-icon")?.remove();
-    a.dataset.uiIcon = key;
-    let icon = UI_NAV_ICONS[key] || "dashboard";
-    if (role === "supplier" && key === "projects") icon = "work";
-    if (role === "supplier" && key === "suppliers") icon = "catalog";
-    a.insertAdjacentHTML("afterbegin", uiIcon(icon));
-  }
-  const help = sidebar.querySelector(".help");
-  if (help && !help.dataset.ui) {
-    help.dataset.ui = "1";
-    const faq = [...help.querySelectorAll("button")].find((b) => /help/i.test(b.textContent)),
-      out = [...help.querySelectorAll("button")].find((b) => /log out/i.test(b.textContent));
-    if (faq) faq.innerHTML = `${uiIcon("help")}<span>Help & FAQ</span>`;
-    if (out) out.innerHTML = `${uiIcon("logout")}<span>Log out</span>`;
-  }
-  const brand = sidebar.querySelector(".side-brand");
-  if (brand && !sidebar.querySelector(".ui-bell")) {
-    const bar = document.createElement("div");
-    bar.className = "ui-side-top";
-    brand.replaceWith(bar);
-    bar.append(brand);
-    bar.insertAdjacentHTML(
-      "beforeend",
-      `<button type="button" class="ui-bell" aria-label="Notifications" aria-haspopup="true" aria-expanded="false" onclick="uiToggleNotifications(event)">${uiIcon("bell")}<span class="ui-badge" hidden>0</span></button>`,
-    );
-    uiRefreshBadge();
-  }
-}
 
 /* ---------- Notification bell ---------- */
 let uiUnread = 0;
@@ -106,7 +71,7 @@ async function uiRefreshBadge() {
     });
     document
       .querySelectorAll(".ui-bell")
-      .forEach((b) => b.setAttribute("aria-label", `Notifications, ${unread} unread`));
+      .forEach((b) => b.setAttribute("aria-label", t("shell.bellLabel", { n: unread })));
   } catch {}
 }
 function uiCloseNotifications() {
@@ -121,7 +86,8 @@ async function uiToggleNotifications(e) {
   bell.setAttribute("aria-expanded", "true");
   document.body.insertAdjacentHTML(
     "beforeend",
-    `<div id="uiNotifPanel" class="ui-notif-panel" role="dialog" aria-label="Notifications"><div class="ui-notif-head"><b>Notifications</b><button type="button" class="ui-link-btn" onclick="uiMarkAllRead()">Mark all as read</button></div><div class="ui-notif-list"><p class="ui-notif-empty">Loading…</p></div><button type="button" class="ui-notif-foot" onclick="uiCloseNotifications();navigate('/${state.user.role === "admin" ? "admin/dashboard" : state.user.role + "/inbox"}')">Open inbox</button></div>`,
+    // Drawn with keys (T127a); the notification texts come from the server in the user's language
+    `<div id="uiNotifPanel" class="ui-notif-panel" role="dialog" aria-label="${esc(t("shell.notifications"))}" data-i18n="keys"><div class="ui-notif-head"><b>${esc(t("shell.notifications"))}</b><button type="button" class="ui-link-btn" data-action="shell.markAll">${esc(t("shell.markAll"))}</button></div><div class="ui-notif-list"><p class="ui-notif-empty">${esc(t("common.loading"))}</p></div><button type="button" class="ui-notif-foot" data-action="shell.openInbox">${esc(t("shell.openInbox"))}</button></div>`,
   );
   const panel = document.getElementById("uiNotifPanel"),
     narrow = innerWidth < 651;
@@ -136,9 +102,9 @@ async function uiToggleNotifications(e) {
         .slice(0, 12)
         .map(
           (n) =>
-            `<button type="button" class="ui-notif ${n.read ? "" : "unread"}" data-id="${esc(n.id)}" data-link="${esc(n.link || "")}"><span class="ui-notif-dot"></span><span><b>${esc(n.text)}</b><small>${new Date(n.createdAt).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</small></span></button>`,
+            `<button type="button" class="ui-notif ${n.read ? "" : "unread"}" data-id="${esc(n.id)}" data-link="${esc(n.link || "")}"><span class="ui-notif-dot"></span><span><b>${esc(n.text)}</b><small>${esc(new Date(n.createdAt).toLocaleString(fmt.locale(), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }))}</small></span></button>`,
         )
-        .join("") || '<p class="ui-notif-empty">You are all caught up.</p>';
+        .join("") || `<p class="ui-notif-empty">${esc(t("shell.caughtUp"))}</p>`;
     list.querySelectorAll(".ui-notif").forEach(
       (b) =>
         (b.onclick = async () => {
@@ -153,7 +119,7 @@ async function uiToggleNotifications(e) {
         }),
     );
   } catch (x) {
-    panel.querySelector(".ui-notif-list").innerHTML = `<p class="ui-notif-empty">${esc(x.message)}</p>`;
+    panel.querySelector(".ui-notif-list").innerHTML = `<p class="ui-notif-empty" data-i18n="dom">${esc(x.message)}</p>`;
   }
 }
 async function uiMarkAllRead() {
@@ -463,14 +429,6 @@ document.addEventListener("keydown", (e) => {
 window.addEventListener("hashchange", () => {
   uiCloseSearch();
 });
-function uiSearchButton() {
-  const top = document.querySelector(".sidebar .ui-side-top");
-  if (!top || document.querySelector(".sidebar .ui-search-btn")) return;
-  top.insertAdjacentHTML(
-    "afterend",
-    `<button type="button" class="ui-search-btn" onclick="uiSearchIndex=null;uiOpenSearch()">${uiIcon("search")}<span>Search</span><kbd>Ctrl K</kbd></button>`,
-  );
-}
 
 /* ---------- Constant layout: panel bodies scroll instead of growing ---------- */
 function uiScrollAreas() {
@@ -599,8 +557,6 @@ function uiButtonGaps() {
 /* Re-apply after every render: pages replace the shell wholesale. */
 let uiPending = false;
 function uiEnhanceAll() {
-  uiEnhanceSidebar();
-  uiSearchButton();
   uiCountPills();
   uiDropZones(document);
   uiSortablePanels();
