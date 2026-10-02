@@ -853,7 +853,8 @@ async function paVerifySession() {
     return;
   }
   try {
-    const r = await fetch("/api/auth/me", { headers: { Authorization: "Bearer " + state.token } });
+    await ccSessionReady;
+    const r = await fetch("/api/auth/me", { credentials: "same-origin" });
     if (r.status === 401 || r.status === 403)
       return paClearSession("Your session has ended. Please sign in again.");
     if (!r.ok) return;

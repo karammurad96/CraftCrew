@@ -9,7 +9,7 @@ const planted = [];
 async function call(token, method, path, body) {
   const r = await fetch(BASE + "/api" + path, {
     method,
-    headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) },
+    headers: { "Content-Type": "application/json", "X-Client": "api", ...(token ? { Authorization: "Bearer " + token } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
   let d = {};

@@ -34,7 +34,7 @@ const MAX = Number(process.env.MAX || 70);
 async function login(email, password) {
   const r = await fetch(BASE + "/api/auth/login", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "X-Client": "api" },
     body: JSON.stringify({ email, password }),
   });
   const d = await r.json();

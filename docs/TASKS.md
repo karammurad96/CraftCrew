@@ -190,7 +190,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T121 GDPR: request account deletion (blocked while business is open, 14-day grace period) · M
 - [x] T122 GDPR: the deletion job (anonymise after 14 days, keep invoices 10 years) · M
 - [x] T123 GDPR: privacy policy text and admin view of deletions · S
-- [ ] T124 Cookie sessions with CSRF protection instead of the localStorage token · M
+- [x] T124 Cookie sessions with CSRF protection instead of the localStorage token · M
 - [ ] T125 Frontend foundation: translation keys `t()`, `data-action` handlers, area modules, one route table · M
 - [ ] T126 Area: public pages, sign-in and sign-up · M
 - [ ] T127 Area: dashboards, sidebar, notifications and phone bar · M

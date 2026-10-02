@@ -140,10 +140,7 @@ function renderAuth(mode) {
     const b = Object.fromEntries(new FormData(e.target));
     try {
       const d = await api("/auth/" + mode, { method: "POST", body: b });
-      state.user = d.user;
-      state.token = d.token;
-      localStorage.setItem("cc_user", JSON.stringify(d.user));
-      localStorage.setItem("cc_token", d.token);
+      ccSignedIn(d.user);
       topActions();
       document.body.classList.add("authenticated");
       toast(mode === "login" ? "Signed in" : "Account created");

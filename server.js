@@ -2790,9 +2790,41 @@ function send(res, status, data, headers = {}) {
   });
   res.end(body);
 }
+/* Sessions (T124): browsers carry the token in an HttpOnly cookie that scripts can't read; API clients and
+   tests send it as "Authorization: Bearer". Cookie-authenticated changes must pass the CSRF check. */
+const SESSION_COOKIE = "cc_session";
+function cookieToken(req) {
+  return String(req.headers.cookie || "").match(/(?:^|;\s*)cc_session=([a-f0-9]{64})(?:;|$)/)?.[1] || null;
+}
+function sessionCookie(req, token, maxAgeSeconds = 7 * 86400) {
+  const secure = APP_URL.startsWith("https://") || req.headers["x-forwarded-proto"] === "https";
+  return `${SESSION_COOKIE}=${token}; HttpOnly;${secure ? " Secure;" : ""} SameSite=Strict; Path=/; Max-Age=${maxAgeSeconds}`;
+}
+// The reply to a sign-in: the cookie for browsers; the token in the body only for API clients (X-Client: api).
+function sessionReply(req, token, data) {
+  const api = String(req.headers["x-client"] || "").toLowerCase() === "api";
+  return [api ? { token, ...data } : data, { "Set-Cookie": sessionCookie(req, token) }];
+}
+// A cookie-authenticated change must come from this site: our own X-CSRF header (which other sites can't send
+// without a CORS preflight we never allow) and, when the browser sends one, our own Origin or Referer.
+function csrfProblem(req) {
+  if (!req._viaCookie || ["GET", "HEAD", "OPTIONS"].includes(req.method)) return null;
+  if (req.headers["x-csrf"] !== "1") return "This request was blocked for your security. Reload the page and try again.";
+  const from = req.headers.origin || req.headers.referer;
+  if (from) {
+    try {
+      if (new URL(from).host !== req.headers.host) return "This request was blocked: it came from another website.";
+    } catch {
+      return "This request was blocked: it came from another website.";
+    }
+  }
+  return null;
+}
 function auth(req) {
   const h = req.headers.authorization || "";
-  const token = h.startsWith("Bearer ") ? h.slice(7) : null;
+  const bearer = h.startsWith("Bearer ") ? h.slice(7) : null,
+    token = bearer || cookieToken(req);
+  req._viaCookie = !bearer && !!token;
   const tokenHash = token && crypto.createHash("sha256").update(token).digest("hex");
   const nowMs = Date.now();
   const session =
@@ -3971,7 +4003,7 @@ async function api(req, res, url) {
       linkApprovedSupplier(u);
       const token = newSession(u);
       save();
-      send(res, 201, { token, user: publicUser(u) });
+      send(res, 201, ...sessionReply(req, token, { user: publicUser(u) }));
       return true;
     }
     if (parts[1] === "auth" && parts[2] === "verify" && method === "POST") {
@@ -3989,7 +4021,7 @@ async function api(req, res, url) {
       linkApprovedSupplier(u);
       const token = newSession(u);
       save();
-      return (send(res, 200, { token, user: publicUser(u) }), true);
+      return (send(res, 200, ...sessionReply(req, token, { user: publicUser(u) })), true);
     }
     if (parts[1] === "auth" && parts[2] === "resend-verification" && method === "POST") {
       const b = await body(req),
@@ -4139,12 +4171,15 @@ async function api(req, res, url) {
       u.lastLoginAt = now();
       const token = newSession(u);
       save();
-      send(res, 200, {
-        token,
-        user: publicUser(acting),
-        ...(deletionCancelled ? { deletionCancelled: true } : {}),
-        ...(recoveryCodesLeft !== undefined ? { recoveryCodesLeft } : {}),
-      });
+      send(
+        res,
+        200,
+        ...sessionReply(req, token, {
+          user: publicUser(acting),
+          ...(deletionCancelled ? { deletionCancelled: true } : {}),
+          ...(recoveryCodesLeft !== undefined ? { recoveryCodesLeft } : {}),
+        }),
+      );
       return true;
     }
     if (parts[1] === "auth" && parts[2] === "me" && method === "GET") {
@@ -4153,13 +4188,21 @@ async function api(req, res, url) {
       return (send(res, 200, { user: publicUser(u) }), true);
     }
     if (parts[1] === "auth" && parts[2] === "logout" && method === "POST") {
-      const h = req.headers.authorization || "";
-      if (h.startsWith("Bearer ")) {
-        const tokenHash = crypto.createHash("sha256").update(h.slice(7)).digest("hex");
+      const h = req.headers.authorization || "",
+        token = h.startsWith("Bearer ") ? h.slice(7) : cookieToken(req);
+      if (token) {
+        const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
         db.sessions = db.sessions.filter((x) => x.tokenHash !== tokenHash);
         save();
       }
-      return (send(res, 200, { ok: true }), true);
+      return (send(res, 200, { ok: true }, { "Set-Cookie": sessionCookie(req, "", 0) }), true);
+    }
+    // One-time move of a session from an old localStorage token to the cookie (T124).
+    if (parts[1] === "auth" && parts[2] === "upgrade" && method === "POST") {
+      const h = req.headers.authorization || "",
+        token = h.startsWith("Bearer ") ? h.slice(7) : "";
+      if (!/^[a-f0-9]{64}$/.test(token) || !auth(req)) return (send(res, 401, { error: "Authentication required" }), true);
+      return (send(res, 200, { ok: true }, { "Set-Cookie": sessionCookie(req, token) }), true);
     }
 
     // Public supplier directory
@@ -4278,7 +4321,8 @@ async function api(req, res, url) {
       if (!emailPattern.test(b.email) || !emailPattern.test(b.referenceEmail))
         return (send(res, 400, { error: "Enter valid company and reference email addresses" }), true);
       // Link to a supplier account only when that supplier is signed in with the same email.
-      const sender = auth(req),
+      const signedIn = auth(req),
+        sender = signedIn && !csrfProblem(req) ? signedIn : null,
         owner = sender?.role === "supplier" && normEmail(sender.email) === b.email ? sender : null;
       const uploads = Array.isArray(raw.proofUploads) ? raw.proofUploads : [];
       if (uploads.length > 5)
@@ -4374,6 +4418,8 @@ async function api(req, res, url) {
 
     const user = requireAuth(req, res);
     if (!user) return true;
+    const csrf = csrfProblem(req);
+    if (csrf) return (send(res, 403, { error: csrf, code: "CSRF" }), true);
     // After an admin reset or a team invite, the temporary password only allows choosing a new one.
     // (GET /auth/me, POST /auth/logout and GET /platform-config are answered above.)
     if (

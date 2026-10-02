@@ -701,7 +701,7 @@ async function ffPreviewEvidence(btn) {
   box.hidden = false;
   box.innerHTML = '<p class="subtle">Loading document…</p>';
   try {
-    const r = await fetch(btn.dataset.url, { headers: { Authorization: "Bearer " + state.token } });
+    const r = await fetch(btn.dataset.url, { credentials: "same-origin" });
     if (!r.ok) throw new Error("This document could not be opened.");
     const blob = await r.blob();
     if (box.dataset.objectUrl) URL.revokeObjectURL(box.dataset.objectUrl);
@@ -743,7 +743,7 @@ document.addEventListener(
 );
 async function ffOpenProtectedFile(url, title, download = false) {
   try {
-    const r = await fetch(url, { headers: { Authorization: "Bearer " + state.token } });
+    const r = await fetch(url, { credentials: "same-origin" });
     if (!r.ok) throw new Error("This file could not be opened. You may not have access to it.");
     const blob = await r.blob(),
       objectUrl = URL.createObjectURL(blob),

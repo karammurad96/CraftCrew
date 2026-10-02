@@ -274,7 +274,7 @@ async function wfDownloadInvoice(id, kind = "pdf") {
   try {
     const r = await fetch(
       `/api/invoices/${encodeURIComponent(id)}/${kind === "email" ? "email-draft" : kind === "xrechnung" ? "xrechnung" : "pdf"}`,
-      { headers: { Authorization: `Bearer ${state.token}` } },
+      { credentials: "same-origin" },
     );
     if (!r.ok) {
       const e = await r.json().catch(() => ({}));

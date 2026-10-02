@@ -25,7 +25,7 @@ async function notFoundChecks(base) {
   const login = await (
     await fetch(base + "/api/auth/login", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Client": "api" },
       body: JSON.stringify({ email: "customer.demo@craftcrew.local", password: "CraftCrew2026!" }),
     })
   ).json();
@@ -90,7 +90,7 @@ async function supplierStatusChecks(base) {
   const post = (p, body) =>
     fetch(base + "/api" + p, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Client": "api" },
       body: JSON.stringify(body),
     }).then((r) => r.json());
   const fresh = await post("/auth/signup", {
@@ -154,7 +154,7 @@ async function safeActionChecks(base) {
   const login = await (
     await fetch(base + "/api/auth/login", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Client": "api" },
       body: JSON.stringify({ email: "customer.demo@craftcrew.local", password: "CraftCrew2026!" }),
     })
   ).json();

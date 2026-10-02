@@ -1835,7 +1835,7 @@ api = function (path, opts = {}) {
 async function dsFillThumbs(root) {
   for (const img of root.querySelectorAll("img[data-ds-src]:not([src])")) {
     try {
-      const r = await fetch(img.dataset.dsSrc, { headers: { Authorization: "Bearer " + state.token } });
+      const r = await fetch(img.dataset.dsSrc, { credentials: "same-origin" });
       if (r.ok) img.src = URL.createObjectURL(await r.blob());
     } catch {}
   }
