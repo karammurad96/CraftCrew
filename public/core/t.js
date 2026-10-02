@@ -71,4 +71,12 @@ const fmt = {
     }).format(Number(n) || 0),
   number: (n, digits = 0) =>
     new Intl.NumberFormat(fmt.locale(), { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(Number(n) || 0),
+  // "24 Sep – 11 Oct" for two YYYY-MM-DD dates (the year only when it is not this year); one date alone also works
+  range: (a, b) => {
+    const year = String(new Date().getFullYear()),
+      f = (d) => (d ? new Date(d + "T12:00:00").toLocaleDateString(fmt.locale(), { day: "numeric", month: "short", ...(d.startsWith(year) ? {} : { year: "numeric" }) }) : "");
+    return a && b && a !== b ? `${f(a)} – ${f(b)}` : f(a || b) || "—";
+  },
+  // "€16.6K" for amounts in small cards
+  compact: (n) => new Intl.NumberFormat(fmt.locale(), { style: "currency", currency: "EUR", notation: "compact", maximumFractionDigits: 1 }).format(Number(n) || 0),
 };

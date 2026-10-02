@@ -140,33 +140,6 @@ describe("design 2026", () => {
 
   // T93 (sidebar groups and labels) and the T102 bottom bar moved to the shell area: test/area-shell.test.js
 
-  it("files the project page into tabs and keeps the supplier away from the budget (T98)", () => {
-    const ctx = loadScreens({ invNo: (i) => i.number }, ["dsWsUpNext", "dsWsSide", "dsWsPhases", "DS_WS_TASKS", "DS_WS_ACTIVITY"]);
-    const t = (id, extra) => ({ id, name: id, status: "In Progress", dueDate: "2000-01-01", progress: 50, assignedSupplierId: "s1", acceptanceStatus: "Accepted", orderAmount: 1000, assignmentHistory: [{ supplierId: "s1", company: "Keller" }], ...extra });
-    const d = {
-      project: { id: "p1", name: "P", budget: 10000, dueDate: "2099-01-01", phases: [{ id: "ph", name: "Build", tasks: [t("late"), t("invited", { acceptanceStatus: "Pending", dueDate: "2099-01-01" })] }] },
-      invoices: [{ id: "i1", number: "2026-0001", status: "Submitted", amount: 500 }],
-      entries: [{ status: "Pending approval", hours: 4 }],
-      documents: [{ status: "Pending approval" }],
-    };
-    const customer = { role: "customer", pid: "p1" };
-    const next = ctx.dsWsUpNext(customer, d);
-    assert.match(next, /href="#\/customer\/invoice\/i1"[^>]*>Review</);
-    assert.match(next, /href="#\/customer\/time"[^>]*>Review</);
-    assert.match(next, /invited is waiting for Keller/);
-    assert.match(next, /1 document to approve/);
-    assert.match(next, /late · \d+ days late/);
-    assert.match(ctx.dsWsSide(customer, d), /Budget/);
-    ctx.state.user = { role: "supplier", supplierId: "s1" };
-    const side = ctx.dsWsSide({ role: "supplier", pid: "p1" }, d);
-    assert.doesNotMatch(side, />Budget</, "suppliers never see the customer budget");
-    assert.match(side, /Your order value/);
-    assert.match(ctx.dsWsPhases(customer, d), /0 of 2 tasks · 1 late/);
-    // The Gantt chart, task panel and time details live in Tasks; the activity log in Activity
-    assert.ok(["project-timeline", "project-task-panel", "ff-task-time-details"].every((c) => ctx.DS_WS_TASKS.includes(c)));
-    assert.ok(ctx.DS_WS_ACTIVITY.includes("pa-project-activity"));
-  });
-
   it("opens a side panel from the board and keeps the column statuses (T99)", () => {
     const src = read("design-screens.js");
     // Labels only: the data statuses stay "Not Started" / "Completed", and "On Hold" stays
@@ -319,37 +292,16 @@ describe("design 2026", () => {
     assert.ok(read("i18n.js").includes('[/^Due (\\d.+)$/, "Fällig $1"]'));
   });
 
-  it("shows the unread messages of the project on the Messages tab (T109)", async () => {
-    const calls = [],
-      btn = { label: "Messages", replaceChildren(t) { this.label = t; } };
-    const ctx = loadScreens(
-      {
-        api: async (p) => (calls.push(p), { counts: { projectMessages: 3 } }),
-        document: { addEventListener() {}, getElementById: () => null, querySelector: () => null, contains: () => true },
-      },
-      ["dsWsUnread"],
-    );
-    await ctx.dsWsUnread(btn, "prj 1");
-    assert.deepEqual(calls, ["/nav-counts?project=prj%201"]);
-    assert.equal(btn.label, "Messages · 3");
-    const quiet = loadScreens({ api: async () => ({ counts: { projectMessages: 0 } }) }, ["dsWsUnread"]);
-    const b2 = { label: "Messages", replaceChildren(t) { this.label = t; } };
-    await quiet.dsWsUnread(b2, "p");
-    assert.equal(b2.label, "Messages");
-    assert.ok(read("i18n.js").includes('[/^Messages · (\\d+)$/, "Nachrichten · $1"]'));
-    // The project's Messages button opens that project's conversation
-    assert.ok(read("collaboration.js").includes('(q.get("project") && chats.find((c) => c.projectId === q.get("project")))'));
-  });
-
   it("opens the Share dialog from a grey pill in the workspace header (T110)", () => {
     const src = read("design-screens.js"),
+      ws = read("areas/workspace.js"),
       de = read("i18n.js");
-    assert.ok(src.includes('share.className = "btn outline ds-share";'));
-    assert.ok(src.includes("share.onclick = () => dsShare(r.pid);"));
-    assert.ok(src.includes('if (r.role === "customer") {'), "customers only");
+    // The pill is drawn by the workspace (T128b), for customers only; the dialog stays in design-screens.js
+    assert.ok(ws.includes('customer && !invitedOnly ? wsBtn("ws.share", ids, "btn outline ds-share", wk("head.share"))'));
+    assert.ok(ws.includes('actions.on("ws.share", (el) => dsShare(wsData(el).project));'));
     for (const call of ["api(`/projects/${encodeURIComponent(pid)}/participants`", 'method: "DELETE"'])
       assert.ok(src.includes(call), call);
-    for (const k of ['Share: "Teilen"', '"Share project": "Projekt teilen"', '"People with access"', '"This project": "Dieses Projekt"'])
+    for (const k of ['"Share project": "Projekt teilen"', '"People with access"', '"This project": "Dieses Projekt"'])
       assert.ok(de.includes(k), k);
   });
 

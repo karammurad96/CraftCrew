@@ -219,36 +219,6 @@ async function paAuditPage() {
   };
 }
 
-/* ---------- Project page: activity log and completion reviews ---------- */
-async function paProjectExtras(pid) {
-  const content =
-    document.querySelector(".dashboard-content .cc-page") || document.querySelector(".dashboard-content");
-  if (!content || content.querySelector(".pa-project-activity")) return;
-  const [{ entries = [] }, project] = await Promise.all([
-    api(`/projects/${pid}/activity`).catch(() => ({})),
-    api(`/projects/${pid}`)
-      .then((d) => d.project)
-      .catch(() => null),
-  ]);
-  let reviewHtml = "";
-  if (project?.status === "Completed" && state.user.role === "customer") {
-    const { suppliers = [] } = await api(`/projects/${pid}/reviews`).catch(() => ({}));
-    const pending = suppliers.filter((s) => !s.review);
-    reviewHtml = `<section class="panel pa-review-panel"><div class="panel-title"><h3>Project completed · supplier reviews</h3>${pending.length ? `<button class="btn small primary" onclick="paReviewSuppliers('${pid}')">Review ${pending.length} supplier(s)</button>` : ""}</div>${suppliers.map((s) => `<div class="pa-row"><span><b>${paEsc(s.company)}</b><small>${s.review ? `★ ${s.review.rating} · ${paEsc(s.review.text)}` : "Not reviewed yet"}</small></span>${s.review ? '<span class="status completed">Reviewed</span>' : '<span class="status submitted">Pending</span>'}</div>`).join("") || '<p class="pa-empty">No suppliers worked on this project.</p>'}<p class="pa-note">Completed ${date(project.completedAt)} · the project is closed for new work.</p></section>`;
-  }
-  content.insertAdjacentHTML(
-    "beforeend",
-    `${reviewHtml}<details class="panel pa-project-activity"><summary><h3>Activity log</h3><small>${entries.length} recorded action(s)</small></summary>${
-      entries
-        .slice(0, 60)
-        .map(
-          (e) =>
-            `<div class="pa-row"><span><b>${paEsc(e.action)}</b><small>${paEsc(e.actorName)} · ${paTime(e.at)}${e.status ? " · " + paEsc(e.status) : ""}</small></span></div>`,
-        )
-        .join("") || '<p class="pa-empty">Changes to this project will be listed here.</p>'
-    }</details>`,
-  );
-}
 const paBaseCompleteProject = completeProject;
 completeProject = async function (id) {
   if (
@@ -566,7 +536,6 @@ window.route = async function () {
       parts[2] &&
       parts[2] !== "new"
     ) {
-      if (parts.length === 3) await paProjectExtras(parts[2]);
       if (parts[3] === "tasks" && parts[4]) await paTaskUpdates(parts[2], parts[4]);
     }
     if (parts[0] === "admin" && parts[1] === "platform") await paOutboxPanel();

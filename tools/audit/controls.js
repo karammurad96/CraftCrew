@@ -13,6 +13,8 @@ const fs = require("fs");
 // the same thing. Compare what a control does, not those details.
 const canon = (c) =>
   c
+    // navigate('/x?back='+encodeURIComponent('/y')) goes where a link to #/x?back=%2Fy goes
+    .replace(/'\+encodeURIComponent\('([^']*)'\)\)/g, (m, s) => `${encodeURIComponent(s)}')`)
     .replace(/^action navigate\('([^']+)'\);?$/, "link #$1")
     .replace(/\(\[\{.*\}\]\)/, "(<data>)")
     .replace(/\b([a-z]+)_[0-9a-f]{8,}\b/g, "$1_<id>")

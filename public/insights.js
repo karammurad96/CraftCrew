@@ -576,23 +576,6 @@ adminReports = async function () {
 };
 
 /* ---------- Navigation: Analytics link, Board button on project pages ---------- */
-function inBoardButton(role, pid) {
-  const top =
-    document
-      .querySelector(
-        ".dashboard-content .dash-top, .dashboard-content .wf-project-head, .dashboard-content h1",
-      )
-      ?.closest(".dash-top") || document.querySelector(".dashboard-content .dash-top");
-  if (document.querySelector(".in-board-btn")) return;
-  const html = `<a class="btn outline in-board-btn" href="#/${role}/projects/${pid}/board">▦ Board view</a>`;
-  const actions = top?.querySelector(".action-row, .cc-actions, div:last-child");
-  if (actions && actions !== top.firstElementChild) actions.insertAdjacentHTML("afterbegin", html);
-  else
-    (top || document.querySelector(".dashboard-content"))?.insertAdjacentHTML(
-      top ? "beforeend" : "afterbegin",
-      html,
-    );
-}
 const inBaseRoute = window.route;
 window.route = async function () {
   const path = location.hash.replace(/^#/, "").split("?")[0],
@@ -622,14 +605,5 @@ window.route = async function () {
     toast(e.message, "error");
     return;
   }
-  const result = await inBaseRoute();
-  if (
-    ["customer", "supplier"].includes(parts[0]) &&
-    parts[1] === "projects" &&
-    parts[2] &&
-    parts[2] !== "new" &&
-    parts.length === 3
-  )
-    inBoardButton(parts[0], parts[2]);
-  return result;
+  return inBaseRoute();
 };

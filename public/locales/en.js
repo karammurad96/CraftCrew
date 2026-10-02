@@ -713,4 +713,218 @@ LOCALES.en = {
       "messages": "Messages"
     }
   },
+  // Project workspace (T128b)
+  ws: {
+    "projects": "Projects",
+    "head": {
+      "board": "▦ Board view",
+      "share": "Share",
+      "compareOffers": "Compare offers",
+      "edit": "Edit project",
+      "support": "Escalate / support",
+      "more": "More actions",
+      "delete": "Delete or archive project…",
+      "reviewInvoices": "Review invoices"
+    },
+    "tabs": {
+      "label": "Project sections",
+      "overview": "Overview",
+      "tasks": "Tasks",
+      "files": "Files ({n})",
+      "messages": "Messages",
+      "messagesCount": "Messages · {n}",
+      "invoices": "Invoices",
+      "activity": "Activity"
+    },
+    "stats": {
+      "budget": "Budget",
+      "remaining": "{remaining} remaining · {invoiced} invoiced",
+      "schedule": "Schedule",
+      "overdueOpen": "{late} overdue tasks · {open} open tasks",
+      "delivery": "Delivery",
+      "complete": "{n}% complete",
+      "tasksComplete": "{done}/{total} tasks complete",
+      "desk": "Project desk",
+      "deskDocs": "{docs} documents · {approvals} approvals",
+      "deskInvoices": "{invoices} invoices · {suppliers} available suppliers",
+      "orderValue": "Your order value",
+      "invoicedByYou": "{amount} invoiced by you",
+      "invoicesFromYou": "{n} invoice(s) from you"
+    },
+    "invited": {
+      "one": "You are invited to a task on this project. Accept to see the full scope, documents and messages.",
+      "many": "You are invited to {n} tasks on this project. Accept to see the full scope, documents and messages.",
+      "acceptTask": "Accept task",
+      "acceptNamed": "Accept {name}",
+      "decline": "Decline"
+    },
+    "next": {
+      "title": "Up next",
+      "none": "Nothing is waiting for you on this project.",
+      "invoice": "Invoice {number} · {amount}",
+      "review": "Review",
+      "time": {
+        "one": "Approve {n} time entry",
+        "other": "Approve {n} time entries"
+      },
+      "hours": "{n} h",
+      "waiting": "{task} is waiting for {supplier}",
+      "theSupplier": "the supplier",
+      "noAnswer": "No answer yet",
+      "open": "Open",
+      "docs": {
+        "one": "{n} document to approve",
+        "other": "{n} documents to approve"
+      },
+      "late": {
+        "one": "{task} · {n} day late",
+        "other": "{task} · {n} days late"
+      },
+      "invitation": "{task} · invitation",
+      "respond": "Respond",
+      "changes": "Changes requested on invoice {number}",
+      "fix": "Fix"
+    },
+    "phases": {
+      "title": "Phases",
+      "none": "No phases yet.",
+      "tasks": {
+        "one": "{done} of {n} task",
+        "other": "{done} of {n} tasks"
+      },
+      "late": "{text} · {n} late",
+      "done": "Done"
+    },
+    "side": {
+      "progress": "Progress",
+      "percent": "{n} %",
+      "complete": "complete",
+      "left": {
+        "one": "complete · {n} day left",
+        "other": "complete · {n} days left"
+      },
+      "over": {
+        "one": "complete · {n} day over",
+        "other": "complete · {n} days over"
+      },
+      "tasksComplete": "{done} of {total} tasks complete",
+      "overdueOpen": "{late} overdue · {open} open tasks",
+      "budgetLeft": "{remaining} of budget remaining · {invoiced} invoiced",
+      "docs": "{n} documents · {pending} to approve",
+      "invoices": {
+        "one": "{n} invoice",
+        "other": "{n} invoices"
+      },
+      "available": "{n} available suppliers",
+      "budget": "Budget",
+      "invoiced": "Invoiced",
+      "ordered": "Ordered",
+      "free": "Free",
+      "orderValue": "Your order value",
+      "invoicedByYou": "Invoiced by you",
+      "toInvoice": "Still to invoice",
+      "suppliers": "Suppliers",
+      "state": {
+        "Working": "Working",
+        "Done": "Done",
+        "Late": "Late",
+        "Invited": "Invited"
+      },
+      "noSupplier": "No supplier assigned yet."
+    },
+    "lateNotice": "{n} overdue task(s). Review dependent dates, supplier schedules and remaining budget.",
+    "gantt": {
+      "title": "Project schedule",
+      "hint": "Phases contain tasks · dependency and delay warnings",
+      "complete": "{n}% complete",
+      "item": "Phase / task",
+      "schedule": "Schedule",
+      "owner": "Owner / status",
+      "risk": "⚠ downstream risk",
+      "due": "{date} · {n}%"
+    },
+    "time": {
+      "title": "Task time & cost",
+      "hint": "{n} tasks · approved supplier time compared with estimates",
+      "task": "Task",
+      "approved": "Approved / estimate",
+      "value": "Approved value",
+      "hours": "{n} h",
+      "estimate": "{n} h / {est} h estimate",
+      "none": "No tasks have been added yet."
+    },
+    "panel": {
+      "title": "Project phases",
+      "hint": "Break each phase into supplier-assignable tasks",
+      "supplierHint": "Only the tasks given to your company are shown.",
+      "addPhase": "+ Add phase",
+      "empty": "Add a phase to start planning.",
+      "complete": "Mark project complete"
+    },
+    "phase": {
+      "noScope": "Phase scope not set",
+      "edit": "Edit phase",
+      "addTask": "+ Add task",
+      "warning": "Schedule warning: overdue tasks may affect this phase, its successors and the project budget.",
+      "depends": "Depends on phases: {names}",
+      "noTasks": "No tasks yet. Add assignable work under this phase.",
+      "footer": "{n} tasks · {done} complete · {docs} documents",
+      "documents": "Open phase documents"
+    },
+    "task": {
+      "eyebrow": "ASSIGNABLE TASK",
+      "noDescription": "No task description",
+      "noSupplier": "No supplier assigned",
+      "order": "Order {amount} · {n}%",
+      "orderNotSet": "Order not set · {n}%",
+      "depends": "Depends on: {names}",
+      "overdue": "This task is overdue. Dependent work may slip and extend project cost.",
+      "edit": "Edit task",
+      "changeSupplier": "Change supplier",
+      "selectSupplier": "Select supplier",
+      "compareBids": "Compare bids",
+      "requestBids": "Request bids",
+      "accept": "Accept",
+      "decline": "Decline",
+      "updateProgress": "Update progress",
+      "submitOffer": "Submit offer",
+      "documents": "Documents",
+      "invoices": "Invoices",
+      "messages": "Messages",
+      "history": "Supplier request history ({n})",
+      "siteReports": "Site reports",
+      "defects": "Defects",
+      "defectsOpen": "{n} open",
+      "acceptWork": "Accept work",
+      "acceptanceReport": "Acceptance report",
+      "result": {
+        "accepted": "Work accepted",
+        "accepted_with_defects": "Accepted with defects",
+        "rejected": "Not accepted"
+      },
+      "waitingAnswer": "Waiting for your answer",
+      "awaiting": "Awaiting acceptance",
+      "sentOn": "Invitation sent to {company} on {date}. Work, time sheets and invoices start once they accept.",
+      "sent": "Invitation sent to {company}. Work, time sheets and invoices start once they accept.",
+      "theSupplier": "The supplier",
+      "withdraw": "Withdraw invitation",
+      "invitedYou": "You are invited to this task. Accept it to start reporting progress.",
+      "declinedReason": "{company} declined this task: “{reason}” Choose another supplier or request bids.",
+      "declined": "{company} declined this task. Choose another supplier or request bids."
+    },
+    "activity": {
+      "title": "Activity log",
+      "count": "{n} recorded action(s)",
+      "empty": "Changes to this project will be listed here."
+    },
+    "reviews": {
+      "title": "Project completed · supplier reviews",
+      "review": "Review {n} supplier(s)",
+      "notReviewed": "Not reviewed yet",
+      "reviewed": "Reviewed",
+      "pending": "Pending",
+      "none": "No suppliers worked on this project.",
+      "closed": "Completed {date} · the project is closed for new work."
+    }
+  },
 };

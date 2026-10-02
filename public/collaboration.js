@@ -863,14 +863,6 @@ window.route = async function () {
     }
     await ccBaseRoute();
     if (parts[0] === "supplier" && parts[1] === "invoices" && parts[2] === "new") ccInstallInvoiceSearch();
-    if (
-      ["customer", "supplier"].includes(parts[0]) &&
-      parts[1] === "projects" &&
-      parts[2] &&
-      parts[2] !== "new" &&
-      parts.length === 3
-    )
-      await ccAddProjectLinks(parts[2]);
   } catch (e) {
     console.error(e);
     toast(e.message, "error");
@@ -881,93 +873,6 @@ window.route = async function () {
     );
   }
 };
-async function ccAddProjectLinks(pid) {
-  const [pd, td] = await Promise.all([
-      api("/projects/" + pid),
-      api("/time-entries?projectId=" + pid).catch(() => ({ entries: [] })),
-    ]),
-    p = pd.project,
-    entries = td.entries || [];
-  if (!p || document.querySelector(".cc-project-explorer")) return;
-  const tasks = p.phases.flatMap((ph) => (ph.tasks || []).map((t) => ({ ph, t }))),
-    summary = tasks
-      .map(({ ph, t }) => {
-        const approved = entries.filter((e) => e.taskId === t.id && e.status === "Approved"),
-          hrs = approved.reduce((n, e) => n + Number(e.hours), 0),
-          cost = approved.reduce((n, e) => n + Number(e.amount), 0),
-          estimate = Number(t.estimatedHours || 0),
-          cap = Number(t.orderAmount || 0);
-        return (
-          '<tr><td><a href="#/' +
-          state.user.role +
-          "/projects/" +
-          p.id +
-          "/tasks/" +
-          t.id +
-          '">' +
-          ccEsc(t.name) +
-          "</a><small>" +
-          ccEsc(ph.name) +
-          "</small></td><td>" +
-          ccEsc(t.status || "Not Started") +
-          "</td><td>" +
-          hrs.toFixed(1) +
-          " h" +
-          (estimate ? " / " + estimate + " h" : "") +
-          (estimate
-            ? "<small>" + Math.round((hrs / estimate) * 100) + "% of estimate</small>"
-            : "<small>No hour estimate</small>") +
-          "</td><td>" +
-          money(cost) +
-          (cap ? "<small>Task order: " + money(cap) + "</small>" : "") +
-          "</td></tr>"
-        );
-      })
-      .join("");
-  const box = document.createElement("section");
-  box.className = "panel cc-project-explorer";
-  box.innerHTML =
-    '<div class="panel-title"><div><h3>Project workspace</h3><small>Open phases and tasks with documents, messages and logged-time comparisons.</small></div><a class="btn small outline" href="#/' +
-    state.user.role +
-    "/projects/" +
-    p.id +
-    '/documents">Documents & handover</a></div><h4>Supplier time vs estimate</h4><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Task</th><th>Status</th><th>Approved hours / estimate</th><th>Approved value / order</th></tr></thead><tbody>' +
-    summary +
-    '</tbody></table></div><div class="cc-subpage-task-list">' +
-    p.phases
-      .map(
-        (ph) =>
-          '<a class="cc-subpage-task" href="#/' +
-          state.user.role +
-          "/projects/" +
-          p.id +
-          "/phases/" +
-          ph.id +
-          '"><b>' +
-          ccEsc(ph.name) +
-          "</b><span>Open phase →</span></a>" +
-          (ph.tasks || [])
-            .map(
-              (t) =>
-                '<a class="cc-subpage-task" href="#/' +
-                state.user.role +
-                "/projects/" +
-                p.id +
-                "/tasks/" +
-                t.id +
-                '"><b>' +
-                ccEsc(t.name) +
-                "</b><span>" +
-                ccEsc(t.status) +
-                " →</span></a>",
-            )
-            .join(""),
-      )
-      .join("") +
-    "</div>";
-  document.querySelector(".dashboard-content")?.prepend(box);
-}
-
 function ccInstallInvoiceSearch() {
   const target = document.getElementById("invTarget");
   if (!target || target.dataset.searchable) return;
