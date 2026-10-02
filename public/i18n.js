@@ -1918,6 +1918,10 @@ Object.assign(I18N_DE, {
   "Break (min)": "Pause (Min.)",
   "No signal. Saved on this phone and sent later.": "Kein Empfang. Auf diesem Telefon gespeichert und später gesendet.",
   "Submit time for approval": "Zeit zur Freigabe senden",
+  // Approvals (T104)
+  Changes: "Änderungen",
+  Corrected: "Korrigiert",
+  Show: "Anzeigen",
   // Sidebar (T93)
   Reports: "Berichte",
   "Waiting for review since today": "Wartet seit heute auf Prüfung",
@@ -2229,6 +2233,9 @@ const I18N_PATTERNS = [
   [/^(\d+) workers$/, "$1 Monteure"],
   [/^(\d+) % · due (.+)$/, "$1 % · fällig $2"],
   [/^Submit (\d+[.,]\d) Hours$/, "$1 Stunden senden"],
+  [/^All · (\d+)$/, "Alle · $1"],
+  [/^Invoice (\d{4}-\d{4})$/, "Rechnung $1"],
+  [/^(\d+[.,]\d) h · (.+)$/, "$1 h · $2"],
   [/^(\d+) d waiting$/, "wartet seit $1 T."],
   [/^today$/, "heute"],
   [/^(\d+) recorded action\(s\)$/, "$1 protokollierte Aktion(en)"],
