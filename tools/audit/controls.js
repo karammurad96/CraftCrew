@@ -134,7 +134,7 @@ function inventory() {
         const p = `/${role}/projects/prj_demo_line4`;
         routes.push(p, `${p}/board`, `${p}/documents`, `${p}/tasks/tsk_demo_fabrication`);
       }
-      if (role === "customer") routes.push("/customer/invoice/inv_demo_submitted");
+      if (role === "customer") routes.push("/customer/invoice/inv_demo_submitted", "/customer/sourcing/bid_demo_vision");
       if (role === "supplier") routes.push("/supplier/invoice/inv_demo_submitted");
     }
     for (const r of routes) {

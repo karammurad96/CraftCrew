@@ -269,5 +269,20 @@
     "action reviewOfferTalk('bid_hist_0','offer_hist_0_0')": "action [offers.talk]",
     "action reviewOfferTalk('bid_hist_1','offer_hist_1_0')": "action [offers.talk]",
     "action reviewOfferTalk('bid_hist_2','offer_hist_2_0')": "action [offers.talk]"
+  },
+  "customer /customer/contracts": {
+    "action srContractForm()": "action [src.contract]"
+  },
+  "customer /customer/sourcing/bid_demo_vision": {
+    "action reviewInviteBid('bid_demo_vision')": "action [src.invite]",
+    "action reviewOfferTalk('bid_demo_vision','offer_demo_a')": "action [src.ask]",
+    "action reviewOfferTalk('bid_demo_vision','offer_demo_b')": "action [src.ask]",
+    "action rvRequestOfferChanges('bid_demo_vision','offer_demo_a')": "action [src.changes]",
+    "action rvRequestOfferChanges('bid_demo_vision','offer_demo_b')": "action [src.changes]",
+    "action srAward('bid_demo_vision','offer_demo_a')": "action [src.award]",
+    "action srAward('bid_demo_vision','offer_demo_b')": "action [src.award]",
+    "action srCloseEvent('bid_demo_vision')": "action [src.close]",
+    "action wfBidDecision('bid_demo_vision','offer_demo_a','Decline offer')": "action [src.eliminate]",
+    "action wfBidDecision('bid_demo_vision','offer_demo_b','Decline offer')": "action [src.eliminate]"
   }
 }
