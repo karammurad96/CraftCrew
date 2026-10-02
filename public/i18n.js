@@ -2239,6 +2239,7 @@ const I18N_PATTERNS = [
   [/^Site visit · today$/, "Baustellenbesuch · heute"],
   [/^Site visit · checked in$/, "Baustellenbesuch · eingecheckt"],
   [/^Site visit · (\d\d:\d\d)$/, "Baustellenbesuch · $1"],
+  [/^Messages · (\d+)$/, "Nachrichten · $1"],
   [/^(\d+) workers$/, "$1 Monteure"],
   [/^(\d+) % · due (.+)$/, "$1 % · fällig $2"],
   [/^Submit (\d+[.,]\d) Hours$/, "$1 Stunden senden"],

@@ -883,6 +883,11 @@ function dsWsSide(r, d) {
   return html;
 }
 let dsWsAvailable = "";
+// "Messages · 3": unread messages of this project on the Messages tab (T109, board Workspace)
+async function dsWsUnread(btn, pid) {
+  const n = Number((await api("/nav-counts?project=" + encodeURIComponent(pid)).catch(() => ({})))?.counts?.projectMessages) || 0;
+  if (n > 0 && document.contains(btn)) btn.replaceChildren(`Messages · ${n}`);
+}
 function dsEnhanceWorkspace(root) {
   const r = dsWsRoute(),
     content = root.querySelector(".dashboard-content");
@@ -924,6 +929,7 @@ function dsEnhanceWorkspace(root) {
       else btn.replaceChildren(`Files (${(dsText(btn).match(/\((\d+)\)/) || [, "0"])[1]})`);
       tabs.append(btn);
     }
+    if (messages) dsWsUnread(messages, r.pid);
     tabs.insertAdjacentHTML("beforeend", tabBtn("activity", "Activity"));
     tabs.addEventListener("keydown", dsWsTabKeys);
     // Anything else in the old navigation (Compare offers) becomes a grey pill in the header
