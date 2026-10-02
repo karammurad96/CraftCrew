@@ -204,7 +204,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T105 Final check against every board, then merge · M
 
 **Wave 7 follow-ups (found in T105; each needs a feature, not only layout)**
-- [ ] T106 Photos on time entries (PhoneLogTime "Photos" grid) · M
+- [x] T106 Photos on time entries (PhoneLogTime "Photos" grid) · M
 - [ ] T107 Time of day for site visits ("Site visit · 07:30") · S
 - [ ] T108 Due date on submitted invoices (InvoiceReview "Due 11 October") · S
 - [ ] T109 Unread count on the project "Messages" tab (Workspace "Messages · 3") · S

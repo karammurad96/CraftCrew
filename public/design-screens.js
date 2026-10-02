@@ -1650,8 +1650,9 @@ function dsLogTimeSheet(form) {
   details.className = "ds-details";
   details.innerHTML = '<span class="ds-group-label ds-ui">Details</span>';
   details.append(group(row("Find job", search), row("Employee", employee), row("Location", place), row("Break (min)", pause)), calc);
+  const photos = dsTimePhotosField(form);
   const oldParts = [...form.children];
-  form.prepend(banner, group(row("Job", target), row("Date", day)), group(row("Start", start), row("End", end), row("Break", seg)), work, details);
+  form.prepend(banner, group(row("Job", target), row("Date", day)), group(row("Start", start), row("End", end), row("Break", seg)), work, photos, details);
   if (error) form.append(error);
   if (submit) {
     submit.classList.add("ds-sheet-submit");
@@ -1670,6 +1671,124 @@ function dsLogTimeSheet(form) {
   form.addEventListener("change", label);
   label();
 }
+
+/* ---------- Photos on time entries (T106, board PhoneLogTime "Photos") ----------
+   Up to 6 JPG or PNG photos, shrunk on the phone before upload. They are kept as data URLs until the form is
+   sent, so oflPostWithPhotos can queue the entry together with its photos when there is no signal. */
+const DS_TIME_PHOTOS_MAX = 6;
+let dsTimePhotos = null; // the photos of the time entry being sent right now
+function dsPhotoData(file) {
+  return new Promise((resolve, reject) => {
+    if (!/^image\/(jpeg|png)$/.test(file.type)) return reject(new Error("Choose JPG or PNG photos."));
+    const img = new Image(),
+      src = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight)),
+        canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.naturalWidth * scale);
+      canvas.height = Math.round(img.naturalHeight * scale);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(src);
+      const name = (file.name.replace(/\.[^.]*$/, "") || "photo").replace(/[^a-zA-Z0-9._-]/g, "_");
+      resolve({ filename: name + ".jpg", content: canvas.toDataURL("image/jpeg", 0.82) });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(src);
+      reject(new Error("This photo could not be read."));
+    };
+    img.src = src;
+  });
+}
+function dsTimePhotosField(form) {
+  const list = [],
+    box = document.createElement("div");
+  box.className = "ds-photos";
+  box.innerHTML =
+    '<span class="ds-group-label ds-ui" id="dsPhotosLabel">Photos</span><div class="ds-photo-grid" role="group" aria-labelledby="dsPhotosLabel"></div>';
+  const grid = box.querySelector(".ds-photo-grid"),
+    error = () => form.querySelector("#ffTimeError");
+  const draw = () => {
+    grid.innerHTML =
+      list
+        .map(
+          (p, i) =>
+            `<div class="ds-photo"><img src="${esc(p.content)}" alt="${esc(p.filename)}"><button type="button" class="ds-photo-remove" data-i="${i}" aria-label="Remove photo ${i + 1}">×</button></div>`,
+        )
+        .join("") +
+      (list.length < DS_TIME_PHOTOS_MAX
+        ? '<label class="ds-photo-add"><input type="file" accept="image/jpeg,image/png" multiple aria-label="Add photo" data-ui-drop="off"><span aria-hidden="true">+</span></label>'
+        : "");
+    grid.querySelector("input")?.addEventListener("change", async (e) => {
+      const files = [...e.target.files];
+      try {
+        if (list.length + files.length > DS_TIME_PHOTOS_MAX) throw new Error("Attach up to 6 photos");
+        for (const f of files) list.push(await dsPhotoData(f));
+        if (error()) error().textContent = "";
+      } catch (x) {
+        if (error()) error().textContent = x.message;
+      }
+      draw();
+    });
+  };
+  grid.addEventListener("click", (e) => {
+    const b = e.target.closest(".ds-photo-remove");
+    if (!b) return;
+    list.splice(Number(b.dataset.i), 1);
+    draw();
+  });
+  draw();
+  const baseSubmit = form.onsubmit;
+  form.onsubmit = async (e) => {
+    dsTimePhotos = list.length ? list.slice() : null;
+    try {
+      await baseSubmit.call(form, e);
+    } finally {
+      dsTimePhotos = null;
+    }
+  };
+  return box;
+}
+// The time entry form posts through api(); with photos attached the post goes through oflPostWithPhotos.
+const dsBaseApi = api;
+api = function (path, opts = {}) {
+  if (dsTimePhotos && path === "/time-entries" && (opts.method || "GET").toUpperCase() === "POST") {
+    const files = dsTimePhotos;
+    dsTimePhotos = null;
+    return oflPostWithPhotos(path, opts.body, files);
+  }
+  return dsBaseApi(path, opts);
+};
+// The time lists show the photos as thumbnails; a tap opens the protected-file viewer.
+async function dsFillThumbs(root) {
+  for (const img of root.querySelectorAll("img[data-ds-src]:not([src])")) {
+    try {
+      const r = await fetch(img.dataset.dsSrc, { headers: { Authorization: "Bearer " + state.token } });
+      if (r.ok) img.src = URL.createObjectURL(await r.blob());
+    } catch {}
+  }
+}
+function dsTimeThumbs(urls) {
+  return urls?.length
+    ? `<div class="ds-thumbs">${urls
+        .map(
+          (u, i) =>
+            `<a href="${esc(u)}" aria-label="Photo ${i + 1}"><img data-ds-src="${esc(u)}" alt=""></a>`,
+        )
+        .join("")}</div>`
+    : "";
+}
+const dsBaseTimeFilter = ccTimeFilter;
+ccTimeFilter = function (...args) {
+  const r = dsBaseTimeFilter(...args),
+    rows = [...(document.getElementById("ffTimeRows")?.rows || [])];
+  (window.__ccTimeFiltered || []).forEach((e, i) => {
+    const cell = rows[i]?.cells[3];
+    if (cell && e.photoUrls?.length) cell.insertAdjacentHTML("beforeend", dsTimeThumbs(e.photoUrls));
+  });
+  const body = document.getElementById("ffTimeRows");
+  if (body) dsFillThumbs(body);
+  return r;
+};
 
 /* ---------- Approvals (T104, board PhoneApprove) ----------
    srApprovals (with the site-access and compliance sections from compliance-ui.js) renders one panel per kind of

@@ -107,6 +107,33 @@ api = async function (path, opts = {}) {
   }
 };
 
+/* ---------- A write with photos (T106): uploads them, then posts the record with their URLs ----------
+   files are [{filename, content}] with content as a data URL. With no signal the record is queued together
+   with the photos, and the replay below uploads them first. */
+async function oflUploadAll(files) {
+  const urls = [];
+  for (const f of files) urls.push((await oflBaseApi("/upload", { method: "POST", body: f })).file.url);
+  return urls;
+}
+async function oflPostWithPhotos(path, body, files) {
+  try {
+    const photoUrls = await oflUploadAll(files);
+    return await oflBaseApi(path, { method: "POST", body: { ...body, photoUrls } });
+  } catch (e) {
+    if (e.status === undefined) {
+      const id = await oflAdd(path, "POST", { body, uploads: files });
+      if (id) {
+        oflRender();
+        throw Object.assign(
+          new Error("Saved offline — it will be sent automatically once you're back online."),
+          { offline: true, queuedId: id },
+        );
+      }
+    }
+    throw e;
+  }
+}
+
 /* ---------- Replays the queue; stops retrying an item the server actually rejects ---------- */
 let oflSyncing = false;
 async function oflSync() {
@@ -117,7 +144,12 @@ async function oflSync() {
     let synced = 0;
     for (const item of items) {
       try {
-        await oflBaseApi(item.path, { method: item.method, body: item.body });
+        if (item.body?.uploads)
+          await oflBaseApi(item.path, {
+            method: item.method,
+            body: { ...item.body.body, photoUrls: await oflUploadAll(item.body.uploads) },
+          });
+        else await oflBaseApi(item.path, { method: item.method, body: item.body });
         await oflRemove(item.id);
         synced++;
       } catch (e) {
