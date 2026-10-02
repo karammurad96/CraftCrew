@@ -18,6 +18,8 @@ function loadScreens(extra = {}, expose = []) {
     obEnhanceHome() {},
     topActions() {},
     aqHtml: () => "",
+    inBoard: async () => {},
+    window: { addEventListener() {} },
     route() {},
     money: (n) => String(n),
     date: (d) => d,
@@ -109,8 +111,11 @@ describe("design 2026", () => {
     assert.equal(ctx.dsTone(chip("Approved", "submitted")), "green");
     // Unknown text falls back to the class.
     assert.equal(ctx.dsTone(chip("Something", "in-progress")), "blue");
-    const day = 86400000;
-    const ago = (n) => new Date(Date.now() - n * day - 3600000).toISOString().slice(0, 10);
+    const ago = (n) => {
+      const d = new Date();
+      d.setDate(d.getDate() - n);
+      return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    };
     assert.equal(ctx.dsDaysLate(ago(5)), "5 days late");
     assert.equal(ctx.dsDaysLate(ago(1)), "1 day late");
     assert.equal(ctx.dsDaysLate(""), "Overdue");
@@ -263,6 +268,20 @@ describe("design 2026", () => {
     // The Gantt chart, task panel and time details live in Tasks; the activity log in Activity
     assert.ok(["project-timeline", "project-task-panel", "ff-task-time-details"].every((c) => ctx.DS_WS_TASKS.includes(c)));
     assert.ok(ctx.DS_WS_ACTIVITY.includes("pa-project-activity"));
+  });
+
+  it("opens a side panel from the board and keeps the column statuses (T99)", () => {
+    const src = read("design-screens.js");
+    // Labels only: the data statuses stay "Not Started" / "Completed", and "On Hold" stays
+    assert.match(src, /const DS_COL_LABEL = \{ "Not Started": "To Do", Completed: "Done" \}/);
+    // inBoard is wrapped, so drag and drop, arrow keys and the move locks of insights.js stay
+    assert.match(src, /const dsBaseInBoard = inBoard;/);
+    // Ctrl/Cmd/Shift-click still opens the task page
+    assert.match(src, /e\.ctrlKey \|\| e\.metaKey \|\| e\.shiftKey/);
+    // Ticking sends the task's checklist
+    assert.match(src, /method: "PATCH", body: \{ subtasks: next \}/);
+    const de = read("i18n.js");
+    for (const k of ['"To Do"', '"Open Task"', '"Latest update"', "Checklist · "]) assert.ok(de.includes(k), `no German for ${k}`);
   });
 
   it("uses a new service worker cache so installed apps load the new files", () => {
