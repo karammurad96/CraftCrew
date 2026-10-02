@@ -22,6 +22,7 @@ function loadScreens(extra = {}, expose = []) {
     srEvent: async () => {},
     invoiceDetailPage: async () => {},
     MNAV_BOTTOM: { customer: [], supplier: [], admin: [[]] },
+    ccNewTimeEntry: async () => {},
     window: { addEventListener() {} },
     route() {},
     money: (n) => String(n),
@@ -339,6 +340,22 @@ describe("design 2026", () => {
       assert.ok(src.includes(fn), `Today uses ${fn}`);
     // Desktop does not change: the Today block only shows up to 640 px
     assert.match(read("design-screens.css"), /html body \.ds-today \{\n  display: none;\n\}\n@media \(max-width: 640px\)/);
+  });
+
+  it("regroups the Log time form without losing a field (T103)", () => {
+    const src = read("design-screens.js");
+    assert.match(src, /const dsBaseNewTime = ccNewTimeEntry;/);
+    // Every field of today's form is moved into a row, none is rebuilt
+    for (const f of ['#ffTimeTarget', '#ffTimeSearch', '[name="employeeName"]', '[name="workDate"]', '[name="location"]', '[name="startTime"]', '[name="endTime"]', '[name="breakMinutes"]', '[name="description"]'])
+      assert.ok(src.includes(`$("${f.replace(/"/g, '\\"')}")`) || src.includes(`$('${f}')`), `field ${f} is kept`);
+    // The break segments set the existing break field; the button shows the live hours
+    assert.match(src, /pause\.value = b\.dataset\.m;/);
+    assert.match(src, /`Submit \$\{h\.toFixed\(1\)\} Hours`/);
+    // The offline banner follows the connection
+    assert.match(src, /banner\.hidden = navigator\.onLine/);
+    const de = read("i18n.js");
+    for (const k of ["No signal. Saved on this phone and sent later.", "Submit (\\d+[.,]\\d) Hours", '"Billable time"'])
+      assert.ok(de.includes(k.replace(/\\\\/g, "\\")), `no German for ${k}`);
   });
 
   it("uses a new service worker cache so installed apps load the new files", () => {
