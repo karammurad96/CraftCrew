@@ -5,102 +5,6 @@ const wfQuery = () => new URLSearchParams(location.hash.split("?")[1] || "");
 function wfSupplier(sups, id) {
   return sups.find((s) => s.id === id);
 }
-async function wfCreateBid(pid, phid, tid) {
-  const { project: p } = await api("/projects/" + pid),
-    ph = p.phases.find((x) => x.id === phid),
-    t = ph.tasks.find((x) => x.id === tid);
-  modal(
-    "Request comparable supplier bids",
-    `<form id="wfF" class="modal-form"><p class="modal-intro">Suppliers submit amount, delivery days and scope. The task can be awarded to one supplier only.</p><label>Bid title<input name="title" value="${esc(t.name)}" required></label><label>Scope<textarea name="description" required>${esc(t.description || "")}</textarea></label><label>Response deadline<input name="dueDate" type="date" min="${wfToday()}" value="${t.dueDate || p.dueDate}" required></label><button class="btn primary">Publish bid request</button></form>`,
-  );
-  document.getElementById("wfF").onsubmit = async (e) => {
-    e.preventDefault();
-    const b = Object.fromEntries(new FormData(e.target));
-    Object.assign(b, { projectId: pid, phaseId: phid, taskId: tid });
-    try {
-      await api("/bids", { method: "POST", body: b });
-      closeModal();
-      navigate("/customer/offers?project=" + pid);
-      await wfOffers();
-    } catch (x) {
-      toast(x.message, "error");
-    }
-  };
-}
-async function wfSupplierBid(pid, phid, tid) {
-  const d = await api("/bids"),
-    open = d.bids.filter((b) => b.projectId === pid && b.taskId === tid && b.status === "Open");
-  const content = open.length
-    ? open
-        .map(
-          (b) =>
-            `<article class="cc-card"><span class="status active">Open until ${date(b.dueDate)}</span><h3>${esc(b.title)}</h3><p>${esc(b.description)}</p><form class="wf-offer-form" onsubmit="event.preventDefault();wfSubmitOffer('${b.id}',this)"><div class="two"><label>Total offer (€)<input name="amount" type="number" min="1" step="0.01" required></label><label>Delivery days<input name="deliveryDays" type="number" min="1" required></label></div><label>Included scope & assumptions<textarea name="notes"></textarea></label><button class="btn primary">Submit offer</button></form></article>`,
-        )
-        .join("")
-    : '<div class="empty">There are no open bid requests for this task.</div>';
-  modal("Submit supplier offer", content);
-}
-async function wfSubmitOffer(id, form) {
-  const b = Object.fromEntries(new FormData(form));
-  try {
-    await api(`/bids/${id}/offers`, { method: "POST", body: b });
-    closeModal();
-    toast("Offer sent to customer");
-    wfOffers();
-  } catch (e) {
-    toast(e.message, "error");
-  }
-}
-async function wfOffers() {
-  const d = await api("/bids"),
-    projects = (await api("/projects")).projects;
-  const q = wfQuery(),
-    project = q.get("project") || "",
-    status = q.get("status") || "All";
-  let bids = d.bids;
-  if (project) bids = bids.filter((x) => x.projectId === project);
-  if (status !== "All") bids = bids.filter((x) => x.status === status);
-  const content = `<div class="dash-top"><div><h1>${state.user.role === "customer" ? "Offers overview" : "Task bid opportunities"}</h1><p>Compare supplier price, delivery, scope and award one supplier per task.</p></div>${state.user.role === "customer" ? '<button class="btn primary" onclick="wfCreateBidFromPage()">+ Request bids for a task</button>' : ""}</div><div class="wf-filter-row"><label>Project<select id="wfBidProject" onchange="wfBidFilter()"><option value="">All projects</option>${projects.map((p) => `<option value="${p.id}" ${project === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label><label>Status<select id="wfBidStatus" onchange="wfBidFilter()">${["All", "Open", "Awarded", "Closed"].map((x) => `<option ${status === x ? "selected" : ""}>${x}</option>`).join("")}</select></label></div><div class="wf-bid-grid">${
-    bids
-      .map((b) => {
-        const p = projects.find((x) => x.id === b.projectId),
-          task = p?.phases.flatMap((ph) => ph.tasks || []).find((t) => t.id === b.taskId),
-          offers = [...(b.offers || [])].sort((a, z) => a.amount - z.amount);
-        return `<article class="panel wf-bid-card"><div class="project-card-head"><div><span class="eyebrow">${esc(p?.name || "Project")}</span><h3>${esc(b.title)}</h3></div><span class="status ${b.status === "Open" ? "submitted" : "active"}">${esc(b.status)}</span></div><p>${esc(b.description)}</p><div class="wf-task-meta"><span>Phase/task: ${esc(task?.name || "Task")}</span><span>Deadline ${date(b.dueDate)}</span><span>${offers.length} offers</span></div>${offers.length ? `<div class="wf-offer-table"><div class="wf-offer-head"><span>Supplier</span><span>Offer</span><span>Delivery</span><span>Decision</span></div>${offers.map((o, i) => `<div class="wf-offer-row"><b>${i === 0 ? "★ " : ""}${esc(o.supplierCompany)}</b><strong>${money(o.amount)}</strong><span>${o.deliveryDays} days</span><span>${esc(o.status)}</span><small>${esc(o.notes || "No scope note")}</small>${state.user.role === "customer" && b.status === "Open" && o.status === "Submitted" ? `<div class="cc-actions"><button class="btn small success" onclick="wfBidDecision('${b.id}','${o.id}','Accept offer')">Award this task</button><button class="btn small outline" onclick="wfBidDecision('${b.id}','${o.id}','Decline offer')">Decline</button></div>` : ""}</div>`).join("")}</div>` : '<div class="notice">Waiting for supplier offers.</div>'}${state.user.role === "customer" && b.status === "Open" ? `<button class="btn small outline" onclick="wfBidDecision('${b.id}','','Close bid')">Close bidding</button>` : ""}${b.status === "Awarded" ? '<div class="notice success-text">Task assigned to the selected supplier. Other offers were closed.</div>' : ""}</article>`;
-      })
-      .join("") || '<div class="empty">No bid requests match this filter.</div>'
-  }</div>`;
-  app.innerHTML = dashboardShell(
-    state.user.role,
-    state.user.role === "customer" ? "offers" : "bids",
-    content,
-  );
-}
-function wfBidFilter() {
-  const p = document.getElementById("wfBidProject").value,
-    s = document.getElementById("wfBidStatus").value;
-  navigate(`/${state.user.role}/offers?project=${encodeURIComponent(p)}&status=${encodeURIComponent(s)}`);
-  wfOffers();
-}
-async function wfBidDecision(id, offerId, action) {
-  try {
-    await api("/bids/" + id, { method: "PATCH", body: { offerId, action } });
-    toast(action === "Accept offer" ? "Supplier selected and task assigned" : "Bid updated");
-    wfOffers();
-  } catch (e) {
-    toast(e.message, "error");
-  }
-}
-async function wfCreateBidFromPage() {
-  const ps = (await api("/projects")).projects,
-    opts = ps.flatMap((p) => p.phases.flatMap((ph) => (ph.tasks || []).map((t) => ({ p, ph, t }))));
-  if (!opts.length) {
-    toast("Add a project phase and task before requesting offers", "error");
-    return;
-  }
-  const first = opts[0];
-  await wfCreateBid(first.p.id, first.ph.id, first.t.id);
-}
 // Upload links download through the session (used by every page with a file link)
 async function wfOpenDocument(url) {
   try {
@@ -115,9 +19,6 @@ async function wfOpenDocument(url) {
   } catch (e) {
     toast(e.message, "error");
   }
-}
-async function supplierBids() {
-  await wfOffers();
 }
 async function customerInvoices() {
   const q = wfQuery(),
@@ -612,13 +513,11 @@ async function route() {
   }
   try {
     if (parts[0] === "customer") {
-      if (parts[1] === "offers") return wfOffers();
       if (parts[1] === "invoices") return customerInvoices();
       if (parts[1] === "messages") return messages("customer");
       if (parts[1] === "profile") return profilePage("customer");
     }
     if (parts[0] === "supplier") {
-      if (parts[1] === "bids" || parts[1] === "offers") return supplierBids();
       if (parts[1] === "invoices" && parts[2] === "new") return newInvoice();
       if (parts[1] === "invoices") return supplierInvoices();
       if (parts[1] === "messages") return messages("supplier");

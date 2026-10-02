@@ -245,5 +245,29 @@
   },
   "supplier /supplier/suppliers": {
     "action dcUpload()": "action [dc.upload]"
+  },
+  "customer /customer/offers": {
+    "action ccEditBid('bid_demo_vision')": "action [offers.edit]",
+    "action reviewInviteBid('bid_demo_vision')": "action [offers.invite]",
+    "action reviewOfferTalk('bid_demo_vision','offer_demo_a')": "action [offers.talk]",
+    "action reviewOfferTalk('bid_demo_vision','offer_demo_b')": "action [offers.talk]",
+    "action rvRequestOfferChanges('bid_demo_vision','offer_demo_a')": "action [offers.changes]",
+    "action rvRequestOfferChanges('bid_demo_vision','offer_demo_b')": "action [offers.changes]",
+    "action wfBidDecision('bid_demo_vision','offer_demo_a','Decline offer')": "action [offers.decline]",
+    "action wfBidDecision('bid_demo_vision','offer_demo_b','Decline offer')": "action [offers.decline]",
+    "action wfCreateBidFromPage()": "action [offers.create]",
+    "action reviewConfirmBid('bid_demo_vision','','Close bid')": "action [offers.close]",
+    "action reviewConfirmBid('bid_demo_vision','offer_demo_a','Accept offer')": "action [offers.award]",
+    "action reviewConfirmBid('bid_demo_vision','offer_demo_b','Accept offer')": "action [offers.award]"
+  },
+  "supplier /supplier/bids": {
+    "action ccOpenBidOffer('bid_demo_vision')": "action [offers.offer]",
+    "action ccOpenBidOffer('bid_hist_0')": "action [offers.offer]",
+    "action ccOpenBidOffer('bid_hist_1')": "action [offers.offer]",
+    "action ccOpenBidOffer('bid_hist_2')": "action [offers.offer]",
+    "action reviewOfferTalk('bid_demo_vision','offer_demo_a')": "action [offers.talk]",
+    "action reviewOfferTalk('bid_hist_0','offer_hist_0_0')": "action [offers.talk]",
+    "action reviewOfferTalk('bid_hist_1','offer_hist_1_0')": "action [offers.talk]",
+    "action reviewOfferTalk('bid_hist_2','offer_hist_2_0')": "action [offers.talk]"
   }
 }

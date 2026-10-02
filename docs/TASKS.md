@@ -207,7 +207,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
   - [x] T128e project documents (document desk and explorer)
 - [ ] T129 Area: sourcing, offers, bids, contracts and the directory · M
   - [x] T129a supplier directory, profile, preferred suppliers, quote requests (the supplier's service catalog page moves with T135)
-  - [ ] T129b offers and bids, with the bid dialogs and the preferred-supplier bid hooks
+  - [x] T129b offers and bids, with the bid dialogs and the preferred-supplier bid hooks
   - [ ] T129c sourcing events, contracts, approvals
 - [ ] T130 Area: invoices and payments · M
 - [ ] T131 Area: time, site reports, punch list and acceptance · M

@@ -265,17 +265,6 @@ function dsOfferCard(bid, r, i, isFastest, active, jobs) {
     }
   </article>`;
 }
-/* Offers overview: every bid with offers links to its comparison */
-function dsEnhanceOffers(root) {
-  if (!/^#\/customer\/offers/.test(location.hash)) return;
-  root.querySelectorAll(".wf-bid-card:not([data-ds])").forEach((card) => {
-    card.dataset.ds = "1";
-    const id = (card.innerHTML.match(/'(bid_[A-Za-z0-9_-]+)'/) || [])[1];
-    if (!id || !card.querySelector(".wf-offer-row")) return;
-    const head = card.querySelector("h3, h2") || card.firstElementChild;
-    head?.insertAdjacentHTML("afterend", `<a class="ds-text-link ds-compare-link" href="#/customer/sourcing/${encodeURIComponent(id)}">Compare offers ›</a>`);
-  });
-}
 
 /* ---------- Invoice review (T101, board InvoiceReview) ----------
    invoiceDetailPage renders the old page; the wrapper lays it out as "paper" on the left and a review panel on the
@@ -787,7 +776,7 @@ async function dsApprovalDo(fn) {
 }
 
 /* ---------- Run the enhancers after every render ---------- */
-const DS_ENHANCERS = [dsEnhanceChips, dsEnhanceButtons, dsEnhanceEmpty, dsEnhanceOffers];
+const DS_ENHANCERS = [dsEnhanceChips, dsEnhanceButtons, dsEnhanceEmpty];
 function dsEnhance() {
   for (const root of [document.getElementById("app"), document.getElementById("modalRoot")])
     if (root) for (const fn of DS_ENHANCERS) fn(root);

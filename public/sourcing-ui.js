@@ -298,69 +298,6 @@ async function srCloseEvent(bidId) {
   }
 }
 
-/* Richer event creation (type, category, baseline, questionnaire) replaces the basic form. */
-wfCreateBid = async function (pid, phid, tid) {
-  const [{ project: p }, cfg] = await Promise.all([
-      api("/projects/" + pid),
-      api("/platform-config").catch(() => ({})),
-    ]),
-    ph = p.phases.find((x) => x.id === phid),
-    t = ph.tasks.find((x) => x.id === tid);
-  modal(
-    "Create sourcing event",
-    `<form id="srEventForm" class="modal-form"><p class="modal-intro">Invite suppliers to quote for <b>${srEsc(t.name)}</b>. Offers are ranked with your evaluation weights; the task is awarded to one supplier.</p><div class="two"><label>Event type<select name="eventType"><option value="RFQ">RFQ — request for quotation</option><option value="RFP">RFP — request for proposal</option><option value="RFI">RFI — request for information</option></select></label><label>Category<select name="category"><option value="">Choose…</option>${(cfg.serviceCategories || []).map((c) => `<option>${srEsc(c)}</option>`).join("")}</select></label></div><label>Title<input name="title" value="${srEsc(t.name)}" required></label><label>Scope<textarea name="description" rows="3" required>${srEsc(t.description || "")}</textarea></label><div class="two"><label>Response deadline<input name="dueDate" type="date" min="${srToday()}" value="${t.dueDate || p.dueDate}" required></label><label>Baseline budget (€)<input name="baseline" type="number" min="0" step="0.01" value="${t.orderAmount || ""}" placeholder="Used to calculate savings"></label></div><label>Questions for suppliers <small class="subtle">(one per line, optional)</small><textarea name="questions" rows="3" placeholder="Which certifications apply to this scope?&#10;Who is the site lead and what is their availability?"></textarea></label><div id="srEventError" class="form-error"></div><button class="btn primary">Publish event</button></form>`,
-  );
-  document.getElementById("srEventForm").onsubmit = async (e) => {
-    e.preventDefault();
-    const b = Object.fromEntries(new FormData(e.target));
-    b.questions = String(b.questions || "")
-      .split("\n")
-      .map((x) => x.trim())
-      .filter(Boolean);
-    Object.assign(b, { projectId: pid, phaseId: phid, taskId: tid, weights: SR_WEIGHTS });
-    try {
-      const { bid } = await api("/bids", { method: "POST", body: b });
-      closeModal();
-      toast("Sourcing event published");
-      navigate("/customer/sourcing/" + bid.id);
-    } catch (x) {
-      document.getElementById("srEventError").textContent = x.message;
-    }
-  };
-};
-/* Supplier offer form with the event's questionnaire. */
-ccOpenBidOffer = async function (id) {
-  const b = (await api("/bids")).bids.find((x) => x.id === id),
-    mine = b?.offers?.find((o) => o.supplierId === state.user.supplierId);
-  if (!b) return;
-  modal(
-    mine ? "Revise offer" : "Submit offer",
-    `<form id="srOfferForm" class="modal-form"><p><b>${srEsc(b.title)}</b><br><small class="subtle">${srEsc(b.eventType || "RFQ")} · ${srEsc(b.projectName)} · ${srEsc(b.taskName)} · deadline ${date(b.dueDate)}</small></p>${b.description ? `<p class="subtle">${srEsc(b.description)}</p>` : ""}${mine?.status === "Changes requested" ? `<div class="notice warn"><b>The customer asked for changes:</b> ${srEsc(mine.changeNote || "")}</div>` : ""}<div class="two"><label>Total offer (€)<input name="amount" type="number" min="1" step="0.01" value="${mine?.amount || ""}" required></label><label>Delivery days<input name="deliveryDays" type="number" min="1" value="${mine?.deliveryDays || ""}" required></label></div>${(b.questions || []).map((q, i) => `<label>${srEsc(q)}<textarea name="answer_${i}" rows="2" required>${srEsc(mine?.answers?.[i] || "")}</textarea></label>`).join("")}<label>Included scope & assumptions<textarea name="notes" rows="3">${srEsc(mine?.notes || "")}</textarea></label><label>Offer document<input name="offerFile" type="file" accept=".pdf,.doc,.docx,.xlsx,.xls"></label>${mine?.attachment ? `<a href="${srEsc(mine.attachment)}">Current offer document</a>` : ""}${mine ? `<label>What did you change? <small class="subtle">shown to the customer</small><textarea name="revisionNote" rows="2" placeholder="e.g. Split the price per robot cell and added commissioning hours"></textarea></label>` : ""}<div id="srOfferError" class="form-error"></div><button class="btn primary">${mine ? "Save and resend" : "Send offer"}</button></form>`,
-  );
-  document.getElementById("srOfferForm").onsubmit = async (e) => {
-    e.preventDefault();
-    const f = new FormData(e.target),
-      file = e.target.elements.offerFile.files[0];
-    const body = {
-      amount: f.get("amount"),
-      deliveryDays: f.get("deliveryDays"),
-      notes: f.get("notes"),
-      revisionNote: f.get("revisionNote") || "",
-      answers: (b.questions || []).map((_, i) => f.get("answer_" + i)),
-    };
-    try {
-      if (file) body.attachment = (await uploadFile(file)).url;
-      else if (mine?.attachment) body.attachment = mine.attachment;
-      await api(`/bids/${id}/offers`, { method: "POST", body });
-      closeModal();
-      toast("Offer sent");
-      route();
-    } catch (x) {
-      document.getElementById("srOfferError").textContent = x.message;
-    }
-  };
-};
-
 /* ---------- Contracts ---------- */
 async function srContracts(role) {
   const { contracts = [] } = await api("/contracts"),
