@@ -278,19 +278,6 @@ describe("design 2026", () => {
     assert.ok(read("i18n.js").includes('[/^Due (\\d.+)$/, "Fällig $1"]'));
   });
 
-  it("opens the Share dialog from a grey pill in the workspace header (T110)", () => {
-    const src = read("design-screens.js"),
-      ws = read("areas/workspace.js"),
-      de = read("i18n.js");
-    // The pill is drawn by the workspace (T128b), for customers only; the dialog stays in design-screens.js
-    assert.ok(ws.includes('customer && !invitedOnly ? wsBtn("ws.share", ids, "btn outline ds-share", wk("head.share"))'));
-    assert.ok(ws.includes('actions.on("ws.share", (el) => dsShare(wsData(el).project));'));
-    for (const call of ["api(`/projects/${encodeURIComponent(pid)}/participants`", 'method: "DELETE"'])
-      assert.ok(src.includes(call), call);
-    for (const k of ['"Share project": "Projekt teilen"', '"People with access"', '"This project": "Dieses Projekt"'])
-      assert.ok(de.includes(k), k);
-  });
-
   it("explains the GDPR self-service on the privacy page and lists pending deletions for admins (T123)", () => {
     // The privacy page itself moved to the public area (T126a, test/area-public.test.js)
     const src = read("gdpr-ui.js"),

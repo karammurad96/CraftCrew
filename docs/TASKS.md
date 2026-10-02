@@ -203,7 +203,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
   - [x] T128a project list, new project, supplier assigned work
   - [x] T128b project workspace
   - [x] T128c task and phase pages, task board
-  - [ ] T128d project dialogs: edit/delete project, add/edit phase and task, assign supplier, bids, share, support
+  - [x] T128d project dialogs: edit/delete project, add/edit phase and task, assign supplier, bids, share, support
   - [ ] T128e project documents (document desk and explorer)
 - [ ] T129 Area: sourcing, offers, bids, contracts and the directory · M
 - [ ] T130 Area: invoices and payments · M

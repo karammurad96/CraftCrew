@@ -54,7 +54,7 @@ function area(lang, role, hash) {
     dashboardShell: (r, active, html) => `[${r}:${active}]${html}`,
     esc: (s) => String(s ?? "").replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[c]),
     ccNewTimeEntry: () => calls.push(["logTime"]),
-    wfUpdateProgress: (...a) => calls.push(["progress", ...a]),
+    pdProgress: (...a) => calls.push(["progress", ...a]),
     api: async (p, opts) => {
       calls.push(["api", p, opts?.method || "GET", opts?.body]);
       if (p === "/projects/p1") return { project: JSON.parse(JSON.stringify(PROJECT)), suppliers: [{ id: "s1", company: "Keller" }, { id: "s2", company: "Rhein" }] };

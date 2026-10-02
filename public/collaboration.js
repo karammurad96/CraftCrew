@@ -398,29 +398,6 @@ function ccExportTime(role, type) {
   URL.revokeObjectURL(a.href);
 }
 
-// Replace native progress prompt with a small, validated form.
-async function wfUpdateProgress(pid, phid, tid, current) {
-  modal(
-    "Update task progress",
-    `<form id="ccProgressForm" class="modal-form"><label>Progress complete<input name="progress" type="number" min="0" max="100" step="5" value="${current}" required></label><label>Work status<select name="status"><option>Not Started</option><option ${current > 0 && current < 100 ? "selected" : ""}>In Progress</option><option ${current >= 100 ? "selected" : ""}>Completed</option></select></label><div id="ccProgressError" class="form-error"></div><button class="btn primary">Save progress</button></form>`,
-  );
-  document.getElementById("ccProgressForm").onsubmit = async (e) => {
-    e.preventDefault();
-    const f = new FormData(e.target);
-    try {
-      await api(`/projects/${pid}/phases/${phid}/tasks/${tid}`, {
-        method: "PATCH",
-        body: { progress: Number(f.get("progress")), status: f.get("status") },
-      });
-      closeModal();
-      toast("Task progress updated");
-      route();
-    } catch (x) {
-      document.getElementById("ccProgressError").textContent = x.message;
-    }
-  };
-}
-
 // Messages: use the whole dashboard height, searchable chats, and searchable participant selection.
 async function messages(role) {
   const chats = (await api("/chats")).chats || [],

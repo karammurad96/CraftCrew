@@ -144,7 +144,7 @@ async function prSupplierWork(params, query) {
   );
   if (highlight) document.getElementById("inv-" + highlight)?.scrollIntoView({ block: "center" });
 }
-actions.on("projects.progress", (el) => wfUpdateProgress(el.dataset.project, el.dataset.phase, el.dataset.task, Number(el.dataset.progress)));
+actions.on("projects.progress", (el) => pdProgress(el.dataset.project, el.dataset.phase, el.dataset.task, Number(el.dataset.progress)));
 
 routes.add("/customer/projects", prCustomerProjects);
 routes.add("/customer/projects/new", prNewProject);

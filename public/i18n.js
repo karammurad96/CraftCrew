@@ -82,9 +82,6 @@ const I18N_DE = {
   "Request a quote": "Angebot anfragen",
   "Request bids": "Angebote einholen",
   Documents: "Dokumente",
-  "Edit task": "Aufgabe bearbeiten",
-  "Edit phase": "Phase bearbeiten",
-  "Edit project": "Projekt bearbeiten",
   "Select supplier": "Lieferant auswählen",
   "+ New contract": "+ Neuer Vertrag",
   "+ New chat": "+ Neuer Chat",
@@ -94,15 +91,12 @@ const I18N_DE = {
   "+ Log time": "+ Zeit erfassen",
   "+ Upload document": "+ Dokument hochladen",
   "Open project": "Projekt öffnen",
-  "Escalate / support": "Eskalieren / Support",
   "Project documents": "Projektdokumente",
   "Project invoices": "Projektrechnungen",
   "Project messages": "Projektnachrichten",
   "Compare offers": "Angebote vergleichen",
   "Edit & resend request": "Anfrage bearbeiten & erneut senden",
   "Close bidding": "Ausschreibung schließen",
-  "Save progress": "Fortschritt speichern",
-  "Upload deliverable": "Ergebnis hochladen",
   "Save weights": "Gewichtung speichern",
   "Close without award": "Ohne Zuschlag schließen",
   "Save review": "Prüfung speichern",
@@ -128,7 +122,6 @@ const I18N_DE = {
   "Save and resend": "Speichern & erneut senden",
   "Create contract": "Vertrag anlegen",
   "Save contract": "Vertrag speichern",
-  "Submit review": "Bewertung absenden",
   "Start a project": "Projekt starten",
   "Explore suppliers": "Lieferanten entdecken",
   "Start as a customer": "Als Kunde starten",
@@ -241,20 +234,10 @@ const I18N_DE = {
   Unassigned: "Nicht zugewiesen",
   "Description *": "Beschreibung *",
   Requirements: "Anforderungen",
-  "Start date": "Startdatum",
-  "Due date *": "Fälligkeitsdatum *",
   Project: "Projekt",
   Phase: "Phase",
   Task: "Aufgabe",
-  "Progress complete (%)": "Fortschritt (%)",
   "Work status": "Arbeitsstatus",
-  "Milestone reached (optional)": "Erreichter Meilenstein (optional)",
-  "Progress note for the customer": "Fortschrittsnotiz für den Kunden",
-  "Update task progress": "Aufgabenfortschritt aktualisieren",
-  "Review supplier performance": "Lieferantenleistung bewerten",
-  "Overall rating": "Gesamtbewertung",
-  "Quality of work": "Arbeitsqualität",
-  "Schedule reliability": "Termintreue",
   Communication: "Kommunikation",
   Comment: "Kommentar",
   Folders: "Ordner",
@@ -656,7 +639,6 @@ Object.assign(I18N_DE, {
   "A professional operating layer for": "Eine professionelle Arbeitsumgebung für",
   "industrial work.": "industrielle Projekte.",
   "Contact name": "Ansprechpartner",
-  "Email *": "E-Mail *",
   Location: "Standort",
   Certifications: "Zertifizierungen",
   "Portfolio / past work *": "Referenzprojekte *",
@@ -1074,7 +1056,6 @@ Object.assign(I18N_DE, {
   "Delete this project and its invoices?": "Projekt und zugehörige Rechnungen löschen?",
   "Delete this project? Projects with invoices, documents or accepted suppliers are archived instead.":
     "Dieses Projekt löschen? Projekte mit Rechnungen, Dokumenten oder angenommenen Lieferanten werden stattdessen archiviert.",
-  "Project archived": "Projekt archiviert",
   "Please choose a new password first.": "Bitte wählen Sie zuerst ein neues Passwort.",
   "Change awaiting re-verification": "Änderung wartet auf erneute Prüfung",
   "Until an admin reviews it, your profile still shows the previous values.":
@@ -1309,8 +1290,6 @@ Object.assign(I18N_DE, {
   "Sign in the signature box before saving": "Unterschreiben Sie im Unterschriftsfeld, bevor Sie speichern",
   "Sent back to the supplier": "An den Auftragnehmer zurückgegeben",
   "Acceptance report saved": "Abnahmeprotokoll gespeichert",
-  "Invoices only after acceptance (suppliers can invoice a task once you have signed its acceptance report)":
-    "Rechnungen erst nach Abnahme (Auftragnehmer können eine Aufgabe erst abrechnen, wenn Sie das Abnahmeprotokoll unterschrieben haben)",
   "Only the customer accepts work": "Nur der Auftraggeber nimmt Leistungen ab",
   "This task has no supplier working on it yet.": "An dieser Aufgabe arbeitet noch kein Auftragnehmer.",
   "The supplier has not handed this work over yet. Accept it once the task is Under Review or Completed.":
@@ -1437,21 +1416,11 @@ Object.assign(I18N_DE, {
   "Complete your application": "Bewerbung abschließen",
   "View application status": "Bewerbungsstatus ansehen",
   // Safer destructive actions (T56)
-  "Archive project?": "Projekt archivieren?",
-  "Archive project": "Projekt archivieren",
-  "Delete project for good?": "Projekt endgültig löschen?",
-  "Delete project": "Projekt löschen",
   "Delete phase?": "Phase löschen?",
   "Delete phase": "Phase löschen",
-  "Delete task?": "Aufgabe löschen?",
-  "Delete task": "Aufgabe löschen",
   "This phase cannot be deleted": "Diese Phase kann nicht gelöscht werden",
   "It has supplier assignments or invoices. Remove the assignments and resolve the invoices first.":
     "Sie hat Lieferantenzuweisungen oder Rechnungen. Entfernen Sie zuerst die Zuweisungen und klären Sie die Rechnungen.",
-  "This task cannot be deleted": "Diese Aufgabe kann nicht gelöscht werden",
-  "It has a supplier assignment or invoices. Remove the assignment and resolve the invoices first.":
-    "Sie hat eine Lieferantenzuweisung oder Rechnungen. Entfernen Sie zuerst die Zuweisung und klären Sie die Rechnungen.",
-  "The name does not match. Nothing was deleted.": "Der Name stimmt nicht überein. Es wurde nichts gelöscht.",
   "Sign out all your other sessions? Other browsers and devices will need to sign in again.":
     "Alle anderen Sitzungen abmelden? Andere Browser und Geräte müssen sich erneut anmelden.",
   "Sign out others": "Andere abmelden",
@@ -1500,8 +1469,6 @@ Object.assign(I18N_DE, {
   Platform: "Plattform",
   // XRechnung e-invoices (T43)
   "Download e-invoice (XRechnung)": "E-Rechnung herunterladen (XRechnung)",
-  "Order reference (for e-invoices)": "Bestellreferenz (für E-Rechnungen)",
-  "Your purchase order or cost centre number": "Ihre Bestell- oder Kostenstellennummer",
   "This invoice has no VAT data. E-invoices need an invoice created with a VAT mode.":
     "Diese Rechnung enthält keine Umsatzsteuerdaten. E-Rechnungen brauchen eine Rechnung mit Umsatzsteuerangabe.",
   "Add your company address with street, postcode and city to your company profile.":
@@ -1632,15 +1599,9 @@ Object.assign(I18N_DE, {
   // Share a project (T110)
   Share: "Teilen",
   "Share project": "Projekt teilen",
-  "Invite a colleague from your company. They see this project and can work on it with you. Someone without an account gets one.":
-    "Laden Sie eine Kollegin oder einen Kollegen aus Ihrem Unternehmen ein. Sie sehen dieses Projekt und können daran mitarbeiten. Wer noch kein Konto hat, bekommt eines.",
   Invite: "Einladen",
-  "People with access": "Personen mit Zugriff",
   Owner: "Inhaber",
-  "Your team · all projects": "Ihr Team · alle Projekte",
   "This project": "Dieses Projekt",
-  "Only the project owner can invite colleagues.": "Nur der Projektinhaber kann Kolleginnen und Kollegen einladen.",
-  "Remove this colleague's access to the project?": "Den Zugriff dieser Person auf das Projekt entfernen?",
   "Enter the colleague's name": "Geben Sie den Namen der Person ein",
   "Only the project owner can share it": "Nur der Projektinhaber kann es teilen",
   "This is the project owner's own account": "Das ist das Konto des Projektinhabers",
@@ -1720,9 +1681,6 @@ Object.assign(I18N_DE, {
   "This invoice was just submitted. Check your invoices before sending it again.":
     "Diese Rechnung wurde gerade eingereicht. Prüfen Sie Ihre Rechnungen, bevor Sie sie erneut senden.",
   // Escalations (T25)
-  "Issue type": "Art des Problems",
-  "Open escalation": "Eskalation eröffnen",
-  "Support escalation opened": "Eskalation eröffnet",
   "Escalation resolved": "Eskalation gelöst",
   Support: "Unterstützung",
   Quality: "Qualität",
@@ -1770,7 +1728,6 @@ Object.assign(I18N_DE, {
   "The new passwords do not match": "Die neuen Passwörter stimmen nicht überein",
   "Send phaseIds as a list of this project's phase ids, each once.":
     "Senden Sie phaseIds als Liste der Phasen-IDs dieses Projekts, jede nur einmal.",
-  "Project deleted": "Projekt gelöscht",
   "Phase deleted": "Phase gelöscht",
   Archived: "Archiviert",
   "This project is archived and can no longer be changed.":
@@ -1816,7 +1773,6 @@ Object.assign(I18N_DE, {
   "Task invitation": "Aufgabeneinladung",
   "Phase invitation": "Phaseneinladung",
   Invited: "Eingeladen",
-  "Not set": "Nicht festgelegt",
   "Decline task": "Aufgabe ablehnen",
   "Decline this task? You can tell the customer why (optional).":
     "Diese Aufgabe ablehnen? Sie können dem Kunden den Grund nennen (optional).",
@@ -1825,12 +1781,6 @@ Object.assign(I18N_DE, {
   "Phase accepted": "Phase angenommen",
   "Invitation declined": "Einladung abgelehnt",
   Withdraw: "Zurückziehen",
-  "Withdraw this invitation? The supplier is told and the task is free again.":
-    "Einladung zurückziehen? Der Lieferant wird informiert und die Aufgabe ist wieder frei.",
-  "Invitation withdrawn": "Einladung zurückgezogen",
-  "The supplier receives an invitation and has to accept it before the task starts.":
-    "Der Lieferant erhält eine Einladung und muss sie annehmen, bevor die Aufgabe beginnt.",
-  "Invitation sent — waiting for the supplier to accept": "Einladung gesendet – wartet auf die Zusage des Lieferanten",
   "The supplier has not accepted this task yet. Wait for the answer or withdraw the invitation.":
     "Der Lieferant hat diese Aufgabe noch nicht angenommen. Warten Sie die Antwort ab oder ziehen Sie die Einladung zurück.",
   "Accept the invitation before invoicing this work.": "Nehmen Sie die Einladung an, bevor Sie diese Arbeit abrechnen.",

@@ -996,4 +996,150 @@ LOCALES.de = {
       }
     }
   },
+  // Project dialogs (T128d)
+  dlg: {
+    "status": {
+      "Not Started": "Nicht begonnen",
+      "In Progress": "In Bearbeitung",
+      "Under Review": "In Prüfung",
+      "Completed": "Abgeschlossen",
+      "On Hold": "Pausiert"
+    },
+    "start": "Startdatum",
+    "dueRequired": "Fälligkeitsdatum *",
+    "due": "Fälligkeitsdatum",
+    "statusLabel": "Status",
+    "edit": {
+      "title": "Projekt bearbeiten",
+      "name": "Name",
+      "description": "Beschreibung",
+      "budget": "Budget",
+      "buyerRef": "Bestellreferenz (für E-Rechnungen)",
+      "buyerRefHint": "Ihre Bestell- oder Kostenstellennummer",
+      "afterAcceptance": "Rechnungen erst nach Abnahme (Auftragnehmer können eine Aufgabe erst abrechnen, wenn Sie das Abnahmeprotokoll unterschrieben haben)",
+      "save": "Speichern",
+      "saved": "Projekt aktualisiert"
+    },
+    "remove": {
+      "archiveTitle": "Projekt archivieren?",
+      "archiveText": "Dieses Projekt hat {invoices} Rechnung(en), {documents} Dokument(e) und {suppliers} Lieferant(en). Es wird archiviert, nicht gelöscht.",
+      "archive": "Projekt archivieren",
+      "deleteTitle": "Projekt endgültig löschen?",
+      "deleteText": "„{name}“ hat keine Rechnungen, Dokumente oder Lieferanten und wird endgültig gelöscht. Geben Sie zur Bestätigung den Projektnamen ein.",
+      "delete": "Projekt löschen",
+      "archived": "Projekt archiviert",
+      "deleted": "Projekt gelöscht",
+      "mismatch": "Der Name stimmt nicht überein. Es wurde nichts gelöscht."
+    },
+    "support": {
+      "title": "Eskalieren / Support",
+      "type": "Art des Problems",
+      "types": {
+        "Support": "Unterstützung",
+        "Quality": "Qualität",
+        "Schedule": "Zeitplan",
+        "Payment": "Zahlung",
+        "Safety": "Sicherheit",
+        "Other": "Sonstiges"
+      },
+      "description": "Beschreibung",
+      "submit": "Eskalation eröffnen",
+      "opened": "Eskalation eröffnet"
+    },
+    "phase": {
+      "addTitle": "Projektphase hinzufügen",
+      "editTitle": "Projektphase bearbeiten",
+      "nameRequired": "Name der Phase *",
+      "name": "Name der Phase",
+      "scope": "Leistungsumfang",
+      "dependsOn": "Abhängig von Phase",
+      "none": "Keine Abhängigkeit",
+      "add": "Phase hinzufügen",
+      "save": "Phase speichern"
+    },
+    "task": {
+      "addTitle": "Zuweisbare Aufgabe hinzufügen",
+      "editTitle": "Projektaufgabe bearbeiten",
+      "nameRequired": "Name der Aufgabe *",
+      "name": "Name der Aufgabe",
+      "deliverables": "Umfang und Ergebnisse",
+      "scope": "Leistungsumfang",
+      "budget": "Auftragsbudget (€)",
+      "dependsOn": "Abhängig von Aufgabe",
+      "none": "Keine Abhängigkeit",
+      "progress": "Fortschritt (%)",
+      "amount": "Auftragswert (€)",
+      "add": "Aufgabe hinzufügen",
+      "save": "Aufgabe speichern",
+      "delete": "Aufgabe löschen",
+      "cannotTitle": "Diese Aufgabe kann nicht gelöscht werden",
+      "cannotText": "Sie hat eine Lieferantenzuweisung oder Rechnungen. Entfernen Sie zuerst die Zuweisung und klären Sie die Rechnungen.",
+      "ok": "OK",
+      "deleteTitle": "Aufgabe löschen?",
+      "deleteText": "„{name}“ wird endgültig gelöscht. Geben Sie zur Bestätigung den Aufgabennamen ein."
+    },
+    "assign": {
+      "title": "Lieferanten vergleichen und einladen",
+      "intro": "Der Lieferant erhält eine Einladung und muss sie annehmen, bevor die Aufgabe beginnt.",
+      "locationPending": "Standort folgt",
+      "rates": "{hourly}/Stunde · ab {project}",
+      "invite": "Lieferant einladen",
+      "sent": "Einladung gesendet – wartet auf die Zusage des Lieferanten"
+    },
+    "withdraw": {
+      "confirm": "Einladung zurückziehen? Der Lieferant wird informiert und die Aufgabe ist wieder frei.",
+      "button": "Zurückziehen",
+      "done": "Einladung zurückgezogen"
+    },
+    "progress": {
+      "title": "Aufgabenfortschritt aktualisieren",
+      "percent": "Fortschritt (%)",
+      "status": "Arbeitsstatus",
+      "milestone": "Erreichter Meilenstein (optional)",
+      "milestoneHint": "z. B. Rahmen geschweißt und lackiert",
+      "note": "Fortschrittsnotiz für den Kunden",
+      "noteHint": "Was erledigt ist, was als Nächstes kommt, Risiken oder Verzögerungen",
+      "hint": "Laden Sie Ergebnisse in den Dokumentenbereich des Projekts hoch, damit der Kunde sie prüfen kann.",
+      "save": "Fortschritt speichern",
+      "upload": "Ergebnis hochladen",
+      "sent": "Fortschritt an den Kunden gesendet"
+    },
+    "complete": {
+      "confirm": "Projekt schließen? Alle Phasen sind abgeschlossen; die Lieferanten werden informiert und das Projekt nimmt keine neue Arbeit mehr an.",
+      "done": "Projekt abgeschlossen und geschlossen"
+    },
+    "review": {
+      "title": "Lieferantenleistung bewerten",
+      "intro": "Ihre Bewertungen erscheinen im öffentlichen Profil des Lieferanten und fließen in die Badge-Prüfung ein.",
+      "overall": "Gesamtbewertung",
+      "quality": "Arbeitsqualität",
+      "schedule": "Termintreue",
+      "communication": "Kommunikation",
+      "comment": "Kommentar",
+      "commentHint": "Was lief gut, was lässt sich verbessern?",
+      "submit": "Bewertung absenden",
+      "saved": "✓ Bewertung für {company} gespeichert",
+      "submitted": "Bewertung gesendet"
+    },
+    "share": {
+      "title": "Projekt teilen",
+      "intro": "Laden Sie eine Kollegin oder einen Kollegen aus Ihrem Unternehmen ein. Sie sehen dieses Projekt und können daran mitarbeiten. Wer noch kein Konto hat, bekommt eines.",
+      "name": "Name",
+      "email": "E-Mail *",
+      "invite": "Einladen",
+      "ownerOnly": "Nur der Projektinhaber kann Kolleginnen und Kollegen einladen.",
+      "people": "Personen mit Zugriff",
+      "access": {
+        "owner": "Inhaber",
+        "team": "Ihr Team · alle Projekte",
+        "project": "Dieses Projekt"
+      },
+      "remove": "Entfernen",
+      "removeLabel": "Zugriff für {name} entfernen",
+      "removeConfirm": "Den Zugriff dieser Person auf das Projekt entfernen?",
+      "password": "{name} kann sich mit dem vorläufigen Passwort {password} anmelden und wählt dann ein neues.",
+      "emailed": "Wir haben {email} einen Link zum Festlegen des Passworts geschickt.",
+      "ready": "{name} kann das Projekt jetzt öffnen."
+    }
+  },
 };

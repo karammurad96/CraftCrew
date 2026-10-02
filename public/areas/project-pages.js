@@ -70,7 +70,7 @@ for (const role of ["customer", "supplier"]) {
   routes.add(`/${role}/projects/:id/phases/:item`, (params) => ppItemPage(role, params.id, "phase", params.item));
 }
 actions.on("sub.logTime", () => ccNewTimeEntry());
-actions.on("sub.progress", (el) => wfUpdateProgress(el.dataset.project, el.dataset.phase, el.dataset.task, Number(el.dataset.progress)));
+actions.on("sub.progress", (el) => pdProgress(el.dataset.project, el.dataset.phase, el.dataset.task, Number(el.dataset.progress)));
 
 /* ---------- Task board (T99, board BoardDrawer) ---------- */
 const PP_COLUMNS = ["Not Started", "In Progress", "On Hold", "Completed"];
