@@ -69,65 +69,6 @@ async function requestSupplierQuote(supplierId) {
   };
 }
 
-async function supplierApplication() {
-  const services = [
-      "Mechanical Engineering",
-      "Electrical Engineering",
-      "PLC Programming",
-      "Robotics",
-      "CAD / Design",
-      "Manufacturing",
-      "Installation",
-      "Commissioning",
-      "Project Management",
-      "Industrial Shipping",
-    ],
-    certs = [
-      "ISO 9001",
-      "ISO 13849",
-      "ISO 14001",
-      "ISO 45001",
-      "TÜV",
-      "CE Machinery",
-      "VDA 6.3",
-      "SCC Safety",
-    ];
-  let profile = null;
-  if (state.user?.role === "supplier") profile = await api("/profile");
-  const content = `<div class="form-card"><div class="eyebrow">SUPPLIER APPLICATION</div><h1>Join the vetted network.</h1><p>Complete your company profile and start the verification process.</p><div class="stage-flow"><span class="on">Application</span><span>Verification</span><span>References</span><span>Founder review</span><span>Badge</span></div><form id="appF"><div class="two"><label>Company name *<input name="company" value="${esc(profile?.supplier?.company || state.user?.company || "")}" required></label><label>Contact name<input name="contactName" value="${esc(state.user?.name || "")}"></label></div><div class="two"><label>Email *<input name="email" type="email" value="${esc(state.user?.email || "")}" required></label><label>Phone *<input name="phone" type="tel" required></label></div><label>Location<input name="location" value="${esc(profile?.supplier?.location || "")}" placeholder="Munich, Germany"></label><label>Services offered *</label><div class="check-grid2">${services.map((x) => `<label class="choice-row"><input type="checkbox" name="services" value="${esc(x)}" ${(profile?.supplier?.services || []).includes(x) ? "checked" : ""}> ${esc(x)}</label>`).join("")}</div><label>Certifications</label><div class="check-grid2">${certs.map((x) => `<label class="choice-row"><input type="checkbox" name="certifications" value="${esc(x)}" ${(profile?.supplier?.certifications || []).includes(x) ? "checked" : ""}> ${esc(x)}</label>`).join("")}</div><div class="two"><label>Insurance details *<input name="insurance" required></label><label>Years in business *<input name="yearsInBusiness" type="number" min="0" required></label></div><label>Portfolio / past projects *<textarea name="portfolio" required></textarea></label><div class="two"><label>Reference name *<input name="referenceName" required></label><label>Reference email *<input name="referenceEmail" type="email" required></label></div><div id="applicationError" class="form-error" role="alert"></div><button class="btn primary lg">Submit application</button></form></div>`;
-  app.innerHTML =
-    state.user?.role === "supplier"
-      ? dashboardShell("supplier", "suppliers", content)
-      : publicLayout(`<div class="simple-page">${content}</div>`);
-  document.getElementById("appF").onsubmit = async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target),
-      b = {};
-    for (const [k, v] of fd.entries()) {
-      if (k === "services" || k === "certifications") (b[k] ??= []).push(v);
-      else b[k] = v;
-    }
-    if (!b.services?.length) {
-      document.getElementById("applicationError").textContent = "Choose at least one service.";
-      return;
-    }
-    try {
-      await api("/applications", { method: "POST", body: b });
-      app.innerHTML =
-        state.user?.role === "supplier"
-          ? dashboardShell(
-              "supplier",
-              "suppliers",
-              `<div class="form-card center-page"><h1>Application submitted</h1><p>Your details are in the supplier vetting queue. Keep your service catalog and team profiles up to date while we review it.</p><button class="btn primary" onclick="navigate('/supplier/suppliers')">Return to service catalog</button></div>`,
-            )
-          : publicLayout(
-              `<div class="simple-page center-page"><div class="login-card"><div class="feature-icon" style="margin:auto">✓</div><h1>Application submitted</h1><p>Your application is in the supplier vetting queue. Create an account with this email so you can manage your catalog after approval.</p><button class="btn primary" onclick="navigate('/signup')">Create supplier account</button></div></div>`,
-            );
-    } catch (err) {
-      document.getElementById("applicationError").textContent = err.message;
-    }
-  };
-}
 
 
 function customerProjectCard(p) {
@@ -649,7 +590,6 @@ async function route() {
   }
   try {
     if (h === "/suppliers") return renderSuppliers();
-    if (h === "/supplier-application") return supplierApplication();
     if (parts[0] === "customer") {
       if (parts[1] === "dashboard") return customerDashboard();
       if (parts[1] === "projects" && !parts[2]) return customerProjects();

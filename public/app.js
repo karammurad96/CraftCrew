@@ -703,38 +703,6 @@ async function importData(input) {
     toast(e.message, "error");
   }
 }
-async function supplierApplication() {
-  const checks = services
-      .map((x) => `<label><input type="checkbox" name="services" value="${esc(x)}"> ${esc(x)}</label>`)
-      .join(""),
-    cert = certs
-      .map((x) => `<label><input type="checkbox" name="certifications" value="${esc(x)}"> ${esc(x)}</label>`)
-      .join("");
-  app.innerHTML = publicLayout(
-    `<div class="simple-page"><div class="form-card"><div class="eyebrow">SUPPLIER APPLICATION</div><h1>Join the vetted network.</h1><p>Application → verification → references → approval → badge → live marketplace profile.</p><div class="stage-flow"><span class="on">New</span><span>Verified</span><span>References</span><span>Approved / Rejected</span><span>Badge assigned</span><span>Live</span></div><form id="appF"><div class="two"><label>Company name *<input name="company" required></label><label>Contact name<input name="contactName"></label></div><div class="two"><label>Email *<input name="email" type="email" required></label><label>Phone *<input name="phone" required></label></div><label>Location<input name="location" placeholder="Munich, Germany"></label><label>Services offered *</label><div class="check-grid2">${checks}</div><label>Certifications</label><div class="check-grid2">${cert}</div><div class="two"><label>Insurance details *<input name="insurance" required></label><label>Years in business *<input name="yearsInBusiness" type="number" min="1" required></label></div><label>Portfolio / past projects *</label><textarea name="portfolio" required></textarea><div class="two"><label>Reference name *<input name="referenceName" required></label><label>Reference email *<input name="referenceEmail" type="email" required></label></div><button class="btn primary lg">Submit application</button></form></div></div>`,
-  );
-  document.getElementById("appF").onsubmit = async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target),
-      b = {};
-    for (const [k, v] of fd.entries()) {
-      if (k === "services" || k === "certifications") (b[k] ??= []).push(v);
-      else b[k] = v;
-    }
-    if (!b.services?.length) {
-      toast("Select at least one service", "error");
-      return;
-    }
-    try {
-      await api("/applications", { method: "POST", body: b });
-      app.innerHTML = publicLayout(
-        `<div class="simple-page center-page"><div class="login-card"><div class="feature-icon" style="margin:auto">✓</div><h1>Application submitted</h1><p>Your application is now in the CraftCrew vetting queue. The next steps are verification and reference checks.</p><button class="btn primary" onclick="navigate('/suppliers')">Browse suppliers</button></div></div>`,
-      );
-    } catch (err) {
-      toast(err.message, "error");
-    }
-  };
-}
 async function adminDashboard() {
   const [m, a] = await Promise.all([api("/admin/metrics"), api("/admin/applications")]);
   app.innerHTML = dashboardShell(
@@ -853,7 +821,6 @@ async function route() {
   }
   try {
     if (h === "/suppliers") return renderSuppliers();
-    if (h === "/supplier-application") return supplierApplication();
     const parts = h.split("/").filter(Boolean);
     if (parts[0] === "customer") {
       if (parts[1] === "dashboard") return customerDashboard();

@@ -953,7 +953,6 @@ const wfOldRoute = async () => {
   if (h === "/suppliers") return renderSuppliers();
   // Public supplier profile, shareable as a link (T61).
   if (parts[0] === "suppliers" && parts[1] && !parts[2]) return supplierDetail(parts[1]);
-  if (h === "/supplier-application") return supplierApplication();
   if (parts[0] === "customer") {
     if (parts[1] === "dashboard") return customerDashboard();
     if (parts[1] === "projects" && parts[2] === "new") return newProject();

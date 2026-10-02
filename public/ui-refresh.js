@@ -194,7 +194,9 @@ function uiDropZones(root = document) {
     if (input.closest("label.btn")) continue; // compact "Import JSON" style buttons keep their look
     const zone = document.createElement("div");
     zone.className = "ui-drop";
-    zone.innerHTML = `<svg class="ui-icon" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg><span><b>Drag files here</b> or <u>browse</u></span><small class="ui-drop-files"></small>`;
+    // Drawn with translation keys (T126c), on old pages and key pages alike
+    zone.dataset.i18n = "keys";
+    zone.innerHTML = `<svg class="ui-icon" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg><span><b>${esc(t("common.drop.here"))}</b> ${esc(t("common.drop.or"))} <u>${esc(t("common.drop.browse"))}</u></span><small class="ui-drop-files"></small>`;
     input.after(zone);
     zone.prepend(input);
     const show = () => {
@@ -202,7 +204,7 @@ function uiDropZones(root = document) {
       zone.querySelector(".ui-drop-files").textContent = files.length
         ? files.map((f) => f.name).join(", ")
         : input.accept
-          ? `Accepted: ${input.accept.replaceAll(",", ", ")}`
+          ? t("common.drop.accepted", { types: input.accept.replaceAll(",", ", ") })
           : "";
       zone.classList.toggle("has-files", !!files.length);
     };
