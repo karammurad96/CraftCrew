@@ -1,6 +1,6 @@
-/* Area: invoices (T130a). The invoice lists of customers and suppliers (filters, sums, CSV), the invoice page laid
+/* Area: invoices (T130a, T130b). The invoice lists of customers and suppliers (filters, sums, CSV), the invoice page laid
    out as paper with a review panel (board InvoiceReview, T101), approve / request changes / reject, the supplier's
-   "Fix & resubmit", and the PDF, XRechnung and email downloads. Drawn with translation keys; company names,
+   "Fix & resubmit", the new-invoice form, and the PDF, XRechnung and email downloads. Drawn with translation keys; company names,
    positions and notes are data. The function names stay because other pages (approvals) still call them. */
 const ink = (key, params) => esc(t("inv." + key, params));
 const inDom = (text) => `<bdi data-i18n="dom">${esc(text)}</bdi>`;
@@ -435,7 +435,164 @@ actions.on("inv.resubmit", async (form) => {
   }
 });
 
+/* ---------- Supplier: new invoice (T130b) ---------- */
+// VAT modes on the invoice form; the server applies the same rates
+const WF_VAT_MODES = { standard: { rate: 19 }, reduced: { rate: 7 }, reverseCharge13b: { rate: 0 }, smallBusiness19: { rate: 0 }, intraEU: { rate: 0 } };
+let inNew = { eligible: [], services: [] }; // accepted work and the supplier's services of the open form
+const inTarget = () => {
+  const [pid, phid, tid] = (document.getElementById("invTarget")?.value || "||").split("|");
+  return inNew.eligible.find((x) => x.p.id === pid && x.ph.id === phid && (x.t?.id || "") === tid);
+};
+async function newInvoice() {
+  const [{ projects = [] }, profile] = await Promise.all([api("/projects"), api("/profile")]),
+    supplier = profile.supplier,
+    eligible = [];
+  for (const p of projects)
+    for (const ph of p.phases || []) {
+      for (const x of ph.tasks || []) if (x.assignedSupplierId === supplier.id && x.acceptanceStatus === "Accepted") eligible.push({ p, ph, t: x });
+      if (ph.supplierId === supplier.id && ph.acceptanceStatus === "Accepted") eligible.push({ p, ph, t: null });
+    }
+  // The list stays underneath the form
+  await supplierInvoices();
+  if (!eligible.length) return tToast(t("inv.new.acceptFirst"), "error");
+  inNew = { eligible, services: supplier.services || [] };
+  const q = inQuery(),
+    n = (key, params) => ink("new." + key, params),
+    cp = profile.companyProfile || {},
+    today = new Date().toISOString().slice(0, 10),
+    taxMissing = !["legalName", "address", "taxId"].every((k) => String(cp[k] || "").trim()),
+    chosen = eligible.find((x) => x.p.id === q.get("project") && x.ph.id === q.get("phase") && (x.t?.id || "") === (q.get("task") || ""));
+  modal(
+    t("inv.new.title"),
+    `<div data-i18n="keys">${
+      taxMissing ? `<div class="notice warn">${n("taxMissing")} <a href="#/supplier/profile" data-action="inv.closeModal">${n("openProfile")}</a></div>` : ""
+    }<p class="modal-intro">${n("intro")}</p><form id="invF" class="modal-form" data-action="inv.submit" data-input="inv.newTotal"><label>${n("target")}<input type="search" class="cc-invoice-search" placeholder="${n(
+      "search",
+    )}" data-input="inv.searchTarget"><select name="target" id="invTarget" required data-action="inv.target"><option value="">${n("choose")}</option>${eligible
+      .map(({ p, ph, t: x }) => {
+        const value = `${p.id}|${ph.id}|${x?.id || ""}`;
+        return `<option value="${esc(value)}"${chosen && x === chosen.t && ph === chosen.ph ? " selected" : ""}>${esc(p.name)} — ${esc(ph.name)}${x ? " — " + esc(x.name) : ""}</option>`;
+      })
+      .join("")}</select></label><div id="invoiceContext" class="notice">${n("context")}</div><div class="invoice-lines-head"><h3>${n("positions")}</h3><button class="btn small outline" type="button" data-action="inv.addLine">${n(
+      "add",
+    )}</button></div><div id="invoiceLines">${inLine()}</div><div class="two"><label>${n("vat")}<select name="vatMode" id="invVatMode" data-action="inv.vatMode">${Object.keys(WF_VAT_MODES)
+      .map((k) => `<option value="${k}">${n("modes." + k)}</option>`)
+      .join("")}</select></label><div class="two"><label>${n("from")}<input name="serviceDateFrom" type="date" value="${today}" required></label><label>${n(
+      "to",
+    )}<input name="serviceDateTo" type="date" value="${today}" required></label></div></div><p id="invVatHelp" class="subtle">${n("help.standard")}</p><div class="invoice-total-row sub"><span>${n(
+      "net",
+    )}</span><strong id="invoiceNet"></strong></div><div class="invoice-total-row sub"><span>${n("vatAmount")}</span><strong id="invoiceVat"></strong></div><div class="invoice-total-row"><span>${n(
+      "total",
+    )}</span><strong id="invoiceTotal"></strong></div><div id="invoiceOrderCheck" class="order-check">${n("selectWork")}</div><label>${n("note")}<textarea name="description" required></textarea></label><label>${n(
+      "attachment",
+    )}<input name="attachmentFile" type="file"></label><div id="invoiceError" class="form-error"></div><div class="action-row"><button class="btn primary">${n("submit")}</button><button type="button" class="btn outline" data-action="inv.closeModal">${n(
+      "cancel",
+    )}</button></div></form></div>`,
+  );
+  inShowTarget();
+}
+// One invoice position; services are the supplier's own (data, on the old translation)
+function inLine() {
+  const l = (key) => ink("new.line." + key);
+  return `<div class="invoice-line"><label>${l("service")}<select name="service" required data-i18n="dom"><option value="">${esc(t("inv.new.line.chooseService"))}</option>${inNew.services
+    .map((x) => `<option value="${esc(x)}">${esc(x)}</option>`)
+    .join("")}</select></label><label>${l("amount")}<input name="quantity" type="number" min="0.01" step="0.01" value="1" required></label><label>${l("unit")}<select name="unit"><option value="hours">${l(
+    "hours",
+  )}</option><option value="units">${l("units")}</option></select></label><label>${l("rate")}<input name="unitPrice" type="number" min="0" step="0.01" value="0" required></label><button type="button" class="btn small danger" aria-label="${l(
+    "removeLabel",
+  )}" data-action="inv.removeLine">${l("remove")}</button></div>`;
+}
+function inShowTarget() {
+  const x = inTarget(),
+    box = document.getElementById("invoiceContext");
+  if (x && box) {
+    const cap = Number(x.t?.orderAmount || x.ph.orderAmount) || 0;
+    box.innerHTML = `${tHtml("inv.new.customer", { name: `<b>${esc(x.p.customer?.company || x.p.customer?.name || t("inv.new.customerFallback"))}</b>` })}<br>${inDom(x.p.name)} · ${inDom(x.ph.name)}${x.t ? " · " + inDom(x.t.name) : ""}<br>${ink("new.cap", { amount: cap ? fmt.money(cap) : t("inv.new.noCap") })}`;
+  }
+  refreshInvoiceTotal();
+}
+function refreshInvoiceTotal() {
+  const n = (key, params) => t("inv.new." + key, params),
+    total = [...document.querySelectorAll(".invoice-line")].reduce(
+      (sum, row) => sum + (Number(row.querySelector("[name=quantity]")?.value) || 0) * (Number(row.querySelector("[name=unitPrice]")?.value) || 0),
+      0,
+    ),
+    rate = WF_VAT_MODES[document.getElementById("invVatMode")?.value]?.rate || 0,
+    vat = Math.round(total * rate) / 100,
+    set = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    };
+  set("invoiceNet", fmt.money(total));
+  set("invoiceVat", n("vatLine", { amount: fmt.money(vat), rate }));
+  set("invoiceTotal", fmt.money(total + vat));
+  const x = inTarget(),
+    cap = Number(x?.t?.orderAmount || x?.ph?.orderAmount) || 0,
+    check = document.getElementById("invoiceOrderCheck");
+  if (!check) return;
+  if (!x || !cap) {
+    check.textContent = n(x ? "noOrder" : "chooseOrder");
+    check.className = "order-check";
+    return;
+  }
+  const delta = total - cap;
+  check.textContent = delta > 0 ? n("exceeds", { amount: fmt.money(delta) }) : n("within", { cap: fmt.money(cap), remaining: fmt.money(cap - total) });
+  check.className = "order-check " + (delta > 0 ? "over" : "within");
+}
+actions.on("inv.closeModal", () => closeModal());
+actions.on("inv.target", inShowTarget);
+actions.on("inv.newTotal", refreshInvoiceTotal);
+actions.on("inv.addLine", () => document.getElementById("invoiceLines")?.insertAdjacentHTML("beforeend", inLine()));
+actions.on("inv.removeLine", (el) => {
+  el.closest(".invoice-line").remove();
+  refreshInvoiceTotal();
+});
+actions.on("inv.vatMode", (sel) => {
+  document.getElementById("invVatHelp").textContent = t("inv.new.help." + sel.value);
+  refreshInvoiceTotal();
+});
+actions.on("inv.searchTarget", (input) => {
+  const q = input.value.toLowerCase();
+  [...document.getElementById("invTarget").options].forEach((o, i) => {
+    if (i) o.hidden = !o.text.toLowerCase().includes(q);
+  });
+});
+actions.on("inv.submit", async (form) => {
+  const [projectId, phaseId, taskId] = document.getElementById("invTarget").value.split("|"),
+    f = new FormData(form),
+    error = document.getElementById("invoiceError"),
+    lineItems = [...form.querySelectorAll(".invoice-line")].map((r) =>
+      Object.fromEntries(["service", "quantity", "unit", "unitPrice"].map((k) => [k, r.querySelector(`[name=${k}]`).value])),
+    );
+  if (!lineItems.length || lineItems.some((x) => !x.service || Number(x.quantity) <= 0)) return (error.textContent = t("inv.new.lineError"));
+  try {
+    const file = f.get("attachmentFile"),
+      // The supporting attachment was offered but never sent before
+      attachment = file && file.size ? await uploadFile(file) : undefined;
+    await api("/invoices", {
+      method: "POST",
+      body: {
+        projectId,
+        phaseId,
+        taskId: taskId || undefined,
+        description: f.get("description"),
+        lineItems,
+        vatMode: f.get("vatMode"),
+        serviceDateFrom: f.get("serviceDateFrom"),
+        serviceDateTo: f.get("serviceDateTo"),
+        attachment,
+      },
+    });
+    closeModal();
+    tToast(t("inv.new.submitted"));
+    navigate(`/supplier/invoices?project=${projectId}&phase=${phaseId}&task=${taskId}`);
+  } catch (x) {
+    error.textContent = x.message;
+  }
+});
+
 routes.add("/customer/invoices", () => customerInvoices());
 routes.add("/supplier/invoices", () => supplierInvoices());
+routes.add("/supplier/invoices/new", () => newInvoice());
 routes.add("/customer/invoice/:id", (params) => invoiceDetailPage(params.id, "customer"));
 routes.add("/supplier/invoice/:id", (params) => invoiceDetailPage(params.id, "supplier"));

@@ -379,7 +379,6 @@ window.route = async function () {
       return;
     }
     await ccBaseRoute();
-    if (parts[0] === "supplier" && parts[1] === "invoices" && parts[2] === "new") ccInstallInvoiceSearch();
   } catch (e) {
     console.error(e);
     toast(e.message, "error");
@@ -390,23 +389,6 @@ window.route = async function () {
     );
   }
 };
-function ccInstallInvoiceSearch() {
-  const target = document.getElementById("invTarget");
-  if (!target || target.dataset.searchable) return;
-  target.dataset.searchable = "1";
-  const label = target.closest("label"),
-    search = document.createElement("input");
-  search.type = "search";
-  search.placeholder = "Search project, phase or task";
-  search.className = "cc-invoice-search";
-  label.insertBefore(search, target);
-  search.oninput = () => {
-    const q = search.value.toLowerCase();
-    [...target.options].forEach((o, i) => {
-      if (i) o.hidden = !o.text.toLowerCase().includes(q);
-    });
-  };
-}
 
 // Admin account controls and the persistent platform-configuration workspace.
 

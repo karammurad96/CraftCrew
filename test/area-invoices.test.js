@@ -66,8 +66,10 @@ function area(lang, { role = "customer", hash = "#/customer/invoices", prompt = 
       calls.push(["api", p, opts?.method || "GET", opts?.body]);
       if (p.startsWith("/invoices?")) return { invoices: JSON.parse(JSON.stringify(INVOICES)) };
       if (p.startsWith("/invoices/")) return { invoice: JSON.parse(JSON.stringify(INVOICES.find((i) => p.endsWith(i.id)) || INVOICES[0])) };
-      if (p === "/projects") return { projects: [{ id: "p1", name: "Line 4", phases: [{ id: "ph1", name: "Build" }] }] };
+      if (p === "/projects")
+        return { projects: [{ id: "p1", name: "Line 4", customer: { company: "MAKBERG" }, phases: [{ id: "ph1", name: "Build", tasks: [{ id: "t1", name: "Robot cell", assignedSupplierId: "s1", acceptanceStatus: "Accepted", orderAmount: 9000 }] }] }] };
       if (p.startsWith("/time-entries")) return { entries: [{ taskId: "t1", status: "Approved", hours: 7.5 }] };
+      if (p === "/profile") return { supplier: { id: "s1", services: ["PLC programming"] }, companyProfile: {} };
       return {};
     },
   };
@@ -149,10 +151,30 @@ describe("invoices (T130a)", () => {
     assert.ok(body.includes("Angeforderte Änderungen:") && body.includes("Add hours"));
   });
 
+  it("opens the new-invoice form with English VAT modes, translated labels and the chosen task (T130b)", async () => {
+    const ctx = area("de", { role: "supplier", hash: "#/supplier/invoices/new?project=p1&phase=ph1&task=t1" });
+    await ctx.render();
+    const { title, body } = ctx.shown.at(-1);
+    assert.equal(title, "Rechnung erstellen");
+    assert.ok(body.includes('<option value="p1|ph1|t1" selected>Line 4 — Build — Robot cell</option>'));
+    assert.ok(body.includes('<option value="reverseCharge13b">Steuerschuldnerschaft des Leistungsempfängers (§13b UStG)</option>'));
+    assert.ok(body.includes('<option value="hours">Stunden</option>') && body.includes('<select name="service" required data-i18n="dom">'));
+    assert.ok(body.includes("Unternehmensprofil öffnen"), "asks for the tax data first");
+    assert.match(body, /<form id="invF" class="modal-form" data-action="inv\.submit" data-input="inv\.newTotal">/);
+    assert.doesNotMatch(body, /\son[a-z]+="/);
+    // Without accepted work the list stays and says why
+    const none = area("en", { role: "supplier", hash: "#/supplier/invoices/new" });
+    none.api = async (p) => (p === "/projects" ? { projects: [] } : p === "/profile" ? { supplier: { id: "s1" } } : { invoices: [] });
+    vm.runInContext("api = window.api", none);
+    await none.render();
+    assert.equal(none.shown.length, 0);
+    assert.deepEqual(none.toasts.at(-1), ["Accept an assigned task before submitting an invoice", "error"]);
+  });
+
   it("replaced the old invoice lists, page and wrappers", () => {
     assert.ok(!existsSync(path.join(__dirname, "..", "public", "revisions.js")));
-    const old = ["app.js", "enhancements.js", "workflows.js", "reviews.js", "design-screens.js"].map(read).join("\n");
-    assert.doesNotMatch(old, /function (customerInvoices|supplierInvoices|invoiceDetailPage|reviewInvoiceList|invoiceAction|invoiceReject)\b|invoiceDetailPage = async/);
+    const old = ["app.js", "enhancements.js", "workflows.js", "reviews.js", "collaboration.js", "design-screens.js"].map(read).join("\n");
+    assert.doesNotMatch(old, /function (customerInvoices|supplierInvoices|invoiceDetailPage|reviewInvoiceList|invoiceAction|invoiceReject|newInvoice|addInvoiceLine|refreshInvoiceTotal|ccInstallInvoiceSearch)\b|invoiceDetailPage = async/);
     const index = read("index.html");
     assert.ok(!index.includes('src="revisions.js"'));
     assert.ok(index.includes('<script src="areas/sourcing.js"></script><script src="areas/invoices.js"></script>'));

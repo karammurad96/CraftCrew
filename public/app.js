@@ -150,41 +150,6 @@ function publicLayout(content) {
 function publicHero() {
   return `<section class="hero-lite"><div><div class="eyebrow">INDUSTRIAL SERVICES, COORDINATED</div><h1>Build complex projects with <span>trusted crews.</span></h1><p>CraftCrew connects SMEs with vetted mechanical, electrical, automation and industrial service specialists — managed through one transparent waterfall workflow.</p><div class="hero-actions"><button class="btn primary lg" onclick="navigate('/signup')">Start a project</button><button class="btn outline lg" onclick="navigate('/suppliers')">Explore suppliers</button></div><div class="trust-row"><div><b>20+</b><small>vetted suppliers</small></div><div><b>5-stage</b><small>waterfall delivery</small></div><div><b>1 place</b><small>projects & payments</small></div></div></div><div class="hero-box"><div class="small-label">LIVE PROJECT CONTROL</div><h3 style="font-size:20px;margin:10px 0">Line 15 Integration</h3><div class="progress"><i style="width:68%"></i></div><div style="font-size:11px;color:#9eabc0">68% complete · 12 days remaining</div><div class="mini"><div><div class="small-label">ACTIVE PHASE</div><b>Programming</b><p style="color:#9eabc0">SPS Experts GmbH</p></div><div><div class="small-label">NEXT MILESTONE</div><b>Installation</b><p style="color:#9eabc0">18 Sep 2026</p></div></div></div></section>`;
 }
-async function newInvoice() {
-  const d = await api("/projects"),
-    selectedProject = new URLSearchParams(location.hash.split("?")[1] || "").get("project"),
-    selectedPhase = new URLSearchParams(location.hash.split("?")[1] || "").get("phase");
-  let options = "";
-  d.projects.forEach((p) =>
-    p.phases
-      .filter((ph) => ph.supplierId === state.user.supplierId && ph.acceptanceStatus === "Accepted")
-      .forEach(
-        (ph) =>
-          (options += `<option value="${p.id}|${ph.id}" ${selectedProject === p.id && selectedPhase === ph.id ? "selected" : ""}>${esc(p.name)} — ${esc(ph.name)}</option>`),
-      ),
-  );
-  app.innerHTML = dashboardShell(
-    "supplier",
-    "invoices",
-    `<div class="form-card"><h1>Create invoice</h1><p>Submit against an accepted phase. The customer must review before payment is scheduled.</p><form id="invF"><label>Project / Phase *<select name="target" required><option value="">Select</option>${options}</select></label><div class="two"><label>Amount (€) *<input name="amount" type="number" min="1" step="0.01" required></label><label>Attachment<input name="attachmentFile" type="file"></label></div><label>Description *<textarea name="description" required></textarea></label><button class="btn primary">Submit invoice</button></form></div>`,
-  );
-  document.getElementById("invF").onsubmit = async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target),
-      b = Object.fromEntries(fd.entries());
-    const file = fd.get("attachmentFile");
-    const [projectId, phaseId] = b.target.split("|");
-    delete b.target;
-    delete b.attachmentFile;
-    let attachment = null;
-    if (file && file.size) {
-      attachment = await uploadFile(file);
-    }
-    await api("/invoices", { method: "POST", body: { ...b, attachment, projectId, phaseId } });
-    toast("Invoice submitted");
-    navigate("/supplier/invoices");
-  };
-}
 async function supplierCatalog() {
   const d = await api("/profile"),
     s = d.supplier;
@@ -382,7 +347,6 @@ async function route() {
       if (parts[1] === "profile") return profilePage("customer");
     }
     if (parts[0] === "supplier") {
-      if (parts[1] === "invoices" && parts[2] === "new") return newInvoice();
       if (parts[1] === "suppliers") return supplierCatalog();
       if (parts[1] === "messages") return messages("supplier");
       if (parts[1] === "profile") return profilePage("supplier");
