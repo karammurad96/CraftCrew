@@ -2263,3 +2263,320 @@ html body .ds-compare-link {
 html body .ds-offer .status::before {
   display: none !important;
 }
+
+/* ---------- Invoice review (T101, board InvoiceReview) ---------- */
+html body .dashboard-content.ds-invoice {
+  padding: 0 !important;
+}
+html body .ds-invoice > .ds-inv-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  align-items: start;
+  min-height: 100vh;
+  margin: 0 !important;
+}
+html body .ds-inv-left {
+  padding: 32px 48px 48px;
+  min-width: 0;
+}
+html body .ds-inv-left > * {
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+html body .ds-inv-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+html body .ds-inv-back {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cc-blue);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+html body .ds-inv-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+html body .ds-paper {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  padding: 56px;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    0 24px 60px rgba(0, 0, 0, 0.1);
+}
+html body .ds-paper-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+}
+html body .ds-paper-top > div:first-child,
+html body .ds-paper-to {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--cc-muted);
+}
+html body .ds-paper-from {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--cc-text);
+}
+html body .ds-paper-no {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  text-align: right;
+  font-size: 13px;
+  color: var(--cc-muted);
+}
+html body .ds-paper-no > span:first-child,
+html body .ds-paper-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--cc-muted);
+}
+html body .ds-paper-no b {
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--cc-text);
+}
+html body .ds-paper-to b {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--cc-text);
+}
+html body table.ds-paper-lines {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+html body table.ds-paper-lines th {
+  padding: 0 0 10px !important;
+  text-align: left;
+  border-bottom: 1px solid var(--cc-text) !important;
+}
+html body table.ds-paper-lines td {
+  padding: 14px 0 !important;
+  font-size: 14px;
+}
+html body table.ds-paper-lines th:not(:first-child),
+html body table.ds-paper-lines td:not(:first-child) {
+  text-align: right;
+  white-space: nowrap;
+  padding-left: 16px !important;
+}
+html body table.ds-paper-lines tr:last-child td {
+  border-bottom: 1px solid var(--cc-hairline) !important;
+}
+html body .ds-new {
+  display: inline-flex;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--cc-chip-blue-bg);
+  color: var(--cc-chip-blue);
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+html body .ds-paper-totals {
+  align-self: flex-end;
+  width: 280px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+html body .ds-paper-totals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+html body .ds-paper-totals > div > span:first-child {
+  color: var(--cc-muted);
+}
+html body .ds-paper-totals .ds-paper-total {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--cc-text);
+  font-size: 17px;
+  font-weight: 700;
+}
+html body .ds-paper-totals .ds-paper-total > span:first-child {
+  color: var(--cc-text);
+}
+html body .ds-inv-below {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+html body .ds-inv-below > * {
+  margin: 0 !important;
+}
+/* Review panel */
+html body .ds-inv-panel {
+  position: sticky;
+  top: 0;
+  min-height: 100vh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 32px 28px 40px;
+  background: #fff;
+  border-left: 1px solid var(--cc-hairline);
+}
+html body .ds-inv-from {
+  font-size: 13px;
+  color: var(--cc-muted);
+}
+html body .ds-inv-total {
+  font-family: var(--cc-font-display);
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+html body .ds-inv-due {
+  font-size: 14px;
+  color: var(--cc-muted);
+}
+html body .ds-inv-h {
+  margin: 14px 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cc-text-2);
+}
+html body .ds-checks,
+html body .ds-inv-changed {
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--cc-page);
+}
+html body .ds-check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 14px;
+  padding: 12px 0;
+  font-size: 14px;
+}
+html body .ds-check + .ds-check {
+  border-top: 1px solid var(--cc-hairline);
+}
+html body .ds-check-icon {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+html body .ds-check-ok .ds-check-icon {
+  background: var(--cc-green);
+}
+html body .ds-check-warn .ds-check-icon {
+  background: var(--cc-orange);
+}
+html body .ds-check-bad .ds-check-icon {
+  background: var(--cc-red);
+}
+html body .ds-check-text {
+  flex: 1;
+  min-width: 0;
+}
+html body .ds-check-detail {
+  font-size: 13px;
+  color: var(--cc-muted);
+  text-align: right;
+}
+html body .ds-inv-changed {
+  padding: 12px 14px;
+  font-size: 14px;
+}
+html body .ds-inv-changed p {
+  margin: 0;
+}
+html body .ds-inv-changed p + p {
+  margin-top: 6px;
+}
+html body .ds-inv-note {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+html body .ds-inv-note span {
+  margin-left: 4px;
+}
+html body .ds-inv-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 20px;
+}
+html body .ds-inv-foot .btn.lg {
+  width: 100%;
+}
+html body .ds-inv-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+html body .ds-inv-row .btn.secondary {
+  flex: 1;
+}
+@media (max-width: 1100px) {
+  html body .ds-invoice > .ds-inv-cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  html body .ds-inv-panel {
+    position: static;
+    min-height: 0;
+    border-left: 0;
+    border-top: 1px solid var(--cc-hairline);
+  }
+}
+@media (max-width: 640px) {
+  html body .ds-inv-left {
+    padding: 20px 16px 32px;
+  }
+  html body .ds-paper {
+    padding: 24px 18px;
+    gap: 24px;
+  }
+  html body .ds-paper-top {
+    flex-direction: column;
+  }
+  html body .ds-paper-no {
+    align-items: flex-start;
+    text-align: left;
+  }
+  html body table.ds-paper-lines th:nth-child(3),
+  html body table.ds-paper-lines td:nth-child(3) {
+    display: none;
+  }
+}
