@@ -31,6 +31,10 @@ module.exports = function createGdpr(ctx) {
     queueEmail,
     notify,
     invoiceNo,
+    invoiceParties,
+    xrechnungData,
+    removeUnusedUpload,
+    id,
   } = ctx;
   const GRACE_DAYS = 14;
   const OPEN_DISPUTE = ["Open", "In progress"];
@@ -237,5 +241,108 @@ module.exports = function createGdpr(ctx) {
     return false;
   }
 
-  return { handle, exportFor, withoutSecrets, blockers, cancelOnLogin };
+  /* ---------- The deletion job (T122) ----------
+     Runs hourly. Invoices are kept for the legal retention period (§147 AO, §14b UStG), so each invoice of the
+     company first gets a frozen copy of its legal details; the deleted side keeps company name, address and
+     tax ID (required on an invoice) but loses personal contact details. Then the account is anonymised. */
+  function freezeInvoices(u) {
+    const db = getDb(),
+      side = u.role === "supplier" ? "supplier" : "customer";
+    for (const inv of db.invoices || []) {
+      const ours = side === "supplier" ? inv.supplierId === u.supplierId : inv.customerId === u.id;
+      if (!ours) continue;
+      if (!inv.frozenParties) {
+        const x = xrechnungData(inv);
+        inv.frozenParties = { parties: { ...invoiceParties(inv) }, seller: { ...x.seller }, buyer: { ...x.buyer }, frozenAt: now() };
+      }
+      const f = inv.frozenParties;
+      if (side === "supplier") {
+        Object.assign(f.parties, { supplierName: f.parties.supplierCompany, supplierEmail: "", supplierPhone: "" });
+        Object.assign(f.seller, { email: "", phone: "", contactName: "" });
+      } else {
+        Object.assign(f.parties, { customerName: f.parties.customerCompany, customerEmail: "" });
+        Object.assign(f.buyer, { email: "" });
+      }
+    }
+  }
+  function anonymise(u, main) {
+    const db = getDb(),
+      at = now();
+    if (main) freezeInvoices(u);
+    if (main && u.role === "supplier") {
+      const s = (db.suppliers || []).find((x) => x.id === u.supplierId);
+      if (s) {
+        for (const k of Object.keys(s)) if (!["id", "createdAt"].includes(k)) delete s[k];
+        Object.assign(s, { company: "Deleted supplier", live: false, verified: false, status: "Deleted", services: [], certifications: [], reviews: [] });
+      }
+      for (const w of db.workers || [])
+        if (w.supplierId === u.supplierId) {
+          for (const k of Object.keys(w)) if (!["id", "supplierId", "createdAt"].includes(k)) delete w[k];
+          Object.assign(w, { name: "Deleted worker", active: false });
+        }
+      db.complianceDocs = (db.complianceDocs || []).filter((d) => d.supplierId !== u.supplierId);
+      for (const a of db.briefingAcks || []) if (a.supplierId === u.supplierId) a.signatureName = "Deleted";
+      for (const a of db.applications || [])
+        if (normEmail(a.email) === normEmail(u.email)) {
+          for (const k of Object.keys(a)) if (!["id", "status", "createdAt", "updatedAt"].includes(k)) delete a[k];
+          Object.assign(a, { company: "Deleted supplier", email: "", deletedAt: at });
+        }
+    }
+    if (main && u.role === "customer")
+      for (const s of db.sites || [])
+        if (s.customerId === u.id) Object.assign(s, { contactName: "", contactPhone: "", emergencyNumber: "" });
+    // Reviews they wrote stay (they describe the supplier's work), without their name
+    for (const sup of db.suppliers || [])
+      for (const r of sup.reviews || []) if (r.authorId === u.id) r.author = "Deleted user";
+    for (const p of db.projects || [])
+      if ((p.participantIds || []).includes(u.id)) p.participantIds = p.participantIds.filter((x) => x !== u.id);
+    db.notifications = (db.notifications || []).filter((n) => n.userId !== u.id);
+    db.sessions = (db.sessions || []).filter((s) => s.userId !== u.id);
+    db.authTokens = (db.authTokens || []).filter((t) => t.userId !== u.id);
+    db.outbox = (db.outbox || []).filter((m) => normEmail(m.to) !== normEmail(u.email) || m.status === "Sent");
+    for (const a of db.auditLog || [])
+      if (a.actorId === u.id) Object.assign(a, { actorName: "Deleted user", actorEmail: u.id });
+    const email = u.email;
+    for (const k of Object.keys(u)) if (!["id", "role", "supplierId", "orgOwnerId", "createdAt"].includes(k)) delete u[k];
+    Object.assign(u, {
+      name: "Deleted user",
+      email: `deleted-${u.id}@invalid`,
+      company: main ? (u.role === "supplier" ? "Deleted supplier" : "Deleted company") : undefined,
+      status: "Deleted",
+      deletedAt: at,
+    });
+    if (!main) delete u.company;
+    // Files nobody else's kept record points to any more
+    for (const [stored, owner] of Object.entries(db.uploadOwners || {}))
+      if (owner === u.id) removeUnusedUpload("/uploads/" + stored);
+    db.auditLog ||= [];
+    db.auditLog.unshift({
+      id: id("aud"),
+      at,
+      actorId: u.id,
+      actorName: "Deleted user",
+      actorEmail: u.id,
+      actorRole: u.role,
+      action: "Account deleted",
+      method: "JOB",
+      path: "gdpr/deletion",
+      entityId: u.id,
+      status: "Deleted",
+      projectId: null,
+      projectName: "",
+    });
+    return email;
+  }
+  function runDeletions(at = Date.now()) {
+    const db = getDb(),
+      due = (db.users || []).filter((u) => u.deleteAfter && u.status !== "Deleted" && Date.parse(u.deleteAfter) <= at);
+    if (!due.length) return 0;
+    // Main accounts first: their team members go with them
+    due.sort((a, b) => Number(!!a.orgOwnerId) - Number(!!b.orgOwnerId));
+    for (const u of due) if (u.status !== "Deleted") anonymise(u, !u.orgOwnerId);
+    save();
+    return due.length;
+  }
+
+  return { handle, exportFor, withoutSecrets, blockers, cancelOnLogin, runDeletions };
 };
