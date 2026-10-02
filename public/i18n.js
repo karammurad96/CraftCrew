@@ -1907,6 +1907,26 @@ Object.assign(I18N_DE, {
   "Download a copy of the personal data CraftCrew stores about you: your account, messages, notifications, projects, invoices and activity. Passwords and security keys are never included.":
     "Laden Sie eine Kopie der personenbezogenen Daten herunter, die CraftCrew über Sie speichert: Konto, Nachrichten, Benachrichtigungen, Projekte, Rechnungen und Aktivitäten. Passwörter und Sicherheitsschlüssel sind nie enthalten.",
   "Download my data": "Meine Daten herunterladen",
+  // Account deletion (T121)
+  "Delete account": "Konto löschen",
+  "This deletes your own login. The company account and its data stay.":
+    "Damit wird nur Ihr eigener Zugang gelöscht. Das Firmenkonto und seine Daten bleiben erhalten.",
+  "Finish or hand over these first:": "Schließen Sie zuerst Folgendes ab oder übergeben Sie es:",
+  "Finish or hand over these first.": "Schließen Sie zuerst Folgendes ab oder übergeben Sie es.",
+  "Your password": "Ihr Passwort",
+  "Code from your authenticator app": "Code aus Ihrer Authenticator-App",
+  "Delete my account": "Mein Konto löschen",
+  "The password is not right.": "Das Passwort ist nicht richtig.",
+  "Enter the current code from your authenticator app.": "Geben Sie den aktuellen Code aus Ihrer Authenticator-App ein.",
+  "Admin accounts can't be deleted this way. Ask another admin.":
+    "Admin-Konten können nicht auf diesem Weg gelöscht werden. Wenden Sie sich an einen anderen Admin.",
+  "Too many attempts. Please try again later.": "Zu viele Versuche. Bitte versuchen Sie es später erneut.",
+  "Your account deletion was cancelled because you signed in.":
+    "Die Löschung Ihres Kontos wurde aufgehoben, weil Sie sich angemeldet haben.",
+  "This company account is being deleted. Contact your account owner.":
+    "Dieses Firmenkonto wird gelöscht. Wenden Sie sich an den Inhaber des Kontos.",
+  "This account is being deleted.": "Dieses Konto wird gelöscht.",
+  "An escalation is still open": "Eine Eskalation ist noch offen",
   "Your data was downloaded": "Ihre Daten wurden heruntergeladen",
   "You can download your data 5 times per hour. Please try again later.":
     "Sie können Ihre Daten 5-mal pro Stunde herunterladen. Bitte versuchen Sie es später erneut.",
@@ -2271,6 +2291,20 @@ const I18N_PATTERNS = [
   [/^Site visit · (\d\d:\d\d)$/, "Baustellenbesuch · $1"],
   [/^Messages · (\d+)$/, "Nachrichten · $1"],
   [/^Remove access for (.+)$/, "Zugriff für $1 entfernen"],
+  [
+    /^Your account is locked at once and deleted after (\d+) days\. Signing in before then cancels the deletion\. Invoices are kept for the legal retention period of 10 years, without your contact details\.( Your team members' logins are deleted too\.)?$/,
+    (m, n, team) =>
+      `Ihr Konto wird sofort gesperrt und nach ${n} Tagen gelöscht. Wenn Sie sich vorher anmelden, wird die Löschung aufgehoben. Rechnungen werden für die gesetzliche Aufbewahrungsfrist von 10 Jahren aufbewahrt, ohne Ihre Kontaktdaten.${team ? " Die Zugänge Ihrer Teammitglieder werden ebenfalls gelöscht." : ""}`,
+  ],
+  [/^Delete your account\? It is locked now and deleted after (\d+) days\.$/, "Konto löschen? Es wird jetzt gesperrt und nach $1 Tagen gelöscht."],
+  [/^Your account will be deleted on (.+)\. Sign in before then to cancel\.$/, "Ihr Konto wird am $1 gelöscht. Melden Sie sich vorher an, um die Löschung aufzuheben."],
+  [/^Project "(.+)" is still (.+)$/, 'Projekt „$1“ ist noch nicht abgeschlossen ($2)'],
+  [/^Invoice (\S+) is approved but not paid$/, "Rechnung $1 ist freigegeben, aber nicht bezahlt"],
+  [/^Invoice (\S+) is not decided yet$/, "Über Rechnung $1 ist noch nicht entschieden"],
+  [/^Invoice (\S+) is not paid yet$/, "Rechnung $1 ist noch nicht bezahlt"],
+  [/^Phase "(.+)" \((.+)\) is not completed$/, 'Phase „$1“ ($2) ist nicht abgeschlossen'],
+  [/^Task "(.+)" \((.+)\) is not completed$/, 'Aufgabe „$1“ ($2) ist nicht abgeschlossen'],
+  [/^A site visit on (\S+) is still (planned|checked in)$/, (m, d, s) => `Ein Baustellenbesuch am ${d} ist noch ${s === "planned" ? "geplant" : "eingecheckt"}`],
   [/^(.+) can sign in with the temporary password (\S+) and will choose a new one\.$/, "$1 kann sich mit dem vorläufigen Passwort $2 anmelden und wählt dann ein neues."],
   [/^We emailed (\S+) a link to set a password\.$/, "Wir haben $1 einen Link zum Festlegen des Passworts geschickt."],
   [/^(.+) can open the project now\.$/, "$1 kann das Projekt jetzt öffnen."],

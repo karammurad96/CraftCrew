@@ -16,7 +16,82 @@ function withoutSecrets(value) {
 }
 
 module.exports = function createGdpr(ctx) {
-  const { getDb, send, now, projectFor, supplierInvolvement, rateLimited, normEmail } = ctx;
+  const {
+    getDb,
+    save,
+    send,
+    body,
+    now,
+    projectFor,
+    supplierInvolvement,
+    rateLimited,
+    normEmail,
+    verifyPassword,
+    twoFactor,
+    queueEmail,
+    notify,
+    invoiceNo,
+  } = ctx;
+  const GRACE_DAYS = 14;
+  const OPEN_DISPUTE = ["Open", "In progress"];
+
+  /* What still has to be finished before the account can go (T121): the other party needs a counterpart
+     until projects, work, invoices and disputes are closed. A team member only removes their own login. */
+  function blockers(user) {
+    if (user.isMember || user.role === "admin") return [];
+    const db = getDb(),
+      list = [],
+      add = (label, link) => list.push({ label, link });
+    if (user.role === "customer") {
+      for (const p of db.projects || [])
+        if (p.customerId === user.id && !["Completed", "Archived"].includes(p.status) && !p.archived)
+          add(`Project "${p.name}" is still ${String(p.status || "open").toLowerCase()}`, `/customer/projects/${p.id}`);
+      for (const i of db.invoices || [])
+        if (i.customerId === user.id && ["Submitted", "Approved", "Changes Requested"].includes(i.status))
+          add(`Invoice ${invoiceNo(i)} is ${i.status === "Approved" ? "approved but not paid" : "not decided yet"}`, `/customer/invoice/${i.id}`);
+      for (const d of db.disputes || [])
+        if (d.customerId === user.id && OPEN_DISPUTE.includes(d.status)) add("An escalation is still open", "/customer/projects/" + d.projectId);
+    }
+    if (user.role === "supplier") {
+      const sid = user.supplierId;
+      for (const p of db.projects || [])
+        for (const ph of p.phases || []) {
+          if (ph.supplierId === sid && ph.acceptanceStatus === "Accepted" && ph.status !== "Completed")
+            add(`Phase "${ph.name}" (${p.name}) is not completed`, `/supplier/projects/${p.id}`);
+          for (const t of ph.tasks || [])
+            if (t.assignedSupplierId === sid && t.acceptanceStatus === "Accepted" && t.status !== "Completed")
+              add(`Task "${t.name}" (${p.name}) is not completed`, `/supplier/projects/${p.id}/tasks/${t.id}`);
+        }
+      for (const i of db.invoices || [])
+        if (i.supplierId === sid && ["Submitted", "Approved", "Changes Requested"].includes(i.status))
+          add(`Invoice ${invoiceNo(i)} is not paid yet`, `/supplier/invoice/${i.id}`);
+      for (const d of db.disputes || [])
+        if (d.supplierId === sid && OPEN_DISPUTE.includes(d.status)) add("An escalation is still open", "/supplier/projects/" + d.projectId);
+      for (const v of db.siteVisits || [])
+        if (v.supplierId === sid && ["Approved", "Checked in"].includes(v.status))
+          add(`A site visit on ${v.date} is still ${v.status === "Approved" ? "planned" : "checked in"}`, "/supplier/compliance");
+    }
+    return list;
+  }
+  // The accounts a request covers: the person, and for a main account its team members too.
+  const covered = (self) => [self, ...getDb().users.filter((u) => u.orgOwnerId === self.id && u.status !== "Deleted")];
+  /* Signing in during the grace period cancels the request (T121). Returns true when it did. */
+  function cancelOnLogin(u) {
+    if (!u.deleteAfter) return false;
+    for (const x of covered(u)) if (x === u || x.deletionViaOwner) {
+      delete x.deletionRequestedAt;
+      delete x.deleteAfter;
+      delete x.deletionViaOwner;
+    }
+    notify(u.id, "Your account deletion was cancelled because you signed in.", `/${u.role}/profile`);
+    queueEmail(
+      u.email,
+      "deletionCancelled",
+      "Your CraftCrew account deletion was cancelled",
+      `Hello ${u.name},\n\nyou signed in to CraftCrew, so your account will not be deleted. If you still want to delete it, request it again on your profile page.`,
+    );
+    return true;
+  }
 
   /* Everything CraftCrew stores about this person. A team member gets their own login and what they did;
      the main account also gets the company's records. */
@@ -113,8 +188,54 @@ module.exports = function createGdpr(ctx) {
       res.end(json);
       return true;
     }
+    if (parts[2] === "deletion" && parts.length === 3) {
+      const self = user.self || user;
+      if (method === "GET")
+        return (
+          send(res, 200, {
+            blockers: blockers(user),
+            requestedAt: self.deletionRequestedAt || null,
+            deleteAfter: self.deleteAfter || null,
+            graceDays: GRACE_DAYS,
+            coversTeam: !user.isMember && covered(self).length > 1,
+          }),
+          true
+        );
+      if (method === "POST") {
+        if (user.role === "admin")
+          return (send(res, 409, { error: "Admin accounts can't be deleted this way. Ask another admin." }), true);
+        if (rateLimited("gdpr-delete:" + self.id, 10, 3600000))
+          return (send(res, 429, { error: "Too many attempts. Please try again later." }), true);
+        const b = await body(req);
+        if (!verifyPassword(String(b.password || ""), self))
+          return (send(res, 400, { error: "The password is not right." }), true);
+        if (twoFactor.enabled(self) && !twoFactor.checkLogin(self, b.code).ok)
+          return (send(res, 400, { error: "Enter the current code from your authenticator app.", code: "TOTP_REQUIRED" }), true);
+        const open = blockers(user);
+        if (open.length)
+          return (send(res, 409, { error: "Finish or hand over these first.", blockers: open }), true);
+        const db = getDb(),
+          at = now(),
+          after = new Date(Date.now() + GRACE_DAYS * 86400000).toISOString();
+        for (const x of user.isMember ? [self] : covered(self)) {
+          x.deletionRequestedAt = at;
+          x.deleteAfter = after;
+          if (x !== self) x.deletionViaOwner = true;
+        }
+        const ids = new Set((user.isMember ? [self] : covered(self)).map((x) => x.id));
+        db.sessions = (db.sessions || []).filter((s) => !ids.has(s.userId));
+        queueEmail(
+          self.email,
+          "deletionRequested",
+          "Your CraftCrew account will be deleted in 14 days",
+          `Hello ${self.name},\n\nwe received your request to delete your CraftCrew account. It is locked now and will be deleted on ${after.slice(0, 10)}.\n\nChanged your mind? Sign in before that date and the deletion is cancelled.\n\nInvoices are kept for the legal retention period of 10 years, without your contact details.`,
+        );
+        save();
+        return (send(res, 200, { requestedAt: at, deleteAfter: after }), true);
+      }
+    }
     return false;
   }
 
-  return { handle, exportFor, withoutSecrets };
+  return { handle, exportFor, withoutSecrets, blockers, cancelOnLogin };
 };

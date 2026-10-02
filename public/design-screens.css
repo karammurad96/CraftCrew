@@ -3351,3 +3351,25 @@ html body .ds-share-access {
     padding-left: 44px;
   }
 }
+
+/* ---------- Delete account (T121) ---------- */
+html body .gd-delete {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(60, 60, 67, 0.12);
+}
+html body .gd-delete h4 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  color: #b42318;
+}
+html body .gd-blockers {
+  margin: 6px 0 0;
+  padding-left: 20px;
+}
+html body .gd-blockers li + li {
+  margin-top: 4px;
+}
+html body .gd-delete-form {
+  max-width: 420px;
+}

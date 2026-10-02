@@ -187,7 +187,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 
 **Wave 6 split (decided with Karam on 2 October 2026; details under "Wave 6 — split into tasks")**
 - [x] T120 GDPR: "Download my data" export · S
-- [ ] T121 GDPR: request account deletion (blocked while business is open, 14-day grace period) · M
+- [x] T121 GDPR: request account deletion (blocked while business is open, 14-day grace period) · M
 - [ ] T122 GDPR: the deletion job (anonymise after 14 days, keep invoices 10 years) · M
 - [ ] T123 GDPR: privacy policy text and admin view of deletions · S
 - [ ] T124 Cookie sessions with CSRF protection instead of the localStorage token · M
