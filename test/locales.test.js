@@ -97,6 +97,24 @@ describe("actions", () => {
     assert.equal(ctx.warnings.filter((w) => w.includes("demo.unknown")).length, 1);
   });
 
+  it("runs actions inside dialogs, whose .modal stops clicks from bubbling, on the way down", () => {
+    const ctx = load(["core/actions.js"]);
+    const calls = [];
+    ctx.actions.on("demo.delete", (el) => calls.push(el.dataset.id));
+    const el = { tagName: "BUTTON", type: "button", dataset: { action: "demo.delete", id: "t1" }, getAttribute: () => null };
+    const event = { target: { closest: (sel) => (sel === "[data-action]" ? el : sel === ".modal" ? {} : null) }, preventDefault() {} };
+    const [bubble, capture] = ctx.listeners.click;
+    bubble(event);
+    assert.deepEqual(calls, [], "the bubbling listener leaves dialog clicks to the capturing one");
+    capture(event);
+    assert.deepEqual(calls, ["t1"]);
+    // Outside a dialog only the bubbling listener acts, so nothing runs twice
+    const outside = { target: { closest: (sel) => (sel === "[data-action]" ? el : null) }, preventDefault() {} };
+    capture(outside);
+    bubble(outside);
+    assert.deepEqual(calls, ["t1", "t1"]);
+  });
+
   it("submits forms through data-action and stops the browser submit", () => {
     const ctx = load(["core/actions.js"]);
     let ran = 0,

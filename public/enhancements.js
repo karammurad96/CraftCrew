@@ -3,72 +3,6 @@ function modal(title, body) {
   modalRoot.innerHTML = `<div class="modal-backdrop" id="mb" onclick="if(event.target===this){closeModal();if(location.hash.split('?')[0]==='#/supplier/invoices/new')navigate('/supplier/invoices')}"><div class="modal" onclick="event.stopPropagation()"><div class="modal-head"><h2>${esc(title)}</h2><button class="close" type="button" aria-label="Close" onclick="closeModal()">×</button></div>${body}</div></div>`;
 }
 
-function supplierSelectCard(s) {
-  return `<article class="supplier-card supplier-card-click" role="button" tabindex="0" onclick="supplierDetail('${esc(s.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();supplierDetail('${esc(s.id)}')}"><div class="supplier-top"><div class="supplier-avatar">${esc(s.avatar || "CC")}</div><div class="supplier-card-main"><h3>${esc(s.company)}</h3><small>${esc(s.location || "Location not set")}</small></div><span class="badge ${(s.badge || "bronze").toLowerCase()}">${esc(supplierBadge(s))}</span></div><p>${
-    (s.services || [])
-      .slice(0, 4)
-      .map((x) => `<span class="chip">${esc(x)}</span>`)
-      .join("") || '<span class="muted">Services being updated</span>'
-  }</p><div class="supplier-facts"><span>${Number(s.employees) || 0} team members</span><span>${Number(s.experience) || 0}+ years</span><span>${money(s.hourlyRate || 0)}/h</span></div><div class="supplier-meta"><span>★ ${Number(s.rating || 0).toFixed(1)} · ${Number(s.projectsCompleted) || 0} projects</span><button type="button" class="btn small outline" onclick="event.stopPropagation();supplierDetail('${esc(s.id)}')">View profile</button></div></article>`;
-}
-
-async function renderSuppliers() {
-  const q = document.getElementById("sq")?.value || "";
-  const data = await api("/suppliers?q=" + encodeURIComponent(q));
-  const filters = `<div class="searchbar"><input id="sq" value="${esc(q)}" placeholder="Search company, service or location"><select id="ss"><option value="">All services</option>${data.services.map((x) => `<option>${esc(x)}</option>`).join("")}</select><select id="sb"><option value="">All badges</option><option>Gold</option><option>Silver</option><option>Bronze</option></select><select id="sa"><option value="">Availability</option><option>Available</option><option>Busy</option></select><button class="btn primary" onclick="loadSupplierFilters()">Search</button></div>`;
-  const content = `<div class="cc-page"><div class="page-head"><div><div class="eyebrow">SUPPLIER DIRECTORY</div><h1>Find the right industrial specialist.</h1><p>Explore services, workforce, experience, certifications, pricing and location.</p></div><button class="btn outline" onclick="navigate('/supplier-application')">Apply as supplier</button></div>${filters}<div class="supplier-grid">${data.suppliers.map(supplierSelectCard).join("") || '<div class="empty">No suppliers match those filters yet.</div>'}</div></div>`;
-  const customerDirectory = location.hash.split("?")[0].startsWith("#/customer/suppliers");
-  app.innerHTML =
-    customerDirectory || state.user?.role === "customer"
-      ? dashboardShell("customer", "suppliers", content)
-      : publicLayout(content);
-}
-
-async function loadSupplierFilters() {
-  const q = document.getElementById("sq")?.value || "",
-    service = document.getElementById("ss")?.value || "",
-    badge = document.getElementById("sb")?.value || "",
-    availability = document.getElementById("sa")?.value || "";
-  const d = await api(
-    `/suppliers?q=${encodeURIComponent(q)}&service=${encodeURIComponent(service)}&badge=${encodeURIComponent(badge)}&availability=${encodeURIComponent(availability)}`,
-  );
-  const grid = document.querySelector(".supplier-grid");
-  if (grid)
-    grid.innerHTML =
-      d.suppliers.map(supplierSelectCard).join("") ||
-      '<div class="empty">No suppliers match those filters yet.</div>';
-}
-
-async function supplierDetail(id) {
-  const { supplier: s } = await api("/suppliers/" + encodeURIComponent(id));
-  const content = `<div class="breadcrumb"><a href="#/${state.user?.role === "customer" ? "customer/" : ""}suppliers">← Back to supplier directory</a></div><div class="supplier-profile-head"><div class="supplier-avatar large">${esc(s.avatar || "CC")}</div><div><div class="eyebrow">SUPPLIER PROFILE</div><h1>${esc(s.company)}</h1><p>${esc(s.location || "Location not set")} · ${esc(s.availability || "Availability on request")}</p></div><span class="badge ${(s.badge || "bronze").toLowerCase()}">${esc(supplierBadge(s))}</span></div><div class="health"><div class="cc-card"><span class="cc-label">Team</span><b>${Number(s.employees) || 0} employees</b></div><div class="cc-card"><span class="cc-label">Experience</span><b>${Number(s.experience) || 0}+ years · ${Number(s.projectsCompleted) || 0} projects</b></div><div class="cc-card"><span class="cc-label">Rates</span><b>${money(s.hourlyRate || 0)}/hour · from ${money(s.projectRate || 0)}</b></div></div><div class="supplier-profile-grid"><section class="cc-card"><h2>About</h2><p>${esc(s.description || "Supplier profile and capabilities.")}</p><h2>Services</h2><div>${(s.services || []).map((x) => `<span class="chip">${esc(x)}</span>`).join("") || '<span class="muted">No services listed</span>'}</div><h2>Certifications</h2><div>${(s.certifications || []).map((x) => `<span class="chip">${esc(x)}</span>`).join("") || '<span class="muted">No certifications listed</span>'}</div></section><section class="cc-card"><h2>Team & delivery</h2><p>${Number(s.employees) || 0} employees · ${Number(s.experience) || 0} years in business</p>${(s.teamMembers || []).map((m) => `<div class="team-row"><b>${esc(m.name || "Team member")}</b><span>${esc(m.role || "")}</span><small>${esc(m.experience || m.certifications || "")}</small></div>`).join("") || '<p class="muted">Detailed team profiles are available on request.</p>'}<h2>Customer reviews</h2>${(s.reviews || []).map((r) => `<div class="notice">★ ${esc(r.rating)} — ${esc(r.text)}</div>`).join("") || '<p class="muted">No reviews yet.</p>'}</section></div><div class="action-row">${state.user?.role === "customer" ? `<button class="btn primary" onclick="requestSupplierQuote('${esc(s.id)}')">Request a quote</button>` : ""}<button class="btn outline" onclick="navigate('/${state.user?.role === "customer" ? "customer/" : ""}suppliers')">Back to directory</button></div>`;
-  app.innerHTML =
-    state.user?.role === "customer"
-      ? dashboardShell("customer", "suppliers", content)
-      : publicLayout(`<div class="cc-page">${content}</div>`);
-}
-
-async function requestSupplierQuote(supplierId) {
-  const { supplier: s } = await api("/suppliers/" + supplierId),
-    projects = (await api("/projects")).projects;
-  modal(
-    "Request a quote",
-    `<form id="rfqForm" class="modal-form"><label>Service<select name="service" required>${(s.services || []).map((x) => `<option>${esc(x)}</option>`).join("")}</select></label><label>Project (optional)<select name="projectId"><option value="">General enquiry</option>${projects.map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("")}</select></label><label>Describe the work<textarea name="message" rows="5" required maxlength="5000" placeholder="Scope, location, schedule and expected deliverables"></textarea></label><div class="form-error" id="rfqError" role="alert"></div><button class="btn primary">Send quote request</button></form>`,
-  );
-  document.getElementById("rfqForm").onsubmit = async (e) => {
-    e.preventDefault();
-    const b = Object.fromEntries(new FormData(e.target));
-    b.supplierId = supplierId;
-    try {
-      await api("/rfqs", { method: "POST", body: b });
-      closeModal();
-      toast("Quote request sent");
-    } catch (err) {
-      document.getElementById("rfqError").textContent = err.message;
-    }
-  };
-}
-
 
 
 async function supplierCatalog() {
@@ -338,29 +272,6 @@ async function reviewInvoice(id) {
   );
 }
 
-async function supplierRequests() {
-  const d = await api("/rfqs");
-  app.innerHTML = dashboardShell(
-    "supplier",
-    "requests",
-    `<div class="dash-top"><div><h1>Quote requests</h1><p>Review incoming requests from customers.</p></div></div><div class="cc-grid">${d.rfqs.map((r) => `<article class="cc-card"><div class="project-card-head"><b>${esc(r.service)}</b><span class="status ${r.status === "New" ? "submitted" : "active"}">${esc(r.status)}</span></div><p>${esc(r.customerCompany || r.customerName)} · ${esc(r.projectName || "General enquiry")}</p><p>${esc(r.message)}</p>${r.response ? `<div class="notice">${esc(r.response)}</div>` : ""}<small>${date(r.createdAt)}</small>${["New", "Reviewing"].includes(r.status) ? `<div class="cc-actions" style="margin-top:14px"><button class="btn small outline" onclick="respondQuote('${r.id}','Reviewing')">Reviewing</button><button class="btn small success" onclick="respondQuote('${r.id}','Quoted')">Send quote</button><button class="btn small danger" onclick="respondQuote('${r.id}','Declined')">Decline</button></div>` : ""}</article>`).join("") || '<div class="empty">No quote requests yet.</div>'}</div>`,
-  );
-}
-async function respondQuote(id, status) {
-  const response =
-    status === "Quoted"
-      ? (await uiPrompt("Add a short quote or next step (optional)")) || ""
-      : status === "Declined"
-        ? (await uiPrompt("Reason for declining (optional)")) || ""
-        : "";
-  try {
-    await api("/rfqs/" + id, { method: "PATCH", body: { status, response } });
-    supplierRequests();
-  } catch (e) {
-    toast(e.message, "error");
-  }
-}
-
 
 async function route() {
   topActions();
@@ -372,16 +283,12 @@ async function route() {
     return;
   }
   try {
-    if (h === "/suppliers") return renderSuppliers();
     if (parts[0] === "customer") {
-      if (parts[1] === "suppliers" && parts[2]) return supplierDetail(parts[2]);
-      if (parts[1] === "suppliers") return renderSuppliers();
       if (parts[1] === "invoices") return customerInvoices();
       if (parts[1] === "messages") return messages("customer");
       if (parts[1] === "profile") return profilePage("customer");
     }
     if (parts[0] === "supplier") {
-      if (parts[1] === "requests") return supplierRequests();
       if (parts[1] === "invoices" && !parts[2]) return supplierInvoices();
       if (parts[1] === "invoices" && parts[2] === "new") return newInvoice();
       if (parts[1] === "suppliers") return supplierCatalog();

@@ -150,42 +150,6 @@ function publicLayout(content) {
 function publicHero() {
   return `<section class="hero-lite"><div><div class="eyebrow">INDUSTRIAL SERVICES, COORDINATED</div><h1>Build complex projects with <span>trusted crews.</span></h1><p>CraftCrew connects SMEs with vetted mechanical, electrical, automation and industrial service specialists — managed through one transparent waterfall workflow.</p><div class="hero-actions"><button class="btn primary lg" onclick="navigate('/signup')">Start a project</button><button class="btn outline lg" onclick="navigate('/suppliers')">Explore suppliers</button></div><div class="trust-row"><div><b>20+</b><small>vetted suppliers</small></div><div><b>5-stage</b><small>waterfall delivery</small></div><div><b>1 place</b><small>projects & payments</small></div></div></div><div class="hero-box"><div class="small-label">LIVE PROJECT CONTROL</div><h3 style="font-size:20px;margin:10px 0">Line 15 Integration</h3><div class="progress"><i style="width:68%"></i></div><div style="font-size:11px;color:#9eabc0">68% complete · 12 days remaining</div><div class="mini"><div><div class="small-label">ACTIVE PHASE</div><b>Programming</b><p style="color:#9eabc0">SPS Experts GmbH</p></div><div><div class="small-label">NEXT MILESTONE</div><b>Installation</b><p style="color:#9eabc0">18 Sep 2026</p></div></div></div></section>`;
 }
-async function renderSuppliers() {
-  const q = document.getElementById("sq")?.value || "";
-  let data;
-  try {
-    data = await api("/suppliers?q=" + encodeURIComponent(q));
-  } catch (e) {
-    toast(e.message, "error");
-    return;
-  }
-  const filters = `<div class="searchbar"><input id="sq" value="${esc(q)}" placeholder="Search company, service or location"><select id="ss"><option value="">All services</option>${data.services.map((x) => `<option>${esc(x)}</option>`).join("")}</select><select id="sb"><option value="">All badges</option><option>Gold</option><option>Silver</option><option>Bronze</option></select><select id="sa"><option value="">Availability</option><option>Available</option><option>Busy</option></select><button class="btn primary" onclick="loadSupplierFilters()">Search</button></div>`;
-  app.innerHTML = publicLayout(
-    `<div class="cc-page"><div class="page-head"><div><div class="eyebrow">SUPPLIER DIRECTORY</div><h1>Find the right industrial specialist.</h1><p>Vetted suppliers with transparent capability and verification signals.</p></div><button class="btn outline" onclick="navigate('/supplier-application')">Apply as supplier</button></div>${filters}<div class="supplier-grid">${data.suppliers.map((s) => `<article class="supplier-card" onclick="supplierDetail('${s.id}')"><div class="supplier-top"><div class="supplier-avatar">${esc(s.avatar)}</div><div style="flex:1"><h3>${esc(s.company)}</h3><small>${esc(s.location)}</small></div><span class="badge ${s.badge.toLowerCase()}">${esc(supplierBadge(s))}</span></div><p>${s.services.map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</p><div class="supplier-meta"><span>★ ${s.rating} · ${s.projectsCompleted} projects</span><span class="availability ${s.availability.toLowerCase()}">${s.availability}</span></div></article>`).join("")}</div></div>`,
-  );
-}
-async function loadSupplierFilters() {
-  const q = document.getElementById("sq").value,
-    service = document.getElementById("ss").value,
-    badge = document.getElementById("sb").value,
-    availability = document.getElementById("sa").value;
-  const d = await api(
-    `/suppliers?q=${encodeURIComponent(q)}&service=${encodeURIComponent(service)}&badge=${encodeURIComponent(badge)}&availability=${encodeURIComponent(availability)}`,
-  );
-  document.querySelector(".supplier-grid").innerHTML = d.suppliers
-    .map(
-      (s) =>
-        `<article class="supplier-card" onclick="supplierDetail('${s.id}')"><div class="supplier-top"><div class="supplier-avatar">${esc(s.avatar)}</div><div style="flex:1"><h3>${esc(s.company)}</h3><small>${esc(s.location)}</small></div><span class="badge ${s.badge.toLowerCase()}">${esc(supplierBadge(s))}</span></div><p>${s.services.map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</p><div class="supplier-meta"><span>★ ${s.rating} · ${s.projectsCompleted} projects</span><span class="availability ${s.availability.toLowerCase()}">${s.availability}</span></div></article>`,
-    )
-    .join("");
-}
-async function supplierDetail(id) {
-  const { supplier: s } = await api("/suppliers/" + id);
-  modal(
-    s.company,
-    `<div class="detail-grid"><div class="detail-box"><small>Location</small><b>${esc(s.location)}</b></div><div class="detail-box"><small>Badge / Rating</small><b>${esc(supplierBadge(s))} · ★ ${s.rating}</b></div><div class="detail-box"><small>Experience</small><b>${s.experience} years · ${s.projectsCompleted} projects</b></div><div class="detail-box"><small>Rates</small><b>${money(s.hourlyRate)}/h · from ${money(s.projectRate)}</b></div></div><p>${esc(s.description)}</p><h4>Services</h4><div>${s.services.map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</div><h4>Certifications</h4><div>${s.certifications.map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</div><h4>Reviews</h4>${s.reviews.map((r) => `<div class="notice">★ ${r.rating} — ${esc(r.text)}</div>`).join("")}`,
-  );
-}
 async function customerInvoices() {
   const d = await api("/invoices");
   app.innerHTML = dashboardShell(
@@ -477,10 +441,8 @@ async function route() {
     return;
   }
   try {
-    if (h === "/suppliers") return renderSuppliers();
     const parts = h.split("/").filter(Boolean);
     if (parts[0] === "customer") {
-      if (parts[1] === "suppliers") return renderSuppliers();
       if (parts[1] === "invoices") return customerInvoices();
       if (parts[1] === "messages") return messages("customer");
       if (parts[1] === "profile") return profilePage("customer");

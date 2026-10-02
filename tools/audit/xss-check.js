@@ -237,13 +237,9 @@ async function login(e, p) {
       await page.goto(BASE + "/#" + route);
       await page.waitForLoadState("networkidle").catch(() => {});
       await page.waitForTimeout(500);
-      // open the supplier's own detail modal where a directory is shown
+      // open the supplier's own profile where a directory is shown
       if (/suppliers$/.test(route)) {
-        await page.evaluate((id) => {
-          try {
-            supplierDetail(id);
-          } catch {}
-        }, sup.user.supplierId);
+        await page.goto(`${BASE}/#${route.replace(/^\/supplier\//, "/")}/${encodeURIComponent(sup.user.supplierId)}`);
         await page.waitForTimeout(600);
       }
       const x = await page.evaluate(() => window.__x || []);
