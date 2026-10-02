@@ -140,30 +140,7 @@ describe("design 2026", () => {
 
   // T93 (sidebar groups and labels) and the T102 bottom bar moved to the shell area: test/area-shell.test.js
 
-  it("compares offers as cards with the existing actions (T100)", () => {
-    const ctx = loadScreens({ money: (n) => `€${n}`, bmRateNote: () => "" }, ["dsOfferCard", "dsDocsRow"]);
-    const bid = { id: "bid_1", category: "Robotics" };
-    const r = (o, extra) => ({ o: { id: "o1", supplierCompany: "Rhein Robotics", amount: 18900, deliveryDays: 21, status: "Submitted", ...o }, s: { location: "Nuremberg" }, card: { metrics: { rating: 4.6 }, risks: [] }, score: 86, savings: 2100, ...extra });
-    const best = ctx.dsOfferCard(bid, r({}), 0, false, true, 2);
-    assert.match(best, /Best match · 86/);
-    assert.match(best, /€2100 under your budget/);
-    assert.match(best, /★ 4\.6 · 2 jobs with you/);
-    assert.match(best, /All valid/);
-    assert.match(best, /onclick="srAward\('bid_1','o1'\)">Award Rhein</);
-    assert.match(best, /rvRequestOfferChanges\('bid_1','o1'\)">Request changes/);
-    assert.match(best, /reviewOfferTalk\('bid_1','o1'\)">Ask for details/);
-    assert.match(best, /wfBidDecision\('bid_1','o1','Decline offer'\)">Eliminate/);
-    const revised = ctx.dsOfferCard(bid, r({ revisions: [{ amount: 18000 }] }, { score: 81 }), 1, false, true, 0);
-    assert.match(revised, /Revised · 81/);
-    assert.match(revised, /Was €18000/);
-    assert.match(revised, /new to you/);
-    assert.match(ctx.dsOfferCard(bid, r({}, { savings: -1400 }), 2, true, true, 0), /Fastest · 86[\s\S]*€1400 over your budget/);
-    // Documents: unknown insurance leaves the row out; an expiring certificate is orange
-    assert.equal(ctx.dsDocsRow({ risks: [{ text: "No insurance evidence on file" }] }), "");
-    assert.match(ctx.dsDocsRow({ risks: [{ text: "Liability insurance expires in 19 day(s)" }] }), /ds-orange">1 expires/);
-    // A decided offer shows its status instead of the actions
-    assert.doesNotMatch(ctx.dsOfferCard(bid, r({ status: "Accepted" }), 0, false, true, 0), /srAward/);
-  });
+  // T100 (offer cards) moved to the sourcing area: test/area-sourcing.test.js
 
   it("lays out the invoice as paper and a review panel with the existing actions (T101)", () => {
     const src = read("design-screens.js");

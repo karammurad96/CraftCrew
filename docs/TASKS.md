@@ -205,14 +205,14 @@ Every task depends on **T00** and **T01** unless it says otherwise.
   - [x] T128c task and phase pages, task board
   - [x] T128d project dialogs: edit/delete project, add/edit phase and task, assign supplier, share, support (bid dialogs move with T129)
   - [x] T128e project documents (document desk and explorer)
-- [ ] T129 Area: sourcing, offers, bids, contracts and the directory · M
+- [x] T129 Area: sourcing, offers, bids, contracts and the directory · M
   - [x] T129a supplier directory, profile, preferred suppliers, quote requests (the supplier's service catalog page moves with T135)
   - [x] T129b offers and bids, with the bid dialogs and the preferred-supplier bid hooks
-  - [ ] T129c sourcing events, contracts, approvals
+  - [x] T129c sourcing dashboard, offer comparison, contracts (the approvals inbox moves with T133, after its invoice, time and compliance rows)
 - [ ] T130 Area: invoices and payments · M
 - [ ] T131 Area: time, site reports, punch list and acceptance · M
 - [ ] T132 Area: messages and chats · S
-- [ ] T133 Area: sites, compliance and calendar · M
+- [ ] T133 Area: sites, compliance and calendar, and the approvals inbox · M
 - [ ] T134 Area: admin (applications, disputes, billing, reports, audit, platform) · M
 - [ ] T135 Area: profile, settings, team and two-factor · M
 - [ ] T137 Multi-language groundwork: language registry, status keys, server texts by language, per-language emails and PDFs · M (do before T136)
