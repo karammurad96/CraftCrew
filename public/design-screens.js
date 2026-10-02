@@ -1473,8 +1473,100 @@ invoiceDetailPage = async function (id) {
   old.replaceWith(cols);
 };
 
+/* ---------- Phone: bottom bar and "Today" for suppliers (T102, board PhoneToday) ---------- */
+// Labels only; the routes and the "More" button of mobile-nav.js stay.
+MNAV_BOTTOM.customer = [
+  ["dashboard", "Today"],
+  ["projects", "Projects"],
+  ["approvals", "Approvals"],
+  ["messages", "Messages"],
+];
+MNAV_BOTTOM.supplier = [
+  ["dashboard", "Today"],
+  ["projects", "Jobs"],
+  ["time", "Time"],
+  ["messages", "Messages"],
+];
+MNAV_BOTTOM.admin[0] = ["dashboard", "Today"];
+const DS_QUICK_ICONS = {
+  time: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  photo: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  report: '<path d="M7 3h7l4 4v14H7z"/><path d="M10 12h5M10 16h5"/>',
+  defect: '<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17v.5"/>',
+};
+let dsTodayJobs = [];
+function dsQuickJob(action) {
+  const run = (j) => {
+    closeModal();
+    if (action === "report") drOpen(j.projectId, j.taskId);
+    else if (action === "defect") puOpen(j.projectId, j.taskId);
+    else if (action === "photo")
+      // The daily report form has the photo field; open it and bring the field into view
+      Promise.resolve(drOpen(j.projectId, j.taskId)).then(() =>
+        setTimeout(() => document.querySelector('#drForm input[name="photos"]')?.scrollIntoView({ block: "center" }), 300),
+      );
+  };
+  if (!dsTodayJobs.length) return toast("Accept a job first", "error");
+  if (dsTodayJobs.length === 1) return run(dsTodayJobs[0]);
+  modal(
+    "Which job?",
+    `<div class="ds-job-pick">${dsTodayJobs.map((j, n) => `<button type="button" class="ds-job-pick-row" data-n="${n}"><b>${esc(j.name)}</b><span>${esc(j.project)}</span></button>`).join("")}</div>`,
+  );
+  document.querySelectorAll(".ds-job-pick-row").forEach((b) => (b.onclick = () => run(dsTodayJobs[Number(b.dataset.n)])));
+}
+async function dsEnhanceToday(root) {
+  if (state.user?.role !== "supplier" || !/^#\/supplier\/dashboard/.test(location.hash)) return;
+  const content = root.querySelector(".dashboard-content");
+  if (!content || content.querySelector(":scope > .ds-today")) return;
+  const box = document.createElement("section");
+  box.className = "ds-today";
+  content.prepend(box);
+  const [{ projects = [] }, { visits = [] }] = await Promise.all([
+    api("/projects").catch(() => ({})),
+    api("/site-visits").catch(() => ({})),
+  ]);
+  if (!document.contains(box)) return;
+  const today = dsToday(),
+    sid = state.user.supplierId,
+    lang = typeof i18nLang !== "undefined" && i18nLang === "de" ? "de-DE" : "en-GB",
+    weekday = (d) => {
+      const days = dsDaysBetween(today, d);
+      return days >= 0 && days < 7
+        ? new Date(d + "T12:00:00").toLocaleDateString(lang, { weekday: "long" })
+        : dsShortRange(d);
+    };
+  dsTodayJobs = projects.flatMap((p) =>
+    (p.phases || []).flatMap((ph) =>
+      (ph.tasks || [])
+        .filter((t) => t.assignedSupplierId === sid && t.acceptanceStatus === "Accepted" && t.status !== "Completed")
+        .map((t) => ({ projectId: p.id, project: p.name, taskId: t.id, name: t.name, progress: Number(t.progress) || 0, dueDate: t.dueDate })),
+    ),
+  );
+  const visit = visits.find(
+    (v) => ["Approved", "Checked in"].includes(v.status) && v.date <= today && (v.endDate || v.date) >= today,
+  );
+  const names = (visit?.workers || []).map((w) => String(w.name).split(" ")[0]);
+  const tile = (key, label, action, tone) =>
+    `<button type="button" class="ds-quick${tone ? " ds-quick-" + tone : ""}" onclick="${action}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${DS_QUICK_ICONS[key]}</svg><span>${label}</span></button>`;
+  box.innerHTML = `<div class="ds-today-head"><div><span class="ds-today-date" data-no-i18n>${esc(dsKickerDate())}</span><h2 class="ds-ui ds-today-title">Today</h2></div><a class="ds-today-me" href="#/supplier/profile" aria-label="Profile">${esc(dsInitials(state.user.name))}</a></div>
+    ${
+      visit
+        ? `<div class="ds-visit"><div><span class="ds-visit-kicker">${esc(`Site visit · ${visit.status === "Checked in" ? "checked in" : "today"}`)}</span><b>${esc(visit.siteName || "Site")}</b><span>${esc([names.length ? (names.length <= 2 ? names.join(lang === "de-DE" ? " und " : " and ") : `${names.length} workers`) : "", visit.permitLabel].filter(Boolean).join(" · "))}</span></div><button type="button" class="ds-visit-btn" onclick="cmSupplierVisit('${esc(visit.id)}','${visit.status === "Checked in" ? "checkout" : "checkin"}')">${visit.status === "Checked in" ? "Check Out" : "Check In"}</button></div>`
+        : ""
+    }
+    <div class="ds-today-jobs"><span class="ds-today-label ds-ui">Your jobs</span><div class="ds-today-list">${
+      dsTodayJobs
+        .map(
+          (j) =>
+            `<a href="#/supplier/projects/${encodeURIComponent(j.projectId)}/tasks/${encodeURIComponent(j.taskId)}"><span><b>${esc(j.name)}</b><small>${esc(`${j.progress} % · due ${j.dueDate ? weekday(j.dueDate) : "—"}`)}</small></span><i aria-hidden="true">›</i></a>`,
+        )
+        .join("") || '<p class="ds-week-none">No accepted jobs right now.</p>'
+    }</div></div>
+    <div class="ds-quicks ds-ui">${tile("time", "Log Time", "ccNewTimeEntry()")}${tile("photo", "Photo", "dsQuickJob('photo')")}${tile("report", "Site Report", "dsQuickJob('report')")}${tile("defect", "Defect", "dsQuickJob('defect')", "orange")}</div>`;
+}
+
 /* ---------- Run the enhancers after every render ---------- */
-const DS_ENHANCERS = [dsEnhanceChips, dsEnhanceButtons, dsEnhanceEmpty, dsEnhanceSidebar, dsEnhanceDashboard, dsEnhanceWorkspace, dsEnhanceOffers];
+const DS_ENHANCERS = [dsEnhanceChips, dsEnhanceButtons, dsEnhanceEmpty, dsEnhanceSidebar, dsEnhanceDashboard, dsEnhanceWorkspace, dsEnhanceOffers, dsEnhanceToday];
 function dsEnhance() {
   for (const root of [document.getElementById("app"), document.getElementById("modalRoot")])
     if (root) for (const fn of DS_ENHANCERS) fn(root);

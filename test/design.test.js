@@ -21,6 +21,7 @@ function loadScreens(extra = {}, expose = []) {
     inBoard: async () => {},
     srEvent: async () => {},
     invoiceDetailPage: async () => {},
+    MNAV_BOTTOM: { customer: [], supplier: [], admin: [[]] },
     window: { addEventListener() {} },
     route() {},
     money: (n) => String(n),
@@ -324,6 +325,20 @@ describe("design 2026", () => {
     assert.match(src, /el\.matches\("\.invoice-paper-head, \.wf-stat-grid, \.cc-table-wrap, \.invoice-totals, \.action-row"\)/);
     const de = read("i18n.js");
     for (const k of ['"Approve and Schedule Payment"', '"Within order cap"', '"BILL TO"', "corrected by"]) assert.ok(de.includes(k), `no German for ${k}`);
+  });
+
+  it("labels the phone bottom bar and gives suppliers a Today screen (T102)", () => {
+    const MNAV_BOTTOM = { customer: [], supplier: [], admin: [["dashboard", "Dashboard"], ["applications", "Vetting"]] };
+    const ctx = loadScreens({ MNAV_BOTTOM }, []);
+    const labels = (role) => JSON.parse(JSON.stringify(ctx.MNAV_BOTTOM[role]));
+    assert.deepEqual(labels("supplier"), [["dashboard", "Today"], ["projects", "Jobs"], ["time", "Time"], ["messages", "Messages"]]);
+    assert.deepEqual(labels("customer"), [["dashboard", "Today"], ["projects", "Projects"], ["approvals", "Approvals"], ["messages", "Messages"]]);
+    const src = read("design-screens.js");
+    // The quick actions use the existing forms
+    for (const fn of ["ccNewTimeEntry()", "drOpen(j.projectId, j.taskId)", "puOpen(j.projectId, j.taskId)", "cmSupplierVisit("])
+      assert.ok(src.includes(fn), `Today uses ${fn}`);
+    // Desktop does not change: the Today block only shows up to 640 px
+    assert.match(read("design-screens.css"), /html body \.ds-today \{\n  display: none;\n\}\n@media \(max-width: 640px\)/);
   });
 
   it("uses a new service worker cache so installed apps load the new files", () => {
