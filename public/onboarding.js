@@ -4,35 +4,6 @@ const obEsc = (v) => esc(v ?? "");
 const obKey = () => `cc_onboarding_hidden_${state.user?.id}`;
 
 /* ---------- Landing page ---------- */
-async function obEnhanceHome() {
-  const app_ = document.getElementById("app");
-  if (!app_ || app_.querySelector(".ob-home")) return;
-  const { suppliers = [] } = await api("/suppliers").catch(() => ({}));
-  // Replace the fixed "20+" claim with the real directory size (or the vetting promise while it is small).
-  const trust = app_.querySelector(".trust-row > div");
-  if (trust)
-    trust.innerHTML =
-      suppliers.length >= 10
-        ? `<b>${suppliers.length}</b><small>vetted suppliers</small>`
-        : "<b>5-step</b><small>supplier vetting</small>";
-  const featured = [...suppliers]
-    .sort(
-      (a, b) =>
-        (b.rating || 0) - (a.rating || 0) ||
-        ({ Gold: 3, Silver: 2, Bronze: 1 }[b.badge] || 0) - ({ Gold: 3, Silver: 2, Bronze: 1 }[a.badge] || 0),
-    )
-    .slice(0, 6);
-  const feature = (icon, title, text) =>
-    `<article class="ob-feature">${uiIcon(icon)}<h3>${title}</h3><p>${text}</p></article>`;
-  app_.insertAdjacentHTML(
-    "beforeend",
-    `<div class="ob-home">
-    ${featured.length ? `<section class="ob-section"><div class="ob-head"><div class="eyebrow">FEATURED SUPPLIERS</div><h2>Vetted partners ready for your next project</h2></div><div class="ob-suppliers">${featured.map((s) => `<a class="ob-supplier" href="#/suppliers?q=${encodeURIComponent(s.company)}"><div class="ob-avatar">${obEsc(s.avatar || s.company.slice(0, 2))}</div><div><b>${obEsc(s.company)}</b><small>${obEsc(s.location || "")}</small><span>${(s.services || []).slice(0, 2).map(obEsc).join(" · ")}</span></div><em class="ob-badge ${String(s.badge).toLowerCase()}">${obEsc(supplierBadge(s))}</em></a>`).join("")}</div><div class="ob-center"><a class="btn outline" href="#/suppliers">Browse the full directory →</a></div></section>` : ""}
-    <section class="ob-section ob-alt"><div class="ob-head"><div class="eyebrow">STRATEGIC SOURCING</div><h2>From sourcing event to signed contract</h2><p>Run competitive sourcing the way large procurement teams do — sized for industrial SMEs.</p></div><div class="ob-features">${feature("sourcing", "Sourcing events", "RFQ, RFP and RFI with supplier questionnaires, multiple rounds and clarifications.")}${feature("reports", "Weighted evaluation", "Rank offers on price, delivery, supplier performance and experience — with an automatic summary.")}${feature("contracts", "Contract management", "Awarded offers become contracts with value, term, notice deadline and renewal alerts.")}${feature("vetting", "Scorecards & risk", "On-time delivery, invoice quality, responsiveness and insurance or vetting risk per supplier.")}${feature("approvals", "Approvals inbox", "Invoices, documents, time entries, offers and contracts waiting for you — in one list.")}${feature("audit", "Full audit trail", "Every change is recorded with who, what and when for compliance and disputes.")}</div></section>
-    <section class="ob-section ob-cta"><div><h2>Ready to coordinate your next industrial project?</h2><p>Customers start free. Suppliers join after a 5-step verification.</p></div><div class="ob-cta-actions"><a class="btn primary lg" href="#/signup">Start as a customer</a><a class="btn outline lg" href="#/supplier-application">Apply as a supplier</a></div></section>
-  </div>`,
-  );
-}
 
 /* ---------- Getting-started checklist ---------- */
 async function obSteps(role) {
@@ -231,7 +202,6 @@ window.route = async function () {
   const result = await obBaseRoute(),
     path = location.hash.replace(/^#/, "").split("?")[0] || "/";
   try {
-    if (path === "/" || path === "/home") await obEnhanceHome();
     // Company setup belongs to the main account, not to invited team members.
     if (state.user?.isMember) return result;
     if (state.user && /^\/(customer|supplier|admin)\/dashboard$/.test(path)) await obChecklist();

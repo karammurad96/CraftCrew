@@ -239,27 +239,15 @@ const I18N_DE = {
   "Waterfall control": "Phasensteuerung",
   "Invoice workflow": "Rechnungs-Workflow",
   "Industrial collaboration": "Industrielle Zusammenarbeit",
-  "HOW IT WORKS": "SO FUNKTIONIERT ES",
   "From supplier application to project completion.":
     "Von der Lieferantenbewerbung bis zum Projektabschluss.",
   "FOR BOTH SIDES": "FÜR BEIDE SEITEN",
-  "A professional operating layer for industrial work.":
-    "Eine professionelle Arbeitsumgebung für industrielle Projekte.",
-  "For SMEs": "Für KMU",
-  "For suppliers": "Für Lieferanten",
-  "For operations teams": "Für Betriebsteams",
   "FEATURED SUPPLIERS": "AUSGEWÄHLTE LIEFERANTEN",
   "Vetted partners ready for your next project": "Geprüfte Partner für Ihr nächstes Projekt",
   "STRATEGIC SOURCING": "STRATEGISCHE BESCHAFFUNG",
-  "From sourcing event to signed contract": "Von der Ausschreibung zum unterschriebenen Vertrag",
-  "Run competitive sourcing the way large procurement teams do — sized for industrial SMEs.":
-    "Wettbewerbliche Beschaffung wie in großen Einkaufsabteilungen – zugeschnitten auf industrielle KMU.",
   "Sourcing events": "Ausschreibungen",
   "Weighted evaluation": "Gewichtete Bewertung",
-  "Contract management": "Vertragsmanagement",
-  "Scorecards & risk": "Scorecards & Risiko",
   "Approvals inbox": "Freigabe-Eingang",
-  "Full audit trail": "Lückenloser Audit-Trail",
   "Ready to coordinate your next industrial project?": "Bereit für Ihr nächstes Industrieprojekt?",
   "Customers start free. Suppliers join after a 5-step verification.":
     "Kunden starten kostenlos. Lieferanten nach einer 5-stufigen Prüfung.",
@@ -771,26 +759,8 @@ Object.assign(I18N_DE, {
   "project completion.": "Projektabschluss.",
   "Customers coordinate a waterfall project. Suppliers accept assigned phases. CraftCrew handles the operational workflow, vetting, documentation and invoice lifecycle.":
     "Kunden steuern ein Phasenprojekt. Lieferanten übernehmen zugewiesene Phasen. CraftCrew organisiert Workflow, Prüfung, Dokumentation und Rechnungsablauf.",
-  "Find vetted specialists, coordinate phases, approve invoices and close projects with reviews.":
-    "Geprüfte Spezialisten finden, Phasen koordinieren, Rechnungen freigeben und Projekte mit Bewertung abschließen.",
-  "Show your capabilities, receive phase invitations, deliver work and get paid through one workflow.":
-    "Kompetenzen zeigen, Einladungen erhalten, liefern und bezahlt werden – in einem Workflow.",
-  "Use badges, vetting stages, metrics and activity data to maintain marketplace quality.":
-    "Mit Badges, Prüfstufen, Kennzahlen und Aktivitätsdaten die Qualität sichern.",
   "A professional operating layer for": "Eine professionelle Arbeitsumgebung für",
   "industrial work.": "industrielle Projekte.",
-  "RFQ, RFP and RFI with supplier questionnaires, multiple rounds and clarifications.":
-    "RFQ, RFP und RFI mit Lieferantenfragebögen, mehreren Runden und Rückfragen.",
-  "Rank offers on price, delivery, supplier performance and experience — with an automatic summary.":
-    "Angebote nach Preis, Lieferzeit, Leistung und Erfahrung ranken – mit automatischer Zusammenfassung.",
-  "Awarded offers become contracts with value, term, notice deadline and renewal alerts.":
-    "Bezuschlagte Angebote werden zu Verträgen mit Wert, Laufzeit, Kündigungsfrist und Verlängerungshinweisen.",
-  "On-time delivery, invoice quality, responsiveness and insurance or vetting risk per supplier.":
-    "Termintreue, Rechnungsqualität, Reaktionszeit sowie Versicherungs- und Prüfrisiko je Lieferant.",
-  "Invoices, documents, time entries, offers and contracts waiting for you — in one list.":
-    "Rechnungen, Dokumente, Zeiten, Angebote und Verträge, die auf Sie warten – in einer Liste.",
-  "Every change is recorded with who, what and when for compliance and disputes.":
-    "Jede Änderung wird mit Wer, Was und Wann für Compliance und Streitfälle protokolliert.",
   "Join the vetted network.": "Werden Sie Teil des geprüften Netzwerks.",
   "Complete your company profile and start the verification process.":
     "Unternehmensprofil vervollständigen und die Prüfung starten.",
@@ -822,65 +792,7 @@ Object.assign(I18N_DE, {
   "Insurance expiry": "Versicherung gültig bis",
   "Second reference contact (optional)": "Zweiter Referenzkontakt (optional)",
   "Submit application": "Bewerbung absenden",
-  "Start without a subscription. The coordination fee is visible before approval and follows the work actually accepted.":
-    "Ohne Abo starten. Die Koordinationsgebühr ist vor der Freigabe sichtbar und richtet sich nach der tatsächlich abgenommenen Leistung.",
-  "Plan and manage projects with no platform subscription.":
-    "Projekte ohne Plattform-Abo planen und steuern.",
-  "Create unlimited projects and tasks": "Unbegrenzt Projekte und Aufgaben anlegen",
-  "Invite suppliers or run structured bid rounds":
-    "Lieferanten einladen oder strukturierte Ausschreibungen durchführen",
-  "Project files, phase chats and progress tracking":
-    "Projektdateien, Phasen-Chats und Fortschrittsverfolgung",
-  "Review time logs, invoices and delivery milestones": "Zeiten, Rechnungen und Liefermeilensteine prüfen",
-  "No monthly fee and no setup charge": "Keine Monats- und keine Einrichtungsgebühr",
-  "Not included": "Nicht enthalten",
-  "Supplier service fees are agreed directly in each offer":
-    "Lieferantenpreise werden im jeweiligen Angebot vereinbart",
-  "Bank transfer fees charged by your bank are not included":
-    "Überweisungsgebühren Ihrer Bank sind nicht enthalten",
   "Create a project": "Projekt anlegen",
-  "3% per approved invoice": "3 % je freigegebener Rechnung",
-  "A clear coordination fee when an invoice is approved.":
-    "Eine klare Koordinationsgebühr bei Rechnungsfreigabe.",
-  "Supplier discovery and verified company profiles": "Lieferantensuche und geprüfte Unternehmensprofile",
-  "Task assignment, bid comparison and award trail":
-    "Aufgabenvergabe, Angebotsvergleich und Zuschlagsdokumentation",
-  "Shared project documents and decisions": "Gemeinsame Projektdokumente und Entscheidungen",
-  "Time and invoice approval workflow": "Freigabe-Workflow für Zeiten und Rechnungen",
-  "One activity history for the project team": "Eine Aktivitätshistorie für das Projektteam",
-  "No payment processing or escrow is included in the demo":
-    "Zahlungsabwicklung oder Treuhand ist nicht enthalten",
-  "VAT is added where legally applicable": "Zzgl. gesetzlicher USt., sofern anwendbar",
-  "Any provider transfer fees are shown separately when connected":
-    "Gebühren eines Zahlungsanbieters werden separat ausgewiesen",
-  "Free to apply": "Kostenlose Bewerbung",
-  "Create a profile and respond to suitable project work.":
-    "Profil anlegen und auf passende Projekte antworten.",
-  "No fee to apply or maintain a profile": "Keine Gebühr für Bewerbung oder Profil",
-  "Publish services, capability and indicative rates":
-    "Leistungen, Kompetenzen und Richtpreise veröffentlichen",
-  "Receive task invitations and quote requests": "Aufgabeneinladungen und Angebotsanfragen erhalten",
-  "Submit offers with line items and supporting files": "Angebote mit Positionen und Anlagen abgeben",
-  "Track assigned work, time logs and invoices": "Zugewiesene Arbeit, Zeiten und Rechnungen verfolgen",
-  "Supplier verification must be completed before directory listing":
-    "Die Lieferantenprüfung muss vor der Listung abgeschlossen sein",
-  "A coordination fee may be shown on awarded project terms":
-    "Eine Koordinationsgebühr kann in den Auftragsbedingungen ausgewiesen sein",
-  "From project brief to accepted delivery.": "Vom Projektbriefing bis zur abgenommenen Lieferung.",
-  "Every decision stays connected to the phase and task it belongs to.":
-    "Jede Entscheidung bleibt mit ihrer Phase und Aufgabe verknüpft.",
-  "Create a project, set its site and dates, then break delivery into phases and tasks.":
-    "Projekt anlegen, Standort und Termine festlegen und die Lieferung in Phasen und Aufgaben gliedern.",
-  "Find vetted suppliers, invite them to a task or open a bid round.":
-    "Geprüfte Lieferanten finden, zu einer Aufgabe einladen oder eine Ausschreibung starten.",
-  "Compare scope, price, lead time and documents; award the selected offer.":
-    "Umfang, Preis, Lieferzeit und Dokumente vergleichen und den Zuschlag erteilen.",
-  "Suppliers report progress, log time and share evidence in the task workspace.":
-    "Lieferanten melden Fortschritt, erfassen Zeiten und teilen Nachweise im Aufgabenbereich.",
-  "Review work, time and invoice details with a clear change history.":
-    "Arbeit, Zeiten und Rechnungen mit klarer Änderungshistorie prüfen.",
-  "Accept the final phase, complete the project and leave a supplier review.":
-    "Letzte Phase abnehmen, Projekt abschließen und Lieferanten bewerten.",
   Define: "Definieren",
   Source: "Beschaffen",
   Agree: "Vereinbaren",
@@ -890,8 +802,6 @@ Object.assign(I18N_DE, {
   "terms of use": "Nutzungsbedingungen",
   "and have read the": "und habe die",
   "privacy policy": "Datenschutzerklärung",
-  "This page has not been published yet. Please contact us via the support address.":
-    "Diese Seite ist noch nicht veröffentlicht. Bitte kontaktieren Sie uns über die Support-Adresse.",
 });
 Object.assign(I18N_DE, {
   // On-site compliance
@@ -1647,18 +1557,6 @@ Object.assign(I18N_DE, {
   "Award task": "Aufgabe vergeben",
   "Apply as supplier": "Als Lieferant bewerben",
   "Customer project": "Kundenprojekt",
-  "Is this a real payment gateway?": "Ist das ein echtes Zahlungssystem?",
-  "The MVP has a backend payment state machine. Connect Stripe or another provider for live money movement.":
-    "Die MVP-Version hat eine Zahlungsstatus-Logik im Backend. Für echte Zahlungen binden Sie Stripe oder einen anderen Anbieter an.",
-  "Application → New → Verified → References → Approved/Rejected → badge assignment → live supplier.":
-    "Bewerbung → Neu → Verifiziert → Referenzen → Freigegeben/Abgelehnt → Abzeichen → Lieferant ist live.",
-  "Customers can publish a bid against a project task. Suppliers submit comparable scope, price and delivery offers, and the customer awards one supplier per task.":
-    "Kunden können zu einer Projektaufgabe eine Ausschreibung veröffentlichen. Lieferanten reichen vergleichbare Angebote zu Umfang, Preis und Lieferzeit ein, und der Kunde vergibt die Aufgabe an einen Lieferanten.",
-  "What are documents?": "Was sind Dokumente?",
-  "Project files are organized by phase, task and supplier. Each upload can be shared directly or sent through customer approval, with change requests and version tracking.":
-    "Projektdateien sind nach Phase, Aufgabe und Lieferant geordnet. Jeder Upload kann direkt geteilt oder zur Freigabe an den Kunden geschickt werden, mit Änderungswünschen und Versionsverlauf.",
-  "The 3% fee is an example setting for this demo marketplace. Final commercial terms should be confirmed in the project offer before work begins.":
-    "Die Gebühr von 3 % ist eine Beispieleinstellung dieses Demo-Marktplatzes. Die endgültigen Konditionen sollten vor Arbeitsbeginn im Projektangebot bestätigt werden.",
   // Accessibility labels (T57)
   "Filter by read state": "Nach Lesestatus filtern",
   "Filter by type": "Nach Typ filtern",
@@ -1766,44 +1664,14 @@ Object.assign(I18N_DE, {
   // Design 2026 (T92)
   "1 day late": "1 Tag verspätet",
   // Landing page (T94)
-  "Industrial services, coordinated.": "Industrielle Dienstleistungen, koordiniert.",
-  "Every crew. One project. Zero chaos.": "Jedes Team. Ein Projekt. Null Chaos.",
-  "Find vetted industrial specialists, compare their offers side by side and run the whole job — from site safety to the final invoice — in one place.": "Finden Sie geprüfte Industriespezialisten, vergleichen Sie ihre Angebote direkt nebeneinander und steuern Sie den ganzen Auftrag – von der Arbeitssicherheit bis zur Schlussrechnung – an einem Ort.",
-  "Explore suppliers ›": "Lieferanten entdecken ›",
-  "craftcrew · Regensburg Line 4": "craftcrew · Regensburg Linie 4",
   "Robot Cell Upgrade": "Modernisierung Roboterzelle",
   Engineering: "Engineering",
   "Build & integration": "Bau & Integration",
   "Site acceptance": "Abnahme vor Ort",
   "Waiting for you": "Wartet auf Sie",
-  "Invoice 2026-0001 · €8,806": "Rechnung 2026-0001 · 8.806 €",
-  "All checks passed": "Alle Prüfungen bestanden",
-  "On site today": "Heute vor Ort",
-  "2 people · Keller Automation": "2 Personen · Keller Automation",
-  "Briefed and checked in": "Unterwiesen und eingecheckt",
-  "From request to paid invoice.": "Von der Anfrage bis zur bezahlten Rechnung.",
-  "Without the spreadsheets.": "Ohne Tabellenchaos.",
   Describe: "Beschreiben",
-  "Phases, tasks and budget from a template.": "Phasen, Aufgaben und Budget aus einer Vorlage.",
-  "Commissioning, retrofit or shutdown — set up in minutes.": "Inbetriebnahme, Retrofit oder Stillstand – in Minuten angelegt.",
-  "Vetted offers, side by side.": "Geprüfte Angebote, direkt nebeneinander.",
-  "Price, delivery and track record, weighted the way you decide.": "Preis, Lieferzeit und Erfahrung – gewichtet, wie Sie entscheiden.",
   Run: "Umsetzen",
-  "One workspace for everyone.": "Ein Arbeitsbereich für alle.",
-  "Each company sees only its own part — nothing more.": "Jedes Unternehmen sieht nur seinen eigenen Teil – nicht mehr.",
-  "The best offer is obvious.": "Das beste Angebot ist offensichtlich.",
-  "Who's on site. Right now.": "Wer ist vor Ort. Genau jetzt.",
-  "Checked against the order before you approve.": "Gegen den Auftrag geprüft, bevor Sie freigeben.",
-  "VAT, sequential numbers and XRechnung export included.": "Umsatzsteuer, fortlaufende Nummern und XRechnung-Export inklusive.",
-  "Field app": "Feld-App",
-  "Time and photos in two taps.": "Zeiten und Fotos mit zwei Fingertipps.",
-  "Works without signal on the shop floor and syncs later.": "Funktioniert ohne Empfang in der Werkhalle und synchronisiert später.",
-  "Vetted partners for your next project.": "Geprüfte Partner für Ihr nächstes Projekt.",
   "Strategic sourcing": "Strategische Beschaffung",
-  "For both sides": "Für beide Seiten",
-  "Your next project starts here.": "Ihr nächstes Projekt beginnt hier.",
-  "Free for customers. Suppliers join after a 5-step verification.": "Kostenlos für Kunden. Lieferanten kommen nach einer 5-stufigen Prüfung dazu.",
-  "Apply as a supplier ›": "Als Lieferant bewerben ›",
   Suppliers: "Lieferanten",
   // Dashboards (T95)
   "Needs your decision": "Braucht Ihre Entscheidung",
@@ -1908,20 +1776,6 @@ Object.assign(I18N_DE, {
     "Laden Sie eine Kopie der personenbezogenen Daten herunter, die CraftCrew über Sie speichert: Konto, Nachrichten, Benachrichtigungen, Projekte, Rechnungen und Aktivitäten. Passwörter und Sicherheitsschlüssel sind nie enthalten.",
   "Download my data": "Meine Daten herunterladen",
   // Privacy rights and admin view (T123)
-  "Your rights on CraftCrew": "Ihre Rechte bei CraftCrew",
-  "Access and a copy of your data": "Auskunft und Kopie Ihrer Daten",
-  "Under Art. 15 and 20 GDPR you can see the personal data we store about you and take it with you. Signed in, open your profile and choose \"Download my data\". You get a JSON file with your account, messages, notifications, projects, invoices and activity. Passwords and security keys are never included.": "Nach Art. 15 und 20 DSGVO können Sie die personenbezogenen Daten einsehen, die wir über Sie speichern, und sie mitnehmen. Öffnen Sie angemeldet Ihr Profil und wählen Sie „Meine Daten herunterladen“. Sie erhalten eine JSON-Datei mit Konto, Nachrichten, Benachrichtigungen, Projekten, Rechnungen und Aktivitäten. Passwörter und Sicherheitsschlüssel sind nie enthalten.",
-  "Correcting your data": "Ihre Daten berichtigen",
-  "You can change your name, contact details and company profile on your profile page at any time (Art. 16 GDPR). For verified suppliers, changes to legal details are checked again before they show as verified.": "Name, Kontaktdaten und Firmenprofil können Sie jederzeit auf Ihrer Profilseite ändern (Art. 16 DSGVO). Bei verifizierten Lieferanten werden Änderungen an rechtlichen Angaben erneut geprüft, bevor sie als verifiziert erscheinen.",
-  "Deleting your account": "Ihr Konto löschen",
-  "You can delete your account on your profile page (Art. 17 GDPR). While projects, accepted work, unpaid invoices or escalations are still open, they have to be finished or handed over first, because the other party depends on them.": "Sie können Ihr Konto auf Ihrer Profilseite löschen (Art. 17 DSGVO). Solange Projekte, angenommene Aufträge, unbezahlte Rechnungen oder Eskalationen offen sind, müssen sie zuerst abgeschlossen oder übergeben werden, weil die andere Seite darauf angewiesen ist.",
-  "After you confirm with your password, your account is locked at once and deleted after 14 days. Signing in during these 14 days cancels the deletion. Then your name, email, phone, company profile, notifications and files are removed. Messages you sent stay visible to their recipients as coming from \"Deleted user\".": "Nachdem Sie mit Ihrem Passwort bestätigt haben, wird Ihr Konto sofort gesperrt und nach 14 Tagen gelöscht. Wenn Sie sich in diesen 14 Tagen anmelden, wird die Löschung aufgehoben. Danach werden Name, E-Mail, Telefon, Firmenprofil, Benachrichtigungen und Dateien entfernt. Von Ihnen gesendete Nachrichten bleiben für die Empfänger sichtbar, als „Gelöschter Nutzer“.",
-  "What we have to keep": "Was wir aufbewahren müssen",
-  "Invoices must be kept for 10 years (§ 147 AO, § 14b UStG). They keep the company name, address and tax ID they were issued with, but not your personal contact details. Time entries that back an invoice are kept for the same reason.": "Rechnungen müssen 10 Jahre aufbewahrt werden (§ 147 AO, § 14b UStG). Sie behalten Firmenname, Anschrift und Steuernummer, mit denen sie ausgestellt wurden, aber nicht Ihre persönlichen Kontaktdaten. Zeiteinträge, die einer Rechnung zugrunde liegen, werden aus demselben Grund aufbewahrt.",
-  "A team member who deletes their account removes only their own login. When the main account is deleted, its team members' logins are deleted with it.": "Ein Teammitglied, das sein Konto löscht, entfernt nur den eigenen Zugang. Wird das Hauptkonto gelöscht, werden die Zugänge seiner Teammitglieder mitgelöscht.",
-  "Questions and complaints": "Fragen und Beschwerden",
-  "Contact:": "Kontakt:",
-  "You also have the right to complain to a data protection supervisory authority.": "Sie haben außerdem das Recht, sich bei einer Datenschutz-Aufsichtsbehörde zu beschweren.",
   "Pending account deletions": "Anstehende Kontolöschungen",
   "With the main account": "Mit dem Hauptkonto",
   "Deleted on": "Gelöscht am",

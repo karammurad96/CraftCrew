@@ -156,28 +156,6 @@ describe("design 2026", () => {
       assert.match(de, new RegExp(`^  (${label}|"${label}"): "`, "m"), `no German for ${label}`);
   });
 
-  it("renders the landing page from the board, with German for every text (T94)", async () => {
-    const ctx = loadScreens({ api: async () => ({ suppliers: [] }) });
-    const app = ctx.app;
-    await ctx.renderHome();
-    const html = app.innerHTML;
-    for (const link of ["#/signup", "#/suppliers", "#/supplier-application"])
-      assert.ok(html.includes(`href="${link}"`), `missing link ${link}`);
-    assert.match(html, /<h1>Every crew\. One project\. Zero chaos\.<\/h1>/);
-    const texts = [...html.matchAll(/>([^<>]*[A-Za-z][^<>]*)</g)].map((m) => m[1].trim()).filter(Boolean);
-    const de = read("i18n.js");
-    const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const missing = texts.filter(
-      (t) => !new RegExp(`^\\s+(${esc(t)}|${esc(JSON.stringify(t))}):`, "m").test(de) && !/^[\d\s%€·,.-]+$/.test(t),
-    );
-    // Example-only strings that stay the same in German
-    assert.deepEqual(
-      missing.filter((t) => !["Oct", "55 %"].includes(t)),
-      [],
-      "English texts without a German entry",
-    );
-  });
-
   it("builds the customer dashboard header and decision rows from the queue (T95)", () => {
     const ctx = loadScreens(
       { money: (n) => `€${n}`, date: (d) => d, aqHtml: () => "base" },
@@ -468,13 +446,13 @@ describe("design 2026", () => {
   });
 
   it("explains the GDPR self-service on the privacy page and lists pending deletions for admins (T123)", () => {
+    // The privacy page itself moved to the public area (T126a, test/area-public.test.js)
     const src = read("gdpr-ui.js"),
-      de = read("i18n.js");
-    assert.ok(src.includes("const gdBaseLegalPage = legalPage;"));
-    assert.ok(src.includes('if (key !== "privacy") return;'));
-    for (const t of ["deleted after 14 days", "kept for 10 years (§ 147 AO, § 14b UStG)", "Download my data"]) assert.ok(src.includes(t), t);
+      de = read("i18n.js"),
+      en = read("locales/en.js");
+    for (const t of ["deleted after 14 days", "kept for 10 years (§ 147 AO, § 14b UStG)", "Download my data"]) assert.ok(en.includes(t), t);
     assert.ok(src.includes("const gdBaseAdminUsers = adminUsers;"));
-    for (const k of ['"Your rights on CraftCrew": "Ihre Rechte bei CraftCrew"', '"Pending account deletions": "Anstehende Kontolöschungen"', '"Deleted user": "Gelöschter Nutzer"'])
+    for (const k of ['"Pending account deletions": "Anstehende Kontolöschungen"', '"Deleted user": "Gelöschter Nutzer"'])
       assert.ok(de.includes(k), k);
     // Loaded after the files whose pages it extends, before the design layer and the translation
     const order = [...index.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]);
