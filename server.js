@@ -266,6 +266,10 @@ const gdpr = require("./gdpr")({
   queueEmail: (...a) => queueEmail(...a),
   notify: (...a) => notify(...a),
   invoiceNo: (...a) => invoiceNo(...a),
+  invoiceParties: (...a) => invoiceParties(...a),
+  xrechnungData: (...a) => xrechnungData(...a),
+  removeUnusedUpload: (...a) => removeUnusedUpload(...a),
+  id: (p) => id(p),
 });
 const compliance = require("./compliance")({
   getDb: () => db,
@@ -3347,6 +3351,9 @@ function runInvoiceReminders(at = Date.now()) {
 }
 runInvoiceReminders();
 setInterval(() => runInvoiceReminders(), 3600000).unref();
+// GDPR: accounts whose 14-day grace period is over are anonymised (T122).
+gdpr.runDeletions();
+setInterval(() => gdpr.runDeletions(), 3600000).unref();
 // One-time links for email verification and password reset (only the hash is stored).
 function issueAuthToken(userId, type, ttlMs) {
   const token = crypto.randomBytes(32).toString("base64url");
@@ -3525,7 +3532,7 @@ function xrechnungData(inv) {
       inv.paymentTerms ||
       (inv.paymentTermsDays != null ? `Zahlbar innerhalb von ${inv.paymentTermsDays} Tagen ohne Abzug` : ""),
     dueDate: inv.scheduledPayment || inv.dueDate,
-    seller: {
+    seller: inv.frozenParties?.seller || {
       name: scp.legalName || supplier?.company,
       address: scp.address,
       email: scp.procurementEmail || sellerUser?.email,
@@ -3536,7 +3543,7 @@ function xrechnungData(inv) {
       bic: pay.bic,
       accountHolder: pay.accountHolder,
     },
-    buyer: {
+    buyer: inv.frozenParties?.buyer || {
       name: ccp.legalName || customer?.company,
       address: ccp.address,
       email: ccp.procurementEmail || customer?.email,
@@ -3558,6 +3565,8 @@ function xrechnungData(inv) {
   };
 }
 function invoiceParties(inv) {
+  // After a party deleted its account (T122) the invoice keeps the legal details it was issued with.
+  if (inv.frozenParties) return { ...inv.frozenParties.parties };
   const customer = db.users.find((x) => x.id === inv.customerId),
     supplier = db.suppliers.find((x) => x.id === inv.supplierId),
     supplierUser = supplierAccount(inv.supplierId);
