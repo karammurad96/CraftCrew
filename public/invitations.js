@@ -35,41 +35,4 @@ async function invAnswerPhase(pid, phid, accept) {
     toast(e.message, "error");
   }
 }
-// Older buttons (project page, dashboards) use the same flow.
-wfAcceptTask = (pid, tid, accept) => invAnswerTask(pid, tid, accept);
-acceptPhase = (pid, phid, accept) => invAnswerPhase(pid, phid, accept);
-
-/* ---------- Customer: invitation state on the task card ---------- */
-async function invWithdraw(pid, tid) {
-  if (!(await uiConfirm("Withdraw this invitation? The supplier is told and the task is free again.", { confirmLabel: "Withdraw" })))
-    return;
-  try {
-    await api(`/projects/${pid}/tasks/${tid}/withdraw`, { method: "POST" });
-    toast("Invitation withdrawn");
-    await projectDetail(pid);
-  } catch (e) {
-    toast(e.message, "error");
-  }
-}
-/* Inviting is explicit about what happens next. */
-const invBaseAssignTask = wfAssignTask;
-wfAssignTask = async function (pid, tid) {
-  await invBaseAssignTask(pid, tid);
-  document
-    .querySelector(".modal .wf-compare")
-    ?.insertAdjacentHTML(
-      "beforebegin",
-      '<p class="modal-intro">The supplier receives an invitation and has to accept it before the task starts.</p>',
-    );
-};
-wfAssignSupplier = async function (pid, tid, sid) {
-  try {
-    await api(`/projects/${pid}/tasks/${tid}/assign`, { method: "POST", body: { supplierId: sid } });
-    closeModal();
-    toast("Invitation sent — waiting for the supplier to accept");
-    await projectDetail(pid);
-  } catch (e) {
-    toast(e.message, "error");
-  }
-};
 

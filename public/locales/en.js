@@ -997,4 +997,150 @@ LOCALES.en = {
       }
     }
   },
+  // Project dialogs (T128d)
+  dlg: {
+    "status": {
+      "Not Started": "Not Started",
+      "In Progress": "In Progress",
+      "Under Review": "Under Review",
+      "Completed": "Completed",
+      "On Hold": "On Hold"
+    },
+    "start": "Start date",
+    "dueRequired": "Due date *",
+    "due": "Due date",
+    "statusLabel": "Status",
+    "edit": {
+      "title": "Edit project",
+      "name": "Name",
+      "description": "Description",
+      "budget": "Budget",
+      "buyerRef": "Order reference (for e-invoices)",
+      "buyerRefHint": "Your purchase order or cost centre number",
+      "afterAcceptance": "Invoices only after acceptance (suppliers can invoice a task once you have signed its acceptance report)",
+      "save": "Save",
+      "saved": "Project updated"
+    },
+    "remove": {
+      "archiveTitle": "Archive project?",
+      "archiveText": "This project has {invoices} invoice(s), {documents} document(s) and {suppliers} supplier(s). It will be archived, not deleted.",
+      "archive": "Archive project",
+      "deleteTitle": "Delete project for good?",
+      "deleteText": "\"{name}\" has no invoices, documents or suppliers, so it will be deleted for good. Type the project name to confirm.",
+      "delete": "Delete project",
+      "archived": "Project archived",
+      "deleted": "Project deleted",
+      "mismatch": "The name does not match. Nothing was deleted."
+    },
+    "support": {
+      "title": "Escalate / support",
+      "type": "Issue type",
+      "types": {
+        "Support": "Support",
+        "Quality": "Quality",
+        "Schedule": "Schedule",
+        "Payment": "Payment",
+        "Safety": "Safety",
+        "Other": "Other"
+      },
+      "description": "Description",
+      "submit": "Open escalation",
+      "opened": "Support escalation opened"
+    },
+    "phase": {
+      "addTitle": "Add project phase",
+      "editTitle": "Edit project phase",
+      "nameRequired": "Phase name *",
+      "name": "Phase name",
+      "scope": "Scope",
+      "dependsOn": "Depends on phase",
+      "none": "No dependency",
+      "add": "Add phase",
+      "save": "Save phase"
+    },
+    "task": {
+      "addTitle": "Add assignable task",
+      "editTitle": "Edit project task",
+      "nameRequired": "Task name *",
+      "name": "Task name",
+      "deliverables": "Scope and deliverables",
+      "scope": "Scope",
+      "budget": "Order budget (€)",
+      "dependsOn": "Depends on task",
+      "none": "No task dependency",
+      "progress": "Progress (%)",
+      "amount": "Order amount (€)",
+      "add": "Add task",
+      "save": "Save task",
+      "delete": "Delete task",
+      "cannotTitle": "This task cannot be deleted",
+      "cannotText": "It has a supplier assignment or invoices. Remove the assignment and resolve the invoices first.",
+      "ok": "OK",
+      "deleteTitle": "Delete task?",
+      "deleteText": "\"{name}\" will be deleted for good. Type the task name to confirm."
+    },
+    "assign": {
+      "title": "Compare and invite a supplier",
+      "intro": "The supplier receives an invitation and has to accept it before the task starts.",
+      "locationPending": "Location pending",
+      "rates": "{hourly}/hour · {project} starting",
+      "invite": "Invite supplier",
+      "sent": "Invitation sent — waiting for the supplier to accept"
+    },
+    "withdraw": {
+      "confirm": "Withdraw this invitation? The supplier is told and the task is free again.",
+      "button": "Withdraw",
+      "done": "Invitation withdrawn"
+    },
+    "progress": {
+      "title": "Update task progress",
+      "percent": "Progress complete (%)",
+      "status": "Work status",
+      "milestone": "Milestone reached (optional)",
+      "milestoneHint": "e.g. Frame welded and painted",
+      "note": "Progress note for the customer",
+      "noteHint": "What was done, what is next, any risks or delays",
+      "hint": "Upload deliverables in the project document desk so the customer can review them.",
+      "save": "Save progress",
+      "upload": "Upload deliverable",
+      "sent": "Progress update sent to the customer"
+    },
+    "complete": {
+      "confirm": "Close this project? All phases are complete; suppliers are notified and the project is closed for new work.",
+      "done": "Project completed and closed"
+    },
+    "review": {
+      "title": "Review supplier performance",
+      "intro": "Your ratings appear on each supplier's public profile and feed into badge reviews.",
+      "overall": "Overall rating",
+      "quality": "Quality of work",
+      "schedule": "Schedule reliability",
+      "communication": "Communication",
+      "comment": "Comment",
+      "commentHint": "What went well, what could improve?",
+      "submit": "Submit review",
+      "saved": "✓ Review saved for {company}",
+      "submitted": "Review submitted"
+    },
+    "share": {
+      "title": "Share project",
+      "intro": "Invite a colleague from your company. They see this project and can work on it with you. Someone without an account gets one.",
+      "name": "Name",
+      "email": "Email *",
+      "invite": "Invite",
+      "ownerOnly": "Only the project owner can invite colleagues.",
+      "people": "People with access",
+      "access": {
+        "owner": "Owner",
+        "team": "Your team · all projects",
+        "project": "This project"
+      },
+      "remove": "Remove",
+      "removeLabel": "Remove access for {name}",
+      "removeConfirm": "Remove this colleague's access to the project?",
+      "password": "{name} can sign in with the temporary password {password} and will choose a new one.",
+      "emailed": "We emailed {email} a link to set a password.",
+      "ready": "{name} can open the project now."
+    }
+  },
 };

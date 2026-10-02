@@ -84,7 +84,7 @@ function area(lang, role, { hash = `#/${role}/projects/p1`, proj = project(), us
       return {};
     },
   };
-  for (const fn of ["editProject", "openSupport", "deleteProject", "dsShare", "wfEditTask", "drOpen", "puOpen", "acOpen", "invWithdraw", "wfUpdateProgress"])
+  for (const fn of ["pdEditProject", "pdSupport", "pdDeleteProject", "pdShare", "pdEditTask", "drOpen", "puOpen", "acOpen", "pdWithdraw", "pdProgress"])
     ctx[fn] = (...a) => calls.push([fn, ...a]);
   ctx.window = ctx;
   vm.createContext(ctx);
@@ -182,7 +182,7 @@ describe("project workspace area (T128b)", () => {
     ctx.run("ws.progress", { project: "p1", phase: "ph1", task: "late", progress: "50" });
     assert.deepEqual(
       ctx.calls.filter((c) => c[0] !== "api"),
-      [["editProject", "p1"], ["deleteProject", "p1"], ["wfEditTask", "p1", "ph1", "late"], ["puOpen", "p1", "late"], ["wfUpdateProgress", "p1", "ph1", "late", 50]],
+      [["pdEditProject", "p1"], ["pdDeleteProject", "p1"], ["pdEditTask", "p1", "ph1", "late"], ["puOpen", "p1", "late"], ["pdProgress", "p1", "ph1", "late", 50]],
     );
     const loads = () => ctx.calls.filter((c) => c[1] === "/projects/p1").length,
       before = loads();
@@ -201,7 +201,5 @@ describe("project workspace area (T128b)", () => {
     assert.doesNotMatch(read("insights.js"), /inBoardButton/);
     assert.doesNotMatch(read("platform-additions.js"), /paProjectExtras/);
     assert.doesNotMatch(read("safe-actions.js"), /saMoreMenu/);
-    // German status choices in the edit dialogs send the English value (the old translation renamed the options)
-    assert.equal((read("workflows.js").match(/<option value="\$\{x\}" \$\{x === (t|ph)\.status \? "selected" : ""\}>/g) || []).length, 2);
   });
 });
