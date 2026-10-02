@@ -424,6 +424,15 @@ describe("design 2026", () => {
     assert.ok(de.includes('"Arrival time (optional)": "Ankunftszeit (optional)"'));
   });
 
+  it("shows the due date of submitted invoices in the review panel and the list (T108)", () => {
+    const src = read("design-screens.js"),
+      rv = read("reviews.js");
+    assert.ok(src.includes("i.scheduledPayment || i.dueDate ? `Due ${dsShortRange(i.scheduledPayment || i.dueDate)}`"));
+    assert.ok(rv.includes('${rvDue(i) ? `<small>Due ${date(rvDue(i))}</small>` : ""}'));
+    assert.match(rv, /if \(i\.status === "Submitted" && i\.dueDate && i\.dueDate < dsToday\(\)\)/);
+    assert.ok(read("i18n.js").includes('[/^Due (\\d.+)$/, "Fällig $1"]'));
+  });
+
   it("uses a new service worker cache so installed apps load the new files", () => {
     assert.match(read("sw.js"), /const CACHE = "craftcrew-shell-v2"/);
   });

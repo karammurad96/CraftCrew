@@ -206,7 +206,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 **Wave 7 follow-ups (found in T105; each needs a feature, not only layout)**
 - [x] T106 Photos on time entries (PhoneLogTime "Photos" grid) · M
 - [x] T107 Time of day for site visits ("Site visit · 07:30") · S
-- [ ] T108 Due date on submitted invoices (InvoiceReview "Due 11 October") · S
+- [x] T108 Due date on submitted invoices (InvoiceReview "Due 11 October") · S
 - [ ] T109 Unread count on the project "Messages" tab (Workspace "Messages · 3") · S
 - [ ] T110 "Share" on the project workspace (Workspace board) · M · needs a human decision
 

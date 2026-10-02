@@ -44,7 +44,8 @@ describe("invoice PDF", () => {
       require("node:fs").writeFileSync(`${process.env.PDF_SAMPLES}/umlauts.pdf`, bytes);
     assert.ok(bytes.includes(Buffer.from("Pr\xfcfung Ma\xdfnahme \x96 \xdcbergabe", "latin1")));
     assert.ok(bytes.includes(Buffer.from("\x80 2.469,00", "latin1")), "€ amount in German format");
-    assert.ok(bytes.includes(Buffer.from("Gem\xe4\xdf Projektauftrag", "latin1")));
+    // T108: the terms line shows the payment terms and the due date instead of "Gemäß Projektauftrag"
+    assert.ok(bytes.includes(Buffer.from("14 Tage netto, f\xe4llig am", "latin1")));
     assert.ok(bytes.includes(Buffer.from("/Encoding /WinAnsiEncoding")));
     assert.ok(!bytes.includes(Buffer.from("Pruefung")));
     assert.ok(bytes.includes(Buffer.from("/Count 1 ")));

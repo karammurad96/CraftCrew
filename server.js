@@ -524,6 +524,13 @@ function future(days) {
   const d = new Date(Date.now() + days * 86400000);
   return d.toISOString().slice(0, 10);
 }
+// Payment terms of new invoices (T108): the admin's default, "N days net" from the day of submission.
+const paymentTermsDays = () => Math.max(0, Math.min(180, Number(db.settings?.defaultPaymentTermsDays ?? 14) || 0));
+function dueDateFrom(isoTime, days = paymentTermsDays()) {
+  return new Date(Date.parse(String(isoTime).slice(0, 10) + "T00:00:00Z") + days * 86400000)
+    .toISOString()
+    .slice(0, 10);
+}
 function seed() {
   const customerPass = hashPassword("demo123"),
     supplierPass = hashPassword("demo123"),
@@ -2088,6 +2095,8 @@ function ensureShowcaseWorkspaceV4() {
       ],
       description: "Robot cell fabrication progress claim — week 1",
       status: "Submitted",
+      paymentTermsDays: 14,
+      dueDate: future(14),
       createdAt: now(),
       updatedAt: now(),
     },
@@ -3047,6 +3056,7 @@ const NOTIFY_TEXT = {
     invoiceReminder2: "Second reminder: invoice {number} has been waiting for your review for 7 days",
     invoiceWaitingAdmin: "Invoice {number} has been waiting for customer review for 7 days",
     invoiceOverdue: "Invoice {number} is overdue: payment was due {date}",
+    invoiceDueUnreviewed: "Invoice {number} was due on {date} and still waits for your review",
     taskInvitation: "Task invitation: {task} · {project}",
     taskInvitationWithdrawn: "Task invitation withdrawn: {task}",
     phaseInvitation: "New phase invitation: {phase} on {project}",
@@ -3087,6 +3097,7 @@ const NOTIFY_TEXT = {
     invoiceReminder2: "Zweite Erinnerung: Rechnung {number} wartet seit 7 Tagen auf Ihre Prüfung",
     invoiceWaitingAdmin: "Rechnung {number} wartet seit 7 Tagen auf die Prüfung durch den Kunden",
     invoiceOverdue: "Rechnung {number} ist überfällig: Zahlung war fällig am {date}",
+    invoiceDueUnreviewed: "Rechnung {number} war am {date} fällig und wartet noch auf Ihre Prüfung",
     taskInvitation: "Aufgabeneinladung: {task} · {project}",
     taskInvitationWithdrawn: "Aufgabeneinladung zurückgezogen: {task}",
     phaseInvitation: "Neue Phaseneinladung: {phase} in {project}",
@@ -3264,6 +3275,17 @@ function runInvoiceReminders(at = Date.now()) {
     const sent = (i.remindersSent ||= []),
       once = (key) => !sent.includes(key) && sent.push(key) && (changed = true);
     if (i.status === "Submitted") {
+      // Invoices from before T108 get their due date from the current terms.
+      if (!i.dueDate) {
+        i.dueDate = dueDateFrom(i.resubmittedAt || i.createdAt);
+        changed = true;
+      }
+      if (i.dueDate < today && once("dueUnreviewed"))
+        notify(
+          i.customerId,
+          { key: "invoiceDueUnreviewed", params: { number: invoiceNo(i), date: i.dueDate } },
+          `/customer/invoice/${i.id}`,
+        );
       const days = (at - Date.parse(i.resubmittedAt || i.createdAt)) / 86400000;
       if (days >= 3 && once("review3"))
         notify(
@@ -3475,8 +3497,10 @@ function xrechnungData(inv) {
     issueDate: inv.createdAt,
     note: inv.description,
     buyerReference: project?.buyerReference || project?.name || inv.projectId,
-    paymentTerms: inv.paymentTerms,
-    dueDate: inv.scheduledPayment,
+    paymentTerms:
+      inv.paymentTerms ||
+      (inv.paymentTermsDays != null ? `Zahlbar innerhalb von ${inv.paymentTermsDays} Tagen ohne Abzug` : ""),
+    dueDate: inv.scheduledPayment || inv.dueDate,
     seller: {
       name: scp.legalName || supplier?.company,
       address: scp.address,
@@ -3549,6 +3573,7 @@ const PDF_LABELS = {
     notSpecified: "Not specified",
     terms: "Terms",
     termsDefault: "As agreed in the project order",
+    termsDays: (n, due) => `${n} days net, due ${due}`,
     payTo: "Pay to",
     reference: "Reference",
     note: "Note",
@@ -3584,6 +3609,7 @@ const PDF_LABELS = {
     notSpecified: "Nicht festgelegt",
     terms: "Zahlungsbedingungen",
     termsDefault: "Gemäß Projektauftrag",
+    termsDays: (n, due) => `${n} Tage netto, fällig am ${due}`,
     payTo: "Zahlung an",
     reference: "Referenz",
     note: "Hinweis",
@@ -3732,7 +3758,12 @@ function invoicePdf(inv, lang = "en") {
     348,
     totalY - 14,
     8,
-    wrapPdfText(`${L.terms}: ${inv.paymentTerms || L.termsDefault}`, 222, 8, 1)[0],
+    wrapPdfText(
+      `${L.terms}: ${inv.paymentTerms || (inv.dueDate && inv.paymentTermsDays != null ? L.termsDays(inv.paymentTermsDays, new Date((inv.scheduledPayment || inv.dueDate) + "T00:00:00Z").toLocaleDateString(L.locale, { timeZone: "UTC" })) : L.termsDefault)}`,
+      222,
+      8,
+      1,
+    )[0],
     "F1",
     "0.38 0.45 0.56",
   );
@@ -5863,6 +5894,8 @@ async function api(req, res, url) {
         createdAt: now(),
         updatedAt: now(),
       };
+      inv.paymentTermsDays = paymentTermsDays();
+      inv.dueDate = dueDateFrom(inv.createdAt, inv.paymentTermsDays);
       db.invoices.unshift(inv);
       notify(p.customerId, { key: "invoiceSubmitted", params: { number: inv.number } });
       activity(user, `Submitted invoice ${inv.number}`);
@@ -5967,7 +6000,13 @@ async function api(req, res, url) {
           return (send(res, 409, { error: `This invoice was already decided (status: ${i.status}).` }), true);
         if (action === "Approve") {
           i.status = "Approved";
-          i.scheduledPayment = future(Number(db.settings?.defaultPaymentTermsDays ?? 3));
+          // Payment is scheduled for the due date of the terms; an invoice approved after it is paid right away.
+          const today = now().slice(0, 10);
+          i.scheduledPayment = i.dueDate
+            ? i.dueDate > today
+              ? i.dueDate
+              : today
+            : future(Number(db.settings?.defaultPaymentTermsDays ?? 3));
           const feePercent = Number(db.settings?.platformFeePercent ?? 3),
             fee = Math.round(invoiceNet(i) * feePercent) / 100;
           if (!db.payments.some((p) => p.invoiceId === i.id))
@@ -6058,8 +6097,12 @@ async function api(req, res, url) {
         i.status = "Submitted";
         i.comments = "";
         i.resubmittedAt = now();
+        // A corrected invoice is a new submission: its terms start again from today (T108).
+        i.paymentTermsDays ??= paymentTermsDays();
+        i.dueDate = dueDateFrom(i.resubmittedAt, i.paymentTermsDays);
         // A corrected invoice waits for review again, so its review reminders start over.
-        if (i.remindersSent) i.remindersSent = i.remindersSent.filter((k) => !k.startsWith("review"));
+        if (i.remindersSent)
+          i.remindersSent = i.remindersSent.filter((k) => !k.startsWith("review") && k !== "dueUnreviewed");
         notify(
           i.customerId,
           {
