@@ -101,82 +101,7 @@ async function wfCreateBidFromPage() {
   const first = opts[0];
   await wfCreateBid(first.p.id, first.ph.id, first.t.id);
 }
-async function wfDocuments(pid) {
-  const [pd, d] = await Promise.all([api("/projects/" + pid), api(`/projects/${pid}/documents`)]),
-    p = pd.project,
-    selectedPhase = wfQuery().get("phase") || "",
-    selectedTask = wfQuery().get("task") || "",
-    docs = d.documents || [];
-  const filtered = docs.filter(
-    (x) => (!selectedPhase || x.phaseId === selectedPhase) && (!selectedTask || x.taskId === selectedTask),
-  );
-  const phaseOpts = p.phases
-    .map(
-      (ph) =>
-        `<option value="${ph.id}" ${selectedPhase === ph.id ? "selected" : ""}>${esc(ph.name)}</option>`,
-    )
-    .join("");
-  const rows = filtered
-    .map((x) => {
-      const supplier = wfSupplier(pd.suppliers || [], x.supplierId),
-        owner = x.uploadedBy === state.user.id ? "You" : x.uploadedBy;
-      return `<tr><td><b>${esc(x.filename)}</b><small>${esc(x.description || "")}</small></td><td>${esc(x.phaseName || "Project level")}<small>${esc(x.taskName || "No task")}</small></td><td>${esc(supplier?.company || owner)}</td><td>${esc(x.category)}<small>${date(x.uploadedAt)}</small></td><td><span class="status ${x.status === "Approved" ? "completed" : x.status === "Pending approval" ? "submitted" : "active"}">${esc(x.status)}</span></td><td>${x.url ? `<a class="btn small outline" href="${esc(x.url)}" target="_blank" rel="noopener">Open</a>` : ""}${state.user.role === "customer" && x.status === "Pending approval" ? `<button class="btn small success" onclick="wfReviewDocument('${x.id}','Approved')">Approve</button><button class="btn small outline" onclick="wfReviewDocument('${x.id}','Changes requested')">Request changes</button>` : ""}</td></tr>`;
-    })
-    .join("");
-  const content = `<div class="breadcrumb"><a href="#/${state.user.role}/projects/${p.id}">← Back to ${esc(p.name)}</a></div><div class="dash-top"><div><div class="eyebrow">PROJECT DOCUMENT DESK</div><h1>Documents & handover</h1><p>One project library, grouped by phase, task and supplier. Approval is optional for each upload.</p></div><button class="btn primary" onclick="wfUploadDocument('${p.id}')">+ Upload document</button></div><div class="wf-filter-row"><label>Phase<select id="wfDocPhase" onchange="wfDocFilter('${p.id}')"><option value="">All phases</option>${phaseOpts}</select></label><label>Task<select id="wfDocTask" onchange="wfDocFilter('${p.id}')"><option value="">All tasks</option>${p.phases.flatMap((ph) => (ph.tasks || []).map((t) => `<option value="${t.id}" ${selectedTask === t.id ? "selected" : ""}>${esc(ph.name)} · ${esc(t.name)}</option>`)).join("")}</select></label></div><section class="panel"><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Document</th><th>Phase / task</th><th>Supplier / owner</th><th>Category / uploaded</th><th>Approval</th><th>Actions</th></tr></thead><tbody>${rows || '<tr><td colspan="6">No documents in this view.</td></tr>'}</tbody></table></div></section>`;
-  app.innerHTML = dashboardShell(state.user.role, "projects", content);
-}
-function wfDocFilter(pid) {
-  const phase = document.getElementById("wfDocPhase").value,
-    task = document.getElementById("wfDocTask").value;
-  navigate(
-    `/${state.user.role}/projects/${pid}/documents?phase=${encodeURIComponent(phase)}&task=${encodeURIComponent(task)}`,
-  );
-  wfDocuments(pid);
-}
-async function wfUploadDocument(pid) {
-  const pd = await api("/projects/" + pid),
-    p = pd.project;
-  modal(
-    "Share project document",
-    `<form id="wfF" class="modal-form"><label>File *<input name="file" type="file" required></label><div class="two"><label>Phase<select name="phaseId"><option value="">Project-wide</option>${p.phases.map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join("")}</select></label><label>Task<select name="taskId"><option value="">No task</option>${p.phases.flatMap((ph) => (ph.tasks || []).map((t) => `<option value="${t.id}">${esc(ph.name)} · ${esc(t.name)}</option>`)).join("")}</select></label></div><div class="two"><label>Category<select name="category">${["Engineering", "Planning", "Quality & acceptance", "Safety", "Commercial", "Handover", "General"].map((x) => `<option>${x}</option>`).join("")}</select></label><label class="choice-row"><input name="approvalRequired" type="checkbox" value="true"> Require customer approval</label></div><label>Description<textarea name="description" maxlength="2000"></textarea></label><div id="wfFileError" class="form-error"></div><button class="btn primary">Upload and share</button></form>`,
-  );
-  document.getElementById("wfF").onsubmit = async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target),
-      file = fd.get("file"),
-      phaseId = fd.get("phaseId"),
-      taskId = fd.get("taskId");
-    try {
-      const uploaded = await uploadFile(file);
-      await api(`/projects/${pid}/documents`, {
-        method: "POST",
-        body: {
-          filename: uploaded.filename,
-          url: uploaded.url,
-          phaseId,
-          taskId,
-          category: fd.get("category"),
-          description: fd.get("description"),
-          approvalRequired: fd.get("approvalRequired") === "true",
-        },
-      });
-      closeModal();
-      wfDocuments(pid);
-    } catch (x) {
-      document.getElementById("wfFileError").textContent = x.message;
-    }
-  };
-}
-async function wfReviewDocument(id, status) {
-  const reviewNote =
-    status === "Changes requested"
-      ? (await uiPrompt("What should be changed?")) || "Please revise and resubmit."
-      : "";
-  await api("/documents/" + id, { method: "PATCH", body: { status, reviewNote } });
-  const pid = wfPath().split("/")[3];
-  wfDocuments(pid);
-}
+// Upload links download through the session (used by every page with a file link)
 async function wfOpenDocument(url) {
   try {
     const r = await fetch(url, { credentials: "same-origin" });
@@ -736,7 +661,6 @@ async function route() {
   }
   try {
     if (parts[0] === "customer") {
-      if (parts[1] === "projects" && parts[2] && parts[3] === "documents") return wfDocuments(parts[2]);
       if (parts[1] === "offers") return wfOffers();
       if (parts[1] === "invoices") return customerInvoices();
       if (parts[1] === "messages") return messages("customer");
@@ -746,7 +670,6 @@ async function route() {
       if (parts[1] === "preferred") return pvPage();
     }
     if (parts[0] === "supplier") {
-      if (parts[1] === "projects" && parts[2] && parts[3] === "documents") return wfDocuments(parts[2]);
       if (parts[1] === "bids" || parts[1] === "offers") return supplierBids();
       if (parts[1] === "invoices" && parts[2] === "new") return newInvoice();
       if (parts[1] === "invoices") return supplierInvoices();

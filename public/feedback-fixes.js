@@ -483,23 +483,6 @@ function ffRecalcQuote() {
   if (el) el.textContent = money(total);
 }
 
-/* Documents: use a slim toolbar and let the Explorer occupy the available canvas. */
-const ffBaseDocuments = wfDocuments;
-wfDocuments = async function (pid) {
-  await ffBaseDocuments(pid);
-  const content = document.querySelector(".dashboard-content");
-  if (!content?.querySelector(".cc-explorer-shell")) return;
-  const head = content.querySelector(".cc-explorer-head");
-  if (head) head.remove();
-  const crumb = content.querySelector(".breadcrumb"),
-    toolbar = document.createElement("div");
-  toolbar.className = "ff-docs-toolbar";
-  toolbar.innerHTML = `${crumb ? crumb.outerHTML : ""}<span class="ff-docs-spacer"></span><button class="btn primary" onclick="wfUploadDocument('${ffEsc(pid)}')">＋ Upload document</button>`;
-  if (crumb) crumb.remove();
-  content.prepend(toolbar);
-  content.classList.add("ff-documents-content");
-};
-
 // Ensure navigation is corrected after any async render has replaced the shell.
 const ffRouteBase = window.route;
 window.route = async function () {
