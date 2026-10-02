@@ -1,5 +1,19 @@
 {
   "action uiToggleNotifications(event)": "action [shell.bell]",
   "action uiSearchIndex=null;uiOpenSearch()": "action [shell.search]",
-  "action obShow()": "action [shell.checklist]"
+  "action obShow()": "action [shell.checklist]",
+  "customer /customer/dashboard": {
+    "action dsApproveInvoice('inv_demo_submitted', this)": "action [dash.approve]"
+  },
+  "supplier /supplier/dashboard": {
+    "action ccNewTimeEntry()": "action [dash.quick]",
+    "action dsQuickJob('defect')": "action [dash.quick]",
+    "action dsQuickJob('photo')": "action [dash.quick]",
+    "action dsQuickJob('report')": "action [dash.quick]",
+    "action reviewApplySupplierDashFilters()": "action [dash.filter]"
+  },
+  "admin /admin/dashboard": {
+    "action reviewApplication('app_demo_nordwerk')": "action [dash.application]",
+    "action reviewApplication('app_demo_mechacore')": "action [dash.application]"
+  }
 }

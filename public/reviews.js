@@ -702,58 +702,6 @@ function reviewSetOfferSort(sort) {
   navigate(`/${state.user.role}/offers?${q}`);
   wfOffers();
 }
-async function supplierDashboard() {
-  const d = await api("/dashboard"),
-    profile = (await api("/profile")).supplier,
-    allInvoices = d.invoices || [],
-    projects = d.projects || [],
-    pending = [];
-  for (const p of projects)
-    for (const ph of p.phases || []) {
-      if (ph.supplierId === profile?.id && ph.acceptanceStatus === "Pending")
-        pending.push({ p, ph, t: null });
-      for (const t of ph.tasks || [])
-        if (t.assignedSupplierId === profile?.id && t.acceptanceStatus === "Pending")
-          pending.push({ p, ph, t });
-    }
-  const view = window.__reviewSupplierDash || {
-      from: "",
-      to: "",
-      customer: "",
-      project: "",
-      min: "",
-      max: "",
-    },
-    matches = allInvoices.filter((i) => {
-      const dt = String(i.createdAt || "").slice(0, 10),
-        pr = projects.find((x) => x.id === i.projectId),
-        customer = i.customerCompany || "Customer";
-      return (
-        (!view.from || dt >= view.from) &&
-        (!view.to || dt <= view.to) &&
-        (!view.customer || customer.toLowerCase().includes(view.customer.toLowerCase())) &&
-        (!view.project || i.projectId === view.project) &&
-        (!view.min || Number(i.amount) >= Number(view.min)) &&
-        (!view.max || Number(i.amount) <= Number(view.max))
-      );
-    });
-  app.innerHTML = dashboardShell(
-    "supplier",
-    "dashboard",
-    `<div class="dash-top"><div><h1>Supplier dashboard</h1><p>${reviewEsc(profile?.company || "Supplier workspace")} · ${reviewEsc(supplierBadge(profile))}</p></div><div class="cc-actions"><button class="btn outline" onclick="navigate('/supplier/bids')">Find task bids</button><button class="btn primary" onclick="navigate('/supplier/invoices/new')">+ Create invoice</button></div></div><div class="stats"><div><span class="cc-label">Assigned projects</span><strong>${projects.length}</strong></div><div><span class="cc-label">Pending invitations</span><strong>${pending.length}</strong></div><div><span class="cc-label">Invoices</span><strong>${allInvoices.length}</strong></div><div><span class="cc-label">Paid</span><strong>${allInvoices.filter((i) => i.status === "Paid").length}</strong></div></div><div class="dashboard-grid review-supplier-dashboard-grid"><section class="panel"><div class="panel-title"><div><h3>Pending invitations</h3><small>Review work requests from customers.</small></div><button class="btn small outline" onclick="navigate('/supplier/bids')">+ Find / create an offer</button></div>${pending.map((x) => `<article class="review-pending-row"><b>${reviewEsc(x.t?.name || x.ph.name)}</b><small>${reviewEsc(x.p.name)} · ${reviewEsc(x.ph.name)} · due ${date(x.t?.dueDate || x.ph.dueDate)}</small><div class="cc-actions"><button class="btn small success" onclick="${x.t ? `wfAcceptTask('${x.p.id}','${x.t.id}',true)` : `acceptPhase('${x.p.id}','${x.ph.id}',true)`}">Accept</button><button class="btn small outline" onclick="${x.t ? `wfAcceptTask('${x.p.id}','${x.t.id}',false)` : `acceptPhase('${x.p.id}','${x.ph.id}',false)`}">Decline</button></div></article>`).join("") || '<div class="empty review-empty"><p>No pending invitations.</p><button class="btn primary" onclick="navigate(\'/supplier/bids\')">Browse tasks and create an offer</button></div>'}</section><section class="panel review-click-invoices"><div class="panel-title"><div><h3>Invoice status</h3><small>Open a record for its full details, PDF and email draft.</small></div><a class="btn small outline" href="#/supplier/invoices">All invoices</a></div>${allInvoices.map((i) => `<a class="review-invoice-mini" href="#${reviewInvoiceUrl("supplier", i.id)}"><span><b>${reviewEsc(invNo(i))}</b><small>${reviewEsc(i.customerCompany || "Customer")} · ${money(i.amount)}</small></span><span class="status ${i.status.toLowerCase().replaceAll(" ", "-")}">${reviewEsc(i.status)}</span></a>`).join("") || '<div class="empty">No invoices have been created yet.</div>'}</section></div><section class="panel review-dashboard-invoice-filters"><div class="panel-title"><div><h3>Invoice search</h3><small>Filter by issue date, customer, project and amount.</small></div></div><div class="review-invoice-filters"><label>From<input type="date" id="reviewSDFrom" value="${reviewEsc(view.from)}"></label><label>To<input type="date" id="reviewSDTo" value="${reviewEsc(view.to)}"></label><label>Customer<input id="reviewSDCustomer" value="${reviewEsc(view.customer)}" placeholder="Company name"></label><label>Project<select id="reviewSDProject"><option value="">All projects</option>${projects.map((p) => `<option value="${reviewEsc(p.id)}" ${view.project === p.id ? "selected" : ""}>${reviewEsc(p.name)}</option>`).join("")}</select></label><label>Amount at least<input type="number" id="reviewSDMin" min="0" step="0.01" value="${reviewEsc(view.min)}"></label><label>Amount at most<input type="number" id="reviewSDMax" min="0" step="0.01" value="${reviewEsc(view.max)}"></label><button class="btn primary" onclick="reviewApplySupplierDashFilters()">Apply</button></div><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Invoice</th><th>Customer</th><th>Project / task</th><th>Issued</th><th>Amount</th><th>Status</th></tr></thead><tbody>${matches.map((i) => `<tr><td><a href="#${reviewInvoiceUrl("supplier", i.id)}">${reviewEsc(invNo(i))}</a></td><td>${reviewEsc(i.customerCompany || "Customer")}</td><td>${reviewEsc(projects.find((p) => p.id === i.projectId)?.name || i.projectId)}<small>${reviewEsc(i.taskName || "")}</small></td><td>${date(i.createdAt)}</td><td>${money(i.amount)}</td><td>${reviewEsc(i.status)}</td></tr>`).join("") || '<tr><td colspan="6">No invoices fit these filters.</td></tr>'}</tbody></table></div></section>`,
-  );
-}
-function reviewApplySupplierDashFilters() {
-  window.__reviewSupplierDash = {
-    from: document.getElementById("reviewSDFrom").value,
-    to: document.getElementById("reviewSDTo").value,
-    customer: document.getElementById("reviewSDCustomer").value,
-    project: document.getElementById("reviewSDProject").value,
-    min: document.getElementById("reviewSDMin").value,
-    max: document.getElementById("reviewSDMax").value,
-  };
-  supplierDashboard();
-}
 async function supplierPhases() {
   const d = await reviewProjects(),
     s = (await api("/profile")).supplier,

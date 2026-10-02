@@ -5,7 +5,8 @@
 // A control counts as the same when it does the same thing: same link target, same onclick code (or data-action
 // name), same form or field name. Hidden controls (closed tabs, collapsed menus) still count, because they are
 // still reachable. When a page moves to data-action handlers (T125–T135), tools/audit/control-map.json says which
-// new action replaces which old onclick code, so the diff still proves each one exists.
+// new action replaces which old onclick code, so the diff still proves each one exists. An entry keyed by a page
+// ("supplier /supplier/dashboard": { old: new }) applies to that page only, for old code that other pages still use.
 const fs = require("fs");
 
 // Two demo servers create different random ids and timestamps; a button and a link to the same page do
@@ -20,9 +21,9 @@ const canon = (c) =>
 if (process.argv[2] === "--diff") {
   const [a, b] = process.argv.slice(3).map((f) => JSON.parse(fs.readFileSync(f, "utf8")));
   const MAP = JSON.parse(fs.readFileSync(require("path").join(__dirname, "control-map.json"), "utf8"));
-  const moved = (c) => MAP[c] || c;
   let missing = 0;
   for (const page of Object.keys(a)) {
+    const moved = (c) => MAP[page]?.[c] || (typeof MAP[c] === "string" ? MAP[c] : c);
     const have = new Set((b[page] || []).map(canon));
     const lost = [...new Set(a[page].map(canon).map(moved))].filter((c) => !have.has(c));
     if (!b[page]) console.log(`\n${page}: PAGE MISSING on the second run`);

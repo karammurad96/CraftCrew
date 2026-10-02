@@ -167,7 +167,8 @@ async function obChecklist() {
   // Once a step is done the checklist shrinks to one line ("4 of 5 steps done — Next: …"); the full list opens on click.
   const compact = done > 0;
   const html = `<section class="panel ob-checklist${compact ? " ob-compact" : ""}"><div class="ob-check-head"><div><div class="eyebrow">GETTING STARTED</div><h3>${compact ? `<span>${done} of ${steps.length} steps done</span>${next ? ` — <span>Next:</span> <span>${obEsc(next.title)}</span>` : ""}` : `Welcome to CraftCrew${state.user.name ? ", " + obEsc(state.user.name.split(" ")[0]) : ""}`}</h3></div><div class="ob-progress" title="${done} of ${steps.length} done"><i style="width:${(done / steps.length) * 100}%"></i></div><span class="ob-count">${done}/${steps.length}</span>${compact && next ? `<a class="btn small primary ob-next" href="#${next.link}">${obEsc(next.cta)}</a><button type="button" class="ui-link-btn" aria-expanded="false" onclick="obToggleSteps(this)">Show all steps</button>` : ""}<button type="button" class="ui-link-btn" onclick="obHide()">Hide</button></div><ol class="ob-steps">${steps.map((s) => `<li class="${s.done ? "done" : s.pending ? "pending" : ""} ${s === next ? "next" : ""}"><span class="ob-tick">${s.done ? "✓" : s.pending ? "…" : ""}</span><div><b>${obEsc(s.title)}</b><small>${obEsc(s.text)}</small></div>${s.done ? "" : `<a class="btn small ${s === next ? "primary" : "outline"}" href="#${s.link}">${obEsc(s.cta)}</a>`}</li>`).join("")}</ol></section>`;
-  (content.querySelector(".dash-top") || content.firstElementChild)?.insertAdjacentHTML("afterend", html);
+  // Below the decision list on the dashboards, else under the page header
+  (content.querySelector(":scope > .aq-panel") || content.querySelector(".dash-top") || content.firstElementChild)?.insertAdjacentHTML("afterend", html);
 }
 function obToggleSteps(btn) {
   const open = btn.closest(".ob-checklist").classList.toggle("ob-open");

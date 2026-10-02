@@ -117,9 +117,10 @@ function lcToolbar() {
   }
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.className = "btn outline lc-toggle";
-  btn.innerHTML = '<span aria-hidden="true">⠿</span> Customize';
-  btn.onclick = lcStart;
+  // On the dashboards it stays next to the main button as a quiet grey text button (T95)
+  btn.className = "btn outline lc-toggle" + (top.classList.contains("ds-dash-top") ? " ds-quiet" : "");
+  btn.innerHTML = `<span aria-hidden="true">⠿</span> ${esc(t("layout.customize"))}`;
+  btn.dataset.action = "lc.start";
   holder.prepend(btn);
 }
 function lcStart() {
@@ -131,13 +132,13 @@ function lcStart() {
   document.querySelector(".lc-toggle")?.setAttribute("hidden", "");
   content.insertAdjacentHTML(
     "afterbegin",
-    `<div class="lc-bar" role="region" aria-label="Layout editor"><div><b>Customize this page</b><small>Drag cards to rearrange them, use the eye to hide or show a card, and the arrows to move whole sections.</small></div><div class="cc-actions"><button type="button" class="btn outline" onclick="lcReset()">Reset</button><button type="button" class="btn outline" onclick="lcCancel()">Cancel</button><button type="button" class="btn primary" onclick="lcDone()">Done</button></div></div>`,
+    `<div class="lc-bar" role="region" aria-label="${lk("editor")}" data-i18n="keys"><div><b>${lk("title")}</b><small>${lk("hint")}</small></div><div class="cc-actions"><button type="button" class="btn outline" data-action="lc.reset">${lk("reset")}</button><button type="button" class="btn outline" data-action="lc.cancel">${lk("cancel")}</button><button type="button" class="btn primary" data-action="lc.done">${lk("done")}</button></div></div>`,
   );
   lcSections().forEach((s, i) => {
     lcSectionKey(s, i);
     s.insertAdjacentHTML(
       "afterbegin",
-      `<div class="lc-section-tools"><button type="button" class="lc-tool" title="Move section up" onclick="lcMoveSection(this,-1)">↑</button><button type="button" class="lc-tool" title="Move section down" onclick="lcMoveSection(this,1)">↓</button>${s.matches(LC_GRIDS) ? "" : `<button type="button" class="lc-tool" title="Hide or show section" onclick="lcToggle(this.closest('[data-lc-section]'))">👁</button>`}</div>`,
+      `<div class="lc-section-tools" data-i18n="keys"><button type="button" class="lc-tool" title="${lk("up")}" data-action="lc.move" data-dir="-1">↑</button><button type="button" class="lc-tool" title="${lk("down")}" data-action="lc.move" data-dir="1">↓</button>${s.matches(LC_GRIDS) ? "" : `<button type="button" class="lc-tool" title="${lk("hideSection")}" data-action="lc.toggleSection">👁</button>`}</div>`,
     );
   });
   lcGrids().forEach((g, gi) => {
@@ -148,7 +149,7 @@ function lcStart() {
       card.draggable = true;
       card.insertAdjacentHTML(
         "afterbegin",
-        `<div class="lc-card-tools"><span class="lc-grip" aria-hidden="true">⠿</span><button type="button" class="lc-tool" title="Hide or show card" onclick="event.stopPropagation();lcToggle(this.closest('.lc-card'))">👁</button></div>`,
+        `<div class="lc-card-tools" data-i18n="keys"><span class="lc-grip" aria-hidden="true">⠿</span><button type="button" class="lc-tool" title="${lk("hideCard")}" data-action="lc.toggleCard">👁</button></div>`,
       );
       card.addEventListener("dragstart", lcDragStart);
       card.addEventListener("dragend", lcDragEnd);
@@ -201,7 +202,7 @@ async function lcDone() {
   const layout = lcCollect();
   lcEditing = false;
   await lcSave(layout);
-  toast("Layout saved");
+  tToast(t("layout.saved"));
   route();
 }
 function lcCancel() {
@@ -211,9 +212,18 @@ function lcCancel() {
 async function lcReset() {
   lcEditing = false;
   await lcSave(null);
-  toast("Layout reset");
+  tToast(t("layout.resetDone"));
   route();
 }
+
+const lk = (key) => esc(t("layout." + key));
+actions.on("lc.start", () => lcStart());
+actions.on("lc.reset", () => lcReset());
+actions.on("lc.cancel", () => lcCancel());
+actions.on("lc.done", () => lcDone());
+actions.on("lc.move", (el) => lcMoveSection(el, Number(el.dataset.dir)));
+actions.on("lc.toggleSection", (el) => lcToggle(el.closest("[data-lc-section]")));
+actions.on("lc.toggleCard", (el) => lcToggle(el.closest(".lc-card")));
 
 /* Replace the earlier always-visible drag grips with the explicit edit mode. */
 if (typeof uiSortablePanels === "function") uiSortablePanels = () => {};
