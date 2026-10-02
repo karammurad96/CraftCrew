@@ -883,6 +883,64 @@ function dsWsSide(r, d) {
   return html;
 }
 let dsWsAvailable = "";
+/* Share a project with a colleague (T110). Lists who can see the project; the owner invites by name and email
+   (a new email gets its own customer account that sees only the shared projects) and removes access again. */
+const DS_SHARE_ACCESS = { owner: "Owner", team: "Your team · all projects", project: "This project" };
+async function dsShare(pid) {
+  let d;
+  try {
+    d = await api(`/projects/${encodeURIComponent(pid)}/participants`);
+  } catch (x) {
+    return toast(x.message, "error");
+  }
+  const row = (u) =>
+    `<li class="ds-share-person"><span class="ds-avatar ds-tint-blue">${esc(dsInitials(u.name || u.email))}</span><span class="ds-share-who"><b>${esc(u.name || u.email)}</b><small>${esc(u.email)}</small></span><span class="ds-share-access ds-ui">${DS_SHARE_ACCESS[u.access]}</span>${
+      d.canManage && u.access === "project"
+        ? `<button type="button" class="btn small outline" onclick="dsShareRemove('${esc(pid)}','${esc(u.id)}')" aria-label="${esc(`Remove access for ${u.name || u.email}`)}">Remove</button>`
+        : ""
+    }</li>`;
+  modal(
+    "Share project",
+    `<div class="ds-share">${
+      d.canManage
+        ? `<form id="dsShareForm" class="modal-form"><p class="subtle">Invite a colleague from your company. They see this project and can work on it with you. Someone without an account gets one.</p><div class="two"><label>Name<input name="name" autocomplete="name" maxlength="120"></label><label>Email *<input name="email" type="email" autocomplete="email" required></label></div><div id="dsShareError" class="form-error"></div><div id="dsShareNote" class="notice" hidden></div><button class="btn primary">Invite</button></form>`
+        : '<p class="subtle">Only the project owner can invite colleagues.</p>'
+    }<h3 class="ds-share-h ds-ui">People with access</h3><ul class="ds-share-list">${d.people.map(row).join("")}</ul></div>`,
+  );
+  const form = document.getElementById("dsShareForm");
+  if (!form) return;
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const f = new FormData(form);
+    try {
+      const r = await api(`/projects/${encodeURIComponent(pid)}/participants`, {
+        method: "POST",
+        body: { name: f.get("name"), email: f.get("email") },
+      });
+      await dsShare(pid);
+      const note = document.getElementById("dsShareNote");
+      if (note) {
+        note.hidden = false;
+        note.textContent = r.temporaryPassword
+          ? `${r.person.name} can sign in with the temporary password ${r.temporaryPassword} and will choose a new one.`
+          : r.emailed
+            ? `We emailed ${r.person.email} a link to set a password.`
+            : `${r.person.name} can open the project now.`;
+      }
+    } catch (x) {
+      document.getElementById("dsShareError").textContent = x.message;
+    }
+  };
+}
+async function dsShareRemove(pid, uid) {
+  if (!(await uiConfirm("Remove this colleague's access to the project?"))) return;
+  try {
+    await api(`/projects/${encodeURIComponent(pid)}/participants/${encodeURIComponent(uid)}`, { method: "DELETE" });
+    await dsShare(pid);
+  } catch (x) {
+    toast(x.message, "error");
+  }
+}
 // "Messages · 3": unread messages of this project on the Messages tab (T109, board Workspace)
 async function dsWsUnread(btn, pid) {
   const n = Number((await api("/nav-counts?project=" + encodeURIComponent(pid)).catch(() => ({})))?.counts?.projectMessages) || 0;
@@ -937,6 +995,15 @@ function dsEnhanceWorkspace(root) {
     for (const rest of [...nav.querySelectorAll("button, a")]) {
       rest.classList.add("btn", "outline");
       actions ? actions.prepend(rest) : top.append(rest);
+    }
+    // "Share" (T110, board Workspace): give a colleague access to this project
+    if (r.role === "customer") {
+      const share = document.createElement("button");
+      share.type = "button";
+      share.className = "btn outline ds-share";
+      share.textContent = "Share";
+      share.onclick = () => dsShare(r.pid);
+      actions ? actions.prepend(share) : top.append(share);
     }
     nav.remove();
     top.after(tabs);

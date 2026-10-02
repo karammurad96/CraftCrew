@@ -3294,3 +3294,60 @@ html body .ds-approvals .in-grid > section .ui-scroll:not(:has(*)) {
     display: none !important;
   }
 }
+
+/* ---------- Share project (T110, board Workspace "Share") ---------- */
+html body .ds-share-h {
+  margin: 20px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--cc-muted);
+}
+html body .ds-share-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--cc-hairline);
+}
+html body .ds-share-person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+}
+html body .ds-share-person + .ds-share-person {
+  border-top: 1px solid rgba(60, 60, 67, 0.12);
+}
+html body .ds-share-who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+html body .ds-share-who b,
+html body .ds-share-who small {
+  overflow-wrap: anywhere;
+}
+html body .ds-share-who small {
+  color: var(--cc-muted);
+}
+html body .ds-share-access {
+  font-size: 13px;
+  color: var(--cc-muted);
+  text-align: right;
+}
+@media (max-width: 640px) {
+  html body .ds-share-person {
+    flex-wrap: wrap;
+  }
+  html body .ds-share-who {
+    flex: 1 1 calc(100% - 52px);
+  }
+  html body .ds-share-access {
+    flex: 1 1 auto;
+    text-align: left;
+    padding-left: 44px;
+  }
+}

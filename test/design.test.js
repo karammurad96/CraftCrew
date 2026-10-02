@@ -455,6 +455,18 @@ describe("design 2026", () => {
     assert.ok(read("collaboration.js").includes('(q.get("project") && chats.find((c) => c.projectId === q.get("project")))'));
   });
 
+  it("opens the Share dialog from a grey pill in the workspace header (T110)", () => {
+    const src = read("design-screens.js"),
+      de = read("i18n.js");
+    assert.ok(src.includes('share.className = "btn outline ds-share";'));
+    assert.ok(src.includes("share.onclick = () => dsShare(r.pid);"));
+    assert.ok(src.includes('if (r.role === "customer") {'), "customers only");
+    for (const call of ["api(`/projects/${encodeURIComponent(pid)}/participants`", 'method: "DELETE"'])
+      assert.ok(src.includes(call), call);
+    for (const k of ['Share: "Teilen"', '"Share project": "Projekt teilen"', '"People with access"', '"This project": "Dieses Projekt"'])
+      assert.ok(de.includes(k), k);
+  });
+
   it("uses a new service worker cache so installed apps load the new files", () => {
     assert.match(read("sw.js"), /const CACHE = "craftcrew-shell-v2"/);
   });

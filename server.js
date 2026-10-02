@@ -4418,6 +4418,120 @@ async function api(req, res, url) {
       }
       return (send(res, 200, { supplierIds: account.shortlist || [] }), true);
     }
+    /* Share a project with a colleague (T110): the owner gives another customer account access to this one
+       project (participantIds). A new email gets its own customer account, invited like a team member. */
+    if (parts[1] === "projects" && parts[2] && parts[3] === "participants" && user.role === "customer") {
+      const p = projectFor(user, parts[2]);
+      if (!p) return (send(res, 404, { error: "Project not found" }), true);
+      const owner = p.customerId === user.id,
+        person = (u, access) => ({ id: u.id, name: u.name, email: u.email, access });
+      if (method === "GET" && parts.length === 4) {
+        const ownerUser = db.users.find((u) => u.id === p.customerId);
+        return (
+          send(res, 200, {
+            canManage: owner,
+            people: [
+              ...(ownerUser ? [person(ownerUser, "owner")] : []),
+              ...db.users
+                .filter(
+                  (u) =>
+                    u.orgOwnerId === p.customerId &&
+                    u.status !== "Suspended" &&
+                    (u.permissions?.projects || "none") !== "none",
+                )
+                .map((u) => person(u, "team")),
+              ...(p.participantIds || [])
+                .map((uid) => db.users.find((u) => u.id === uid && u.status !== "Suspended"))
+                .filter(Boolean)
+                .map((u) => person(u, "project")),
+            ],
+          }),
+          true
+        );
+      }
+      if (!owner) return (send(res, 403, { error: "Only the project owner can share it" }), true);
+      if (method === "POST" && parts.length === 4) {
+        const b = await body(req),
+          email = normEmail(b.email),
+          name = String(b.name || "").trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+          return (send(res, 400, { error: "Enter a valid email address" }), true);
+        p.participantIds ||= [];
+        if (p.participantIds.length >= 30)
+          return (send(res, 400, { error: "A project can be shared with up to 30 colleagues" }), true);
+        let colleague = db.users.find((u) => normEmail(u.email) === email),
+          invite = {};
+        if (colleague?.id === p.customerId)
+          return (send(res, 400, { error: "This is the project owner's own account" }), true);
+        if (colleague?.orgOwnerId === p.customerId)
+          return (send(res, 409, { error: "This person is in your team and already sees every project" }), true);
+        if (colleague && (colleague.role !== "customer" || colleague.orgOwnerId))
+          return (
+            send(res, 400, {
+              error: "Share projects with colleagues on customer accounts. Suppliers get access through task invitations.",
+            }),
+            true
+          );
+        if (colleague && p.participantIds.includes(colleague.id))
+          return (send(res, 409, { error: "This colleague already has access" }), true);
+        if (!colleague) {
+          if (!name) return (send(res, 400, { error: "Enter the colleague's name" }), true);
+          const temp =
+              crypto.randomBytes(9).toString("base64").replace(/[+/=]/g, "").slice(0, 10) +
+              "-" +
+              crypto.randomInt(10, 99),
+            hp = hashPassword(temp);
+          colleague = {
+            id: id("usr"),
+            role: "customer",
+            name: name.slice(0, 120),
+            email,
+            company: user.company,
+            status: "Active",
+            salt: hp.salt,
+            passwordHash: hp.hash,
+            mustChangePassword: true,
+            emailVerified: true,
+            language: user.language,
+            createdAt: now(),
+            invitedBy: user.id,
+            invitedToProject: p.id,
+          };
+          db.users.push(colleague);
+          invite = { temporaryPassword: temp };
+          if (mailer.enabled) {
+            const token = issueAuthToken(colleague.id, "reset", 7 * 86400000);
+            queueEmail(
+              email,
+              "projectShare",
+              `${user.name} shared the project ${p.name} with you on CraftCrew`.replace(/[\r\n]+/g, " "),
+              `Hello ${colleague.name},\n\n${user.name} (${user.company || "CraftCrew"}) shared the project "${p.name}" with you. Choose your password to open it:\n\n${APP_URL}/#/reset?token=${token}\n\nThe link is valid for 7 days.`,
+            );
+            invite = { emailed: true };
+          }
+        } else
+          notify(
+            colleague.id,
+            `${user.name} shared the project ${p.name} with you`,
+            `/customer/projects/${p.id}`,
+          );
+        p.participantIds.push(colleague.id);
+        activity(user, `Shared project ${p.name} with ${colleague.name}`);
+        save();
+        return (send(res, 201, { person: person(colleague, "project"), created: !!invite.temporaryPassword || !!invite.emailed, ...invite }), true);
+      }
+      if (method === "DELETE" && parts[4]) {
+        if (!(p.participantIds || []).includes(parts[4]))
+          return (send(res, 404, { error: "This colleague has no access to the project" }), true);
+        p.participantIds = p.participantIds.filter((x) => x !== parts[4]);
+        // Their open chats of this project close for them too
+        for (const c of db.chats || [])
+          if (c.projectId === p.id) c.participantIds = (c.participantIds || []).filter((x) => x !== parts[4]);
+        activity(user, `Removed ${db.users.find((u) => u.id === parts[4])?.name || "a colleague"} from project ${p.name}`);
+        save();
+        return (send(res, 200, { ok: true }), true);
+      }
+    }
     if (parts[1] === "nav-counts" && method === "GET") {
       const counts = {},
         unread = (db.notifications || []).filter(
