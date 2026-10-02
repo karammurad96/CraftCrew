@@ -208,7 +208,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T107 Time of day for site visits ("Site visit · 07:30") · S
 - [x] T108 Due date on submitted invoices (InvoiceReview "Due 11 October") · S
 - [x] T109 Unread count on the project "Messages" tab (Workspace "Messages · 3") · S
-- [ ] T110 "Share" on the project workspace (Workspace board) · M · needs a human decision
+- [x] T110 "Share" on the project workspace (Workspace board) · M · needs a human decision
 
 ---
 
@@ -2476,6 +2476,13 @@ store it as `dueDate`, show it in the T101 panel and the invoice list, and use i
 
 **Problem.** There is no sharing feature. Decide first what "share" means: a read-only link for people
 outside CraftCrew, inviting a colleague of the same company, or exporting a status PDF.
+
+**Decision (Karam, 2 October 2026):** inviting a colleague of the same company. "Share" opens a dialog that
+lists who can see the project (owner, team members with project access, colleagues on this project). The
+owner invites by name and email: an existing customer account is added to the project (`participantIds`), a
+new email gets its own customer account (invite email or temporary password, like team invites) that sees
+only the projects shared with it. The owner can remove access again. API:
+`GET/POST /api/projects/:id/participants`, `DELETE /api/projects/:id/participants/:userId`.
 
 ---
 
