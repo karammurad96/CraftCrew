@@ -926,4 +926,74 @@ LOCALES.de = {
       "closed": "Abgeschlossen am {date} · keine neuen Arbeiten mehr."
     }
   },
+  // Task and phase pages, task board (T128c)
+  sub: {
+    "item": {
+      "phaseEyebrow": "PROJEKTPHASE",
+      "taskEyebrow": "ZUGEWIESENE AUFGABE",
+      "logTime": "+ Zeit erfassen",
+      "status": "Status",
+      "order": "Auftragswert",
+      "approved": "Freigegebene Zeit",
+      "estimate": "Schätzung",
+      "notSet": "Nicht festgelegt",
+      "hours": "{n} h",
+      "timeTitle": "Zeit vs. Schätzung",
+      "timeOf": "{sum} von {est} Stunden freigegeben ({pct} %).",
+      "noEstimate": "Für diese Arbeit ist keine Stundenschätzung hinterlegt.",
+      "value": "{amount} freigegebener Zeitwert.",
+      "tasks": "Aufgaben",
+      "taskState": "{status} · {n}%",
+      "documents": "Dokumente",
+      "invoices": "Rechnungen",
+      "messages": "Nachrichten",
+      "updates": "Fortschrittsmeldungen · {n}%",
+      "postUpdate": "Update veröffentlichen",
+      "noUpdates": "Noch keine Fortschrittsmeldungen."
+    },
+    "board": {
+      "title": "Board",
+      "hintCustomer": "Karten zwischen Spalten ziehen, um den Status zu ändern. Phasen rechts ziehen, um die Reihenfolge zu ändern.",
+      "hintSupplier": "Karten zwischen Spalten ziehen, um den Status zu ändern. Sie können die Ihrem Unternehmen zugewiesene Arbeit verschieben.",
+      "phase": "Phase",
+      "allPhases": "Alle Phasen",
+      "listView": "Listenansicht",
+      "columns": {
+        "Not Started": "Zu erledigen",
+        "In Progress": "In Bearbeitung",
+        "On Hold": "Pausiert",
+        "Completed": "Fertig"
+      },
+      "dropHere": "Karten hier ablegen",
+      "locked": "Nur der zugewiesene Lieferant oder der Kunde kann diese Karte verschieben",
+      "lockedLabel": "Gesperrt",
+      "awaiting": "Wartet auf {supplier}",
+      "awaitingSupplier": "Wartet auf den Lieferanten",
+      "late": {
+        "one": "{n} Tag verspätet",
+        "other": "{n} Tage verspätet"
+      },
+      "overdue": "Überfällig",
+      "due": "fällig {date}",
+      "percent": "{n} %",
+      "noSupplier": "noch kein Lieferant",
+      "done": "Fertig",
+      "accepted": "Abgenommen {date}",
+      "moved": "Verschoben nach {status}",
+      "phaseOrder": "Phasenreihenfolge",
+      "phaseOrderHint": "Ziehen, um die Phasenreihenfolge zu ändern.",
+      "orderSaved": "Phasenreihenfolge gespeichert",
+      "panel": {
+        "close": "Schließen",
+        "status": "Status",
+        "supplier": "Lieferant",
+        "dates": "Termine",
+        "order": "Auftrag",
+        "checklist": "Checkliste · {done} von {n}",
+        "latest": "Letzte Meldung",
+        "message": "Nachricht",
+        "openTask": "Aufgabe öffnen"
+      }
+    }
+  },
 };

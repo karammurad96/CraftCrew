@@ -72,7 +72,7 @@ function inventory() {
       if (href === "#" || href.startsWith("javascript:")) continue;
       out.add(`link ${href}`);
     } else if (el.getAttribute("onclick")) out.add(`action ${norm(el.getAttribute("onclick"))}`);
-    else if (el.dataset.action && tag !== "form") out.add(`action [${el.dataset.action}]`);
+    else if (el.dataset.action && tag !== "form" && !["input", "select", "textarea"].includes(tag)) out.add(`action [${el.dataset.action}]`);
     else if (tag === "form")
       out.add(
         `form ${
@@ -88,6 +88,8 @@ function inventory() {
       if (["hidden"].includes(el.type)) continue;
       const key = el.id || el.name || el.getAttribute("aria-label") || el.placeholder;
       if (key) out.add(`field ${key}`);
+      // A field with its own handler (data-action on change) is also that action
+      if (el.dataset.action) out.add(`action [${el.dataset.action}]`);
     } else if (tag === "button" && el.type === "submit" && el.form) out.add(`submit ${el.form.id || "form"}`);
   }
   return [...out].sort();

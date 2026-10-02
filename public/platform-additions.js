@@ -296,24 +296,6 @@ wfUpdateProgress = async function (pid, phid, tid, current) {
     }
   };
 };
-/* Task pages show the supplier's progress history. */
-async function paTaskUpdates(pid, tid) {
-  const content =
-    document.querySelector(".dashboard-content .cc-page") || document.querySelector(".dashboard-content");
-  if (!content || content.querySelector(".pa-updates")) return;
-  const project = await api(`/projects/${pid}`)
-      .then((d) => d.project)
-      .catch(() => null),
-    task = project?.phases.flatMap((ph) => ph.tasks || []).find((t) => t.id === tid);
-  if (!task) return;
-  const ph = project.phases.find((x) => (x.tasks || []).some((t) => t.id === tid)),
-    mine = state.user.role === "supplier" && task.assignedSupplierId === state.user.supplierId;
-  content.insertAdjacentHTML(
-    "beforeend",
-    `<section class="panel pa-updates"><div class="panel-title"><h3>Progress updates · ${Number(task.progress) || 0}%</h3>${mine && task.acceptanceStatus === "Accepted" ? `<button class="btn small primary" onclick="wfUpdateProgress('${pid}','${ph.id}','${tid}',${Number(task.progress) || 0})">Post update</button>` : ""}</div>${(task.progressUpdates || []).map((u) => `<div class="pa-update"><span class="pa-pill ${u.milestone ? "green" : "blue"}">${u.progress}%</span><div><b>${u.milestone ? "🏁 " + paEsc(u.milestone) : paEsc(u.status)}</b>${u.note ? `<p>${paEsc(u.note)}</p>` : ""}<small>${paEsc(u.byName)} · ${paEsc(u.company)} · ${paTime(u.at)}</small></div></div>`).join("") || '<p class="pa-empty">No progress updates posted yet.</p>'}</section>`,
-  );
-}
-
 /* ---------- Profile & settings per role ---------- */
 const paBaseProfilePage = profilePage;
 profilePage = async function (role) {
@@ -530,14 +512,6 @@ window.route = async function () {
   paRouteDone = Math.max(paRouteDone, seq);
   if (seq !== paRouteSeq) return result;
   try {
-    if (
-      ["customer", "supplier"].includes(parts[0]) &&
-      parts[1] === "projects" &&
-      parts[2] &&
-      parts[2] !== "new"
-    ) {
-      if (parts[3] === "tasks" && parts[4]) await paTaskUpdates(parts[2], parts[4]);
-    }
     if (parts[0] === "admin" && parts[1] === "platform") await paOutboxPanel();
   } catch (e) {
     console.error(e);

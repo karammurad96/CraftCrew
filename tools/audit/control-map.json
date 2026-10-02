@@ -92,5 +92,9 @@
     "action wfSupplierBid('prj_demo_line4','ph_demo_handover','tsk_demo_training')": "action [ws.offer]",
     "action wfUpdateProgress('prj_demo_line4','ph_demo_build','tsk_demo_fabrication',55)": "action [ws.progress]",
     "action wfUpdateProgress('prj_demo_line4','ph_demo_handover','tsk_demo_training',0)": "action [ws.progress]"
+  },
+  "supplier /supplier/projects/prj_demo_line4/tasks/tsk_demo_fabrication": {
+    "action ccNewTimeEntry()": "action [sub.logTime]",
+    "action wfUpdateProgress('prj_demo_line4','ph_demo_build','tsk_demo_fabrication',55)": "action [sub.progress]"
   }
 }
