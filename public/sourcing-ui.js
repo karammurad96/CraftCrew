@@ -522,20 +522,7 @@ async function srApprovals() {
       .join("")}</div>`,
   );
 }
-
-/* ---------- Scorecards on supplier pages, supplier analytics and admin reports ---------- */
-async function srScorecardPanel(supplierId, target) {
-  if (!target || target.querySelector(".sr-card-panel")) return;
-  const { scorecard: c } = await api(`/suppliers/${supplierId}/scorecard`).catch(() => ({}));
-  if (!c) return;
-  const m = c.metrics,
-    stat = (l, v, s = "") =>
-      `<div><span class="cc-label">${l}</span><b>${v ?? "—"}${v === null || v === undefined ? "" : s}</b></div>`;
-  target.insertAdjacentHTML(
-    "beforeend",
-    `<section class="panel sr-card-panel"><div class="panel-title"><h3>Supplier scorecard</h3><span class="sr-risk ${c.riskLevel.toLowerCase()}">${c.riskLevel} risk</span></div><div class="sr-card-top"><div class="sr-big-score" style="--s:${c.score ?? 0}"><b>${c.score ?? "—"}</b><small>of 100</small></div><div class="sr-card-stats">${stat("Rating", m.rating ? "★ " + Number(m.rating).toFixed(1) : null)}${stat("Quality", m.quality)}${stat("Schedule", m.schedule)}${stat("Communication", m.communication)}${stat("On-time delivery", m.onTimeRate, "%")}${stat("Invoices right first time", m.firstTimeRightRate, "%")}${stat("Bid response rate", m.responseRate, "%")}${stat("Win rate", m.winRate, "%")}</div></div>${c.risks.length ? `<ul class="sr-risks">${c.risks.map((r) => `<li class="${r.level}">${srEsc(r.text)}</li>`).join("")}</ul>` : '<p class="success-text">No risk flags.</p>'}</section>`,
-  );
-}
+/* ---------- Scorecards on admin reports (the supplier scorecard panel is in areas/directory.js) ---------- */
 async function srAdminScorecards() {
   const content = document.querySelector(".dashboard-content");
   if (!content || content.querySelector(".sr-admin-cards")) return;
@@ -573,11 +560,6 @@ window.route = async function () {
   }
   const result = await srBaseRoute();
   try {
-    if (parts[0] === "customer" && parts[1] === "suppliers" && parts[2])
-      await srScorecardPanel(
-        parts[2],
-        document.querySelector(".dashboard-content .cc-page") || document.querySelector(".dashboard-content"),
-      );
     if (parts[0] === "supplier" && parts[1] === "analytics" && state.user?.supplierId)
       await srScorecardPanel(state.user.supplierId, document.querySelector(".dashboard-content"));
     if (parts[0] === "admin" && parts[1] === "reports") await srAdminScorecards();

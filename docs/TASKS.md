@@ -206,13 +206,18 @@ Every task depends on **T00** and **T01** unless it says otherwise.
   - [x] T128d project dialogs: edit/delete project, add/edit phase and task, assign supplier, share, support (bid dialogs move with T129)
   - [x] T128e project documents (document desk and explorer)
 - [ ] T129 Area: sourcing, offers, bids, contracts and the directory · M
+  - [x] T129a supplier directory, profile, preferred suppliers, quote requests (the supplier's service catalog page moves with T135)
+  - [ ] T129b offers and bids, with the bid dialogs and the preferred-supplier bid hooks
+  - [ ] T129c sourcing events, contracts, approvals
 - [ ] T130 Area: invoices and payments · M
 - [ ] T131 Area: time, site reports, punch list and acceptance · M
 - [ ] T132 Area: messages and chats · S
 - [ ] T133 Area: sites, compliance and calendar · M
 - [ ] T134 Area: admin (applications, disputes, billing, reports, audit, platform) · M
 - [ ] T135 Area: profile, settings, team and two-factor · M
+- [ ] T137 Multi-language groundwork: language registry, status keys, server texts by language, per-language emails and PDFs · M (do before T136)
 - [ ] T136 Strict CSP without `'unsafe-inline'` scripts; remove the DOM translation layer and the old files · S
+- [ ] T138 Right-to-left layout for Arabic · M (after T136)
 
 **Wave 7 — Design 2026 (P1; in this order; read "Rules for every design task" first)**
 - [x] T90 Design foundation: tokens, type, cards, buttons, forms · M · cheap model OK
@@ -1644,6 +1649,38 @@ Areas: T126 public pages and auth · T127 dashboards, sidebar, notifications, ph
 workspace, board, documents · T129 sourcing, offers, bids, contracts, directory · T130 invoices and payments ·
 T131 time, site reports, punch list, acceptance · T132 messages · T133 sites, compliance, calendar ·
 T134 admin · T135 profile, settings, team, 2FA.
+
+#### T137 · Multi-language groundwork
+`P1 · M · after T126–T135, before T136`
+
+Planned languages: Spanish, Arabic, Polish, Hungarian, Slovak, French, Italian and more. After this task,
+adding a language means adding one locale file and one registry line.
+
+**Do.**
+1. **Language registry** (`public/core/languages.js`): code, native name, `Intl` locale, text direction.
+   The language switcher, `fmt.locale`, the locale tests and the `<html lang>` attribute read it. Plurals use
+   `Intl.PluralRules`, so `t.plural` supports `few`/`many` (Polish, Slovak, Arabic) and falls back to `other`.
+2. **Statuses as keys:** every status, priority and category value shown to users is a `common.status.*`
+   key (the server keeps English values).
+3. **Server texts:** API errors carry a stable `code`; the frontend shows `t("errors.<code>")` and falls
+   back to the message. Emails, notifications and PDFs are rendered in the recipient's language
+   (`user.lang`, default English). XRechnung XML stays as the standard requires.
+4. **Workflow per language:** a script lists missing and unused keys per locale; the overflow run and the
+   German screenshots take a `--lang` option.
+
+**Done when** a test locale with one key changed per group renders every area without missing keys, and
+the plural, error-code and email tests pass for German and one test language.
+
+#### T138 · Right-to-left layout for Arabic
+`P2 · M · after T136 and T137`
+
+**Do.**
+1. A language with direction `rtl` sets `<html dir="rtl">`.
+2. Replace left/right CSS (margins, paddings, `left:`, `text-align`, borders) with logical properties
+   (`margin-inline-start`, `inset-inline-start`, …).
+3. Mirror direction icons and arrows (back, next, chevrons, breadcrumbs, the gantt); keep logos, numbers and
+   amounts unmirrored. Numbers and ids inside Arabic text use `<bdi>`.
+4. Screenshot every area in RTL and fix what breaks; add an RTL overflow run.
 
 #### T136 · Strict CSP and clean-up
 `P1 · S · after T126–T135`

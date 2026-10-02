@@ -119,45 +119,6 @@ async function wfOpenDocument(url) {
 async function supplierBids() {
   await wfOffers();
 }
-async function supplierDetail(id) {
-  const { supplier: s } = await api("/suppliers/" + encodeURIComponent(id));
-  const catalog = s.serviceCatalog || [],
-    content = `<div class="breadcrumb"><a href="#/${state.user?.role === "customer" ? "customer/" : ""}suppliers">← Back to supplier directory</a></div><div class="supplier-profile-head"><div class="supplier-avatar large">${esc(s.avatar || "CC")}</div><div><div class="eyebrow">SUPPLIER PROFILE</div><h1>${esc(s.company)}</h1><p>${esc(s.location || "Location not set")} · ${esc(s.availability || "Availability on request")}</p></div><span class="badge ${(s.badge || "bronze").toLowerCase()}">${esc(supplierBadge(s))}</span></div><div class="health"><div class="cc-card"><span class="cc-label">Team</span><b>${Number(s.employees) || 0} employees · ${(s.teamMembers || []).length} key people</b></div><div class="cc-card"><span class="cc-label">Experience</span><b>${Number(s.experience) || 0}+ years · ${Number(s.projectsCompleted) || 0} projects</b></div><div class="cc-card"><span class="cc-label">Starting rates</span><b>${money(s.hourlyRate || 0)}/hour · from ${money(s.projectRate || 0)}</b></div></div><section class="panel"><h2>Service catalog</h2><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Service</th><th>Scope</th><th>Rate</th><th>Capacity</th><th></th></tr></thead><tbody>${catalog.map((x) => `<tr><td><b>${esc(x.name)}</b></td><td>${esc(x.description || "Custom scope")}</td><td>${money(x.rate || 0)} / ${esc(x.unit || "hour")}</td><td>${esc(x.capacity || "By agreement")} · ${esc(x.leadTime || "Schedule on request")}</td><td>${state.user?.role === "customer" ? `<button class="btn small primary" onclick="requestSupplierQuote('${s.id}','${esc(x.name)}')">Request this service</button>` : ""}</td></tr>`).join("") || '<tr><td colspan="5">Contact supplier for service details.</td></tr>'}</tbody></table></div></section><div class="supplier-profile-grid"><section class="cc-card"><h2>About</h2><p>${esc(s.description || "Supplier profile and capabilities.")}</p><h2>Certifications</h2>${(s.certifications || []).map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</section><section class="cc-card"><h2>Team & delivery</h2>${(s.teamMembers || []).map((m) => `<div class="team-row"><b>${esc(m.name)}</b><span>${esc(m.role)}</span><small>${esc(m.experience || "")}</small></div>`).join("")}</section></div>`;
-  app.innerHTML =
-    state.user?.role === "customer"
-      ? dashboardShell("customer", "suppliers", content)
-      : publicLayout(`<div class="cc-page">${content}</div>`);
-}
-async function requestSupplierQuote(supplierId, serviceName = "") {
-  const { supplier: s } = await api("/suppliers/" + supplierId),
-    projects = (await api("/projects")).projects,
-    scopes = projects.flatMap((p) => p.phases.flatMap((ph) => (ph.tasks || []).map((t) => ({ p, ph, t }))));
-  modal(
-    "Request this service",
-    `<form id="wfF" class="modal-form"><label>Service<select name="service" required>${(s.serviceCatalog || []).map((x) => `<option ${serviceName === x.name ? "selected" : ""}>${esc(x.name)}</option>`).join("")}${(
-      s.services || []
-    )
-      .filter((x) => !(s.serviceCatalog || []).some((y) => y.name === x))
-      .map((x) => `<option ${serviceName === x ? "selected" : ""}>${esc(x)}</option>`)
-      .join(
-        "",
-      )}</select></label><label>Project task<select name="taskRef"><option value="">General enquiry</option>${scopes.map((x) => `<option value="${x.p.id}|${x.ph.id}|${x.t.id}">${esc(x.p.name)} · ${esc(x.ph.name)} · ${esc(x.t.name)}</option>`).join("")}</select></label><label>Scope / question<textarea name="message" required></textarea></label><button class="btn primary">Send request to supplier</button></form>`,
-  );
-  document.getElementById("wfF").onsubmit = async (e) => {
-    e.preventDefault();
-    const b = Object.fromEntries(new FormData(e.target)),
-      [projectId, phaseId, taskId] = (b.taskRef || "").split("|");
-    delete b.taskRef;
-    Object.assign(b, { supplierId, projectId, phaseId, taskId });
-    try {
-      await api("/rfqs", { method: "POST", body: b });
-      closeModal();
-      toast("Service request linked and sent");
-    } catch (x) {
-      toast(x.message, "error");
-    }
-  };
-}
 async function customerInvoices() {
   const q = wfQuery(),
     filters = ["project", "phase", "task"],
@@ -326,14 +287,6 @@ async function newInvoice() {
       document.getElementById("invoiceError").textContent = x.message;
     }
   };
-}
-async function supplierRequests() {
-  const d = await api("/rfqs");
-  app.innerHTML = dashboardShell(
-    "supplier",
-    "requests",
-    `<div class="dash-top"><div><h1>Service requests</h1><p>Requests retain their project, phase and task link for follow-up.</p></div></div><div class="wf-bid-grid">${d.rfqs.map((r) => `<article class="panel"><div class="project-card-head"><h3>${esc(r.service)}</h3><span class="status submitted">${esc(r.status)}</span></div><p>${esc(r.customerCompany || r.customerName)} · ${esc(r.projectName || "General enquiry")}</p>${r.taskName ? `<div class="notice">Linked task: ${esc(r.phaseName)} · ${esc(r.taskName)}</div>` : ""}<p>${esc(r.message)}</p>${r.response ? `<div class="notice">${esc(r.response)}</div>` : ""}<small>${date(r.createdAt)}</small>${["New", "Reviewing"].includes(r.status) ? `<div class="cc-actions" style="margin-top:12px"><button class="btn small outline" onclick="respondQuote('${r.id}','Reviewing')">Review</button><button class="btn small success" onclick="respondQuote('${r.id}','Quoted')">Send quote</button><button class="btn small danger" onclick="respondQuote('${r.id}','Declined')">Decline</button></div>` : ""}</article>`).join("") || '<div class="empty">No service requests yet.</div>'}</div>`,
-  );
 }
 async function wfInvoicePrint(id) {
   const { invoice: i } = await api("/invoices/" + id),
@@ -627,9 +580,7 @@ function wfAddTeamRow() {
 const wfOldRoute = async () => {
   const h = (location.hash.replace(/^#/, "") || "/").split("?")[0] || "/",
     parts = h.split("?")[0].split("/").filter(Boolean);
-  if (h === "/suppliers") return renderSuppliers();
   // Public supplier profile, shareable as a link (T61).
-  if (parts[0] === "suppliers" && parts[1] && !parts[2]) return supplierDetail(parts[1]);
   if (parts[0] === "customer") {
     if (parts[1] === "profile") return profilePage("customer");
   }
@@ -665,9 +616,6 @@ async function route() {
       if (parts[1] === "invoices") return customerInvoices();
       if (parts[1] === "messages") return messages("customer");
       if (parts[1] === "profile") return profilePage("customer");
-      if (parts[1] === "suppliers" && parts[2]) return supplierDetail(parts[2]);
-      if (parts[1] === "suppliers") return renderSuppliers();
-      if (parts[1] === "preferred") return pvPage();
     }
     if (parts[0] === "supplier") {
       if (parts[1] === "bids" || parts[1] === "offers") return supplierBids();
@@ -676,7 +624,6 @@ async function route() {
       if (parts[1] === "messages") return messages("supplier");
       if (parts[1] === "profile") return profilePage("supplier");
       if (parts[1] === "suppliers") return supplierCatalog();
-      if (parts[1] === "requests") return supplierRequests();
     }
     return await wfOldRoute();
   } catch (e) {

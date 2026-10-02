@@ -27,7 +27,7 @@ const actions = (() => {
     handlers.set(name, fn);
   }
   // click on buttons/links, submit on forms, change on fields, input with data-input, keydown with data-key
-  document.addEventListener("click", (event) => {
+  function onClick(event) {
     const el = event.target.closest("[data-action]");
     if (!el || el.tagName === "FORM") return;
     // Fields act on change (below); only checkboxes, radios and buttons act on click
@@ -36,7 +36,10 @@ const actions = (() => {
     if (field && !clickable) return;
     if (el.tagName === "A" && !el.getAttribute("href")?.startsWith("#")) event.preventDefault();
     run(el.dataset.action, el, event);
-  });
+  }
+  document.addEventListener("click", (event) => !event.target.closest?.(".modal") && onClick(event));
+  // A dialog (.modal) stops clicks from bubbling up to the document, so clicks inside it are caught on the way down
+  document.addEventListener("click", (event) => event.target.closest?.(".modal") && onClick(event), true);
   document.addEventListener("submit", (event) => {
     const form = event.target.closest("form[data-action]");
     if (!form) return;
