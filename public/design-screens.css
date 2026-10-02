@@ -2974,3 +2974,202 @@ html body .ds-sheet .btn.ds-sheet-submit {
     z-index: 2;
   }
 }
+
+/* ---------- Approvals (T104, board PhoneApprove) ---------- */
+html body .ds-approvals .dash-top h1 {
+  font-size: 34px !important;
+  font-weight: 700;
+  letter-spacing: -0.02em !important;
+}
+html body .ds-approve-filter {
+  align-self: flex-start;
+  margin-right: auto !important;
+}
+html body .ds-approve-filter button {
+  min-width: 90px;
+  height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+html body .ds-approve-filter button[aria-pressed="true"] {
+  background: #fff;
+  font-weight: 600;
+  box-shadow: var(--cc-seg-shadow);
+}
+/* Cards hug their content (on main a card stretched to about 460 px: .ui-scroll grew and visit rows stretched) */
+html body .ds-approvals .in-grid {
+  align-items: start !important;
+}
+html body .ds-approvals .in-grid > section {
+  height: auto !important;
+  max-height: none !important;
+}
+html body .ds-approvals .in-grid .ui-scroll {
+  flex: 0 1 auto !important;
+}
+/* In a column, the 280 px flex-basis of the first block became its height */
+html body .ds-approvals :is(.cm-visit, .cm-doc, .cm-site-ready) > div:first-child {
+  flex-basis: auto !important;
+}
+html body .ds-approvals .ui-scroll:empty {
+  display: none;
+}
+/* Invoice cards */
+html body .ds-approve-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 20px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 12px 32px rgba(0, 0, 0, 0.06);
+}
+html body .ds-approve-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+html body .ds-approve-kicker {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--cc-muted);
+}
+html body .ds-approve-amount {
+  font-family: var(--cc-font-display);
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+html body .ds-approve-sub {
+  font-size: 15px;
+  color: var(--cc-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+html body .ds-approve-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0 4px;
+  padding: 0;
+  list-style: none;
+  font-size: 15px;
+}
+html body .ds-approve-checks li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+html body .ds-approve-checks .ds-ok span {
+  color: var(--cc-green);
+  font-weight: 700;
+}
+html body .ds-approve-checks .ds-warn span {
+  color: var(--cc-orange);
+  font-weight: 700;
+}
+html body .ds-approve-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 8px;
+}
+html body .ds-approve-btns .btn {
+  min-height: 50px;
+  border-radius: 14px !important;
+  font-size: 17px !important;
+  font-weight: 600 !important;
+}
+/* Time entries */
+html body .ds-time-list {
+  overflow: hidden;
+  margin-top: 8px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--cc-hairline);
+}
+html body .ds-time-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-left: 16px;
+  padding: 12px 16px 12px 0;
+}
+html body .ds-time-row + .ds-time-row {
+  border-top: 1px solid rgba(60, 60, 67, 0.12);
+}
+html body .ds-time-row a {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  color: var(--cc-text);
+}
+html body .ds-time-row b {
+  font-size: 17px;
+  font-weight: 400;
+}
+html body .ds-time-row span {
+  font-size: 13px;
+  color: var(--cc-muted);
+}
+html body .ds-pill-approve {
+  flex: none;
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--cc-chip-blue-bg);
+  color: var(--cc-chip-blue);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+@media (max-width: 640px) {
+  html body .ds-approvals .dash-top p,
+  html body .ds-approvals .dash-top .eyebrow {
+    display: none;
+  }
+  html body .ds-approve-filter {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+  html body .ds-approve-filter button {
+    min-width: 0;
+  }
+  html body .ds-approvals .in-grid > section:is([data-ds-kind="invoices"], [data-ds-kind="time"]) {
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  html body .ds-approvals .in-grid > section[data-ds-kind="other"] {
+    border-radius: 20px !important;
+  }
+  html body .ds-approvals .in-grid > section .panel-title h3 {
+    font-size: 13px;
+    font-weight: 400;
+    text-transform: uppercase;
+    color: var(--cc-muted);
+  }
+  html body .ds-approvals .in-grid > section .panel-title h3 svg {
+    display: none;
+  }
+}
+html body .ds-approvals .in-grid > section .ui-scroll:not(:has(*)) {
+  display: none;
+}

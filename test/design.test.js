@@ -23,6 +23,7 @@ function loadScreens(extra = {}, expose = []) {
     invoiceDetailPage: async () => {},
     MNAV_BOTTOM: { customer: [], supplier: [], admin: [[]] },
     ccNewTimeEntry: async () => {},
+    srApprovals: async () => {},
     window: { addEventListener() {} },
     route() {},
     money: (n) => String(n),
@@ -356,6 +357,19 @@ describe("design 2026", () => {
     const de = read("i18n.js");
     for (const k of ["No signal. Saved on this phone and sent later.", "Submit (\\d+[.,]\\d) Hours", '"Billable time"'])
       assert.ok(de.includes(k.replace(/\\\\/g, "\\")), `no German for ${k}`);
+  });
+
+  it("approves invoices and time from the Approvals page with the existing functions (T104)", () => {
+    const src = read("design-screens.js");
+    assert.match(src, /const dsBaseApprovals = srApprovals;/);
+    assert.match(src, /dsApprovalDo\(\(\) => invoiceAction\('\$\{esc\(i\.id\)\}','Request Changes'\)\)/);
+    assert.match(src, /dsApprovalDo\(\(\) => invoiceAction\('\$\{esc\(i\.id\)\}','Approve'\)\)/);
+    assert.match(src, /dsApprovalDo\(\(\) => ccReviewTime\('\$\{esc\(e\.id\)\}','Approved'\)\)/);
+    // The filter only hides sections
+    assert.match(src, /sec\.classList\.toggle\("ds-hidden", b\.dataset\.show !== "all" && sec\.dataset\.dsKind !== b\.dataset\.show\)/);
+    // The card stretch bug: the flex-basis of the first block must not become its height
+    assert.match(read("design-screens.css"), /\.ds-approvals :is\(\.cm-visit, \.cm-doc, \.cm-site-ready\) > div:first-child \{\n  flex-basis: auto !important;/);
+    assert.ok(read("i18n.js").includes('[/^All · (\\d+)$/, "Alle · $1"]'));
   });
 
   it("uses a new service worker cache so installed apps load the new files", () => {
