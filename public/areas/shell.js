@@ -69,7 +69,7 @@ function dashboardShell(role, active, content) {
     .slice(0, 2);
   const bottom = (SHELL_BOTTOM[role] || []).filter((key) => keys.includes(key)),
     path = location.hash.split("?")[0];
-  return `<div class="app-shell"><aside class="sidebar" id="mnavSidebar" data-i18n="keys"><button type="button" class="mnav-menu-btn" aria-controls="mnavSidebar" aria-expanded="false" aria-label="${sk("menu")}" data-action="shell.menu">${MNAV_MENU_ICON}</button><div class="ui-side-top"><div class="brand side-brand"><span class="brand-mark" role="img" aria-label="${esc(t("auth.logo"))}"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M14 50C24 42 40 22 50 14"/><circle cx="14" cy="50" r="8.5"/><circle cx="50" cy="14" r="8.5"/></svg></span><span class="brand-word">Craft<span>Crew</span></span></div><button type="button" class="ui-bell" aria-label="${sk("bellLabel", { n: uiUnread })}" aria-haspopup="true" aria-expanded="false" data-action="shell.bell">${uiIcon("bell")}<span class="ui-badge"${uiUnread ? "" : " hidden"}>${uiUnread > 99 ? "99+" : uiUnread}</span></button></div><button type="button" class="ui-search-btn" data-action="shell.search">${uiIcon("search")}<span>${sk("search")}</span><kbd>Ctrl K</kbd></button><button class="user-mini wf-user-link" data-action="shell.profile"><div class="avatar">${user.profileImage ? `<img src="${esc(user.profileImage)}" alt="">` : esc(initials)}</div><div><b>${esc(user.name)}${user.isMember ? ` <span class="tm-badge">${sk("teamBadge")}</span>` : ""}</b><small>${esc(user.company || role)} · ${sk("profile")}</small></div></button><nav data-ds-role="${role}"${open ? "" : ' class="ds-more-closed"'}><div class="ng-title" data-title=""></div>${nav.daily
+  return `<div class="app-shell"><aside class="sidebar" id="mnavSidebar"><button type="button" class="mnav-menu-btn" aria-controls="mnavSidebar" aria-expanded="false" aria-label="${sk("menu")}" data-action="shell.menu">${MNAV_MENU_ICON}</button><div class="ui-side-top"><div class="brand side-brand"><span class="brand-mark" role="img" aria-label="${esc(t("auth.logo"))}"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M14 50C24 42 40 22 50 14"/><circle cx="14" cy="50" r="8.5"/><circle cx="50" cy="14" r="8.5"/></svg></span><span class="brand-word">Craft<span>Crew</span></span></div><button type="button" class="ui-bell" aria-label="${sk("bellLabel", { n: uiUnread })}" aria-haspopup="true" aria-expanded="false" data-action="shell.bell">${uiIcon("bell")}<span class="ui-badge"${uiUnread ? "" : " hidden"}>${uiUnread > 99 ? "99+" : uiUnread}</span></button></div><button type="button" class="ui-search-btn" data-action="shell.search">${uiIcon("search")}<span>${sk("search")}</span><kbd>Ctrl K</kbd></button><button class="user-mini wf-user-link" data-action="shell.profile"><div class="avatar">${user.profileImage ? `<img src="${esc(user.profileImage)}" alt="">` : esc(initials)}</div><div><b>${esc(user.name)}${user.isMember ? ` <span class="tm-badge">${sk("teamBadge")}</span>` : ""}</b><small>${esc(user.company || role)} · ${sk("profile")}</small></div></button><nav data-ds-role="${role}"${open ? "" : ' class="ds-more-closed"'}><div class="ng-title" data-title=""></div>${nav.daily
     .filter((key) => keys.includes(key))
     .map(link)
     .join("")}${
@@ -78,7 +78,7 @@ function dashboardShell(role, active, content) {
       : ""
   }</nav><div class="help" data-ui="1" data-ds="1">${langSwitch(t("shell.language"), "shell.lang")}<button class="btn small ghost" data-action="shell.help">${uiIcon("help")}<span>${sk("help")}</span></button><button class="btn small danger" style="margin-top:8px;width:100%" data-action="shell.logout">${uiIcon("logout")}<span>${sk("logout")}</span></button><button type="button" class="ui-link-btn ob-reopen" data-action="shell.checklist"${user.isMember || (typeof obShow !== "undefined" && obShow.allDone) ? " hidden" : ""}>${sk("checklist")}</button></div></aside><section class="dashboard-content">${content}</section>${
     bottom.length
-      ? `<nav class="mnav-bottom" aria-label="${sk("quickNav")}" data-i18n="keys">${bottom
+      ? `<nav class="mnav-bottom" aria-label="${sk("quickNav")}">${bottom
           .map((key) => {
             const href = `#/${role}/${key}`;
             return `<a href="${href}" class="${path === href || path.startsWith(href + "/") ? "active" : ""}">${shellIcon(role, key)}<span>${sk(`bottom.${role}.${key}`)}</span></a>`;
@@ -111,7 +111,7 @@ function shellProjectList() {
   return shellProjects;
 }
 function shellEnhance() {
-  const side = document.querySelector(".app-shell > .sidebar[data-i18n=keys]"),
+  const side = document.querySelector(".app-shell > .sidebar"),
     nav = side?.querySelector(":scope > nav"),
     role = state.user?.role;
   if (!nav || !role || nav.dataset.shellDone) return;

@@ -78,7 +78,7 @@ describe("messages and inbox (T132)", () => {
       }
       assert.match(chats, /<form id="ccChatCompose" class="cc-chat-compose" data-action="msg\.send" data-chat="c1">/);
       assert.ok(chats.includes(lang === "de" ? "<b>Sie</b>" : "<b>You</b>"));
-      assert.ok(inbox.includes('<b><bdi data-i18n="dom">New message from Ben</bdi></b>'), "notification texts stay on the old translation");
+      assert.ok(inbox.includes('<b><bdi>New message from Ben</bdi></b>'), "notification texts stay on the old translation");
       assert.match(inbox, /data-action="inbox\.open" data-id="n2" data-link="\/supplier\/invoices"/);
       if (lang === "de") assert.ok(inbox.includes("Ungelesen (1)") && inbox.includes('<option value="bid">Ausschreibungen &amp; Angebote</option>'));
     });

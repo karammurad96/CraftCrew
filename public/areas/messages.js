@@ -2,8 +2,7 @@
    task) and the inbox of notifications (search, read state, type, open, mark read). Drawn with translation keys;
    chat messages, names and notification texts are data. */
 const mgk = (key, params) => esc(t("msg." + key, params));
-const mgDom = (text) => `<bdi data-i18n="dom">${esc(text)}</bdi>`;
-const mgKeys = (html) => html.replace(/^<(\w+)/, '<$1 data-i18n="keys"');
+const mgDom = (text) => `<bdi>${esc(text)}</bdi>`;
 const mgQuery = () => new URLSearchParams(location.hash.split("?")[1] || "");
 
 /* ---------- Chats ---------- */
@@ -43,7 +42,6 @@ async function messages(role) {
         "newChat",
       )}</button></div><input id="ccChatSearch" placeholder="${mgk("search")}" value="${esc(search)}" data-input="msg.search"><div class="cc-chat-threads">${matches.map(thread).join("") || `<div class="empty">${mgk("noMatch")}</div>`}</div></aside><section class="cc-chat-main">${main}</section></section>`,
     ]
-      .map(mgKeys)
       .join(""),
   );
   const box = document.getElementById("ccChatMessages");
@@ -72,7 +70,7 @@ async function reviewNewChat() {
   const opt = (value, label) => `<option value="${esc(value)}">${label}</option>`;
   modal(
     t("msg.n.title"),
-    `<form class="modal-form" id="ccNewChatForm" data-i18n="keys" data-action="msg.create"><label>${n("project")}<select name="projectId" id="ccChatProject">${projects.map((p) => opt(p.id, esc(p.name))).join("")}</select></label><label>${n(
+    `<form class="modal-form" id="ccNewChatForm" data-action="msg.create"><label>${n("project")}<select name="projectId" id="ccChatProject">${projects.map((p) => opt(p.id, esc(p.name))).join("")}</select></label><label>${n(
       "scope",
     )}<select name="scope" id="ccChatScope" data-action="msg.scope">${["project", "phase", "task"].map((s) => opt(s, n("scopes." + s))).join("")}</select></label><label id="ccChatPhaseWrap" hidden>${n("phase")}<select id="ccChatPhase">${projects
       .flatMap((p) => (p.phases || []).map((ph) => opt(`${p.id}|${ph.id}`, `${esc(p.name)} · ${esc(ph.name)}`)))
@@ -82,7 +80,7 @@ async function reviewNewChat() {
       "findHint",
     )}" data-input="msg.contacts"></label><div class="cc-contact-list">${contacts
       .map((u) => `<label class="cc-contact"><input type="checkbox" name="participantIds" value="${esc(u.id)}"><span><b>${esc(u.name)}</b><small>${u.company ? esc(u.company) : mgDom(u.role)}</small></span></label>`)
-      .join("")}</div><div id="ccChatError" class="form-error" data-i18n="dom"></div><button class="btn primary">${n("create")}</button></form>`,
+      .join("")}</div><div id="ccChatError" class="form-error"></div><button class="btn primary">${n("create")}</button></form>`,
   );
 }
 actions.on("msg.new", () => reviewNewChat());
@@ -148,8 +146,7 @@ async function ccInbox(role) {
   app.innerHTML = dashboardShell(
     role,
     "inbox",
-    mgKeys(
-      `<div class="cc-page cc-inbox"><div class="cc-inbox-toolbar"><div><div class="eyebrow">${i("eyebrow")}</div><h1>${i("title")}</h1><p>${i("intro")}</p></div><button class="btn outline" data-action="inbox.readAll">${i(
+    `<div class="cc-page cc-inbox"><div class="cc-inbox-toolbar"><div><div class="eyebrow">${i("eyebrow")}</div><h1>${i("title")}</h1><p>${i("intro")}</p></div><button class="btn outline" data-action="inbox.readAll">${i(
         "readAll",
       )}</button></div><section class="panel"><div class="cc-inbox-filters"><input id="ccInboxSearch" placeholder="${i("search")}" data-input="inbox.filter"><select id="ccInboxState" aria-label="${i(
         "stateLabel",
@@ -159,7 +156,6 @@ async function ccInbox(role) {
         mgNotes,
         role,
       )}</div></section></div>`,
-    ),
   );
 }
 actions.on("inbox.filter", () => {

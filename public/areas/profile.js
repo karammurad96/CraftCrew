@@ -4,8 +4,7 @@
    service catalog page with its editors. Drawn with translation keys; names, addresses, descriptions, services and
    people are data. profilePage, supplierCatalog and paSignOutOthers keep their names for older callers. */
 const pfk = (key, params) => esc(t("prof." + key, params));
-const pfKeys = (html) => html.replace(/^<(\w+)/, '<$1 data-i18n="keys"');
-const pfDom = (text) => `<bdi data-i18n="dom">${esc(text)}</bdi>`;
+const pfDom = (text) => `<bdi>${esc(text)}</bdi>`;
 const pfAvailability = (v) => (["Available", "Busy", "Unavailable"].includes(v) ? pfk("availability." + v) : pfDom(v));
 
 /* ---------- The settings page of each role ---------- */
@@ -16,7 +15,7 @@ async function profilePage(role) {
   } catch (e) {
     // Admins who still need to set up two-factor sign-in cannot load the rest of the settings yet
     if (e.code !== "TOTP_SETUP_REQUIRED") throw e;
-    app.innerHTML = dashboardShell(role, "profile", pfKeys(`<div class="dash-top"><div><h1>${pfk("settings")}</h1></div></div>`) + (await pfTwoFactorPanel(role)));
+    app.innerHTML = dashboardShell(role, "profile", `<div class="dash-top"><div><h1>${pfk("settings")}</h1></div></div>` + (await pfTwoFactorPanel(role)));
     return;
   }
   state.user = { ...state.user, ...d.user };
@@ -41,7 +40,6 @@ async function profilePage(role) {
     "profile",
     [...parts, pfSettings(role, d.user), calendar, twoFactor, pfDataPanel()]
       .filter(Boolean)
-      .map(pfKeys)
       .join(""),
   );
   if (role !== "admin") pfDeletion();
@@ -94,14 +92,14 @@ function pfSettings(role, user) {
           p?.accountHolder || user.companyProfile?.legalName || user.company || "",
         )}" required></label><label>${pfk("pay.bank")}<input name="bankName" value="${esc(p?.bankName || "")}"></label></div><div class="two"><label>IBAN *<input name="iban" placeholder="DE89 3704 0044 0532 0130 00" required></label><label>BIC / SWIFT<input name="bic" value="${esc(
           p?.bic || "",
-        )}"></label></div><label>${pfk("pay.email")}<input name="billingEmail" type="email" value="${esc(p?.billingEmail || "")}"></label><div class="form-error" role="alert" data-i18n="dom"></div><button class="btn primary">${pfk("pay.save")}</button></form>${
+        )}"></label></div><label>${pfk("pay.email")}<input name="billingEmail" type="email" value="${esc(p?.billingEmail || "")}"></label><div class="form-error" role="alert"></div><button class="btn primary">${pfk("pay.save")}</button></form>${
           p ? `<button class="btn outline small" data-action="prof.changePayout">${pfk("pay.change")}</button>` : ""
         }</section><section class="panel"><h3>${pfk("team.title")}</h3><p class="subtle">${pfk("team.lead")}</p><a class="btn outline" href="#/supplier/suppliers">${pfk("team.manage")}</a></section>`;
   return `<div class="pa-settings"><section class="panel" id="paSecurity"><h3>${s("title")}</h3><p class="subtle">${user.passwordChangedAt ? s("changed", { date: fmt.date(user.passwordChangedAt) }) : s("choose")}</p><form id="paPasswordForm" class="modal-form" data-action="prof.password"><label>${s(
     "current",
   )}<input name="currentPassword" type="password" autocomplete="current-password" required></label><div class="two"><label>${s("new")}<input name="newPassword" type="password" autocomplete="new-password" minlength="10" required></label><label>${s(
     "repeat",
-  )}<input name="confirm" type="password" autocomplete="new-password" minlength="10" required></label></div><small class="subtle">${s("rules")}</small><div class="form-error" role="alert" data-i18n="dom"></div><div class="cc-actions"><button class="btn primary">${s(
+  )}<input name="confirm" type="password" autocomplete="new-password" minlength="10" required></label></div><small class="subtle">${s("rules")}</small><div class="form-error" role="alert"></div><div class="cc-actions"><button class="btn primary">${s(
     "change",
   )}</button><button type="button" class="btn outline" data-action="prof.signOutOthers">${s("others")}</button></div></form></section><section class="panel"><h3>${pfk("prefs.title")}</h3><p class="subtle">${pfk(
     "prefs.lead",
@@ -176,7 +174,7 @@ async function pfEditCompany() {
     input = (name, label, value, extra = "") => `<label>${f(label)}<input name="${name}" value="${esc(value || "")}"${extra}></label>`;
   modal(
     t("prof.form.title"),
-    `<form id="wfProfile" class="modal-form" data-i18n="keys" data-action="prof.saveCompany"><label>${f("photo")}<input name="profileFile" type="file" accept="image/*"></label><div class="two">${input("legalName", "legalName", c.legalName)}${input(
+    `<form id="wfProfile" class="modal-form" data-action="prof.saveCompany"><label>${f("photo")}<input name="profileFile" type="file" accept="image/*"></label><div class="two">${input("legalName", "legalName", c.legalName)}${input(
       "company",
       "company",
       d.user.company,
@@ -188,7 +186,7 @@ async function pfEditCompany() {
       "procurementEmail",
       c.procurementEmail,
       ' type="email"',
-    )}</div>${input("contactName", "contactName", c.contactName || d.user.name)}<label>${f("description")}<textarea name="description">${esc(c.description || "")}</textarea></label><div id="wfProfileError" class="form-error" data-i18n="dom"></div><button class="btn primary">${f(
+    )}</div>${input("contactName", "contactName", c.contactName || d.user.name)}<label>${f("description")}<textarea name="description">${esc(c.description || "")}</textarea></label><div id="wfProfileError" class="form-error"></div><button class="btn primary">${f(
       "save",
     )}</button></form>`,
   );
@@ -232,7 +230,6 @@ function pfCalendarHtml(status, url = "") {
 const pfCalendarRender = (html) => {
   const panel = document.getElementById("cfPanel");
   panel.innerHTML = html;
-  panel.dataset.i18n = "keys";
 };
 actions.on("prof.calCreate", async () => {
   if (document.querySelector("#cfPanel .status") && !(await uiConfirm(t("prof.cal.renewConfirm")))) return;
@@ -263,7 +260,7 @@ actions.on("prof.calCopy", async () => {
 /* ---------- Two-factor sign-in (T67) ---------- */
 async function pfTwoFactorPanel(role) {
   const status = await api("/account/2fa").catch(() => null);
-  return status ? pfKeys(`<section class="panel" id="tfPanel">${pfTwoFactorHtml(status, role)}</section>`) : "";
+  return status ? `<section class="panel" id="tfPanel">${pfTwoFactorHtml(status, role)}</section>` : "";
 }
 function pfTwoFactorHtml(s, role) {
   const f = (key) => pfk("tf." + key);
@@ -289,9 +286,9 @@ async function tfSetup() {
   const f = (key) => pfk("tf." + key);
   modal(
     t("prof.tf.setupTitle"),
-    `<div data-i18n="keys"><ol class="tf-steps"><li>${f("step1")} <a href="${esc(d.otpauthUrl)}">${f("openApp")}</a></li><li>${f("step2")}<code class="tf-secret">${esc(d.secret.replace(/(.{4})/g, "$1 ").trim())}</code><small class="subtle">${f(
+    `<div><ol class="tf-steps"><li>${f("step1")} <a href="${esc(d.otpauthUrl)}">${f("openApp")}</a></li><li>${f("step2")}<code class="tf-secret">${esc(d.secret.replace(/(.{4})/g, "$1 ").trim())}</code><small class="subtle">${f(
       "step2Hint",
-    )}</small></li><li>${f("step3")}</li></ol><form id="tfEnable" class="modal-form" data-action="prof.tfEnable"><label>${f("code")}<input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required></label><div id="tfError" class="form-error" role="alert" data-i18n="dom"></div><button class="btn primary">${f(
+    )}</small></li><li>${f("step3")}</li></ol><form id="tfEnable" class="modal-form" data-action="prof.tfEnable"><label>${f("code")}<input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required></label><div id="tfError" class="form-error" role="alert"></div><button class="btn primary">${f(
       "turnOn",
     )}</button></form></div>`,
   );
@@ -312,7 +309,7 @@ function pfShowRecovery(codes) {
   const f = (key) => pfk("tf." + key);
   modal(
     t("prof.tf.codesTitle"),
-    `<div data-i18n="keys"><p>${f("codesLead")}</p><ul class="tf-codes">${codes.map((c) => `<li><code>${esc(c)}</code></li>`).join("")}</ul><div class="cc-actions"><button type="button" class="btn outline" data-action="prof.tfDownload">${f(
+    `<div><p>${f("codesLead")}</p><ul class="tf-codes">${codes.map((c) => `<li><code>${esc(c)}</code></li>`).join("")}</ul><div class="cc-actions"><button type="button" class="btn outline" data-action="prof.tfDownload">${f(
       "download",
     )}</button><button type="button" class="btn primary" data-action="prof.tfSaved">${f("saved")}</button></div></div>`,
   );
@@ -332,9 +329,9 @@ actions.on("prof.tfDisable", () => {
   const f = (key) => pfk("tf." + key);
   modal(
     t("prof.tf.disableTitle"),
-    `<form id="tfDisable" class="modal-form" data-i18n="keys" data-action="prof.tfDisableSend"><label>${f("password")}<input name="password" type="password" autocomplete="current-password" required></label><label>${f(
+    `<form id="tfDisable" class="modal-form" data-action="prof.tfDisableSend"><label>${f("password")}<input name="password" type="password" autocomplete="current-password" required></label><label>${f(
       "codeOrRecovery",
-    )}<input name="code" autocomplete="one-time-code" maxlength="20" required></label><div id="tfError" class="form-error" role="alert" data-i18n="dom"></div><button class="btn danger">${f("turnOff")}</button></form>`,
+    )}<input name="code" autocomplete="one-time-code" maxlength="20" required></label><div id="tfError" class="form-error" role="alert"></div><button class="btn danger">${f("turnOff")}</button></form>`,
   );
 });
 actions.on("prof.tfDisableSend", async (form) => {
@@ -385,13 +382,12 @@ async function pfDeletion() {
   if (!d || !document.contains(box)) return;
   pfGraceDays = d.graceDays;
   const f = (key, params) => pfk("del." + key, params);
-  box.dataset.i18n = "keys";
   box.innerHTML = `<h4>${f("title")}</h4><p>${state.user?.isMember ? f("member") : f("lead", { days: d.graceDays }) + (d.coversTeam ? " " + f("team") : "")}</p>${
     d.blockers.length
       ? `<p class="gd-blocked"><b>${f("blocked")}</b></p><ul class="gd-blockers">${d.blockers.map((b) => `<li><a href="#${esc(b.link)}">${pfDom(b.label)}</a></li>`).join("")}</ul>`
       : `<form id="gdDeleteForm" class="modal-form gd-delete-form" data-action="prof.delete"><label>${f("password")}<input name="password" type="password" autocomplete="current-password" required></label>${
           state.user?.twoFactor ? `<label>${f("code")}<input name="code" inputmode="numeric" autocomplete="one-time-code" required></label>` : ""
-        }<div id="gdDeleteError" class="form-error" data-i18n="dom"></div><button class="btn danger">${f("submit")}</button></form>`
+        }<div id="gdDeleteError" class="form-error"></div><button class="btn danger">${f("submit")}</button></form>`
   }`;
 }
 actions.on("prof.delete", async (form) => {
@@ -441,7 +437,6 @@ async function supplierCatalog() {
         .map((k) => `<th>${c(k)}</th>`)
         .join("")}</tr></thead><tbody>${team.map(person).join("") || `<tr><td colspan="5">${c("noPeople")}</td></tr>`}</tbody></table></div></section>`,
     ]
-      .map(pfKeys)
       .join(""),
   );
   // The supplier's own certificates and proofs (areas/directory.js)
@@ -477,7 +472,7 @@ async function pfEditCatalog() {
     f = (key) => pfk("edit." + key);
   modal(
     t("prof.edit.title"),
-    `<form id="wfCatalog" class="modal-form" data-i18n="keys" data-action="prof.saveCatalog"><h3>${f("services")}</h3><div id="wfServiceRows">${(catalog.length ? catalog : [{}]).map(pfServiceRow).join("")}</div><button type="button" class="btn small outline" data-action="prof.addService">${f(
+    `<form id="wfCatalog" class="modal-form" data-action="prof.saveCatalog"><h3>${f("services")}</h3><div id="wfServiceRows">${(catalog.length ? catalog : [{}]).map(pfServiceRow).join("")}</div><button type="button" class="btn small outline" data-action="prof.addService">${f(
       "addService",
     )}</button><h3>${f("people")}</h3><div id="wfTeamRows">${(team.length ? team : [{}]).map(pfTeamRow).join("")}</div><button type="button" class="btn small outline" data-action="prof.addPerson">${f("addPerson")}</button><div class="two"><label>${f(
       "employees",
@@ -485,7 +480,7 @@ async function pfEditCatalog() {
       "availability",
     )}<select name="availability">${["Available", "Busy", "Unavailable"].map((x) => `<option value="${x}" ${x === s.availability ? "selected" : ""}>${pfk("availability." + x)}</option>`).join("")}</select></label><label>${f(
       "certifications",
-    )}<input name="certifications" value="${esc((s.certifications || []).join(", "))}"></label></div><div id="wfCatalogError" class="form-error" data-i18n="dom"></div><button class="btn primary">${f("save")}</button></form>`,
+    )}<input name="certifications" value="${esc((s.certifications || []).join(", "))}"></label></div><div id="wfCatalogError" class="form-error"></div><button class="btn primary">${f("save")}</button></form>`,
   );
 }
 actions.on("prof.editCatalog", () => pfEditCatalog());
@@ -528,11 +523,11 @@ async function editProfile() {
     f = (key) => pfk("details." + key);
   modal(
     t("prof.details.title"),
-    `<form id="pf" class="modal-form" data-i18n="keys" data-action="prof.saveDetails"><label>${f("contact")}<input name="name" value="${esc(d.user.name)}" required></label><label>${f("company")}<input name="company" value="${esc(
+    `<form id="pf" class="modal-form" data-action="prof.saveDetails"><label>${f("contact")}<input name="name" value="${esc(d.user.name)}" required></label><label>${f("company")}<input name="company" value="${esc(
       d.user.company || s.company || "",
     )}" required></label><label>${f("location")}<input name="location" value="${esc(s.location || "")}" placeholder="${f("locationHint")}"></label><label>${f("overview")}<textarea name="description" rows="5">${esc(
       s.description || "",
-    )}</textarea></label><div id="profileError" class="form-error" role="alert" data-i18n="dom"></div><button class="btn primary">${f("save")}</button></form>`,
+    )}</textarea></label><div id="profileError" class="form-error" role="alert"></div><button class="btn primary">${f("save")}</button></form>`,
   );
 }
 actions.on("prof.editDetails", () => editProfile());

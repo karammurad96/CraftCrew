@@ -1,10 +1,10 @@
 /* Area: the pages inside a project (T128c). The task and phase pages (time against the estimate, the tasks,
    progress updates) and the task board (T99: columns with drag and drop and arrow keys, the phase order and a
    side panel for a card), drawn with translation keys and data-action handlers. Names, descriptions, statuses
-   and notes are data: they keep the old translation for display (data-i18n="dom"). */
+   and notes are data, shown as stored (statuses through common.status, T137). */
 const ppk = (key, params) => esc(t("sub." + key, params));
-const ppDom = (text) => `<bdi data-i18n="dom">${esc(text)}</bdi>`;
-const ppKeys = (parts) => parts.filter(Boolean).map((html) => html.replace(/^<(\w+)/, '<$1 data-i18n="keys"')).join("");
+const ppDom = (text) => `<bdi>${esc(text)}</bdi>`;
+const ppJoin = (parts) => parts.filter(Boolean).join("");
 
 /* ---------- Task and phase pages ---------- */
 async function ppItemPage(role, pid, type, id) {
@@ -42,7 +42,7 @@ async function ppItemPage(role, pid, type, id) {
   app.innerHTML = dashboardShell(
     role,
     "projects",
-    `<div class="cc-page">${ppKeys([
+    `<div class="cc-page">${ppJoin([
       `<a class="breadcrumb" href="#/${role}/projects/${esc(p.id)}">← ${esc(p.name)}</a>`,
       `<div class="dash-top"><div><div class="eyebrow">${item(type === "phase" ? "phaseEyebrow" : "taskEyebrow")}</div><h1>${type === "phase" ? ppDom(ph.name) : esc(task.name)}</h1><p>${esc(p.name)}${task ? " · " + ppDom(ph.name) : ""}</p></div>${
         role === "supplier" ? `<button class="btn primary" data-action="sub.logTime">${item("logTime")}</button>` : ""
@@ -145,7 +145,7 @@ async function ppBoardPage(role, pid, query) {
           )
           .join("")}</ol></aside>`
       : "";
-  app.innerHTML = dashboardShell(role, "projects", ppKeys([header, `<div class="in-board-wrap ${role === "customer" ? "with-phases" : ""}"><div class="in-board">${columns}</div>${order}</div>`]));
+  app.innerHTML = dashboardShell(role, "projects", ppJoin([header, `<div class="in-board-wrap ${role === "customer" ? "with-phases" : ""}"><div class="in-board">${columns}</div>${order}</div>`]));
   const content = document.querySelector(".dashboard-content");
   content?.classList.add("ds-board");
   ppBindBoard(role, p);
@@ -301,12 +301,11 @@ function ppOpenPanel(card) {
     fact = (label, value) => `<div><span class="ds-ui">${label}</span><b>${value}</b></div>`;
   const panel = document.createElement("aside");
   panel.className = "ds-panel";
-  panel.dataset.i18n = "keys";
   panel.setAttribute("role", "dialog");
   panel.setAttribute("aria-label", x.name);
   panel.innerHTML = `<div class="ds-panel-head"><div><span>${ppDom(ph.name)}</span><h2>${esc(x.name)}</h2></div><button type="button" class="ds-panel-close" aria-label="${pk2("close")}" data-action="board.close">×</button></div><div class="ds-panel-facts">${fact(pk2("status"), `${statusHtml(status)} · ${esc(t("sub.board.percent", { n: Number(x.progress) || 0 }))}`)}${fact(pk2("supplier"), esc(sup || "—"))}${fact(pk2("dates"), esc(fmt.range(x.startDate, x.dueDate)))}${
     role === "customer" || mineSupplier ? fact(pk2("order"), x.orderAmount ? esc(fmt.money(x.orderAmount)) : "—") : ""
-  }</div>${x.description ? `<p class="ds-panel-desc" data-i18n="dom">${esc(x.description)}</p>` : ""}${
+  }</div>${x.description ? `<p class="ds-panel-desc">${esc(x.description)}</p>` : ""}${
     list.length
       ? `<h3 class="ds-panel-h">${pk2("checklist", { done: list.filter((y) => y.done).length, n: list.length })}</h3><div class="ds-panel-list">${list
           .map((y, i) => `<label><input type="checkbox" data-action="board.tick" data-i="${i}"${y.done ? " checked" : ""}${canTick ? "" : " disabled"}> <span>${esc(y.name || y.text)}</span></label>`)

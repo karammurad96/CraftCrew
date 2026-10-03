@@ -2,10 +2,9 @@
    one quote request to several suppliers; the supplier profile with reliability, certificates and proofs,
    scorecard and preferred list; the request dialog (service or evidence); the customer's preferred suppliers;
    the supplier's quote requests with the detailed quote. Drawn with translation keys; supplier data (names,
-   services, locations) stays as stored and goes through the old translation in <bdi data-i18n="dom">. */
+   services, locations) stays as stored, in <bdi>. */
 const dirk = (key, params) => esc(t("dir." + key, params));
-const dirDom = (text) => `<bdi data-i18n="dom">${esc(text)}</bdi>`;
-const dirKeys = (html) => html.replace(/^<(\w+)/, '<$1 data-i18n="keys"');
+const dirDom = (text) => `<bdi>${esc(text)}</bdi>`;
 const dirBase = () => (state.user?.role === "customer" ? "/customer/suppliers" : "/suppliers");
 const DIR_MAX = 3;
 const DIR_UNITS = ["hour", "day", "project", "unit", "fixed"];
@@ -106,7 +105,7 @@ async function dirPage(params, query) {
   const html = `<div class="cc-page"><div class="page-head"><div><div class="eyebrow">${dirk("eyebrow")}</div><h1>${dirk("title")}</h1><p>${dirk("intro")}</p></div></div>${dirFilters(v, all, directory.certifications || [], customer)}<div class="review-directory-toolbar"><span>${esc(t.plural("dir.found", rows.length))}</span><div class="cc-actions">${["grid", "list", "map"]
     .map((x) => `<button class="btn small ${v.view === x ? "primary" : "outline"}" data-action="dir.view" data-view="${x}">${dirk("view." + x)}</button>`)
     .join("")}</div></div>${directory.region && !directory.region.found ? `<div class="notice" role="status">${dirk("region")}</div>` : ""}${dirListing(rows, v.view, customer, shortlist)}${dirBarHtml()}</div>`;
-  app.innerHTML = customer ? dashboardShell("customer", "suppliers", dirKeys(html)) : publicLayout(dirKeys(html));
+  app.innerHTML = customer ? dashboardShell("customer", "suppliers", html) : publicLayout(html);
   if (v.view === "map") dirMap(rows);
 }
 function dirFilters(v, all, certifications, customer) {
@@ -114,7 +113,7 @@ function dirFilters(v, all, certifications, customer) {
     services = [...new Set(all.flatMap((s) => s.services || []))].sort(),
     countries = [...new Set(all.map((s) => (s.location || "").split(",").at(-1).trim()).filter(Boolean))].sort(),
     more = v.certs.length || v.near || v.onlyShortlist || v.country || v.minRating || v.maxRate || v.minExperience;
-  return `<form id="ccSupplierSearch" class="cc-supplier-filters" data-action="dir.search"><label class="cc-search-wide">${dirk("f.search")}<input id="ccSq" value="${esc(v.q)}" placeholder="${dirk("f.searchHint")}"></label><label>${dirk("f.service")}<select id="ccSs" data-i18n="dom">${opt("", esc(t("dir.f.allServices")))}${services.map((s) => opt(s, esc(s), s === v.service)).join("")}</select></label><label>${dirk("f.badge")}<select id="ccSb">${opt("", dirk("f.allBadges"))}${["Gold", "Silver", "Bronze"].map((s) => opt(s, esc(t("common.badge." + s)), s === v.badge)).join("")}</select></label><label class="cc-check-label"><input id="ccSa" type="checkbox"${v.available ? " checked" : ""}> ${dirk("f.available")}</label><button class="btn primary">${dirk("f.go")}</button><details class="cc-advanced-filters"${more ? " open" : ""}><summary>${dirk("f.more")}</summary><div class="cc-advanced-grid"><label>${dirk("f.country")}<select id="ccCountry" data-i18n="dom">${opt("", esc(t("dir.f.anyLocation")))}${countries.map((s) => opt(s, esc(s), s === v.country)).join("")}</select></label><label>${dirk("f.rating")}<select id="ccRating">${opt("", dirk("f.anyRating"))}${["3", "3.5", "4", "4.5"].map((s) => opt(s, s, s === v.minRating)).join("")}</select></label><label>${dirk("f.maxRate")}<input id="ccRate" type="number" min="0" value="${esc(v.maxRate)}" placeholder="${dirk("f.rateHint")}"></label><label>${dirk("f.experience")}<input id="ccExperience" type="number" min="0" value="${esc(v.minExperience)}" placeholder="${dirk("f.years")}"></label><label>${dirk("f.near")}<input id="ccNear" value="${esc(v.near)}" placeholder="${dirk("f.nearHint")}"></label><label>${dirk("f.radius")}<select id="ccRadius">${["25", "50", "100", "200", "500"].map((r) => opt(r, dirk("f.km", { n: r }), r === v.radius)).join("")}</select></label>${customer ? `<label class="cc-check-label"><input id="ccShortlistOnly" type="checkbox"${v.onlyShortlist ? " checked" : ""}> ${dirk("f.shortlist")}</label>` : ""}<fieldset class="dir-certs"><legend>${dirk("f.certs")}</legend>${[...new Set([...certifications, ...v.certs])]
+  return `<form id="ccSupplierSearch" class="cc-supplier-filters" data-action="dir.search"><label class="cc-search-wide">${dirk("f.search")}<input id="ccSq" value="${esc(v.q)}" placeholder="${dirk("f.searchHint")}"></label><label>${dirk("f.service")}<select id="ccSs">${opt("", esc(t("dir.f.allServices")))}${services.map((s) => opt(s, esc(s), s === v.service)).join("")}</select></label><label>${dirk("f.badge")}<select id="ccSb">${opt("", dirk("f.allBadges"))}${["Gold", "Silver", "Bronze"].map((s) => opt(s, esc(t("common.badge." + s)), s === v.badge)).join("")}</select></label><label class="cc-check-label"><input id="ccSa" type="checkbox"${v.available ? " checked" : ""}> ${dirk("f.available")}</label><button class="btn primary">${dirk("f.go")}</button><details class="cc-advanced-filters"${more ? " open" : ""}><summary>${dirk("f.more")}</summary><div class="cc-advanced-grid"><label>${dirk("f.country")}<select id="ccCountry">${opt("", esc(t("dir.f.anyLocation")))}${countries.map((s) => opt(s, esc(s), s === v.country)).join("")}</select></label><label>${dirk("f.rating")}<select id="ccRating">${opt("", dirk("f.anyRating"))}${["3", "3.5", "4", "4.5"].map((s) => opt(s, s, s === v.minRating)).join("")}</select></label><label>${dirk("f.maxRate")}<input id="ccRate" type="number" min="0" value="${esc(v.maxRate)}" placeholder="${dirk("f.rateHint")}"></label><label>${dirk("f.experience")}<input id="ccExperience" type="number" min="0" value="${esc(v.minExperience)}" placeholder="${dirk("f.years")}"></label><label>${dirk("f.near")}<input id="ccNear" value="${esc(v.near)}" placeholder="${dirk("f.nearHint")}"></label><label>${dirk("f.radius")}<select id="ccRadius">${["25", "50", "100", "200", "500"].map((r) => opt(r, dirk("f.km", { n: r }), r === v.radius)).join("")}</select></label>${customer ? `<label class="cc-check-label"><input id="ccShortlistOnly" type="checkbox"${v.onlyShortlist ? " checked" : ""}> ${dirk("f.shortlist")}</label>` : ""}<fieldset class="dir-certs"><legend>${dirk("f.certs")}</legend>${[...new Set([...certifications, ...v.certs])]
     .map((c) => `<label class="cc-check-label"><input type="checkbox" name="ccCerts" value="${esc(c)}"${v.certs.includes(c) ? " checked" : ""}> ${dirDom(c)}</label>`)
     .join("")}</fieldset><label>${dirk("f.sort")}<select id="ccSort">${[
     ["relevance", "sortRelevance"],
@@ -131,7 +130,7 @@ function dirCard(s, customer, shortlist) {
     starred = shortlist.includes(s.id);
   return `<article class="supplier-card review-supplier-card" data-supplier-id="${esc(s.id)}"><div class="supplier-top"><div class="supplier-avatar">${esc(s.avatar || "CC")}</div><div><h3>${esc(s.company)}</h3><small>${dirDom(s.location || "")}</small></div><span class="badge ${esc((s.badge || "none").toLowerCase())}">${esc(ccBadge(s))}</span></div><p>${(s.services || [])
     .slice(0, 4)
-    .map((x) => `<span class="chip" data-i18n="dom">${esc(x)}</span>`)
+    .map((x) => `<span class="chip">${esc(x)}</span>`)
     .join("")}</p><div class="supplier-meta">${dirk("meta", {
     rating: Number(s.rating || 0).toFixed(1),
     projects: s.projectsCompleted || 0,
@@ -279,7 +278,7 @@ actions.on("dir.compareOpen", async () => {
   ];
   modal(
     t("dir.cmp.title"),
-    `<div data-i18n="keys"><div class="cc-table-wrap"><table class="cc-table dir-compare-table"><thead><tr><th scope="col"><span class="sr-only">${dirk("cmp.detail")}</span></th>${list
+    `<div><div class="cc-table-wrap"><table class="cc-table dir-compare-table"><thead><tr><th scope="col"><span class="sr-only">${dirk("cmp.detail")}</span></th>${list
       .map((s) => `<th scope="col">${esc(s.company)}</th>`)
       .join("")}</tr></thead><tbody>${rows
       .map(([key, cell]) => `<tr><th scope="row">${dirk("cmp." + key)}</th>${list.map((s) => `<td>${cell(s)}</td>`).join("")}</tr>`)
@@ -304,11 +303,11 @@ actions.on("dir.requestQuotes", async () => {
     r = (key, params) => dirk("rq." + key, params);
   modal(
     t("dir.rq.title"),
-    `<form id="dirQuoteForm" class="modal-form" data-i18n="keys" data-action="dir.quoteSend"><p>${tHtml("dir.rq.to", { names: `<b>${list.map((s) => esc(s.company)).join(", ")}</b>` })}</p><div class="two"><label>${r("project")}<select name="project" id="dirProject" data-action="dir.quoteProject">${open
+    `<form id="dirQuoteForm" class="modal-form" data-action="dir.quoteSend"><p>${tHtml("dir.rq.to", { names: `<b>${list.map((s) => esc(s.company)).join(", ")}</b>` })}</p><div class="two"><label>${r("project")}<select name="project" id="dirProject" data-action="dir.quoteProject">${open
       .map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`)
       .join("")}</select></label><label>${r("task")}<select name="task" id="dirTask" data-action="dir.quoteTask"></select></label></div><div class="two" id="dirNewTask" hidden><label>${r("phase")}<select name="phase" id="dirPhase"></select></label><label>${r("taskName")}<input name="taskName" maxlength="160"></label></div><div class="two"><label>${r("service")}<input name="service" list="dirServices" required maxlength="80" value="${esc(services[0] || "")}"><datalist id="dirServices">${services
       .map((x) => `<option value="${esc(x)}"></option>`)
-      .join("")}</datalist></label><label>${r("due")}<input name="dueDate" type="date" required min="${today}" value="${due}"></label></div><label>${r("description")}<textarea name="description" rows="4" maxlength="5000" required placeholder="${r("descriptionHint")}"></textarea></label><label>${r("files")}<input name="files" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx,.csv,.txt,.zip"></label><div id="dirQuoteError" class="form-error" data-i18n="dom" role="alert"></div><button class="btn primary">${r("send", { n: list.length })}</button></form>`,
+      .join("")}</datalist></label><label>${r("due")}<input name="dueDate" type="date" required min="${today}" value="${due}"></label></div><label>${r("description")}<textarea name="description" rows="4" maxlength="5000" required placeholder="${r("descriptionHint")}"></textarea></label><label>${r("files")}<input name="files" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx,.csv,.txt,.zip"></label><div id="dirQuoteError" class="form-error" role="alert"></div><button class="btn primary">${r("send", { n: list.length })}</button></form>`,
   );
   dirFillTasks();
 });
@@ -413,7 +412,7 @@ async function dirProfile(params) {
   const html = `<div class="cc-page"><a class="btn small outline review-back" href="#${dirBase()}">${p("back")}</a><div class="supplier-profile-head"><div class="supplier-avatar large">${esc(s.avatar || "CC")}</div><div><div class="eyebrow">${p("eyebrow")}</div><h1>${esc(s.company)}</h1><p>${s.location ? dirDom(s.location) : p("noLocation")} · ${s.availability ? statusHtml(s.availability) : p("availability")}</p></div><span class="badge ${esc((s.badge || "none").toLowerCase())}">${esc(ccBadge(s))}</span>${preferred}</div><div class="health"><div class="cc-card"><span class="cc-label">${p("team")}</span><b>${p("teamValue", { n: Number(s.employees) || 0, people: (s.teamMembers || []).length })}</b></div><div class="cc-card"><span class="cc-label">${p("experience")}</span><b>${p("experienceValue", { years: Number(s.experience) || 0, projects: Number(s.projectsCompleted) || 0 })}</b></div><div class="cc-card"><span class="cc-label">${p("rates")}</span><b>${p("ratesValue", { hourly: fmt.money(s.hourlyRate || 0), project: fmt.money(s.projectRate || 0) })}</b></div></div>${
     reliability ? reliability + documents + services : services + documents
   }<div class="supplier-profile-grid"><section class="cc-card"><h2>${p("about")}</h2><p>${s.description ? dirDom(s.description) : p("aboutFallback")}</p><h3>${p("certs")}</h3><div>${
-    certs.map((x) => `<span class="chip" data-i18n="dom">${esc(x)}</span>${customer ? " " + ask("evidence", x, p("requestProof"), "btn small outline") : ""}`).join("") ||
+    certs.map((x) => `<span class="chip">${esc(x)}</span>${customer ? " " + ask("evidence", x, p("requestProof"), "btn small outline") : ""}`).join("") ||
     `<p class="muted">${p("noCerts")}</p>`
   }</div>${customer ? `<button class="btn small outline dir-evidence" data-action="dir.ask" data-kind="evidence" data-supplier="${esc(s.id)}" data-name="">${p("requestEvidence")}</button>` : ""}</section><section class="cc-card"><h2>${p("delivery")}</h2>${
     (s.teamMembers || [])
@@ -422,7 +421,7 @@ async function dirProfile(params) {
   }<h3>${p("reviews")}</h3>${(s.reviews || []).map((r) => `<div class="notice">★ ${esc(r.rating)} — ${dirDom(r.text)}</div>`).join("") || `<p class="muted">${p("noReviews")}</p>`}</section></div>${
     card?.scorecard ? dirScorecard(card.scorecard) : ""
   }</div>`;
-  app.innerHTML = customer ? dashboardShell("customer", "suppliers", dirKeys(html)) : publicLayout(dirKeys(html));
+  app.innerHTML = customer ? dashboardShell("customer", "suppliers", html) : publicLayout(html);
 }
 
 /* ---------- Request a service or evidence from one supplier (POST /api/rfqs) ---------- */
@@ -434,11 +433,11 @@ actions.on("dir.ask", async (el, event) => {
     tasks = projects.flatMap((p) => (p.phases || []).flatMap((ph) => (ph.tasks || []).map((x) => ({ p, ph, x }))));
   modal(
     t(evidence ? "dir.ask.evidenceTitle" : "dir.ask.serviceTitle"),
-    `<form id="reviewSupplierRequest" class="modal-form" data-i18n="keys" data-action="dir.askSend" data-supplier="${esc(el.dataset.supplier)}" data-kind="${evidence ? "evidence" : "service"}"><p class="modal-intro">${a(evidence ? "evidenceIntro" : "serviceIntro")}</p><label>${a(evidence ? "evidence" : "service")}<input name="service" value="${esc(el.dataset.name || "")}" placeholder="${a(evidence ? "evidenceHint" : "serviceHint")}" required></label><label>${a("project")}<select id="reviewRequestProject" name="projectId"><option value="">${a("general")}</option>${projects
+    `<form id="reviewSupplierRequest" class="modal-form" data-action="dir.askSend" data-supplier="${esc(el.dataset.supplier)}" data-kind="${evidence ? "evidence" : "service"}"><p class="modal-intro">${a(evidence ? "evidenceIntro" : "serviceIntro")}</p><label>${a(evidence ? "evidence" : "service")}<input name="service" value="${esc(el.dataset.name || "")}" placeholder="${a(evidence ? "evidenceHint" : "serviceHint")}" required></label><label>${a("project")}<select id="reviewRequestProject" name="projectId"><option value="">${a("general")}</option>${projects
       .map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`)
       .join("")}</select></label><label>${a("task")}<select name="taskRef"><option value="">${a("noTask")}</option>${tasks
       .map(({ p, ph, x }) => `<option value="${esc(`${p.id}|${ph.id}|${x.id}`)}">${esc(p.name)} · ${esc(ph.name)} · ${esc(x.name)}</option>`)
-      .join("")}</select></label><label>${a("details")}<textarea name="message" rows="4" maxlength="5000" required placeholder="${a("detailsHint")}"></textarea></label><div id="reviewSupplierRequestError" class="form-error" data-i18n="dom" role="alert"></div><button class="btn primary">${a("send")}</button></form>`,
+      .join("")}</select></label><label>${a("details")}<textarea name="message" rows="4" maxlength="5000" required placeholder="${a("detailsHint")}"></textarea></label><div id="reviewSupplierRequestError" class="form-error" role="alert"></div><button class="btn primary">${a("send")}</button></form>`,
   );
 });
 actions.on("dir.askSend", async (form) => {
@@ -507,7 +506,7 @@ function dirDocsPanel(d, { manage = false, supplierId = "" } = {}) {
   const c = (key, params) => dirk("dc." + key, params),
     q = d.qualifications || {},
     link = `<a href="#" data-action="dir.ask" data-kind="evidence" data-supplier="${esc(supplierId)}" data-name="">${c("askLink")}</a>`;
-  return `<section class="panel dc-panel" id="dcPanel" data-i18n="keys"><div class="panel-title"><h3>${c("title")}</h3>${
+  return `<section class="panel dc-panel" id="dcPanel"><div class="panel-title"><h3>${c("title")}</h3>${
     manage ? `<button class="btn small primary" data-action="dc.upload">${c("add")}</button>` : `<span class="ui-count">${d.documents.length}</span>`
   }</div>
     ${dirVetting(d.vetting, manage)}
@@ -529,12 +528,12 @@ actions.on("dc.upload", async () => {
     optional = ` <small class="subtle">${c("optional")}</small>`;
   modal(
     t("dir.dc.uploadTitle"),
-    `<form id="dcForm" class="modal-form" data-i18n="keys" data-action="dc.save"><label>${c("docTitle")}<input name="title" required placeholder="${c("docTitleHint")}"></label><div class="two"><label>${c("category")}<select name="category">${categories
+    `<form id="dcForm" class="modal-form" data-action="dc.save"><label>${c("docTitle")}<input name="title" required placeholder="${c("docTitleHint")}"></label><div class="two"><label>${c("category")}<select name="category">${categories
       .map((x) => `<option value="${esc(x)}">${esc(DIR_DOC_CATEGORIES.includes(x) ? t("dir.dc.categories." + x) : x)}</option>`)
       .join("")}</select></label><label>${c("issuer")}${optional}<input name="issuer" placeholder="${c("issuerHint")}"></label></div>
     <div class="two"><label>${c("issued")}${optional}<input name="issuedAt" type="date"></label><label>${c("until")}${optional}<input name="expiresAt" type="date"></label></div>
     <label>${c("who")}<select name="visibility"><option value="public">${c("whoPublic")}</option><option value="partners">${c("whoPartners")}</option></select></label>
-    <label>${c("file")}<input name="file" type="file" accept=".pdf,.png,.jpg,.jpeg" required></label><div id="dcError" class="form-error" data-i18n="dom"></div><button class="btn primary">${c("save")}</button></form>`,
+    <label>${c("file")}<input name="file" type="file" accept=".pdf,.png,.jpg,.jpeg" required></label><div id="dcError" class="form-error"></div><button class="btn primary">${c("save")}</button></form>`,
   );
 });
 actions.on("dc.save", async (form) => {
@@ -588,7 +587,7 @@ function dirScorecard(c) {
   const m = c.metrics,
     s = (key) => dirk("sc." + key),
     stat = (key, v, suffix = "") => `<div><span class="cc-label">${s(key)}</span><b>${v === null || v === undefined ? "—" : esc(v) + suffix}</b></div>`;
-  return `<section class="panel sr-card-panel" data-i18n="keys"><div class="panel-title"><h3>${s("title")}</h3><span class="sr-risk ${esc(String(c.riskLevel).toLowerCase())}">${
+  return `<section class="panel sr-card-panel"><div class="panel-title"><h3>${s("title")}</h3><span class="sr-risk ${esc(String(c.riskLevel).toLowerCase())}">${
     ["Low", "Medium", "High"].includes(c.riskLevel) ? s("risk." + c.riskLevel) : dirDom(c.riskLevel)
   }</span></div><div class="sr-card-top"><div class="sr-big-score" style="--s:${Number(c.score) || 0}"><b>${c.score ?? "—"}</b><small>${s("of100")}</small></div><div class="sr-card-stats">${stat(
     "rating",
@@ -633,13 +632,12 @@ async function pvPage() {
     [
       `<div class="dash-top"><div><h1>${v("title")}</h1><p>${v("intro")}</p></div><a class="btn outline" href="#/customer/suppliers">${v("find")}</a></div>`,
       `<div class="pv-grid">${cards || `<div class="empty">${v("empty")}</div>`}</div>`,
-      `<section class="panel"><div class="panel-title"><h2>${v("inviteTitle")}</h2></div><form id="pvInvite" class="modal-form" data-action="pv.invite"><div class="two"><label>${v("company")}<input name="company" required maxlength="160"></label><label>${v("email")}<input name="email" type="email" required maxlength="200"></label></div><div class="two"><label>${v("tags")}<input name="tags" maxlength="200" placeholder="${v("tagsHint")}"></label><label>${v("note")}<input name="note" maxlength="2000"></label></div><div id="pvError" class="form-error" data-i18n="dom" role="alert"></div><button class="btn primary">${v("send")}</button></form>${
+      `<section class="panel"><div class="panel-title"><h2>${v("inviteTitle")}</h2></div><form id="pvInvite" class="modal-form" data-action="pv.invite"><div class="two"><label>${v("company")}<input name="company" required maxlength="160"></label><label>${v("email")}<input name="email" type="email" required maxlength="200"></label></div><div class="two"><label>${v("tags")}<input name="tags" maxlength="200" placeholder="${v("tagsHint")}"></label><label>${v("note")}<input name="note" maxlength="2000"></label></div><div id="pvError" class="form-error" role="alert"></div><button class="btn primary">${v("send")}</button></form>${
         invites
           ? `<div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>${v("colSupplier")}</th><th>${v("colStatus")}</th><th>${v("colInvited")}</th></tr></thead><tbody>${invites}</tbody></table></div>`
           : ""
       }</section>`,
     ]
-      .map(dirKeys)
       .join("\n    "),
   );
 }
@@ -656,7 +654,7 @@ function pvEdit(supplierId) {
   const s = pvData.suppliers.find((x) => x.supplierId === supplierId) || { tags: [], note: "" };
   modal(
     t("dir.pv.edit"),
-    `<form id="pvEditForm" class="modal-form" data-i18n="keys" data-action="pv.save" data-supplier="${esc(supplierId)}"><label>${dirk("pv.tags")}<input name="tags" maxlength="400" value="${esc((s.tags || []).join(", "))}"></label><label>${dirk("pv.note")}<textarea name="note" rows="4" maxlength="2000">${esc(s.note || "")}</textarea></label><div id="pvEditError" class="form-error" data-i18n="dom" role="alert"></div><button class="btn primary">${dirk("pv.save")}</button></form>`,
+    `<form id="pvEditForm" class="modal-form" data-action="pv.save" data-supplier="${esc(supplierId)}"><label>${dirk("pv.tags")}<input name="tags" maxlength="400" value="${esc((s.tags || []).join(", "))}"></label><label>${dirk("pv.note")}<textarea name="note" rows="4" maxlength="2000">${esc(s.note || "")}</textarea></label><div id="pvEditError" class="form-error" role="alert"></div><button class="btn primary">${dirk("pv.save")}</button></form>`,
   );
 }
 actions.on("pv.edit", (el) => pvEdit(el.dataset.supplier));
@@ -735,7 +733,6 @@ async function dirRequests() {
       }>${r("oldest")}</option></select></label><button class="btn primary" data-action="rq.apply">${r("apply")}</button><button class="btn outline" data-action="rq.reset">${r("reset")}</button></section>`,
       `<div class="review-work-grid">${rows.map(card).join("") || `<div class="empty">${r("empty")}</div>`}</div>`,
     ]
-      .map(dirKeys)
       .join(""),
   );
 }
@@ -803,7 +800,7 @@ actions.on("rq.quote", async (el) => {
     items = x.quoteItems || [];
   modal(
     t("dir.req.q.title"),
-    `<form id="ffRfqForm" class="modal-form ff-rfq-form" data-i18n="keys" data-action="rq.send" data-input="rq.total" data-id="${esc(id)}"><div class="ff-rfq-context"><span class="feature-icon">↗</span><span><b>${esc(x.service)}</b><small>${esc(x.customerCompany)} · ${
+    `<form id="ffRfqForm" class="modal-form ff-rfq-form" data-action="rq.send" data-input="rq.total" data-id="${esc(id)}"><div class="ff-rfq-context"><span class="feature-icon">↗</span><span><b>${esc(x.service)}</b><small>${esc(x.customerCompany)} · ${
       x.projectName ? esc(x.projectName) : dirk("req.general")
     }${x.taskName ? " · " + esc(x.taskName) : ""}</small></span></div><label>${q("response")}<textarea name="response" rows="3" maxlength="5000" required placeholder="${q("responseHint")}">${esc(x.response || "")}</textarea></label><div class="ff-quote-head"><div><h3>${q(
       "positions",
@@ -813,7 +810,7 @@ actions.on("rq.quote", async (el) => {
       "files",
     )}<input name="quoteFiles" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.xlsx,.docx,.csv" data-action="rq.files"><small>${q("filesHint")}</small></label><div id="ffQuoteFileList" class="ff-file-list"></div><div class="ff-quote-total">${q(
       "total",
-    )} <b id="ffQuoteTotal">${esc(fmt.money(0))}</b></div><div id="ffRfqError" class="form-error" data-i18n="dom" role="alert"></div><button class="btn primary">${q("send")}</button></form>`,
+    )} <b id="ffQuoteTotal">${esc(fmt.money(0))}</b></div><div id="ffRfqError" class="form-error" role="alert"></div><button class="btn primary">${q("send")}</button></form>`,
   );
   dirQuoteTotal();
 });

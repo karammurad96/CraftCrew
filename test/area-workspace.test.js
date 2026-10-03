@@ -103,11 +103,11 @@ describe("project workspace area (T128b)", () => {
       it(`draws the ${role} workspace in ${lang === "en" ? "English" : "German"} from keys`, async () => {
         const ctx = area(lang, role),
           html = await ctx.render();
-        assert.ok(html.startsWith(`[${role}:projects]<div data-i18n="keys" class="breadcrumb">`));
+        assert.ok(html.startsWith(`[${role}:projects]<div class="breadcrumb">`));
         assert.deepEqual(ctx.warnings, []);
         assert.doesNotMatch(text(html), /\bws\.[a-zA-Z.]+/, "raw key");
         assert.doesNotMatch(html, /\son[a-z]+="/, "no inline handlers");
-        for (const tab of ["overview", "tasks", "activity"]) assert.match(html, new RegExp(`<div data-i18n="keys" class="ds-ws-pane ds-ws-${tab}" data-tab="${tab}"`));
+        for (const tab of ["overview", "tasks", "activity"]) assert.match(html, new RegExp(`<div class="ds-ws-pane ds-ws-${tab}" data-tab="${tab}"`));
         if (lang === "de") assert.ok(html.includes("Als Nächstes") && html.includes("Projektphasen"));
       });
 
@@ -140,8 +140,8 @@ describe("project workspace area (T128b)", () => {
     assert.ok(html.includes("This task is overdue."));
     // Task time, activity, stored names keep the old translation
     assert.ok(html.includes("7.5 h"));
-    assert.ok(html.includes('<b><bdi data-i18n="dom">Task updated</bdi></b>'));
-    assert.ok(html.includes('<h3><bdi data-i18n="dom">Build &amp; integration</bdi></h3>'));
+    assert.ok(html.includes('<b><bdi>Task updated</bdi></b>'));
+    assert.ok(html.includes('<h3><bdi>Build &amp; integration</bdi></h3>'));
   });
 
   it("keeps the supplier away from the budget and project editing", async () => {
@@ -161,7 +161,7 @@ describe("project workspace area (T128b)", () => {
     const html = await area("en", "supplier", { proj: project({ involvement: "invited" }) }).render();
     assert.ok(!html.includes("ds-ws-tabs"));
     assert.ok(html.includes("You are invited to a task on this project."));
-    assert.ok(html.includes('<div data-i18n="keys" class="wf-stat-grid">'));
+    assert.ok(html.includes('<div class="wf-stat-grid">'));
     assert.doesNotMatch(html, /Compare offers/);
   });
 

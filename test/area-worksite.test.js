@@ -71,7 +71,7 @@ describe("work-site dialogs (T131b)", () => {
         for (const { body } of ctx.shown) {
           assert.doesNotMatch(text(body), /\bsite\.[a-zA-Z.]+/, "raw key");
           assert.doesNotMatch(body, /\son[a-z]+="/, "no inline handlers");
-          assert.match(body, /data-i18n="keys"/);
+          assert.doesNotMatch(body, /data-i18n/); // no markers of the old translation layer (T136)
         }
         const [dr, pu, ac] = ctx.shown.map((x) => x.body);
         if (role === "customer") {

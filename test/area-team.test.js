@@ -83,7 +83,7 @@ describe("team (T135b)", () => {
       assert.ok(html.includes("Something new"), "an unknown area shows the server's description");
       await vm.runInContext("tmForm(null)", ctx);
       const body = ctx.shown[0].body;
-      assert.match(body, /<form id="tmForm" class="modal-form" data-i18n="keys" data-action="team\.save" data-keys="projects,messages,newArea">/);
+      assert.match(body, /<form id="tmForm" class="modal-form" data-action="team\.save" data-keys="projects,messages,newArea">/);
       assert.match(body, /data-action="team\.preset" data-level="view"/);
       assert.doesNotMatch(body, /\son[a-z]+="/);
     });

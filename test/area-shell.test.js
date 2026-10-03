@@ -60,7 +60,7 @@ describe("app shell", () => {
       for (const role of ["customer", "supplier", "admin"]) {
         const ctx = shell(lang, { role, name: "Ann Example" }, `#/${role}/dashboard`),
           html = ctx.render(role, "dashboard");
-        assert.match(html, /<aside class="sidebar" id="mnavSidebar" data-i18n="keys">/);
+        assert.match(html, /<aside class="sidebar" id="mnavSidebar">/);
         assert.doesNotMatch(html.replace(/<[^>]*>/g, " "), /\bshell\.[a-zA-Z.]+/, `${role}: raw key`);
         assert.deepEqual(ctx.warnings, [], role);
         assert.doesNotMatch(html, /\son[a-z]+="/, "no inline handlers");

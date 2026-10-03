@@ -1,12 +1,13 @@
 /* Area: public pages (T126a). The landing page, pricing, how it works, FAQ and the legal pages, drawn with
-   translation keys. Every root sets data-i18n="keys", so the old DOM translation leaves them alone. */
+   translation keys. */
 
 // The supplier badge as shown to people: Gold/Silver/Bronze, otherwise verified or not yet
 function ccBadge(s) {
   if (s?.badge && s.badge !== "None") return t(`common.badge.${s.badge}`);
   return t(s?.verified || s?.live ? "common.badge.verified" : "common.badge.notVerified");
 }
-const pubKeys = (html) => `<div data-i18n="keys">${html}</div>`;
+// Each public page sits in one wrapper element, as it always has (the layout CSS expects it)
+const pubPage = (html) => `<div>${html}</div>`;
 
 /* ---------- Landing page (board Landing, T94) ---------- */
 async function pubHome() {
@@ -19,7 +20,7 @@ async function pubHome() {
     `<div class="ds-win-note"><span>${k("window." + kicker)}</span><b>${k("window." + title)}</b><small>${k("window." + sub)}</small></div>`;
   const tile = (name) => `<article class="ds-tile"><h3>${k("tiles." + name)}</h3><p>${k("tiles." + name + "Text")}</p></article>`;
   app.innerHTML = publicLayout(
-    pubKeys(`<div class="ds-landing">
+    pubPage(`<div class="ds-landing">
   <section class="ds-hero">
     <span class="ds-hero-kicker">${k("kicker")}</span>
     <h1>${k("title")}</h1>
@@ -88,7 +89,7 @@ function pubPricing() {
       .map((i) => `<li><span>${mark}</span>${esc(i)}</li>`)
       .join("");
   app.innerHTML = publicLayout(
-    pubKeys(
+    pubPage(
       `<div class="cc-page ff-pricing"><div class="eyebrow">${k("eyebrow")}</div><h1>${k("title")}</h1><p class="ff-intro">${k("intro")}</p><div class="ff-price-grid">${cards
         .map(
           (x) =>
@@ -111,7 +112,7 @@ function pubHowItWorks() {
     ["06", "close", "◇"],
   ];
   app.innerHTML = publicLayout(
-    pubKeys(
+    pubPage(
       `<div class="cc-page ff-how"><div class="eyebrow">${k("eyebrow")}</div><h1>${k("title")}</h1><p class="ff-intro">${k("intro")}</p><div class="ff-process-map" role="img" aria-label="${k("mapLabel")}">${steps
         .map(
           ([n, id, icon], i) =>
@@ -129,7 +130,7 @@ async function pubFaq() {
   if (cfg.faqContent) {
     // The operator writes this text in their own language; it is shown as written.
     app.innerHTML = publicLayout(
-      pubKeys(
+      pubPage(
         `<div class="cc-page"><div class="eyebrow">${k("helpEyebrow")}</div><h1>${k("helpTitle")}</h1><div class="panel"><p>${esc(cfg.faqContent).replaceAll("\n", "<br>")}</p><p>${k("moreHelp")} <a href="mailto:${esc(cfg.supportEmail)}">${esc(cfg.supportEmail)}</a>.</p></div></div>`,
       ),
     );
@@ -137,7 +138,7 @@ async function pubFaq() {
   }
   const card = (id) => `<div class="cc-card"><h3>${k(id)}</h3><p>${k(id + "Text")}</p></div>`;
   app.innerHTML = publicLayout(
-    pubKeys(
+    pubPage(
       `<div class="cc-page"><div class="eyebrow">${k("eyebrow")}</div><h1>${k("title")}</h1><div style="margin-top:30px"><div class="cc-grid">${["payment", "vetting", "bid", "documents"].map(card).join("")}</div></div></div>`,
     ),
   );
@@ -161,7 +162,7 @@ async function pubLegal(key) {
     <h3>${r("questions")}</h3>${cfg.supportEmail ? `<p><span>${r("contact")}</span> <a href="mailto:${esc(cfg.supportEmail)}">${esc(cfg.supportEmail)}</a></p>` : ""}<p>${r("complain")}</p></article>`
       : "";
   app.innerHTML = publicLayout(
-    pubKeys(
+    pubPage(
       `<div class="cc-page legal-page"><div class="eyebrow">${k("eyebrow")}</div><h1>${k(key)}</h1>${
         body
           ? `<article class="legal-body">${legalHtml(body)}</article>`

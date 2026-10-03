@@ -43,7 +43,6 @@ describe("the rest of the old layer uses keys (T135d)", () => {
       top = { dataset: {}, innerHTML: "" };
     ctx.els.topActions = top;
     vm.runInContext(read("app.js").match(/function topActions\(\) \{[\s\S]*?\n\}\nfunction uiStaticTexts\(\) \{[\s\S]*?\n\}/)[0] + ";function updateCraftCrewShell(){}; topActions();", ctx);
-    assert.equal(top.dataset.i18n, "keys");
     assert.match(top.innerHTML, /<small>Kunde<\/small>/);
     assert.match(top.innerHTML, /<a class="btn primary" href="#\/customer\/dashboard">Übersicht<\/a><button type="button" class="btn outline" data-action="ui\.signOut">Abmelden<\/button>/);
     assert.doesNotMatch(top.innerHTML, /\son[a-z]+="/);
@@ -52,7 +51,7 @@ describe("the rest of the old layer uses keys (T135d)", () => {
   it("draws the not-found page from keys", () => {
     const ctx = ctxFor("de", { role: "customer" });
     vm.runInContext(read("not-found.js").split("function sessionExpired")[0] + "; renderNotFound('invoices');", ctx);
-    assert.match(ctx.app.innerHTML, /data-i18n="keys"><h1>Rechnung nicht gefunden<\/h1>/);
+    assert.match(ctx.app.innerHTML, /<h1>Rechnung nicht gefunden<\/h1>/);
     assert.match(ctx.app.innerHTML, /href="#\/customer\/invoices">Zurück zu den Rechnungen<\/a><button type="button" class="btn outline" data-action="ui\.back">Zurück<\/button>/);
   });
 

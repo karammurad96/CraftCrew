@@ -49,7 +49,7 @@ async function ffOpenProtectedFile(url, title, download = false) {
     ffCloseFileViewer();
     document.body.insertAdjacentHTML(
       "beforeend",
-      `<div id="ffFileViewer" class="ff-file-viewer" role="dialog" aria-modal="true" aria-label="${ffEsc(title)}" data-i18n="keys"><div class="ff-file-viewer-box"><div class="ff-evidence-bar"><b>${ffEsc(title || name)}</b><span><a class="btn small outline" href="${objectUrl}" download="${ffEsc(name)}">${esc(t("ui.file.download"))}</a><button type="button" class="btn small primary" data-action="ui.closeFile">${esc(t("common.close"))}</button></span></div>${blob.type.startsWith("image/") ? `<img src="${objectUrl}" alt="${ffEsc(title)}">` : `<iframe src="${objectUrl}" title="${ffEsc(title)}"></iframe>`}</div></div>`,
+      `<div id="ffFileViewer" class="ff-file-viewer" role="dialog" aria-modal="true" aria-label="${ffEsc(title)}"><div class="ff-file-viewer-box"><div class="ff-evidence-bar"><b>${ffEsc(title || name)}</b><span><a class="btn small outline" href="${objectUrl}" download="${ffEsc(name)}">${esc(t("ui.file.download"))}</a><button type="button" class="btn small primary" data-action="ui.closeFile">${esc(t("common.close"))}</button></span></div>${blob.type.startsWith("image/") ? `<img src="${objectUrl}" alt="${ffEsc(title)}">` : `<iframe src="${objectUrl}" title="${ffEsc(title)}"></iframe>`}</div></div>`,
     );
     const v = document.getElementById("ffFileViewer");
     v.dataset.objectUrl = objectUrl;

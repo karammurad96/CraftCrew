@@ -183,7 +183,7 @@ async function oflRender() {
     : needsAttention
       ? t.plural("ui.ofl.attention", items.length)
       : t.plural("ui.ofl.sending", items.length);
-  const html = `<div id="oflBar" class="ofl-bar ${needsAttention ? "ofl-warn" : ""}" role="status" data-i18n="keys"><span>${esc(text)}</span>${
+  const html = `<div id="oflBar" class="ofl-bar ${needsAttention ? "ofl-warn" : ""}" role="status"><span>${esc(text)}</span>${
     items.length ? `<button type="button" class="btn small outline" data-action="ofl.panel">${esc(t("ui.ofl.review"))}</button>` : ""
   }</div>`;
   if (existing) existing.outerHTML = html;
@@ -198,12 +198,12 @@ async function oflPanel() {
     o = (key) => esc(t("ui.ofl." + key));
   modal(
     t("ui.ofl.title"),
-    `<div data-i18n="keys"><p class="subtle">${o(navigator.onLine ? "auto" : "later")}</p><ul class="ofl-list">${
+    `<div><p class="subtle">${o(navigator.onLine ? "auto" : "later")}</p><ul class="ofl-list">${
       items
         .map(
           (i) =>
             `<li class="ofl-item ${i.error ? "ofl-item-error" : ""}"><div><b>${esc(oflLabel(i.path))}</b><small>${esc(new Date(i.createdAt).toLocaleString(fmt.locale()))}</small>${
-              i.error ? `<small class="ofl-error" data-i18n="dom">${esc(i.error)}</small>` : ""
+              i.error ? `<small class="ofl-error">${esc(i.error)}</small>` : ""
             }</div><button type="button" class="btn small outline" data-action="ofl.discard" data-id="${esc(i.id)}">${o("discard")}</button></li>`,
         )
         .join("") || `<li class="pa-empty">${o("nothing")}</li>`

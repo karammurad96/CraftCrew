@@ -7945,7 +7945,8 @@ function trackAudit(req, res, url) {
 /* Browser security headers for pages and assets. HSTS is sent once the site is reached over HTTPS. */
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  "script-src 'self'",
+  // Scripts only from this site, no inline scripts or handlers (T136). Styles keep 'unsafe-inline' for style= attributes.
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self'",
   "img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.openstreetmap.org",

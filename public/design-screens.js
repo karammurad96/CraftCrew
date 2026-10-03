@@ -1,14 +1,14 @@
-/* Design 2026 screens layer (T92 onwards). Loaded after invitations.js and before i18n.js.
+/* Design 2026 screens layer (T92 onwards). Loaded after the areas, last of all scripts but core/boot.js.
    Pages are changed by wrapping their last renderer or by small enhancers that run after every render.
    Every enhancer is safe to run twice: finished nodes are marked with data-ds="1". */
 
-/* English original of a node's text, even after i18n.js translated it. */
+/* A node's text, without extra white space. */
 function dsText(el) {
   if (!el) return "";
   const parts = [];
   const walk = (n) => {
     if (n.nodeType === 3)
-      parts.push((typeof I18N_ORIGINAL !== "undefined" && I18N_ORIGINAL.get(n)) || n.textContent);
+      parts.push(n.textContent);
     else if (n.nodeType === 1) n.childNodes.forEach(walk);
   };
   walk(el);
@@ -47,7 +47,7 @@ function dsEnhanceChips(root) {
 }
 
 /* ---------- Destructive actions: red text, no fill (they keep their confirmation) ---------- */
-// English, and German for pages drawn from translation keys (their text is not translated by i18n.js)
+// English and German button texts
 const DS_DESTRUCTIVE = /^(reject|delete|delete .*|remove|archive|archive project|ablehnen|löschen|.* löschen|entfernen|archivieren|projekt archivieren)$/i;
 function dsEnhanceButtons(root) {
   root.querySelectorAll(".btn:not([data-ds-danger])").forEach((b) => {

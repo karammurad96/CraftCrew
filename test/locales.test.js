@@ -200,12 +200,4 @@ describe("route table", () => {
     // The registry writes one script tag per language right after itself (T137)
     assert.match(read("core/languages.js"), /document\.write\(`<script src="locales\/\$\{l\.code\}\.js"><\/script>`\)/);
   });
-
-  it("keeps the DOM translation away from pages that use keys", () => {
-    const src = read("i18n.js");
-    // The nearest data-i18n decides: "keys" pages are skipped, "dom" spots inside them (server messages) are not
-    assert.ok(src.includes('const i18nKeyPage = (el) => el.closest("[data-i18n]")?.dataset.i18n === "keys";'));
-    assert.ok(src.includes("i18nKeyPage(p)"));
-    assert.ok(src.includes('for (const attr of i18nKeyPage(el) ? [] : ["placeholder", "title", "aria-label"])'));
-  });
 });

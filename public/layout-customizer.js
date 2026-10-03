@@ -17,9 +17,7 @@ async function lcLoad() {
   return lcLayouts;
 }
 /* Stable keys: a card is identified by its heading or label text; a section by its class or heading. */
-// Uses the original (English) text even after the German translation has replaced it.
-const lcOriginal = (node) =>
-  node ? (typeof I18N_ORIGINAL !== "undefined" && I18N_ORIGINAL.get(node)) || node.textContent : "";
+const lcOriginal = (node) => (node ? node.textContent : "");
 const lcText = (el) => {
   const h = el.querySelector("h3, .cc-label, .stats span, span.cc-label, h2") || el.querySelector("span");
   const node = h && [...h.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
@@ -132,13 +130,13 @@ function lcStart() {
   document.querySelector(".lc-toggle")?.setAttribute("hidden", "");
   content.insertAdjacentHTML(
     "afterbegin",
-    `<div class="lc-bar" role="region" aria-label="${lk("editor")}" data-i18n="keys"><div><b>${lk("title")}</b><small>${lk("hint")}</small></div><div class="cc-actions"><button type="button" class="btn outline" data-action="lc.reset">${lk("reset")}</button><button type="button" class="btn outline" data-action="lc.cancel">${lk("cancel")}</button><button type="button" class="btn primary" data-action="lc.done">${lk("done")}</button></div></div>`,
+    `<div class="lc-bar" role="region" aria-label="${lk("editor")}"><div><b>${lk("title")}</b><small>${lk("hint")}</small></div><div class="cc-actions"><button type="button" class="btn outline" data-action="lc.reset">${lk("reset")}</button><button type="button" class="btn outline" data-action="lc.cancel">${lk("cancel")}</button><button type="button" class="btn primary" data-action="lc.done">${lk("done")}</button></div></div>`,
   );
   lcSections().forEach((s, i) => {
     lcSectionKey(s, i);
     s.insertAdjacentHTML(
       "afterbegin",
-      `<div class="lc-section-tools" data-i18n="keys"><button type="button" class="lc-tool" title="${lk("up")}" data-action="lc.move" data-dir="-1">↑</button><button type="button" class="lc-tool" title="${lk("down")}" data-action="lc.move" data-dir="1">↓</button>${s.matches(LC_GRIDS) ? "" : `<button type="button" class="lc-tool" title="${lk("hideSection")}" data-action="lc.toggleSection">👁</button>`}</div>`,
+      `<div class="lc-section-tools"><button type="button" class="lc-tool" title="${lk("up")}" data-action="lc.move" data-dir="-1">↑</button><button type="button" class="lc-tool" title="${lk("down")}" data-action="lc.move" data-dir="1">↓</button>${s.matches(LC_GRIDS) ? "" : `<button type="button" class="lc-tool" title="${lk("hideSection")}" data-action="lc.toggleSection">👁</button>`}</div>`,
     );
   });
   lcGrids().forEach((g, gi) => {
@@ -149,7 +147,7 @@ function lcStart() {
       card.draggable = true;
       card.insertAdjacentHTML(
         "afterbegin",
-        `<div class="lc-card-tools" data-i18n="keys"><span class="lc-grip" aria-hidden="true">⠿</span><button type="button" class="lc-tool" title="${lk("hideCard")}" data-action="lc.toggleCard">👁</button></div>`,
+        `<div class="lc-card-tools"><span class="lc-grip" aria-hidden="true">⠿</span><button type="button" class="lc-tool" title="${lk("hideCard")}" data-action="lc.toggleCard">👁</button></div>`,
       );
       card.addEventListener("dragstart", lcDragStart);
       card.addEventListener("dragend", lcDragEnd);

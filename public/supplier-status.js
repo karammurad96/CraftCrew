@@ -36,7 +36,7 @@ function ssDecorate(status) {
         : [t(app.status === "Rejected" ? "ui.ss.again" : "ui.ss.view"), t("ob.supplier.verify.status", { status: obValue("status", app.status || "New") })];
     content.insertAdjacentHTML(
       "afterbegin",
-      `<div class="notice warn ss-banner" role="status" data-i18n="keys"><div><b>${esc(t("ui.ss.banner"))}</b>${detail ? `<small>${esc(detail)}</small>` : ""}</div><a class="btn small primary" href="#/supplier-application">${esc(label)}</a></div>`,
+      `<div class="notice warn ss-banner" role="status"><div><b>${esc(t("ui.ss.banner"))}</b>${detail ? `<small>${esc(detail)}</small>` : ""}</div><a class="btn small primary" href="#/supplier-application">${esc(label)}</a></div>`,
     );
   }
   const locked = [

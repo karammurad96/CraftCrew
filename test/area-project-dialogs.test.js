@@ -89,7 +89,7 @@ describe("project dialogs (T128d)", () => {
       for (const { title, body } of ctx.shown) {
         assert.doesNotMatch(title + text(body), /\bdlg\.[a-zA-Z.]+/, "raw key");
         assert.doesNotMatch(body, /\son[a-z]+="/, "no inline handlers");
-        assert.match(body, /data-i18n="keys"/);
+        assert.doesNotMatch(body, /data-i18n/); // no markers of the old translation layer (T136)
       }
       assert.deepEqual(ctx.warnings, []);
       if (lang === "de") {

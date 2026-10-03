@@ -2,7 +2,6 @@
    view-only or full access. Members see only the areas they may use; the server enforces every limit. Drawn with
    translation keys; names, emails and job titles are data. Area descriptions are keys per role. */
 const teamk = (key, params) => esc(t("team." + key, params));
-const teamKeys = (html) => html.replace(/^<(\w+)/, '<$1 data-i18n="keys"');
 const TM_LEVELS = ["none", "view", "full"];
 // Sidebar entry → access area. Entries not listed (dashboard, inbox, suppliers, profile) stay visible.
 const TM_NAV = {
@@ -91,7 +90,6 @@ async function tmPage() {
         : "",
     ]
       .filter(Boolean)
-      .map(teamKeys)
       .join(""),
   );
 }
@@ -106,7 +104,7 @@ async function tmForm(member) {
   const perms = member?.permissions || Object.fromEntries(keys.map((k) => [k, k === "settings" ? "none" : k === "messages" ? "full" : "view"]));
   modal(
     member ? t("team.form.editTitle", { name: member.name }) : t("team.form.inviteTitle"),
-    `<form id="tmForm" class="modal-form" data-i18n="keys" data-action="team.save" data-keys="${esc(keys.join(","))}"><div class="two"><label>${f("name")}<input name="name" required value="${esc(member?.name || "")}" autocomplete="off"></label><label>${f(
+    `<form id="tmForm" class="modal-form" data-action="team.save" data-keys="${esc(keys.join(","))}"><div class="two"><label>${f("name")}<input name="name" required value="${esc(member?.name || "")}" autocomplete="off"></label><label>${f(
       "email",
     )}<input name="email" type="email" required value="${esc(member?.email || "")}" ${member ? "disabled" : ""} autocomplete="off"></label></div><label>${f("jobTitle")} <small class="subtle">${f("optional")}</small><input name="jobTitle" value="${esc(
       member?.jobTitle || "",
@@ -119,7 +117,7 @@ async function tmForm(member) {
             (v) => `<label class="tm-seg-opt tm-${v}"><input type="radio" name="p_${k}" value="${v}" ${perms[k] === v ? "checked" : ""}><span>${teamk("level." + v)}</span></label>`,
           ).join("")}</div></div>`,
       )
-      .join("")}</div></fieldset><div id="tmError" class="form-error" data-i18n="dom"></div><button class="btn primary">${f(member ? "save" : "send")}</button></form>`,
+      .join("")}</div></fieldset><div id="tmError" class="form-error"></div><button class="btn primary">${f(member ? "save" : "send")}</button></form>`,
   );
 }
 actions.on("team.invite", () => tmForm(null));
@@ -150,7 +148,7 @@ actions.on("team.save", async (form) => {
     const c = (key, params) => teamk("cred." + key, params);
     modal(
       t("team.cred.title"),
-      `<div class="modal-form" data-i18n="keys"><p>${c("lead", { name: r.member.name })}</p><div class="tm-cred"><div><span class="cc-label">${c("email")}</span><b>${esc(r.member.email)}</b></div><div><span class="cc-label">${c(
+      `<div class="modal-form"><p>${c("lead", { name: r.member.name })}</p><div class="tm-cred"><div><span class="cc-label">${c("email")}</span><b>${esc(r.member.email)}</b></div><div><span class="cc-label">${c(
         "password",
       )}</span><code id="tmTemp">${esc(r.temporaryPassword)}</code></div></div><div class="cc-actions"><button type="button" class="btn outline" data-action="team.copy">${c("copy")}</button><button type="button" class="btn primary" data-action="team.done">${c(
         "done",
@@ -203,7 +201,7 @@ function tmViewHint(parts) {
   const area = TM_NAV[state.user.role]?.[parts[1]],
     top = document.querySelector(".dashboard-content .dash-top");
   if (area && tmLevel(area) === "view" && top && !document.querySelector(".tm-view-hint")) {
-    top.insertAdjacentHTML("afterend", `<div class="notice tm-view-hint" data-i18n="keys">${teamk("viewOnly")}</div>`);
+    top.insertAdjacentHTML("afterend", `<div class="notice tm-view-hint">${teamk("viewOnly")}</div>`);
     // The page's main create action would only be refused.
     top.querySelectorAll(".btn.primary").forEach((b) => (b.hidden = true));
   }

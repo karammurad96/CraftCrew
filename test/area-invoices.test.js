@@ -98,7 +98,7 @@ describe("invoices (T130a)", () => {
         for (const html of pages) {
           assert.doesNotMatch(text(html), /\binv\.[a-zA-Z.]+/, "raw key");
           assert.doesNotMatch(html, /\son[a-z]+="/, "no inline handlers");
-          assert.match(html, /data-i18n="keys"/);
+          assert.doesNotMatch(html, /data-i18n/); // no markers of the old translation layer (T136)
         }
         if (lang === "de") {
           assert.ok(pages[0].includes('<option value="Approved">Freigegeben</option>') && pages[0].includes('<option value="All">Alle</option>'));
@@ -108,7 +108,7 @@ describe("invoices (T130a)", () => {
 
   it("lays out the paper and the review panel with checks, what changed and the due date (T101, T108)", async () => {
     const html = await area("en").render("#/customer/invoice/inv1");
-    assert.ok(html.includes('<div data-i18n="keys" class="ds-inv-cols">') && html.includes('<article class="ds-paper">'));
+    assert.ok(html.includes('<div class="ds-inv-cols">') && html.includes('<article class="ds-paper">'));
     assert.ok(html.includes("Within order cap") && html.includes("18 % used"));
     assert.ok(html.includes("More hours than approved time") && html.includes("50 h of 7.5 h"));
     assert.ok(html.includes("Partial invoice") && html.includes("task 55 % done"));
@@ -158,7 +158,7 @@ describe("invoices (T130a)", () => {
     assert.equal(title, "Rechnung erstellen");
     assert.ok(body.includes('<option value="p1|ph1|t1" selected>Line 4 — Build — Robot cell</option>'));
     assert.ok(body.includes('<option value="reverseCharge13b">Steuerschuldnerschaft des Leistungsempfängers (§13b UStG)</option>'));
-    assert.ok(body.includes('<option value="hours">Stunden</option>') && body.includes('<select name="service" required data-i18n="dom">'));
+    assert.ok(body.includes('<option value="hours">Stunden</option>') && body.includes('<select name="service" required>'));
     assert.ok(body.includes("Unternehmensprofil öffnen"), "asks for the tax data first");
     assert.match(body, /<form id="invF" class="modal-form" data-action="inv\.submit" data-input="inv\.newTotal">/);
     assert.doesNotMatch(body, /\son[a-z]+="/);

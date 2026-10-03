@@ -3,8 +3,7 @@
    the contract form. Drawn with translation keys; titles, company names and categories are data. The approvals
    inbox stays in sourcing-ui.js until its invoice, time and compliance rows move (T133). */
 const srk = (key, params) => esc(t("src." + key, params));
-const srDom = (text) => `<bdi data-i18n="dom">${esc(text)}</bdi>`;
-const srKeys = (html) => html.replace(/^<(\w+)/, '<$1 data-i18n="keys"');
+const srDom = (text) => `<bdi>${esc(text)}</bdi>`;
 const srStatus = (s) => (OF_STATUSES.includes(s) ? ofk("statuses." + s) : srDom(s));
 const srRisk = (l) => (["Low", "Medium", "High"].includes(l) ? srk("risk." + l) : srDom(l));
 const SR_CONTRACT_STATES = ["Draft", "Active", "Expiring", "Expired", "Terminated"];
@@ -64,7 +63,7 @@ const srScoreBar = (s) =>
 function srScorecardTable(cards) {
   const c = (key) => srk("card." + key),
     pct = (v) => (v === null || v === undefined ? "—" : `${v}%`);
-  return `<div class="cc-table-wrap" data-i18n="keys"><table class="cc-table sr-table"><thead><tr><th>${c("supplier")}</th><th>${c("score")}</th><th>${c("rating")}</th><th>${c("onTime")}</th><th>${c(
+  return `<div class="cc-table-wrap"><table class="cc-table sr-table"><thead><tr><th>${c("supplier")}</th><th>${c("score")}</th><th>${c("rating")}</th><th>${c("onTime")}</th><th>${c(
     "firstTime",
   )}</th><th>${c("response")}</th><th>${c("risk")}</th></tr></thead><tbody>${
     [...cards]
@@ -130,8 +129,8 @@ async function srDashboard() {
       `<section class="panel"><div class="panel-title"><h3>${d("events")}</h3></div><div class="cc-table-wrap"><table class="cc-table sr-table"><thead><tr>${["colEvent", "colCategory", "colProject", "colBaseline", "colBids", "colDeadline", "colStatus"]
         .map((k) => `<th>${d(k)}</th>`)
         .join("")}<th></th></tr></thead><tbody>${bids.map(row).join("") || `<tr><td colspan="8">${tHtml("src.dash.empty", { requestBids: `<b>${d("requestBids")}</b>` })}</td></tr>`}</tbody></table></div></section>`,
-      // The donut comes from the analytics helpers, still on the old translation
-      `<div class="in-grid"><section class="panel"><div class="panel-title"><h3>${d("spend")}</h3></div><div data-i18n="dom">${inDonut(inTopN(byCategory), t("src.dash.categories"))}</div></section>
+      // The donut comes from the analytics helpers
+      `<div class="in-grid"><section class="panel"><div class="panel-title"><h3>${d("spend")}</h3></div><div>${inDonut(inTopN(byCategory), t("src.dash.categories"))}</div></section>
     <section class="panel"><div class="panel-title"><h3>${d("renewingTitle")}</h3><a href="#/customer/contracts">${d("allContracts")}</a></div>${
       renewing
         .map(
@@ -144,7 +143,6 @@ async function srDashboard() {
     }</section></div>`,
       `<section class="panel"><div class="panel-title"><h3>${d("scorecards")}</h3><small class="subtle">${d("scorecardsHint")}</small></div>${srScorecardTable(scorecards)}</section>`,
     ]
-      .map(srKeys)
       .join("\n    "),
   );
 }
@@ -162,7 +160,7 @@ async function srEvent(bidId) {
   const bid = bids.find((b) => b.id === bidId),
     e = (key, params) => srk("ev." + key, params);
   if (!bid) {
-    app.innerHTML = dashboardShell("customer", "sourcing", `<div class="panel" data-i18n="keys"><h2>${e("notFound")}</h2><a href="#/customer/sourcing">${e("backTo")}</a></div>`);
+    app.innerHTML = dashboardShell("customer", "sourcing", `<div class="panel"><h2>${e("notFound")}</h2><a href="#/customer/sourcing">${e("backTo")}</a></div>`);
     return;
   }
   // Jobs with this customer: projects where the supplier accepted a task
@@ -199,7 +197,6 @@ async function srEvent(bidId) {
       `<section class="panel"><div class="panel-title"><h3>${e("ranked")}</h3><span class="ui-count">${(bid.offers || []).length}</span></div><div id="srResults"></div></section>`,
     ]
       .filter(Boolean)
-      .map(srKeys)
       .join("\n    "),
   );
   document.querySelector(".dashboard-content")?.classList.add("ds-compare");
@@ -390,7 +387,6 @@ async function srContracts(role, query) {
         "colTerm",
       )}</th><th>${c("colNotice")}</th><th>${c("colStatus")}</th>${customer ? "<th></th>" : ""}</tr></thead><tbody>${list.map(row).join("") || `<tr><td colspan="7">${c(customer ? "emptyCustomer" : "emptySupplier")}</td></tr>`}</tbody></table></div></section>`,
     ]
-      .map(srKeys)
       .join("\n    "),
   );
 }
@@ -402,7 +398,7 @@ async function srContractForm(id) {
     opt = (value, label, on) => `<option value="${esc(value)}"${on ? " selected" : ""}>${label}</option>`;
   modal(
     t(id ? "src.con.editTitle" : "src.con.newTitle"),
-    `<form id="srContractForm" class="modal-form" data-i18n="keys" data-action="src.saveContract" data-id="${esc(id || "")}"><label>${c("name")}<input name="title" value="${esc(x.title || "")}" required></label><div class="two"><label>${c(
+    `<form id="srContractForm" class="modal-form" data-action="src.saveContract" data-id="${esc(id || "")}"><label>${c("name")}<input name="title" value="${esc(x.title || "")}" required></label><div class="two"><label>${c(
       "supplier",
     )}<select name="supplierId"${lock} required>${opt("", c("choose"))}${suppliers.map((s) => opt(s.id, esc(s.company), s.id === x.supplierId)).join("")}</select></label><label>${c("project")}<select name="projectId"${lock}>${opt(
       "",
@@ -417,7 +413,7 @@ async function srContractForm(id) {
       x.autoRenew ? " checked" : ""
     }> ${c("autoRenew")}</label><label>${c("terms")}<textarea name="terms" rows="3">${esc(x.terms || "")}</textarea></label><label>${c("file")}<input name="file" type="file" accept=".pdf"></label>${
       x.documentUrl ? `<a href="${esc(x.documentUrl)}">${c("current")}</a>` : ""
-    }<div id="srContractError" class="form-error" data-i18n="dom"></div><button class="btn primary">${c(id ? "save" : "create")}</button></form>`,
+    }<div id="srContractError" class="form-error"></div><button class="btn primary">${c(id ? "save" : "create")}</button></form>`,
   );
 }
 actions.on("src.contract", (el) => srContractForm(el.dataset.id || ""));

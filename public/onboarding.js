@@ -77,7 +77,7 @@ async function obChecklist() {
   const compact = done > 0;
   const o = (key, params) => esc(t("ob." + key, params)),
     first = state.user.name ? state.user.name.split(" ")[0] : "";
-  const html = `<section class="panel ob-checklist${compact ? " ob-compact" : ""}" data-i18n="keys"><div class="ob-check-head"><div><div class="eyebrow">${o("eyebrow")}</div><h3>${
+  const html = `<section class="panel ob-checklist${compact ? " ob-compact" : ""}"><div class="ob-check-head"><div><div class="eyebrow">${o("eyebrow")}</div><h3>${
     compact ? `<span>${o("progress", { done, n: steps.length })}</span>${next ? ` — <span>${o("next")}</span> <span>${esc(next.title)}</span>` : ""}` : first ? o("welcomeName", { name: first }) : o("welcome")
   }</h3></div><div class="ob-progress" title="${o("progressTip", { done, n: steps.length })}"><i style="width:${(done / steps.length) * 100}%"></i></div><span class="ob-count">${done}/${steps.length}</span>${
     compact && next ? `<a class="btn small primary ob-next" href="#${next.link}">${esc(next.cta)}</a><button type="button" class="ui-link-btn" aria-expanded="false" data-action="ob.toggle">${o("showAll")}</button>` : ""

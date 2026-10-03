@@ -54,14 +54,6 @@ describe("design 2026", () => {
     assert.ok(index.lastIndexOf("</style>") < index.indexOf("design-2026.css"));
   });
 
-  it("translates fixed labels inside .ds-ui", () => {
-    const scope = read("i18n.js").match(/const I18N_UI_SCOPE =\s*"([^"]+)"/)[1];
-    assert.ok(
-      scope.split(",").map((s) => s.trim()).includes(".ds-ui"),
-      ".ds-ui is missing from I18N_UI_SCOPE",
-    );
-  });
-
   it("draws every .brand-mark with the Flow mark (T91)", () => {
     const { readdirSync } = require("node:fs");
     const FLOW =
@@ -84,11 +76,11 @@ describe("design 2026", () => {
     assert.ok(marks >= 4, `expected at least 4 logos (page header and footer, sign-in, shell), found ${marks}`);
   });
 
-  it("loads design-screens.js after invitations.js and before i18n.js", () => {
+  it("loads design-screens.js after invitations.js and the areas, before core/boot.js", () => {
     const scripts = [...index.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]);
     const at = scripts.indexOf("design-screens.js");
     assert.ok(at > scripts.indexOf("invitations.js"), "design-screens.js must follow invitations.js");
-    assert.ok(at < scripts.indexOf("i18n.js"), "design-screens.js must come before i18n.js");
+    assert.deepEqual(scripts.slice(at + 1), ["core/boot.js"], "only core/boot.js comes after design-screens.js");
   });
 
   it("tints status chips by meaning (T92)", () => {
@@ -117,12 +109,6 @@ describe("design 2026", () => {
     // Unknown text falls back to the class.
     assert.equal(ctx.dsTone(chip("Something", "in-progress")), "blue");
     // The days-late text moved to the invoice keys (inv.time.late, T135d)
-  });
-
-  it("has German for the late chip (T92)", () => {
-    const src = read("i18n.js");
-    assert.match(src, /"1 day late": "1 Tag verspätet"/);
-    assert.match(src, /\[\/\^\(\\d\+\) days late\$\/, "\$1 Tage verspätet"\]/);
   });
 
   it("loads design-screens.css right after design-2026.css (T93)", () => {
@@ -172,14 +158,12 @@ describe("design 2026", () => {
 
   it("explains the GDPR self-service on the privacy page and lists pending deletions for admins (T123)", () => {
     // The privacy page itself moved to the public area (T126a, test/area-public.test.js)
-    const de = read("i18n.js"),
-      en = read("locales/en.js");
+    const en = read("locales/en.js");
     for (const t of ["deleted after 14 days", "kept for 10 years (§ 147 AO, § 14b UStG)", "Download my data"]) assert.ok(en.includes(t), t);
     // The pending deletions moved to the admin area (T134a), the self-service panel to the profile area (T135a)
-    assert.ok(de.includes('"Deleted user": "Gelöschter Nutzer"'));
   });
 
   it("uses a new service worker cache so installed apps load the new files", () => {
-    assert.match(read("sw.js"), /const CACHE = "craftcrew-shell-v2"/);
+    assert.match(read("sw.js"), /const CACHE = "craftcrew-shell-v3"/);
   });
 });

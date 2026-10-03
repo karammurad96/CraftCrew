@@ -1,7 +1,13 @@
 // Shared UI improvements and completed marketplace flows.
-function modal(title, body) {
-  modalRoot.innerHTML = `<div class="modal-backdrop" id="mb" onclick="if(event.target===this){closeModal();if(location.hash.split('?')[0]==='#/supplier/invoices/new')navigate('/supplier/invoices')}"><div class="modal" onclick="event.stopPropagation()"><div class="modal-head"><h2>${esc(title)}</h2><button class="close" type="button" aria-label="Close" onclick="closeModal()">×</button></div>${body}</div></div>`;
-}
+
+// Dialogs (modal() in app.js): × closes, and so does a click on the backdrop outside the dialog. The new-invoice
+// page is a dialog over the invoice list, so closing it goes back to the list.
+actions.on("ui.modalClose", () => closeModal());
+actions.on("ui.modalBackdrop", (el, event) => {
+  if (event.target !== el) return;
+  closeModal();
+  if (location.hash.split("?")[0] === "#/supplier/invoices/new") navigate("/supplier/invoices");
+});
 
 async function route() {
   topActions();
@@ -16,7 +22,7 @@ async function route() {
   } catch (e) {
     console.error(e);
     toast(e.message, "error");
-    const content = `<div class="empty" data-i18n="keys"><h2>${esc(t("errors.pageFailed"))}</h2><p data-i18n="dom">${esc(e.message)}</p><button class="btn primary" data-action="ui.retry">${esc(t("ui.retry"))}</button></div>`,
+    const content = `<div class="empty"><h2>${esc(t("errors.pageFailed"))}</h2><p>${esc(e.message)}</p><button class="btn primary" data-action="ui.retry">${esc(t("ui.retry"))}</button></div>`,
       active =
         parts[0] === state.user?.role
           ? parts[1] === "invoices"

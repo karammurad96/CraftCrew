@@ -91,7 +91,7 @@ describe("projects area (T128a)", () => {
         assert.deepEqual(ctx.warnings, []);
         assert.doesNotMatch(text(html), /\bprojects\.[a-zA-Z.]+/, "raw key");
         assert.doesNotMatch(html, /\son[a-z]+="/, "no inline handlers");
-        assert.match(html, /^\[[a-z]+:[a-z]+\]<div (data-i18n="keys" class="dash-top"|class="form-card pa-new-project" data-i18n="keys")>/);
+        assert.match(html, /^\[[a-z]+:[a-z]+\]<div (class="dash-top"|class="form-card pa-new-project")>/);
         if (lang === "de") assert.ok(/Projekte|Neues Projekt anlegen|Zugewiesene Arbeit/.test(html));
       });
 
@@ -100,7 +100,7 @@ describe("projects area (T128a)", () => {
       html = await ctx.render();
     assert.ok(ctx.calls.some((c) => c[1] === "/projects?archived=1"));
     assert.ok(html.includes('<a class="cc-card click project-card" href="#/customer/projects/p1">'));
-    assert.ok(html.includes('<span class="status in-progress" data-i18n="dom">In Progress</span>'));
+    assert.ok(html.includes('<span class="status in-progress">In Progress</span>'));
     assert.ok(html.includes("33% complete") && html.includes("Due 29 Oct 2026"));
     assert.match(html, /data-action="projects\.archived" checked>/);
     ctx.run("projects.archived", { checked: false });
@@ -111,7 +111,7 @@ describe("projects area (T128a)", () => {
     const ctx = area("de", "customer", "#/customer/projects/new"),
       html = await ctx.render();
     assert.ok(html.includes('<option value="robotcell">Roboterzelle / Automatisierungszelle</option>'));
-    assert.ok(html.includes('<b>1. <span data-i18n="dom">Design</span></b><small><span data-i18n="dom">Concept &amp; specification</span></small>'));
+    assert.ok(html.includes('<b>1. <span>Design</span></b><small><span>Concept &amp; specification</span></small>'));
     ctx.elements.paTemplatePreview = { innerHTML: "" };
     ctx.run("projects.template", { value: "retrofit" }, { type: "change" });
     assert.match(ctx.elements.paTemplatePreview.innerHTML, /Retrofit execution/);

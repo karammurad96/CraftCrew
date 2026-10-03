@@ -3,8 +3,7 @@
    audit log and platform management (T134b). Drawn with translation keys; company names, people, addresses, notes,
    file names, emails and audit entries are data. reviewApplication stays: the admin dashboard opens it. */
 const adk = (key, params) => esc(t("adm." + key, params));
-const adKeys = (html) => html.replace(/^<(\w+)/, '<$1 data-i18n="keys"');
-const adDom = (text) => `<bdi data-i18n="dom">${esc(text)}</bdi>`;
+const adDom = (text) => `<bdi>${esc(text)}</bdi>`;
 // A known value shows from its key; anything else (older data) shows as it is, translated by the old layer
 const adValue = (group, value) => (typeof ccLookup("en", `adm.${group}.${value}`) === "string" ? adk(`${group}.${value}`) : adDom(value));
 const adOptions = (group, values, current) => values.map((x) => `<option value="${esc(x)}" ${x === current ? "selected" : ""}>${adk(`${group}.${x}`)}</option>`).join("");
@@ -27,7 +26,6 @@ async function adminApplications() {
         applications.map(row).join("") || `<tr><td colspan="5">${adk("apps.none")}</td></tr>`
       }</tbody></table></div></section>`,
     ]
-      .map(adKeys)
       .join(""),
   );
 }
@@ -76,7 +74,7 @@ async function reviewApplication(id) {
   const btn = (status, cls, label) => `<button type="button" class="btn ${cls}" data-action="adm.vet" data-id="${esc(id)}" data-status="${status}">${f(label)}</button>`;
   modal(
     t("adm.file.title"),
-    `<div data-i18n="keys"><div class="cc-vetting-flow">${["application", "verification", "references", "manual"].map((k, n) => `<span class="on">${n + 1} ${f("flow." + k)}</span>`).join("")}<span>5 ${f("flow.decision")}</span></div><div class="cc-vetting-grid"><section class="panel"><h3>${f(
+    `<div><div class="cc-vetting-flow">${["application", "verification", "references", "manual"].map((k, n) => `<span class="on">${n + 1} ${f("flow." + k)}</span>`).join("")}<span>5 ${f("flow.decision")}</span></div><div class="cc-vetting-grid"><section class="panel"><h3>${f(
       "capability",
     )}</h3><dl>${facts.map(([k, val]) => `<div><dt>${f("fact." + k)}</dt><dd>${val}</dd></div>`).join("")}</dl></section><section class="panel"><h3>${f("evidence")}</h3>${
       files.map(fileButton).join("") || `<p class="subtle">${f("noEvidence")}</p>`
@@ -96,7 +94,7 @@ async function reviewApplication(id) {
       "riskNotes",
     )}<textarea name="riskNotes" rows="3" maxlength="3000">${esc(v.riskNotes || "")}</textarea></label><label>${f("decisionNote")}<textarea name="decisionNote" rows="2" maxlength="3000">${esc(
       a.decisionNote || "",
-    )}</textarea></label><div id="ccVettingError" class="form-error" role="alert" data-i18n="dom"></div><div class="cc-actions">${a.status === "On Hold" ? btn("New", "outline", "requeue") : ""}${btn("", "outline", "save")}${btn("On Hold", "outline", "hold")}${btn(
+    )}</textarea></label><div id="ccVettingError" class="form-error" role="alert"></div><div class="cc-actions">${a.status === "On Hold" ? btn("New", "outline", "requeue") : ""}${btn("", "outline", "save")}${btn("On Hold", "outline", "hold")}${btn(
       "Rejected",
       "danger",
       "reject",
@@ -214,7 +212,6 @@ async function adminProfileChanges() {
       `<div class="dash-top"><div><h1>${f("title")}</h1><p>${f("lead")}</p></div></div>`,
       `<div class="rz-list">${changes.map(card).join("") || `<div class="empty">${f("none")}</div>`}</div>`,
     ]
-      .map(adKeys)
       .join(""),
   );
 }
@@ -284,7 +281,6 @@ async function adminUsers() {
         "email",
       )}</th><th>${f("role")}</th><th>${f("company")}</th><th>${f("access")}</th><th></th></tr></thead><tbody>${users.map(accountRow).join("")}</tbody></table></div><p class="subtle">${f("suspendNote")}</p></section>`,
     ]
-      .map(adKeys)
       .join(""),
   );
 }
@@ -316,7 +312,7 @@ actions.on("adm.reset", async (el) => {
     const f = (key, params) => adk("reset." + key, params);
     modal(
       t("adm.reset.title"),
-      `<div data-i18n="keys"><p>${tHtml("adm.reset.give", { email: `<b>${esc(email)}</b>` })}</p><div class="legal-temp"><code id="legalTemp">${esc(temporaryPassword)}</code><button type="button" class="btn small outline" data-action="adm.copy">${f(
+      `<div><p>${tHtml("adm.reset.give", { email: `<b>${esc(email)}</b>` })}</p><div class="legal-temp"><code id="legalTemp">${esc(temporaryPassword)}</code><button type="button" class="btn small outline" data-action="adm.copy">${f(
         "copy",
       )}</button></div><p class="subtle">${f("next")}</p><button class="btn primary" data-action="adm.done">${f("done")}</button></div>`,
     );
@@ -370,7 +366,6 @@ async function adminBilling() {
         refunded.length ? `<p>${esc(t.plural("adm.billing.refunded", refunded.length, { amount: fmt.money(sum(refunded)) }))}</p>` : ""
       }</section>`,
     ]
-      .map(adKeys)
       .join(""),
   );
 }
@@ -408,7 +403,7 @@ async function adminDisputes() {
   app.innerHTML = dashboardShell(
     "admin",
     "disputes",
-    [`<div class="dash-top"><div><h1>${f("title")}</h1><p>${f("lead")}</p></div></div>`, `<div class="cc-grid">${disputes.map(card).join("") || `<div class="empty">${f("none")}</div>`}</div>`].map(adKeys).join(""),
+    [`<div class="dash-top"><div><h1>${f("title")}</h1><p>${f("lead")}</p></div></div>`, `<div class="cc-grid">${disputes.map(card).join("") || `<div class="empty">${f("none")}</div>`}</div>`].join(""),
   );
 }
 actions.on("adm.resolve", async (el) => {
@@ -553,7 +548,6 @@ async function adminReports() {
       )}<input type="file" hidden accept="application/json" data-action="adm.import"></label></div>`,
       `<section class="panel sr-admin-cards"><div class="panel-title"><h3>${f("scorecards")}</h3><span class="ui-count">${scorecards.length}</span></div>${srScorecardTable(scorecards)}</section>`,
     ]
-      .map(adKeys)
       .join(""),
   );
 }
@@ -631,7 +625,6 @@ async function adminAudit() {
         "when",
       )}</th><th>${f("who")}</th><th>${f("action")}</th><th>${f("project")}</th><th>${f("record")}</th></tr></thead><tbody>${entries.map(row).join("") || `<tr><td colspan="5">${f("none")}</td></tr>`}</tbody></table></div></section>`,
     ]
-      .map(adKeys)
       .join(""),
   );
 }
@@ -693,7 +686,7 @@ async function adminPlatform() {
   app.innerHTML = dashboardShell(
     "admin",
     "platform",
-    [`<div class="dash-top"><div><div class="eyebrow">${f("eyebrow")}</div><h1>${f("title")}</h1><p>${f("lead")}</p></div></div>`, settings, outbox, legalPanel].map(adKeys).join(""),
+    [`<div class="dash-top"><div><div class="eyebrow">${f("eyebrow")}</div><h1>${f("title")}</h1><p>${f("lead")}</p></div></div>`, settings, outbox, legalPanel].join(""),
   );
 }
 actions.on("adm.saveSettings", async (form) => {

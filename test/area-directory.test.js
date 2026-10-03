@@ -114,7 +114,7 @@ describe("supplier directory (T129a)", () => {
       for (const html of pages) {
         assert.doesNotMatch(text(html), /\bdir\.[a-zA-Z.]+/, "raw key");
         assert.doesNotMatch(html, /\son[a-z]+="/, "no inline handlers");
-        assert.match(html, /data-i18n="keys"/);
+        assert.doesNotMatch(html, /data-i18n/); // no markers of the old translation layer (T136)
       }
       assert.deepEqual([...customer.warnings, ...supplier.warnings], []);
       if (lang === "de") {
@@ -129,7 +129,7 @@ describe("supplier directory (T129a)", () => {
     assert.ok(html.includes('<a class="btn small outline" href="#/customer/suppliers/s1">Profil ansehen</a>'));
     assert.ok(html.includes('<option value="Gold">Gold</option>'));
     assert.ok(html.includes('<option value="rating">Beste Bewertung</option>'));
-    assert.ok(html.includes('<span class="chip" data-i18n="dom">PLC programming</span>'), "services stay on the old translation");
+    assert.ok(html.includes('<span class="chip">PLC programming</span>'), "services stay on the old translation");
     assert.match(html, /data-action="dir\.star" data-id="s1">★ Auf der Merkliste/);
     assert.match(html, /data-action="dir\.view" data-view="map"/);
     assert.match(html, /<form id="ccSupplierSearch" class="cc-supplier-filters" data-action="dir\.search">/);

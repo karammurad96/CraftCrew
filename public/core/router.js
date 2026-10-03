@@ -46,7 +46,7 @@ window.route = route = async function () {
     app.innerHTML = dashboardShell(
       state.user?.role || "customer",
       path.split("/")[2] || "dashboard",
-      `<div class="empty" data-i18n="keys"><h2>${esc(t("errors.pageFailed"))}</h2><p>${esc(e.message)}</p><button class="btn primary" data-action="router.retry">${esc(t("common.retry"))}</button></div>`,
+      `<div class="empty"><h2>${esc(t("errors.pageFailed"))}</h2><p>${esc(e.message)}</p><button class="btn primary" data-action="router.retry">${esc(t("common.retry"))}</button></div>`,
     );
   }
 };

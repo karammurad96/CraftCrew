@@ -2,10 +2,10 @@
    and every task a subfolder below it — created automatically from the project plan. Files can be uploaded
    into the open folder (button or drag & drop from the desktop), moved by dragging onto a folder, renamed,
    deleted, approved, and opened. The window fills the page and can be maximized. Drawn with translation keys;
-   buttons use data-action. File names, phase and task names and statuses are data (data-i18n="dom"). */
+   buttons use data-action. File names and phase and task names are data, shown as stored. */
 const xpEsc = (v) => esc(v ?? "");
 const xk = (key, params) => esc(t("docs." + key, params));
-const xpDom = (text) => `<bdi data-i18n="dom">${xpEsc(text)}</bdi>`;
+const xpDom = (text) => `<bdi>${xpEsc(text)}</bdi>`;
 const XP_TYPES = ["pdf", "doc", "docx", "xls", "xlsx", "csv", "png", "jpg", "jpeg", "dwg", "dxf", "zip", "txt"];
 const xpExt = (n) => (String(n).match(/\.([a-z0-9]+)$/i)?.[1] || "").toLowerCase();
 const xpType = (n) => {
@@ -59,7 +59,7 @@ function xpFolderInfo(fid) {
   if (fid === "pending") return { kind: "view", name: t("docs.pending") };
   return { kind: "root", name: p.name };
 }
-// A folder's name for display: phase names are data with the old translation, view names are keys
+// A folder's name for display: phase names are data, view names are keys
 const xpFolderLabel = (fid) => {
   const info = xpFolderInfo(fid);
   return info?.kind === "phase" ? xpDom(info.name) : xpEsc(info?.name);
@@ -118,7 +118,7 @@ async function xpPage(role, pid, query) {
   app.innerHTML = dashboardShell(
     role,
     "projects",
-    `<div class="xp-page" data-i18n="keys"><div class="xp-window" id="xpWindow">
+    `<div class="xp-page"><div class="xp-window" id="xpWindow">
     <div class="xp-titlebar"><a class="xp-back-link" href="#/${role}/projects/${xpEsc(project.id)}">← ${xpEsc(project.name)}</a><h1 class="xp-title-h1">${xk("title")}</h1><div class="xp-winbtns"><button type="button" class="xp-winbtn" id="xpMax" title="${xk(max ? "restore" : "maximize")}" data-action="docs.max">${max ? "❐" : "□"}</button></div></div>
     <div class="xp-navbar"><div class="xp-navbtns"><button type="button" class="xp-nav" id="xpBackBtn" title="${xk("back")}" data-action="docs.back">←</button><button type="button" class="xp-nav" id="xpFwdBtn" title="${xk("forward")}" data-action="docs.forward">→</button><button type="button" class="xp-nav" id="xpUpBtn" title="${xk("up")}" data-action="docs.up">↑</button><button type="button" class="xp-nav" title="${xk("refresh")}" data-action="docs.reload">⟳</button></div>
       <div class="xp-address" id="xpAddress"></div><label class="xp-search">${uiIcon("search")}<input id="xpSearch" placeholder="${xk("search")}" autocomplete="off" data-input="docs.search"></label></div>
@@ -214,7 +214,7 @@ function xpItems() {
   return { folders, files };
 }
 function xpStatusTag(s) {
-  return s ? `<span class="status ${s === "Approved" ? "completed" : s === "Pending approval" ? "submitted" : /changes|rejected/i.test(s) ? "rejected" : "active"}" data-i18n="dom">${xpEsc(s)}</span>` : "";
+  return s ? `<span class="status ${s === "Approved" ? "completed" : s === "Pending approval" ? "submitted" : /changes|rejected/i.test(s) ? "rejected" : "active"}">${xpEsc(s)}</span>` : "";
 }
 function xpRenderContent() {
   const { folders, files } = xpItems(),
@@ -528,7 +528,7 @@ function xpMenu(x, y, folderId, onFile) {
         item(xk(xp.view === "details" ? "cmd.tiles" : "cmd.details"), "docs.view", true, ` data-view="${xp.view === "details" ? "tiles" : "details"}"`);
   document.body.insertAdjacentHTML(
     "beforeend",
-    `<div class="xp-menu" id="xpMenu" role="menu" data-i18n="keys" style="left:${Math.min(x, innerWidth - 220)}px;top:${Math.min(y, innerHeight - 260)}px">${html}</div>`,
+    `<div class="xp-menu" id="xpMenu" role="menu" style="left:${Math.min(x, innerWidth - 220)}px;top:${Math.min(y, innerHeight - 260)}px">${html}</div>`,
   );
 }
 function xpCloseMenu() {
@@ -616,7 +616,7 @@ function xpMoveDialog() {
   if (!sel.length) return;
   modal(
     t("docs.moveTitle"),
-    `<form id="xpMoveForm" class="modal-form" data-i18n="keys" data-action="docs.move"><p>${sel.length === 1 ? xpEsc(sel[0].filename) : xk("nFiles", { n: sel.length })}</p><label>${xk("destination")}<select name="folder" size="10" class="xp-folder-pick">${xpFolderOptions(xp.folder)}</select></label><button class="btn primary">${xk("moveHere")}</button></form>`,
+    `<form id="xpMoveForm" class="modal-form" data-action="docs.move"><p>${sel.length === 1 ? xpEsc(sel[0].filename) : xk("nFiles", { n: sel.length })}</p><label>${xk("destination")}<select name="folder" size="10" class="xp-folder-pick">${xpFolderOptions(xp.folder)}</select></label><button class="btn primary">${xk("moveHere")}</button></form>`,
   );
 }
 actions.on("docs.move", (form) => {
@@ -646,10 +646,10 @@ function xpUpload(files = null, fid = xp.folder) {
   xp.pendingFiles = files;
   modal(
     t("docs.uploadTitle"),
-    `<form id="xpUpForm" class="modal-form" data-i18n="keys" data-action="docs.uploadSubmit"><label>${xk("folder")}<select name="folder">${xpFolderOptions(fid)}</select></label>
+    `<form id="xpUpForm" class="modal-form" data-action="docs.uploadSubmit"><label>${xk("folder")}<select name="folder">${xpFolderOptions(fid)}</select></label>
     <label>${xk("filesLabel")}<input name="files" type="file" multiple${files ? "" : " required"}></label>${files ? `<p class="subtle">${xk("ready", { n: files.length, names: files.map((f) => f.name).join(", ") })}</p>` : ""}
     <div class="two"><label>${xk("category")}<select name="category">${XP_CATEGORIES.map((c) => `<option value="${xpEsc(c)}">${xk("categories." + c)}</option>`).join("")}</select></label><label class="choice-row"><input name="approvalRequired" type="checkbox" value="true"> ${xk("askApproval")}</label></div>
-    <label>${xk("description")} <small class="subtle">${xk("optional")}</small><textarea name="description" rows="2" maxlength="2000"></textarea></label><div id="xpUpError" class="form-error" data-i18n="dom"></div><button class="btn primary">${xk("cmd.upload")}</button></form>`,
+    <label>${xk("description")} <small class="subtle">${xk("optional")}</small><textarea name="description" rows="2" maxlength="2000"></textarea></label><div id="xpUpError" class="form-error"></div><button class="btn primary">${xk("cmd.upload")}</button></form>`,
   );
 }
 actions.on("docs.uploadSubmit", async (form) => {

@@ -4,8 +4,7 @@
    Drawn with translation keys; names, projects and notes are data. The function names stay because the
    dashboard and the approvals page still call them. */
 const tmk = (key, params) => esc(t("time." + key, params));
-const tmDom = (text) => `<bdi data-i18n="dom">${esc(text)}</bdi>`;
-const tmKeys = (html) => html.replace(/^<(\w+)/, '<$1 data-i18n="keys"');
+const tmDom = (text) => `<bdi>${esc(text)}</bdi>`;
 const TM_STATUSES = ["Pending approval", "Approved", "Changes requested", "Rejected"];
 const tmStatus = (s) => (TM_STATUSES.includes(s) ? tmk("statuses." + s) : tmDom(s));
 let tmData = { role: "customer", entries: [], tasks: [], filtered: [] };
@@ -28,10 +27,10 @@ async function ccTimePage(role) {
   const filters = `<form class="ff-time-filters" id="ffTimeFilters" data-action="time.filter"><label>${f("person")}<input name="person" placeholder="${f("personHint")}"></label><label>${f("company")}<select name="company">${opts(
     entries.map(company),
     "allCompanies",
-  )}</select></label><label>${f("project")}<select name="project" data-i18n="dom">${opts(entries.map((x) => x.projectName), "allProjects")}</select></label><label>${f("phase")}<select name="phase" data-i18n="dom">${opts(
+  )}</select></label><label>${f("project")}<select name="project">${opts(entries.map((x) => x.projectName), "allProjects")}</select></label><label>${f("phase")}<select name="phase">${opts(
     entries.map((x) => x.phaseName),
     "allPhases",
-  )}</select></label><label>${f("task")}<select name="task" data-i18n="dom">${opts(entries.map((x) => x.taskName), "allTasks")}</select></label><label>${f("status")}<select name="status"><option value="">${f("allStatuses")}</option>${[
+  )}</select></label><label>${f("task")}<select name="task">${opts(entries.map((x) => x.taskName), "allTasks")}</select></label><label>${f("status")}<select name="status"><option value="">${f("allStatuses")}</option>${[
     ...new Set(entries.map((x) => x.status)),
   ]
     .sort()
@@ -63,7 +62,6 @@ async function ccTimePage(role) {
         .map((k) => `<th>${tmk("col." + k)}</th>`)
         .join("")}</tr></thead><tbody id="ffTimeRows"></tbody></table></div></section>`,
     ]
-      .map(tmKeys)
       .join(""),
   );
   ccTimeFilter();
@@ -179,9 +177,12 @@ function ccExportTime(role, type) {
         "x.title",
       )}</h1><p>${tmk("x.meta", { date: fmt.date(new Date().toISOString()), n: data.length })}</p><table>${matrix
         .map((r, i) => `<tr>${r.map((c) => `<${i ? "td" : "th"}>${esc(c)}</${i ? "td" : "th"}>`).join("")}</tr>`)
-        .join("")}</table><script>onload=()=>print()<\/script></body></html>`,
+        .join("")}</table></body></html>`,
     );
     w.document.close();
+    // Printed from here: the popup shares this page's CSP, which allows no inline script (T136)
+    w.focus();
+    w.print();
     return;
   }
   tmDownloadXlsx(matrix, t("time.x.sheet"), "craftcrew-selected-time-entries.xlsx");
@@ -303,7 +304,7 @@ async function ccNewTimeEntry() {
     names = members.length ? members : [state.user.name];
   modal(
     t("time.s.title"),
-    `<form id="ffTimeForm" class="modal-form ff-time-entry-form" data-i18n="keys" data-action="time.submit" data-input="time.calc"><div class="ds-offline ds-ui"${navigator.onLine ? " hidden" : ""}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0M5.5 12a10 10 0 0 1 13 0M9 15.5a5 5 0 0 1 6 0M3 3l18 18"/></svg><span>${s(
+    `<form id="ffTimeForm" class="modal-form ff-time-entry-form" data-action="time.submit" data-input="time.calc"><div class="ds-offline ds-ui"${navigator.onLine ? " hidden" : ""}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0M5.5 12a10 10 0 0 1 13 0M9 15.5a5 5 0 0 1 6 0M3 3l18 18"/></svg><span>${s(
       "offline",
     )}</span></div><div class="ds-group">${row(
       "job",
@@ -328,7 +329,7 @@ async function ccNewTimeEntry() {
       '<input name="breakMinutes" type="number" min="0" max="600" step="5" value="30">',
     )}</div><div class="ff-hours-calc"><span>${s("billable")}</span><strong id="ffTimeCalculated"></strong><small>${s(
       "calcHint",
-    )}</small></div></div><div id="ffTimeError" class="form-error" data-i18n="dom"></div><button class="btn primary ds-sheet-submit">${s("submit")}</button></form>`,
+    )}</small></div></div><div id="ffTimeError" class="form-error"></div><button class="btn primary ds-sheet-submit">${s("submit")}</button></form>`,
   );
   // The sheet's header: Cancel on the left, Save on the right
   const form = document.getElementById("ffTimeForm"),
@@ -339,12 +340,10 @@ async function ccNewTimeEntry() {
     const close = head.querySelector(".close");
     if (close) {
       close.className = "ds-sheet-cancel";
-      close.dataset.i18n = "keys";
       close.replaceChildren(t("time.s.cancel"));
       head.prepend(close);
     }
-    head.querySelector("h2")?.setAttribute("data-i18n", "keys");
-    head.insertAdjacentHTML("beforeend", `<button type="submit" form="ffTimeForm" class="ds-sheet-save" data-i18n="keys">${s("save")}</button>`);
+    head.insertAdjacentHTML("beforeend", `<button type="submit" form="ffTimeForm" class="ds-sheet-save">${s("save")}</button>`);
     head.classList.add("ds-ui");
   }
   tmDrawPhotos();
@@ -469,7 +468,7 @@ function ccEditTime(id) {
   if (!e) return;
   modal(
     t("time.e.title"),
-    `<form id="ffEditTime" class="modal-form" data-i18n="keys" data-action="time.saveEdit" data-id="${esc(id)}"><div class="two"><label>${k("from")}<input name="startTime" type="time" value="${esc(e.startTime || "08:00")}" required></label><label>${k(
+    `<form id="ffEditTime" class="modal-form" data-action="time.saveEdit" data-id="${esc(id)}"><div class="two"><label>${k("from")}<input name="startTime" type="time" value="${esc(e.startTime || "08:00")}" required></label><label>${k(
       "until",
     )}<input name="endTime" type="time" value="${esc(e.endTime || "16:00")}" required></label></div><label>${k("location")}<input name="location" value="${esc(e.location || "")}" required></label><label>${k(
       "notes",

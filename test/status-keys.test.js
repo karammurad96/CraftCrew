@@ -37,7 +37,7 @@ describe("status keys (T137)", () => {
         if (m[2]) /[a-z]/.test(m[2]) && m[2] !== "ok" && values.add(m[2]); // not the health check or a CSV header
         else for (const v of m[1].matchAll(/"([^"]+)"/g)) values.add(v[1]);
     assert.ok(values.size > 30, `found ${values.size} values`);
-    const missing = [...values].filter((v) => en.statusHtml(v).includes("data-i18n"));
+    const missing = [...values].filter((v) => en.statusHtml(v).startsWith("<bdi>"));
     assert.deepEqual(missing, [], "add these to common.status in public/locales/en.js and de.js");
   });
 
@@ -52,7 +52,7 @@ describe("status keys (T137)", () => {
   it("shows unknown values as they are, still marked for the old translation", () => {
     const de = browser("de", [EN, DE]);
     assert.equal(de.tStatus("Robot cell <b>"), "Robot cell <b>");
-    assert.equal(de.statusHtml("Robot cell <b>"), '<bdi data-i18n="dom">Robot cell &lt;b&gt;</bdi>');
+    assert.equal(de.statusHtml("Robot cell <b>"), '<bdi>Robot cell &lt;b&gt;</bdi>');
     assert.equal(de.tStatus(undefined), "");
   });
 

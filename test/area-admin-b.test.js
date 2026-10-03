@@ -60,7 +60,7 @@ function area(lang) {
     inSum: (list) => list.reduce((a, x) => a + x.amount, 0),
     inPct: (a, b) => (b ? Math.round((a / b) * 100) : 0),
     IN_COLORS: ["#1", "#2", "#3"],
-    srScorecardTable: () => '<div class="cc-table-wrap" data-i18n="keys"></div>',
+    srScorecardTable: () => '<div class="cc-table-wrap"></div>',
     legalContent: async () => ({ imprint: "CraftCrew GmbH" }),
     legalCache: {},
     routes: { add() {} },
@@ -100,7 +100,7 @@ const clean = (ctx, html) => {
   assert.deepEqual(ctx.warnings, []);
   assert.doesNotMatch(text(html), /\badm\.[a-zA-Z.]+/, "raw key");
   assert.doesNotMatch(html, /\son[a-z]+="/, "no inline handlers");
-  assert.match(html, /data-i18n="keys"/);
+  assert.doesNotMatch(html, /data-i18n/); // no markers of the old translation layer (T136)
 };
 
 describe("admin: billing, escalations, reports, audit, platform (T134b)", () => {
@@ -123,11 +123,11 @@ describe("admin: billing, escalations, reports, audit, platform (T134b)", () => 
       assert.ok(html.includes("sr-admin-cards") && html.includes("in-admin-charts") && html.includes("pa-reports"));
       assert.ok(html.includes(de ? "50 % der Bewerbungen freigegeben" : "50% of applications approved"));
       html = await page("adminAudit");
-      assert.match(html, /<form data-i18n="keys" class="panel pa-filters" id="paAuditFilters" data-action="adm\.auditFilter">/);
+      assert.match(html, /<form class="panel pa-filters" id="paAuditFilters" data-action="adm\.auditFilter">/);
       assert.ok(html.includes(`<option value="supplier" selected>${de ? "Lieferant" : "Supplier"}</option>`));
       assert.ok(html.includes(de ? "1 protokollierte Aktion" : "1 recorded action"));
       html = await page("adminPlatform");
-      assert.match(html, /<form data-i18n="keys" id="ccPlatformSettings" class="cc-platform-settings" data-action="adm\.saveSettings">/);
+      assert.match(html, /<form id="ccPlatformSettings" class="cc-platform-settings" data-action="adm\.saveSettings">/);
       assert.match(html, /data-action="adm\.testEmail"/);
       assert.match(html, /<form id="legalForm" class="modal-form" data-action="adm\.saveLegal">/);
       assert.ok(html.includes("CraftCrew GmbH") && html.includes("SMTP down"));

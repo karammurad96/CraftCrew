@@ -3,7 +3,6 @@
    approvals inbox. Drawn with translation keys; requirement, permit and state names are keys too. Site, company,
    worker and file names, addresses and briefings are data. cmSupplierVisit stays: the supplier dashboard calls it. */
 const cmk = (key, params) => esc(t("cm." + key, params));
-const cmKeys = (html) => html.replace(/^<(\w+)/, '<$1 data-i18n="keys"');
 const cmToday = () => new Date().toISOString().slice(0, 10);
 let cmCatalog = null;
 async function cmCat() {
@@ -80,7 +79,6 @@ async function cmSites() {
         toReview.map(cmDocReviewRow).join("") || `<p class="pa-empty">${s("allReviewed")}</p>`
       }</section></div>`,
     ]
-      .map(cmKeys)
       .join(""),
   );
 }
@@ -163,7 +161,7 @@ async function cmSiteForm(id) {
     input = (name, label, extra = "") => `<label>${f(label)}<input name="${name}" value="${esc(site[name] ?? "")}"${extra}></label>`;
   modal(
     t(id ? "cm.form.edit" : "cm.form.new"),
-    `<form id="cmSiteForm" class="modal-form" data-i18n="keys" data-action="cm.saveSite" data-id="${esc(id || "")}"><div class="two">${input("name", "name", ` required placeholder="${f("nameHint")}"`)}${input("address", "address")}</div><div class="three">${input(
+    `<form id="cmSiteForm" class="modal-form" data-action="cm.saveSite" data-id="${esc(id || "")}"><div class="two">${input("name", "name", ` required placeholder="${f("nameHint")}"`)}${input("address", "address")}</div><div class="three">${input(
       "contactName",
       "contact",
     )}${input("contactPhone", "phone")}${input("emergencyNumber", "emergency")}</div>
@@ -178,7 +176,7 @@ async function cmSiteForm(id) {
     <fieldset class="cm-fieldset"><legend>${f("projects")}</legend><div class="cm-checks">${
       projects.map((p) => box("project", p.id, site.projectIds?.includes(p.id), esc(p.name))).join("") || `<small class="subtle">${f("noProjects")}</small>`
     }</div></fieldset>
-    <div id="cmSiteError" class="form-error" data-i18n="dom"></div><button class="btn primary">${f(id ? "save" : "create")}</button></form>`,
+    <div id="cmSiteError" class="form-error"></div><button class="btn primary">${f(id ? "save" : "create")}</button></form>`,
   );
 }
 actions.on("cm.siteForm", (el) => cmSiteForm(el.dataset.id));
@@ -259,10 +257,9 @@ async function cmSiteDetail(siteId) {
       }</section><section class="panel"><div class="panel-title"><h3>${cmk("sites.requests")}</h3><span class="ui-count">${open.length}</span></div>${open.map(cmVisitRow).join("") || `<p class="pa-empty">${k("noOpen")}</p>`}</section></div>`,
       `<section class="panel"><div class="panel-title"><h3>${k("readiness")}</h3><small class="subtle">${cmPlural("detail.reqCount", (s.requirements || []).length)}</small></div>${d.readiness.map(ready).join("") || `<p class="pa-empty">${k("noSuppliers")}</p>`}</section>`,
       `<section class="panel"><div class="panel-title"><h3>${cmk("sites.toReview")}</h3><span class="ui-count">${toReview.length}</span></div>${toReview.map(cmDocReviewRow).join("") || `<p class="pa-empty">${cmk("sites.allReviewed")}</p>`}</section>`,
-      s.briefing?.content ? `<details class="panel cm-briefing"><summary><h3>${k("briefingVersion", { n: s.briefing.version })}</h3></summary><div class="legal-body" data-i18n="dom">${legalHtml(s.briefing.content)}</div></details>` : "",
+      s.briefing?.content ? `<details class="panel cm-briefing"><summary><h3>${k("briefingVersion", { n: s.briefing.version })}</h3></summary><div class="legal-body">${legalHtml(s.briefing.content)}</div></details>` : "",
     ]
       .filter(Boolean)
-      .map(cmKeys)
       .join(""),
   );
 }
@@ -299,7 +296,7 @@ async function cmSupplierPage() {
       rej = reviews.find((r) => r.status === "Rejected"),
       state = !d ? "Missing" : d.expiresAt && d.expiresAt < cmToday() ? "Expired" : rej ? "Rejected" : reviews.some((r) => r.status === "Accepted") ? "Accepted" : "Pending review";
     return `<div class="cm-doc"><div><b>${cmReq(k)}</b><small>${d ? `${esc(d.filename)}${d.expiresAt ? " · " + cmk("validUntil", { date: fmt.date(d.expiresAt) }) : ""}` : u("notUploaded")}${
-      rej ? ` · <bdi data-i18n="dom">${esc(rej.note)}</bdi>` : ""
+      rej ? ` · <bdi>${esc(rej.note)}</bdi>` : ""
     }</small></div>${cmTag(state)}<div class="cc-actions">${d ? `<a class="btn small outline" href="${esc(d.url)}">${cmk("view")}</a>` : ""}<button class="btn small ${d ? "outline" : "primary"}" data-action="cm.upload" data-req="${esc(k)}" data-worker="${esc(
       wid || "",
     )}">${u(d ? "replace" : "upload")}</button></div></div>`;
@@ -351,7 +348,6 @@ async function cmSupplierPage() {
       }</section>`,
       `<section class="panel"><div class="panel-title"><h3>${u("access")}</h3><span class="ui-count">${visits.length}</span></div>${visits.map(visitRow).join("") || `<p class="pa-empty">${u("noAccess")}</p>`}</section>`,
     ]
-      .map(cmKeys)
       .join(""),
   );
 }
@@ -374,11 +370,11 @@ async function cmWorkerForm(id) {
     f = (key) => cmk("worker." + key);
   modal(
     t(id ? "cm.worker.edit" : "cm.worker.add"),
-    `<form id="cmWorkerForm" class="modal-form" data-i18n="keys" data-action="cm.saveWorker" data-id="${esc(id || "")}"><div class="two"><label>${f("name")}<input name="name" value="${esc(w.name || "")}" required></label><label>${f(
+    `<form id="cmWorkerForm" class="modal-form" data-action="cm.saveWorker" data-id="${esc(id || "")}"><div class="two"><label>${f("name")}<input name="name" value="${esc(w.name || "")}" required></label><label>${f(
       "role",
     )}<input name="role" value="${esc(w.role || "")}" placeholder="${f("roleHint")}"></label></div><label>${f("phone")}<input name="phone" value="${esc(w.phone || "")}"></label><label class="cc-check-label"><input type="checkbox" name="postedFromAbroad" ${
       w.postedFromAbroad ? "checked" : ""
-    }> ${f("posted")}</label>${id ? `<label class="cc-check-label"><input type="checkbox" name="inactive" ${w.active === false ? "checked" : ""}> ${f("inactive")}</label>` : ""}<div id="cmWorkerError" class="form-error" data-i18n="dom"></div><button class="btn primary">${f(
+    }> ${f("posted")}</label>${id ? `<label class="cc-check-label"><input type="checkbox" name="inactive" ${w.active === false ? "checked" : ""}> ${f("inactive")}</label>` : ""}<div id="cmWorkerError" class="form-error"></div><button class="btn primary">${f(
       id ? "save" : "add",
     )}</button></form>`,
   );
@@ -403,11 +399,11 @@ async function cmUploadDoc(key, workerId) {
     f = (k) => cmk("doc." + k);
   modal(
     t("cm.doc.title"),
-    `<form id="cmDocForm" class="modal-form" data-i18n="keys" data-action="cm.saveDoc" data-req="${esc(key)}" data-worker="${esc(workerId || "")}"><p><b>${cmReq(key)}</b></p><label>${f(
+    `<form id="cmDocForm" class="modal-form" data-action="cm.saveDoc" data-req="${esc(key)}" data-worker="${esc(workerId || "")}"><p><b>${cmReq(key)}</b></p><label>${f(
       "file",
     )}<input name="file" type="file" accept=".pdf,.png,.jpg,.jpeg" required></label><div class="two"><label>${f("issued")}<input name="issuedAt" type="date"></label><label>${f(r.expires ? "validRequired" : "validOptional")}<input name="expiresAt" type="date" min="${cmToday()}" ${
       r.expires ? "required" : ""
-    }></label></div><p class="subtle">${f("note")}</p><div id="cmDocError" class="form-error" data-i18n="dom"></div><button class="btn primary">${f("upload")}</button></form>`,
+    }></label></div><p class="subtle">${f("note")}</p><div id="cmDocError" class="form-error"></div><button class="btn primary">${f("upload")}</button></form>`,
   );
 }
 actions.on("cm.upload", (el) => cmUploadDoc(el.dataset.req, el.dataset.worker || undefined));
@@ -435,14 +431,14 @@ async function cmBriefing(siteId) {
     f = (key, params) => cmk("brief." + key, params);
   modal(
     t("cm.brief.title", { site: site.name }),
-    `<div class="legal-body cm-briefing-text" data-i18n="dom">${legalHtml(site.briefing.content)}</div><form id="cmBriefForm" class="modal-form" data-i18n="keys" data-action="cm.sign" data-id="${esc(siteId)}"><p class="subtle">${f("note")}</p><label>${f(
+    `<div class="legal-body cm-briefing-text">${legalHtml(site.briefing.content)}</div><form id="cmBriefForm" class="modal-form" data-action="cm.sign" data-id="${esc(siteId)}"><p class="subtle">${f("note")}</p><label>${f(
       "worker",
     )}<select name="workerId" required><option value="">${f("choose")}</option>${workers
       .filter((w) => w.active !== false)
       .map((w) => `<option value="${esc(w.id)}">${esc(w.name)}</option>`)
       .join("")}</select></label><label class="cc-check-label"><input type="checkbox" name="confirm" required> ${f("confirm", { n: site.briefing.version })}</label><label>${f(
       "signature",
-    )}<input name="signatureName" required autocomplete="off"></label><div id="cmBriefError" class="form-error" data-i18n="dom"></div><button class="btn primary">${f("sign")}</button></form>`,
+    )}<input name="signatureName" required autocomplete="off"></label><div id="cmBriefError" class="form-error"></div><button class="btn primary">${f("sign")}</button></form>`,
   );
 }
 actions.on("cm.briefing", (el) => cmBriefing(el.dataset.id));
@@ -467,7 +463,7 @@ async function cmAccessForm(siteId) {
     f = (key) => cmk("access." + key);
   modal(
     t("cm.access.title"),
-    `<form id="cmAccessForm" class="modal-form" data-i18n="keys" data-action="cm.requestAccess"><label>${f("site")}<select name="siteId" data-action="cm.accessSite">${sites
+    `<form id="cmAccessForm" class="modal-form" data-action="cm.requestAccess"><label>${f("site")}<select name="siteId" data-action="cm.accessSite">${sites
       .map((s) => `<option value="${esc(s.id)}" ${s.id === site.id ? "selected" : ""}>${esc(s.name)}</option>`)
       .join("")}</select></label><label>${f("project")}<select name="projectId">${detail.projects.map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("")}</select></label><div class="two"><label>${f(
       "from",
@@ -482,7 +478,7 @@ async function cmAccessForm(siteId) {
         .join("") || `<small class="subtle">${f("addWorkers")}</small>`
     }</div></fieldset>
     <label>${f("permit")}<select name="permitType" id="cmPermit" data-action="cm.permit">${permits.map((k) => `<option value="${esc(k)}">${cmPermit(k)}</option>`).join("")}</select></label><div id="cmChecklist" class="cm-checks"></div>
-    <label>${f("description")}<textarea name="description" rows="2" placeholder="${f("descriptionHint")}"></textarea></label>${site.readiness.companyReady ? "" : `<p class="danger-text">${f("companyIncomplete")}</p>`}<div id="cmAccessError" class="form-error" data-i18n="dom"></div><button class="btn primary">${f(
+    <label>${f("description")}<textarea name="description" rows="2" placeholder="${f("descriptionHint")}"></textarea></label>${site.readiness.companyReady ? "" : `<p class="danger-text">${f("companyIncomplete")}</p>`}<div id="cmAccessError" class="form-error"></div><button class="btn primary">${f(
       "send",
     )}</button></form>`,
   );
@@ -587,7 +583,7 @@ async function srApprovals() {
         oldest(
           docs.filter((d) => d.status === "Pending approval"),
           (d) => d.uploadedAt,
-        ).map((d) => ({ title: d.filename, sub: `${esc(d.projectName)} · ${d.taskName || d.phaseName ? `<bdi data-i18n="dom">${esc(d.taskName || d.phaseName)}</bdi>` : a("project")}`, since: d.uploadedAt, link: `/customer/projects/${d.projectId}/documents` })),
+        ).map((d) => ({ title: d.filename, sub: `${esc(d.projectName)} · ${d.taskName || d.phaseName ? `<bdi>${esc(d.taskName || d.phaseName)}</bdi>` : a("project")}`, since: d.uploadedAt, link: `/customer/projects/${d.projectId}/documents` })),
       ),
     ],
     [
@@ -633,7 +629,6 @@ async function srApprovals() {
         )
         .join("")}</div>`,
     ]
-      .map(cmKeys)
       .join(""),
   );
   document.querySelector(".dashboard-content")?.classList.add("ds-approvals");

@@ -82,7 +82,7 @@ describe("task and phase pages, task board (T128c)", () => {
         assert.deepEqual(ctx.warnings, []);
         assert.doesNotMatch(text(html), /\bsub\.[a-zA-Z.]+/, "raw key");
         assert.doesNotMatch(html, /\son[a-z]+="/, "no inline handlers");
-        assert.match(html, /data-i18n="keys"/);
+        assert.doesNotMatch(html, /data-i18n/); // no markers of the old translation layer (T136)
       });
 
   it("shows time against the estimate, the progress updates and the supplier's own buttons", async () => {
@@ -93,7 +93,7 @@ describe("task and phase pages, task board (T128c)", () => {
     assert.ok(supplier.includes("Progress updates · 40%") && supplier.includes("<p>Half way</p>"));
     assert.ok(supplier.includes('href="#/supplier/projects/p1/documents?phase=ph1&amp;task=t1"'));
     const phase = await area("de", "customer", "#/customer/projects/p1/phases/ph1").render();
-    assert.ok(phase.includes("PROJEKTPHASE") && phase.includes('<h1><bdi data-i18n="dom">Build &amp; integration</bdi></h1>'));
+    assert.ok(phase.includes("PROJEKTPHASE") && phase.includes('<h1><bdi>Build &amp; integration</bdi></h1>'));
     assert.doesNotMatch(phase, /sub\.logTime|pa-updates/);
     const missing = area("en", "customer", "#/customer/projects/p1/tasks/nope");
     await missing.render();

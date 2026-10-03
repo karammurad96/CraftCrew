@@ -23,7 +23,7 @@ function legalFooter() {
   if (!footer || footer.querySelector(".legal-footer-links")) return;
   footer.insertAdjacentHTML(
     "beforeend",
-    `<nav class="legal-footer-links" aria-label="${esc(t("ui.legal.label"))}" data-i18n="keys">${["imprint", "privacy", "terms"].map((k) => `<a href="#/${k}">${esc(t("ui.legal." + k))}</a>`).join("")}</nav>`,
+    `<nav class="legal-footer-links" aria-label="${esc(t("ui.legal.label"))}">${["imprint", "privacy", "terms"].map((k) => `<a href="#/${k}">${esc(t("ui.legal." + k))}</a>`).join("")}</nav>`,
   );
 }
 
@@ -33,11 +33,11 @@ function legalForceChangePage() {
   const f = (key) => esc(t("ui.force." + key)),
     s = (key) => esc(t("prof.sec." + key));
   app.innerHTML = publicLayout(
-    `<div class="cc-page" data-i18n="keys"><section class="panel" id="paSecurity" style="max-width:560px;margin:40px auto"><h1>${f("title")}</h1><div class="notice legal-force-note">${f(state.user.isMember ? "member" : "reset")}</div><form id="legalForceForm" class="modal-form" data-action="ui.forcePassword"><label>${s(
+    `<div class="cc-page"><section class="panel" id="paSecurity" style="max-width:560px;margin:40px auto"><h1>${f("title")}</h1><div class="notice legal-force-note">${f(state.user.isMember ? "member" : "reset")}</div><form id="legalForceForm" class="modal-form" data-action="ui.forcePassword"><label>${s(
       "current",
     )}<input name="currentPassword" type="password" autocomplete="current-password" placeholder="${f("temporary")}" required></label><label>${s("new")}<input name="newPassword" type="password" autocomplete="new-password" minlength="10" required></label><label>${s(
       "repeat",
-    )}<input name="confirm" type="password" autocomplete="new-password" minlength="10" required></label><small class="subtle">${s("rules")}</small><div class="form-error" role="alert" data-i18n="dom"></div><div class="cc-actions"><button class="btn primary">${s(
+    )}<input name="confirm" type="password" autocomplete="new-password" minlength="10" required></label><small class="subtle">${s("rules")}</small><div class="form-error" role="alert"></div><div class="cc-actions"><button class="btn primary">${s(
       "change",
     )}</button><button type="button" class="btn outline" data-action="ui.signOut">${f("signOut")}</button></div></form></section></div>`,
   );
