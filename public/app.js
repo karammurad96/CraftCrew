@@ -307,32 +307,6 @@ async function adminReports() {
     `<div class="dash-top"><div><h1>Reports & analytics</h1><p>Simple operational metrics for the MVP.</p></div></div><div class="cc-grid4"><div class="cc-card"><span class="cc-label">Users</span><div class="cc-kpi">${m.metrics.users}</div></div><div class="cc-card"><span class="cc-label">Live suppliers</span><div class="cc-kpi">${m.metrics.suppliers}</div></div><div class="cc-card"><span class="cc-label">Projects</span><div class="cc-kpi">${m.metrics.projects}</div></div><div class="cc-card"><span class="cc-label">Gross invoice volume</span><div class="cc-kpi">${money(m.metrics.grossVolume)}</div></div></div><div class="cc-card" style="margin-top:15px"><h3>Backup / restore</h3><p>Export the full JSON database. Admin import is available through the API and can be wired to a file picker for production deployment.</p><button class="btn outline" onclick="exportData()">Export full JSON</button><label class="btn outline">Import JSON<input type="file" hidden accept="application/json" onchange="importData(this)"></label></div>`,
   );
 }
-async function messages(role) {
-  const d = await api("/messages");
-  const users = await api(role === "admin" ? "/admin/users" : "/admin/users").catch(() => ({ users: [] }));
-  app.innerHTML = dashboardShell(
-    role,
-    "messages",
-    `<div class="dash-top"><div><h1>Messages</h1><p>Project collaboration and supplier/customer communication.</p></div><button class="btn primary" onclick="newMessage()">+ New message</button></div><div class="panel"><div class="msg-list">${d.messages.map((m) => `<div class="msg ${m.senderId === state.user.id ? "mine" : ""}"><b>${m.senderId === state.user.id ? "You" : "Message"}</b><p>${esc(m.text)}</p><small>${date(m.createdAt)} · ${m.projectId || "General"}</small></div>`).join("") || '<div class="empty">No messages yet.</div>'}</div></div>`,
-  );
-}
-async function newMessage() {
-  let users = [];
-  try {
-    users = (await api("/contacts")).users;
-  } catch {}
-  modal(
-    "New message",
-    `<form id="mf" class="modal-form"><label>Recipient<select name="recipientId" required>${users.map((u) => `<option value="${u.id}">${esc(u.name)} — ${u.role}</option>`).join("")}</select></label><label>Message<textarea name="text" required maxlength="5000"></textarea></label><button class="btn primary">Send</button></form>`,
-  );
-  document.getElementById("mf").onsubmit = async (e) => {
-    e.preventDefault();
-    await api("/messages", { method: "POST", body: Object.fromEntries(new FormData(e.target)) });
-    closeModal();
-    toast("Message sent");
-    messages(state.user.role);
-  };
-}
 async function route() {
   topActions();
   const h = location.hash.replace(/^#/, "") || "/";
@@ -343,12 +317,10 @@ async function route() {
   try {
     const parts = h.split("/").filter(Boolean);
     if (parts[0] === "customer") {
-      if (parts[1] === "messages") return messages("customer");
       if (parts[1] === "profile") return profilePage("customer");
     }
     if (parts[0] === "supplier") {
       if (parts[1] === "suppliers") return supplierCatalog();
-      if (parts[1] === "messages") return messages("supplier");
       if (parts[1] === "profile") return profilePage("supplier");
     }
     if (parts[0] === "admin") {

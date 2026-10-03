@@ -215,7 +215,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T131 Area: time, site reports, punch list and acceptance · M
   - [x] T131a time pages, the Log time sheet with photos, review and export
   - [x] T131b site reports, punch list and acceptance dialogs
-- [ ] T132 Area: messages and chats · S
+- [x] T132 Area: messages and chats · S
 - [ ] T133 Area: sites, compliance and calendar, and the approvals inbox · M
 - [ ] T134 Area: admin (applications, disputes, billing, reports, audit, platform) · M
 - [ ] T135 Area: profile, settings, team and two-factor · M

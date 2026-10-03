@@ -2437,4 +2437,62 @@ LOCALES.en = {
       "saved": "Acceptance report saved"
     }
   },
+  msg: {
+    "title": "Messages",
+    "chats": "Chats",
+    "newChat": "+ New chat",
+    "search": "Search chats or people",
+    "projectTeam": "Project team",
+    "noMessagesYet": "No messages yet",
+    "noMatch": "No chats match your search.",
+    "openProject": "Open project",
+    "you": "You",
+    "participant": "Participant",
+    "emptyThread": "No messages yet. Start the conversation below.",
+    "write": "Write a message…",
+    "send": "Send",
+    "select": "Select an authorized project conversation or start a new chat.",
+    "n": {
+      "title": "Start a project chat",
+      "needProject": "Create or join a project before starting a chat",
+      "project": "Project",
+      "scope": "Scope",
+      "scopes": {
+        "project": "Project-wide",
+        "phase": "Phase",
+        "task": "Task"
+      },
+      "phase": "Phase",
+      "task": "Task",
+      "name": "Conversation name",
+      "nameHint": "Optional",
+      "find": "Find participants",
+      "findHint": "Search names or companies",
+      "create": "Create chat"
+    },
+    "in": {
+      "eyebrow": "WORKSPACE ACTIVITY",
+      "title": "Inbox",
+      "intro": "Messages, bid updates, document reviews and work notifications in one place.",
+      "readAll": "Mark all read",
+      "search": "Search notifications",
+      "stateLabel": "Filter by read state",
+      "all": "All activity ({n})",
+      "unread": "Unread ({n})",
+      "read": "Read",
+      "typeLabel": "Filter by type",
+      "types": {
+        "all": "All types",
+        "message": "Messages",
+        "invoice": "Invoices",
+        "bid": "Bids & offers",
+        "time": "Time entries",
+        "document": "Documents",
+        "request": "Requests"
+      },
+      "open": "Open",
+      "markRead": "Mark read",
+      "empty": "No notifications match these filters."
+    }
+  },
 };

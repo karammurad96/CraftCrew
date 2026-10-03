@@ -112,12 +112,10 @@ async function route() {
   }
   try {
     if (parts[0] === "customer") {
-      if (parts[1] === "messages") return messages("customer");
       if (parts[1] === "profile") return profilePage("customer");
     }
     if (parts[0] === "supplier") {
       if (parts[1] === "suppliers") return supplierCatalog();
-      if (parts[1] === "messages") return messages("supplier");
       if (parts[1] === "profile") return profilePage("supplier");
     }
     if (parts[0] === "admin") {
