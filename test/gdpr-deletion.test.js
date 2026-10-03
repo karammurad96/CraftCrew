@@ -32,6 +32,9 @@ describe("account deletion request", () => {
     const s = await status(supplier);
     assert.ok(s.blockers.some((b) => b.label.startsWith(`Task "${task.name}"`)));
     assert.ok(s.blockers.some((b) => /^Invoice \S+ is not paid yet$/.test(b.label)));
+    // Each blocker also comes as a key with values for the profile page (T136)
+    assert.ok(c.blockers.some((b) => b.q?.[0] === "projectOpen" && b.q[1].name === project.name));
+    assert.ok(s.blockers.every((b) => b.q && b.q[0]));
     const r = await request(supplier);
     assert.equal(r.status, 409);
     assert.ok(r.blockers.length >= 2);

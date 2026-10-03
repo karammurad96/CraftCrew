@@ -63,7 +63,7 @@ describe("supplier application area", () => {
 
   it("offers the operator's service categories when they are set, translated as data", async () => {
     const html = await area("de", { config: { serviceCategories: ["Robotics", "Welding"] } }).render();
-    assert.match(html, /<label><input type="checkbox" name="services" value="Welding"> <span data-i18n="dom">Welding<\/span><\/label>/);
+    assert.match(html, /<label><input type="checkbox" name="services" value="Welding"> <span>Welding<\/span><\/label>/);
     assert.doesNotMatch(html, /value="PLC Programming"/);
   });
 
@@ -71,6 +71,6 @@ describe("supplier application area", () => {
     for (const f of ["app.js", "enhancements.js", "collaboration.js", "workflows.js"])
       assert.doesNotMatch(read(f), /supplierApplication/, f);
     // The drop zone on every form is drawn with keys too
-    assert.ok(read("ui-refresh.js").includes('zone.dataset.i18n = "keys";'));
+    assert.match(read("ui-refresh.js"), /t\("common\.drop\.here"\)/);
   });
 });

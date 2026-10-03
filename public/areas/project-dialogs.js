@@ -5,7 +5,7 @@
    change the current page is drawn again. */
 const pdk = (key, params) => esc(t("dlg." + key, params));
 const pdForm = (action, data, html, id) =>
-  `<form${id ? ` id="${id}"` : ""} class="modal-form" data-i18n="keys" data-action="${action}"${Object.entries(data)
+  `<form${id ? ` id="${id}"` : ""} class="modal-form" data-action="${action}"${Object.entries(data)
     .map(([k, v]) => ` data-${k}="${esc(v)}"`)
     .join("")}>${html}</form>`;
 const pdStatuses = (current) =>
@@ -125,12 +125,12 @@ async function pdReviewSuppliers(pid) {
       `<label>${label}<select name="${name}" required>${[5, 4, 3, 2, 1].map((n) => `<option value="${n}">${"★".repeat(n)}${"☆".repeat(5 - n)} · ${n}</option>`).join("")}</select></label>`;
   modal(
     t("dlg.review.title"),
-    `<p class="subtle" data-i18n="keys">${r("intro")}</p>${pending
+    `<p class="subtle">${r("intro")}</p>${pending
       .map((s) =>
         pdForm(
           "pd.review",
           { project: pid, supplier: s.id, company: s.company },
-          `<h3>${esc(s.company)}</h3><div class="two">${stars("rating", r("overall"))}${stars("quality", r("quality"))}</div><div class="two">${stars("schedule", r("schedule"))}${stars("communication", r("communication"))}</div><label>${r("comment")}<textarea name="text" rows="2" maxlength="2000" placeholder="${r("commentHint")}"></textarea></label><div class="form-error" data-i18n="dom" role="alert"></div><button class="btn primary">${r("submit")}</button>`,
+          `<h3>${esc(s.company)}</h3><div class="two">${stars("rating", r("overall"))}${stars("quality", r("quality"))}</div><div class="two">${stars("schedule", r("schedule"))}${stars("communication", r("communication"))}</div><label>${r("comment")}<textarea name="text" rows="2" maxlength="2000" placeholder="${r("commentHint")}"></textarea></label><div class="form-error" role="alert"></div><button class="btn primary">${r("submit")}</button>`,
         ).replace('class="modal-form"', 'class="modal-form pa-review-form"'),
       )
       .join("")}`,
@@ -269,7 +269,7 @@ async function pdAssign(pid, tid) {
     a = (key, params) => pdk("assign." + key, params);
   modal(
     t("dlg.assign.title"),
-    `<div data-i18n="keys"><p class="modal-intro">${a("intro")}</p><div class="wf-compare">${(d.suppliers || [])
+    `<div><p class="modal-intro">${a("intro")}</p><div class="wf-compare">${(d.suppliers || [])
       .map(
         (s) =>
           `<article class="cc-card"><b>${esc(s.company)}</b><p>${s.location ? esc(s.location) : a("locationPending")} · ${esc(ccBadge(s))} · ★ ${fmt.number(s.rating || 0, 1)}</p><p>${(s.services || []).map(esc).join(" · ")}</p><strong>${a("rates", { hourly: fmt.money(s.hourlyRate || 0), project: fmt.money(s.projectRate || 0) })}</strong><button class="btn small primary" data-action="pd.invite" data-project="${esc(pid)}" data-task="${esc(tid)}" data-supplier="${esc(s.id)}">${a("invite")}</button></article>`,
@@ -306,7 +306,7 @@ function pdProgress(pid, phid, tid, current) {
     pdForm(
       "pd.progress",
       { project: pid, phase: phid, task: tid },
-      `<div class="two"><label>${g("percent")}<input name="progress" type="range" min="0" max="100" step="5" value="${n}" data-input="pd.progressValue"><output>${n}%</output></label><label>${g("status")}<select name="status">${["Not Started", "In Progress", "Completed"].map((x) => `<option value="${x}"${x === status ? " selected" : ""}>${pdk("status." + x)}</option>`).join("")}</select></label></div><label>${g("milestone")}<input name="milestone" maxlength="140" placeholder="${g("milestoneHint")}"></label><label>${g("note")}<textarea name="note" rows="3" maxlength="2000" placeholder="${g("noteHint")}"></textarea></label><p class="subtle">${g("hint")}</p><div id="paProgressError" class="form-error" data-i18n="dom"></div><div class="cc-actions"><button class="btn primary">${g("save")}</button><a class="btn outline" href="#/supplier/projects/${esc(encodeURIComponent(pid))}/documents" data-action="pd.close">${g("upload")}</a></div>`,
+      `<div class="two"><label>${g("percent")}<input name="progress" type="range" min="0" max="100" step="5" value="${n}" data-input="pd.progressValue"><output>${n}%</output></label><label>${g("status")}<select name="status">${["Not Started", "In Progress", "Completed"].map((x) => `<option value="${x}"${x === status ? " selected" : ""}>${pdk("status." + x)}</option>`).join("")}</select></label></div><label>${g("milestone")}<input name="milestone" maxlength="140" placeholder="${g("milestoneHint")}"></label><label>${g("note")}<textarea name="note" rows="3" maxlength="2000" placeholder="${g("noteHint")}"></textarea></label><p class="subtle">${g("hint")}</p><div id="paProgressError" class="form-error"></div><div class="cc-actions"><button class="btn primary">${g("save")}</button><a class="btn outline" href="#/supplier/projects/${esc(encodeURIComponent(pid))}/documents" data-action="pd.close">${g("upload")}</a></div>`,
       "paProgressForm",
     ),
   );
@@ -352,12 +352,12 @@ async function pdShare(pid, note) {
     }</li>`;
   modal(
     t("dlg.share.title"),
-    `<div class="ds-share" data-i18n="keys">${
+    `<div class="ds-share">${
       d.canManage
         ? pdForm(
             "pd.share",
             { project: pid },
-            `<p class="subtle">${s("intro")}</p><div class="two"><label>${s("name")}<input name="name" autocomplete="name" maxlength="120"></label><label>${s("email")}<input name="email" type="email" autocomplete="email" required></label></div><div id="dsShareError" class="form-error" data-i18n="dom"></div><div id="dsShareNote" class="notice"${note ? "" : " hidden"}>${esc(note || "")}</div><button class="btn primary">${s("invite")}</button>`,
+            `<p class="subtle">${s("intro")}</p><div class="two"><label>${s("name")}<input name="name" autocomplete="name" maxlength="120"></label><label>${s("email")}<input name="email" type="email" autocomplete="email" required></label></div><div id="dsShareError" class="form-error"></div><div id="dsShareNote" class="notice"${note ? "" : " hidden"}>${esc(note || "")}</div><button class="btn primary">${s("invite")}</button>`,
             "dsShareForm",
           )
         : `<p class="subtle">${s("ownerOnly")}</p>`

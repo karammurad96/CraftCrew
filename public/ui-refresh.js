@@ -87,7 +87,7 @@ async function uiToggleNotifications(e) {
   document.body.insertAdjacentHTML(
     "beforeend",
     // Drawn with keys (T127a); the notification texts come from the server in the user's language
-    `<div id="uiNotifPanel" class="ui-notif-panel" role="dialog" aria-label="${esc(t("shell.notifications"))}" data-i18n="keys"><div class="ui-notif-head"><b>${esc(t("shell.notifications"))}</b><button type="button" class="ui-link-btn" data-action="shell.markAll">${esc(t("shell.markAll"))}</button></div><div class="ui-notif-list"><p class="ui-notif-empty">${esc(t("common.loading"))}</p></div><button type="button" class="ui-notif-foot" data-action="shell.openInbox">${esc(t("shell.openInbox"))}</button></div>`,
+    `<div id="uiNotifPanel" class="ui-notif-panel" role="dialog" aria-label="${esc(t("shell.notifications"))}"><div class="ui-notif-head"><b>${esc(t("shell.notifications"))}</b><button type="button" class="ui-link-btn" data-action="shell.markAll">${esc(t("shell.markAll"))}</button></div><div class="ui-notif-list"><p class="ui-notif-empty">${esc(t("common.loading"))}</p></div><button type="button" class="ui-notif-foot" data-action="shell.openInbox">${esc(t("shell.openInbox"))}</button></div>`,
   );
   const panel = document.getElementById("uiNotifPanel"),
     narrow = innerWidth < 651;
@@ -119,7 +119,7 @@ async function uiToggleNotifications(e) {
         }),
     );
   } catch (x) {
-    panel.querySelector(".ui-notif-list").innerHTML = `<p class="ui-notif-empty" data-i18n="dom">${esc(x.message)}</p>`;
+    panel.querySelector(".ui-notif-list").innerHTML = `<p class="ui-notif-empty">${esc(x.message)}</p>`;
   }
 }
 async function uiMarkAllRead() {
@@ -160,8 +160,6 @@ function uiDropZones(root = document) {
     if (input.closest("label.btn")) continue; // compact "Import JSON" style buttons keep their look
     const zone = document.createElement("div");
     zone.className = "ui-drop";
-    // Drawn with translation keys (T126c), on old pages and key pages alike
-    zone.dataset.i18n = "keys";
     zone.innerHTML = `<svg class="ui-icon" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg><span><b>${esc(t("common.drop.here"))}</b> ${esc(t("common.drop.or"))} <u>${esc(t("common.drop.browse"))}</u></span><small class="ui-drop-files"></small>`;
     input.after(zone);
     zone.prepend(input);
@@ -339,7 +337,7 @@ async function uiOpenSearch() {
   if (!state.user || document.getElementById("uiSearch")) return;
   document.body.insertAdjacentHTML(
     "beforeend",
-    `<div id="uiSearch" class="ui-search-backdrop" data-i18n="keys"><div class="ui-search" role="dialog" aria-label="${esc(t("ui.search.label"))}"><div class="ui-search-input">${uiIcon("search")}<input placeholder="${esc(
+    `<div id="uiSearch" class="ui-search-backdrop"><div class="ui-search" role="dialog" aria-label="${esc(t("ui.search.label"))}"><div class="ui-search-input">${uiIcon("search")}<input placeholder="${esc(
       t(state.user.role === "customer" ? "ui.search.hintCustomer" : "ui.search.hint"),
     )}" aria-label="${esc(t("ui.search.input"))}"><kbd>Esc</kbd></div><div class="ui-search-results" role="listbox"></div></div></div>`,
   );
@@ -473,13 +471,9 @@ function uiDialog({
 }) {
   return new Promise((resolve) => {
     document.getElementById("uiDialog")?.remove();
-    const tr = (s) =>
-      typeof i18nText === "function" && typeof i18nLang !== "undefined" && i18nLang === "de"
-        ? i18nText(String(s))
-        : String(s);
     document.body.insertAdjacentHTML(
       "beforeend",
-      `<div id="uiDialog" class="ui-dialog-backdrop" role="dialog" aria-modal="true" aria-labelledby="uiDialogTitle"><form class="ui-dialog"><h2 id="uiDialogTitle">${esc(tr(title))}</h2>${message ? `<p>${esc(tr(message))}</p>` : ""}${input ? `<textarea name="value" rows="3" ${required ? "required" : ""} placeholder="${esc(tr(placeholder))}">${esc(defaultValue)}</textarea>${required ? `<small class="subtle">${esc(t("common.dialog.required"))}</small>` : ""}` : ""}<div class="cc-actions"><button type="button" class="btn outline" data-cancel>${esc(t("common.dialog.cancel"))}</button><button class="btn ${danger ? "danger" : "primary"}">${esc(tr(confirmLabel))}</button></div></form></div>`,
+      `<div id="uiDialog" class="ui-dialog-backdrop" role="dialog" aria-modal="true" aria-labelledby="uiDialogTitle"><form class="ui-dialog"><h2 id="uiDialogTitle">${esc(title)}</h2>${message ? `<p>${esc(message)}</p>` : ""}${input ? `<textarea name="value" rows="3" ${required ? "required" : ""} placeholder="${esc(placeholder)}">${esc(defaultValue)}</textarea>${required ? `<small class="subtle">${esc(t("common.dialog.required"))}</small>` : ""}` : ""}<div class="cc-actions"><button type="button" class="btn outline" data-cancel>${esc(t("common.dialog.cancel"))}</button><button class="btn ${danger ? "danger" : "primary"}">${esc(confirmLabel)}</button></div></form></div>`,
     );
     const box = document.getElementById("uiDialog"),
       form = box.querySelector("form"),

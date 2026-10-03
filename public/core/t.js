@@ -1,6 +1,5 @@
 /* Translations by key (T125): t("invoice.due", { date }) looks the key up in LOCALES[language] at render time,
-   so a page is drawn in the right language from the start. Pages built this way set data-i18n="keys" on their
-   root; the old DOM translation in i18n.js leaves them alone. */
+   so a page is drawn in the right language from the start. */
 // The language: the saved choice, else the browser's, else English. LANGUAGES comes from core/languages.js.
 const ccLanguages = typeof LANGUAGES !== "undefined" ? LANGUAGES : [{ code: "en", name: "English", locale: "en-GB", dir: "ltr" }];
 const ccLang = (() => {
@@ -32,6 +31,16 @@ async function langSet(code) {
   } catch {}
   if (typeof state !== "undefined" && state.user) await api("/account/preferences", { method: "PUT", body: { language: code } }).catch(() => {});
   location.reload();
+}
+// The account keeps the language of this browser, so emails and notifications match it (T137). Called after
+// signing in (ccSignedIn) and on start-up (core/boot.js).
+function langSyncAccount() {
+  if (typeof state === "undefined" || !state.user || state.user.language === ccLang) return;
+  api("/account/preferences", { method: "PUT", body: { language: ccLang } })
+    .then(() => {
+      state.user.language = ccLang;
+    })
+    .catch(() => {});
 }
 const ccMissingKeys = new Set();
 function ccLookup(lang, key) {
@@ -89,9 +98,20 @@ function tStatus(value) {
   const key = ccStatusKey(value);
   return value && typeof ccLookup("en", key) === "string" ? t(key) : String(value ?? "");
 }
-// The same as HTML. A value without a key (free text, e.g. a service category) keeps the old translation.
+// The same as HTML. A value without a key (free text, e.g. a service category) is shown as stored.
 function statusHtml(value) {
-  return value && typeof ccLookup("en", ccStatusKey(value)) === "string" ? esc(tStatus(value)) : `<bdi data-i18n="dom">${esc(value ?? "")}</bdi>`;
+  return value && typeof ccLookup("en", ccStatusKey(value)) === "string" ? esc(tStatus(value)) : `<bdi>${esc(value ?? "")}</bdi>`;
+}
+// An audit log action ("Signed in"): common.audit.<camelCase>; other activity texts are shown as stored.
+function auditText(label) {
+  const key = ccStatusKey(label).replace("common.status.", "common.audit.");
+  return label && typeof ccLookup("en", key) === "string" ? t(key) : String(label ?? "");
+}
+// A supplier risk note: a key with values from the server (sourcing scorecards, T136), else its English text
+function riskText(r) {
+  const [key, params = {}] = r?.q || [];
+  if (!key || typeof ccLookup("en", "common.risk." + key) !== "string") return String(r?.text ?? "");
+  return t("common.risk." + key, params.status ? { ...params, status: tStatus(params.status) } : params);
 }
 // An API error in the user's language (T137): the server sends { error, code, params }. The text comes from
 // errors.api.<code>; an error with its own code (e.g. TOTP_REQUIRED) is found by its English message; an unknown
@@ -116,10 +136,10 @@ function apiErrorText(d) {
   }
   return ccErrorTexts.has(d.error) ? t("errors.api." + ccErrorTexts.get(d.error)) : d.error;
 }
-// A toast whose text comes from t(): marked so the old DOM translation leaves it alone.
+// A toast whose text comes from t(). (Before T136 this kept the old DOM translation away; every toast is in the
+// user's language now, so it is the same as toast().)
 function tToast(text, type) {
-  toast(text, type, { translated: true });
-  toastEl.dataset.i18n = "keys";
+  toast(text, type);
 }
 // Dates, amounts and numbers in the user's language.
 const fmt = {

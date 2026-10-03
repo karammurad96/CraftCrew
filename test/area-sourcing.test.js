@@ -97,7 +97,7 @@ describe("sourcing (T129c)", () => {
       for (const html of pages) {
         assert.doesNotMatch(text(html), /\bsrc\.[a-zA-Z.]+/, "raw key");
         assert.doesNotMatch(html, /\son[a-z]+="/, "no inline handlers");
-        assert.match(html, /data-i18n="keys"/);
+        assert.doesNotMatch(html, /data-i18n/); // no markers of the old translation layer (T136)
       }
       if (lang === "de") {
         assert.ok(pages[1].includes("Welches Angebot passt zu Ihnen?") && pages[1].includes("Gewichtet nach Preis 50 %"));

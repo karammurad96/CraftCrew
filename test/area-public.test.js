@@ -55,7 +55,7 @@ describe("public area", () => {
       const ctx = area(lang);
       for (const p of PAGES) {
         const html = await ctx.render(p);
-        assert.match(html, /^<div data-i18n="keys">/, `${p} is drawn with keys`);
+        assert.match(html, /^<div>/, `${p} is drawn with keys`);
         assert.doesNotMatch(html, /\bpublic\.[a-z]+\.[a-zA-Z.]+/, `${p} shows a raw key`);
       }
       assert.deepEqual(ctx.warnings, []);
@@ -85,13 +85,10 @@ describe("public area", () => {
     assert.ok(!(await ctx.render("/imprint")).includes("gdRights"), "the rights section is only on the privacy page");
   });
 
-  it("removed the old renderers and the I18N_DE entries no page uses any more", () => {
+  it("removed the old renderers", () => {
     for (const f of ["app.js", "feedback-fixes.js", "collaboration.js", "design-screens.js", "onboarding.js", "legal-security.js", "gdpr-ui.js"]) {
       const src = read(f);
       assert.doesNotMatch(src, /function renderHome|renderHome = |function renderStatic|renderStatic = |function legalPage|legalPage = |obEnhanceHome/, f);
     }
-    const de = read("i18n.js");
-    for (const gone of ["Every crew. One project. Zero chaos.", "Vetted partners for your next project."])
-      assert.ok(!de.includes(`"${gone}"`), gone);
   });
 });

@@ -1,6 +1,6 @@
 // T127b: the three dashboards render in one pass from translation keys: greeting and decision list (T95–T97),
 // side cards, statistics, attention panels and lists, and the supplier's phone "Today" (T102). Server texts and
-// stored data keep the old translation (data-i18n="dom"); every section keeps its layout key.
+// stored data are shown as stored; every section keeps its layout key.
 const { describe, it } = require("node:test");
 const assert = require("node:assert/strict");
 const { readFileSync, existsSync } = require("node:fs");
@@ -129,9 +129,9 @@ describe("dashboards area", () => {
         assert.deepEqual(ctx.warnings, []);
         assert.doesNotMatch(text(html), /\bdash\.[a-zA-Z.]+/, "raw key");
         assert.doesNotMatch(html, /\son[a-z]+="/, "no inline handlers");
-        assert.match(html, /<div data-i18n="keys" class="dash-top ds-dash-top">/);
-        assert.match(html, /<section data-i18n="keys" class="aq-panel ds-dash" data-lc-section="aq-panel">/);
-        assert.match(html, /<div data-i18n="keys" class="stats" data-lc-section="stats" data-lc-grid="stats-0">/);
+        assert.match(html, /<div class="dash-top ds-dash-top">/);
+        assert.match(html, /<section class="aq-panel ds-dash" data-lc-section="aq-panel">/);
+        assert.match(html, /<div class="stats" data-lc-section="stats" data-lc-grid="stats-0">/);
         assert.match(html, /data-lc-section="pa-attention"/);
         assert.match(html, /data-lc-section="dashboard-grid"/);
         if (lang === "de") {
@@ -153,14 +153,14 @@ describe("dashboards area", () => {
     assert.match(html, /PLC is \d+ days late/);
     assert.ok(html.includes('href="#/customer/messages?project=p1&amp;phase=ph1&amp;task=t1">Message<'));
     // A server text keeps the old translation
-    assert.ok(html.includes('<span data-i18n="dom">Approve document FAT.pdf</span>'));
+    assert.ok(html.includes('<span>Approve document FAT.pdf</span>'));
     assert.ok(html.includes('<a class="btn primary" href="#/customer/projects/new">+ New project</a>'));
     // Side cards, attention panels, lists
     assert.ok(html.includes('<span class="ds-ui">Late tasks</span><b class="ds-red">1</b>'));
     assert.match(html, /Delayed work <span class="pa-count red">1<\/span>/);
     assert.ok(html.includes('<a class="project-row project-click" href="#/customer/projects/p1">'));
-    assert.ok(html.includes('<span class="status submitted" data-i18n="dom">Submitted</span>'));
-    assert.ok(html.includes("Line 4 · <span data-i18n=\"dom\">Build &amp; integration</span>"));
+    assert.ok(html.includes('<span class="status submitted">Submitted</span>'));
+    assert.ok(html.includes("Line 4 · <span>Build &amp; integration</span>"));
   });
 
   it("says when nothing needs a decision, with the next deadline", async () => {
@@ -178,9 +178,9 @@ describe("dashboards area", () => {
     assert.match(html, /data-action="dash\.answer" data-project="p1" data-task="t2" data-accept="true">Accept Job</);
     assert.match(html, /href="#\/supplier\/messages\?project=p1">Ask a question ›</);
     assert.ok(html.includes("Also for you"));
-    assert.match(html, /class="btn secondary ds-dec-btn" href="#\/supplier\/compliance"><span data-i18n="dom">Renew<\/span>/);
+    assert.match(html, /class="btn secondary ds-dec-btn" href="#\/supplier\/compliance">Renew</);
     // The phone "Today" comes first, with the accepted job and the quick actions
-    assert.match(html, /^\[supplier:dashboard\]<section data-i18n="keys" class="ds-today" data-lc-section="ds-today">/);
+    assert.match(html, /^\[supplier:dashboard\]<section class="ds-today" data-lc-section="ds-today">/);
     assert.match(html, /<b>PLC<\/b><small>40 % · due /);
     for (const q of ["time", "photo", "report", "defect"]) assert.ok(html.includes(`data-action="dash.quick" data-quick="${q}"`), q);
     // Pending invitations in the list and the invoice search
@@ -209,12 +209,12 @@ describe("dashboards area", () => {
     const ctx = area("en", "admin", { user: { name: "CraftCrew Admin" } }),
       html = await ctx.render();
     assert.ok(html.includes('<span class="ds-dash-kicker">Admin</span><h1>Good'));
-    assert.ok(html.includes('<a class="ds-dec-title" href="#/admin/applications"><span data-i18n="dom">Vet application: NordWerk</span></a>'));
-    assert.ok(html.includes('<span class="ds-dec-sub"><span data-i18n="dom">Due 2026-10-04</span> · €32,000</span>'));
+    assert.ok(html.includes('<a class="ds-dec-title" href="#/admin/applications"><span>Vet application: NordWerk</span></a>'));
+    assert.ok(html.includes('<span class="ds-dec-sub"><span>Due 2026-10-04</span> · €32,000</span>'));
     assert.ok(html.includes('<span class="ds-ui">Live suppliers</span><b>25</b>'));
     assert.ok(html.includes("Open escalation: Quality"), "the type comes from common.status (T137)");
     assert.ok(html.includes("Application waiting &gt; 3 days: NordWerk"));
-    assert.ok(html.includes('<b><span data-i18n="dom">Signed in</span></b>'));
+    assert.ok(html.includes("<b>Signed in</b>"), "audit actions come from common.audit (T136)");
     assert.match(html, /<span class="on">New<\/span><span>Verified<\/span>/);
     ctx.run("dash.application", { id: "app_1" });
     assert.deepEqual(ctx.calls.at(-1), ["application", "app_1"]);

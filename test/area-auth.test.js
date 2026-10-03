@@ -61,7 +61,7 @@ describe("auth area", () => {
       const ctx = area(lang);
       for (const p of PAGES) {
         const html = await ctx.render(p);
-        assert.match(html, /data-i18n="keys"/, p);
+        assert.doesNotMatch(html, /data-i18n/, p); // no markers of the old translation layer (T136)
         // text only: data-action="auth.submit" is an action name, not a text
         assert.doesNotMatch(html.replace(/<[^>]*>/g, " "), /\bauth\.[a-zA-Z]+\b/, `${p} shows a raw key`);
       }
@@ -88,7 +88,6 @@ describe("auth area", () => {
       'err.code === "EMAIL_UNVERIFIED"', // resend the confirmation link
       "if (d.verificationRequired) return authCheckInbox(d.email);", // check your inbox
       'err.code === "emailAlreadyRegistered"', // friendlier duplicate message
-      'span.dataset.i18n = translated ? "keys" : "dom";', // server messages keep the old translation
       "language: ccLang", // new accounts start in the chosen language
     ])
       assert.ok(src.includes(behaviour), behaviour);
@@ -102,10 +101,5 @@ describe("auth area", () => {
       ["workflows.js", /renderAuth/],
     ])
       assert.doesNotMatch(read(f), gone, f);
-  });
-
-  it("lets the server's error messages keep the old translation inside the key page", () => {
-    const src = read("i18n.js");
-    assert.ok(src.includes('const i18nKeyPage = (el) => el.closest("[data-i18n]")?.dataset.i18n === "keys";'));
   });
 });

@@ -77,6 +77,7 @@ module.exports = function createDocuments(ctx) {
     const complianceDocs = [...latest.values()].map((d) => ({
       id: d.id,
       source: "compliance",
+      requirementKey: d.requirementKey,
       title: compliance.REQUIREMENTS[d.requirementKey]?.label || d.requirementKey,
       category: "Compliance evidence",
       expiresAt: d.expiresAt || null,

@@ -1,13 +1,13 @@
 /* Area: the three dashboards (T127b). Each one is drawn in one pass with translation keys: the greeting and the
    decision list (T95–T97), the side cards, the statistics, the attention panels, the lists below and, for
    suppliers, the phone "Today" block (T102). Before this, seven scripts re-rendered and re-arranged each dashboard
-   after it was drawn. Stored data and server messages (names, action-queue texts, statuses) keep the old
-   translation for display (data-i18n="dom"). The getting-started checklist and the layout editor still add
+   after it was drawn. Stored data and server messages (names, action-queue texts) are shown as stored, in
+   <bdi> or <span>. The getting-started checklist and the layout editor still add
    themselves after the render; every section and card carries its layout key, so saved layouts keep working. */
 const dk = (key, params) => esc(t("dash." + key, params));
-// Stored data and server texts: the old DOM translation still handles them
-const dashDom = (text) => `<span data-i18n="dom">${esc(text)}</span>`;
-const dashStatus = (s) => `<span class="status ${esc(String(s || "").toLowerCase().replaceAll(" ", "-"))}" data-i18n="dom">${esc(s)}</span>`;
+// Stored data and server texts, shown as stored
+const dashDom = (text) => `<span>${esc(text)}</span>`;
+const dashStatus = (s) => `<span class="status ${esc(String(s || "").toLowerCase().replaceAll(" ", "-"))}">${esc(tStatus(s))}</span>`;
 const dashIso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const dashToday = () => dashIso(new Date());
 const dashUtcToday = () => new Date().toISOString().slice(0, 10);
@@ -54,11 +54,23 @@ const DASH_ICON_PATHS = {
 const DASH_TINT = { invoice: "blue", time: "blue", offer: "orange", document: "orange", overdue: "red", invitation: "orange", bid: "blue", compliance: "orange", application: "blue", dispute: "red", payment: "green" };
 const dashIcon = (kind) =>
   `<span class="ds-dec-icon ds-tint-${DASH_TINT[kind] || "blue"}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${DASH_ICON_PATHS[kind] || DASH_ICON_PATHS.document}</svg></span>`;
-// Labels are HTML here: either a key's text (escaped) or a server text marked for the old translation
+// Labels are HTML here: either a key's text (escaped) or a server text (dashDom)
 const dashDecBtn = (label, href, grey) => `<a class="btn ${grey ? "secondary" : "primary"} ds-dec-btn" href="#${esc(href)}">${label}</a>`;
 const dashRow = (kind, title, sub, link, buttons) =>
   `<div class="ds-dec-row">${dashIcon(kind)}<div class="ds-dec-text"><a class="ds-dec-title" href="#${esc(link)}">${title}</a>${sub ? `<span class="ds-dec-sub">${sub}</span>` : ""}</div><div class="ds-dec-actions">${buttons}</div></div>`;
-const dashAction = (x) => (x.action ? dashDom(x.action) : dk("open"));
+// The queue's words come as keys with values (x.q, T136): dash.q.<key>; statuses and types among the values are
+// translated too. An item without them shows the server's text.
+function dashQ(x, part) {
+  const [key, params = {}] = x.q?.[part] || [];
+  if (!key) return null;
+  const values = { ...params };
+  for (const k of ["status", "type"]) if (values[k]) values[k] = tStatus(values[k]);
+  return dk("q." + key, values);
+}
+const dashTitle = (x) => dashQ(x, "title") ?? dashDom(x.text);
+const dashSub = (x) => dashQ(x, "sub") ?? (x.sub ? dashDom(x.sub) : "");
+const dashAction = (x) =>
+  !x.action ? dk("open") : typeof ccLookup("en", "dash.q.action." + x.action) === "string" ? dk("q.action." + x.action) : dashDom(x.action);
 function dashCaughtUp(d) {
   const n = d.nextDeadline;
   return `<div class="ds-dec-empty"><b>${dk("caughtUp")}</b><span>${
@@ -67,8 +79,8 @@ function dashCaughtUp(d) {
 }
 // Customer rows: invoices, offers, time and late tasks are worded here from the queue's data (T95)
 function dashCustomerRow(x) {
-  let title = dashDom(x.text),
-    sub = x.sub ? dashDom(x.sub) : "",
+  let title = dashTitle(x),
+    sub = dashSub(x),
     buttons = dashDecBtn(dashAction(x), x.link);
   if (x.kind === "invoice" && x.invoiceId) {
     title = dk("row.invoice", { number: x.number, amount: fmt.money(x.amount || 0) });
@@ -98,7 +110,7 @@ function dashCustomerRow(x) {
   } else if (x.amount) sub = [sub, esc(fmt.money(x.amount))].filter(Boolean).join(" · ");
   return dashRow(x.kind, title, sub, x.link, buttons);
 }
-const dashServerRow = (x, sub, grey) => dashRow(x.kind, dashDom(x.text), sub, x.link, dashDecBtn(dashAction(x), x.link, grey));
+const dashServerRow = (x, sub, grey) => dashRow(x.kind, dashTitle(x), sub, x.link, dashDecBtn(dashAction(x), x.link, grey));
 const dashBase = (left, right) =>
   `<section class="aq-panel ds-dash" data-lc-section="aq-panel"><div class="ds-dash-cols"><div class="ds-dash-main">${left}</div><div class="ds-dash-side">${right}</div></div><h2 class="ds-dash-more ds-ui">${dk("moreBelow")}</h2></section>`;
 const dashGlanceCell = (label, value, red) => `<div class="ds-glance-cell"><span class="ds-ui">${label}</span><b${red ? ' class="ds-red"' : ""}>${value}</b></div>`;
@@ -348,7 +360,7 @@ async function dashSupplier() {
   const decisions = dashBase(
     inviteCard +
       (rest.length || !first
-        ? `<h2 class="ds-dash-h ds-ui">${dk(first ? "alsoForYou" : "needsDecision")}</h2><div class="ds-card ds-dec-list ds-dec-small">${rest.length ? rest.map((x) => dashServerRow(x, x.sub ? dashDom(x.sub) : "", x.kind === "compliance")).join("") : dashCaughtUp(aq)}</div>`
+        ? `<h2 class="ds-dash-h ds-ui">${dk(first ? "alsoForYou" : "needsDecision")}</h2><div class="ds-card ds-dec-list ds-dec-small">${rest.length ? rest.map((x) => dashServerRow(x, dashSub(x), x.kind === "compliance")).join("") : dashCaughtUp(aq)}</div>`
         : ""),
     `<section class="ds-pay-card"><span class="ds-ui">${dk("pay.year")}</span><b>${esc(fmt.money(paidYear))}</b><small>${
       approved.length
@@ -482,7 +494,7 @@ async function dashAdmin() {
   const header = dashHeader(t("dash.admin"), dashDecisionLine(aq.total || items.length), "");
   const decisions = dashBase(
     `<h2 class="ds-dash-h ds-ui">${dk("needsDecision")}</h2><div class="ds-card ds-dec-list">${
-      items.length ? items.map((x) => dashServerRow(x, [x.sub ? dashDom(x.sub) : "", x.amount ? esc(fmt.money(x.amount)) : ""].filter(Boolean).join(" · "))).join("") : dashCaughtUp(aq)
+      items.length ? items.map((x) => dashServerRow(x, [dashSub(x), x.amount ? esc(fmt.money(x.amount)) : ""].filter(Boolean).join(" · "))).join("") : dashCaughtUp(aq)
     }</div>`,
     `<h2 class="ds-dash-h ds-ui">${dk("atAGlance")}</h2><div class="ds-card ds-glance">${statCells.map(([, label, value]) => dashGlanceCell(label, value)).join("")}</div>`,
   );
@@ -548,7 +560,7 @@ async function dashAdmin() {
       dk("pa.auditLog"),
       (audit.entries || [])
         .slice(0, 7)
-        .map((e) => `<div class="pa-row"><span><b>${dashDom(e.action)}</b><small>${esc(e.actorName)} · ${esc(e.projectName || e.entityId)} · ${esc(dashTime(e.at))}</small></span></div>`)
+        .map((e) => `<div class="pa-row"><span><b>${esc(auditText(e.action))}</b><small>${esc(e.actorName)} · ${esc(e.projectName || e.entityId)} · ${esc(dashTime(e.at))}</small></span></div>`)
         .join(""),
       dk("pa.noActivity"),
     )
@@ -569,7 +581,7 @@ async function dashAdmin() {
 /* Every section is a direct child of the content area, so the layout editor can move it; each one is drawn
    with keys. The getting-started checklist adds itself after the decision list. */
 function dashRender(role, sections) {
-  app.innerHTML = dashboardShell(role, "dashboard", sections.map((html) => html.replace(/^<(\w+)/, '<$1 data-i18n="keys"')).join(""));
+  app.innerHTML = dashboardShell(role, "dashboard", sections.join(""));
 }
 
 routes.add("/customer/dashboard", dashCustomer);
@@ -615,7 +627,7 @@ actions.on("dash.quick", (el) => {
   if (dashJobs.length === 1) return run(dashJobs[0]);
   modal(
     t("dash.today.whichJob"),
-    `<div class="ds-job-pick" data-i18n="keys">${dashJobs.map((j, n) => `<button type="button" class="ds-job-pick-row" data-action="dash.pick" data-n="${n}"><b>${esc(j.name)}</b><span>${esc(j.project)}</span></button>`).join("")}</div>`,
+    `<div class="ds-job-pick">${dashJobs.map((j, n) => `<button type="button" class="ds-job-pick-row" data-action="dash.pick" data-n="${n}"><b>${esc(j.name)}</b><span>${esc(j.project)}</span></button>`).join("")}</div>`,
   );
   dashPick = run;
 });

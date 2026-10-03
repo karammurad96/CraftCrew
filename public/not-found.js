@@ -12,7 +12,7 @@ function renderNotFound(kind) {
     n = (key) => esc(t(`ui.nf.${k}.${key}`)),
     list = NF_LISTS[kind] || "dashboard",
     home = role ? `#/${role}/${list}` : "#/";
-  const card = `<section class="panel nf-card" role="alert" data-i18n="keys"><h1>${n("title")}</h1><p>${n("text")}</p><div class="cc-actions"><a class="btn primary" href="${home}">${role ? n("back") : esc(t("ui.nf.home"))}</a><button type="button" class="btn outline" data-action="ui.back">${esc(
+  const card = `<section class="panel nf-card" role="alert"><h1>${n("title")}</h1><p>${n("text")}</p><div class="cc-actions"><a class="btn primary" href="${home}">${role ? n("back") : esc(t("ui.nf.home"))}</a><button type="button" class="btn outline" data-action="ui.back">${esc(
     t("ui.nf.previous"),
   )}</button></div></section>`;
   app.innerHTML = role ? dashboardShell(role, kind ? list : "dashboard", card) : publicLayout(`<div class="cc-page">${card}</div>`);

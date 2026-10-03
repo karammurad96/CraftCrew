@@ -2,7 +2,6 @@
    scorecard panel. Drawn with translation keys; project, supplier and customer names are data. The chart helpers
    (inBars, inDonut, inHBars, inKpi) stay in insights.js; admin reports use them too. */
 const ank = (key, params) => esc(t("an." + key, params));
-const anKeys = (html) => html.replace(/^<(\w+)/, '<$1 data-i18n="keys"');
 const anMoney = (n) => fmt.money(n);
 const anRate = (a, b) => (b ? `${inPct(a, b)}%` : "—");
 const anStatus = (s) => (typeof ccLookup("en", "inv.statuses." + s) === "string" ? t("inv.statuses." + s) : s);
@@ -90,14 +89,13 @@ async function inCustomerAnalytics() {
           .slice(0, 8)
           .map(
             (x) =>
-              `<a class="pa-row" href="#/customer/projects/${esc(x.p.id)}${x.t ? "/tasks/" + esc(x.t.id) : ""}"><span><b>${x.t ? esc(x.t.name) : `<bdi data-i18n="dom">${esc(x.ph.name)}</bdi>`}</b><small>${esc(x.p.name)} · <bdi data-i18n="dom">${esc(x.ph.name)}</bdi></small></span><span class="pa-pill red">${anLate(
+              `<a class="pa-row" href="#/customer/projects/${esc(x.p.id)}${x.t ? "/tasks/" + esc(x.t.id) : ""}"><span><b>${x.t ? esc(x.t.name) : `<bdi>${esc(x.ph.name)}</bdi>`}</b><small>${esc(x.p.name)} · <bdi>${esc(x.ph.name)}</bdi></small></span><span class="pa-pill red">${anLate(
                 x.dueDate,
               )}</span></a>`,
           )
           .join("") || `<p class="pa-empty">${c("nothingOverdue")}</p>`
       }</section></div>`,
     ]
-      .map(anKeys)
       .join(""),
   );
 }
@@ -210,7 +208,6 @@ async function inSupplierAnalytics() {
           .join("") || `<p class="pa-empty">${s("noOffers")}</p>`
       }</section></div>`,
     ]
-      .map(anKeys)
       .join(""),
   );
   // The supplier's own scorecard (areas/directory.js)

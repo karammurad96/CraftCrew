@@ -3,8 +3,7 @@
    "Fix & resubmit", the new-invoice form, and the PDF, XRechnung and email downloads. Drawn with translation keys; company names,
    positions and notes are data. The function names stay because other pages (approvals) still call them. */
 const ink = (key, params) => esc(t("inv." + key, params));
-const inDom = (text) => `<bdi data-i18n="dom">${esc(text)}</bdi>`;
-const inKeys = (html) => html.replace(/^<(\w+)/, '<$1 data-i18n="keys"');
+const inDom = (text) => `<bdi>${esc(text)}</bdi>`;
 const IN_STATUSES = ["Submitted", "Approved", "Changes Requested", "Rejected", "Paid"];
 const inStatus = (s) => (IN_STATUSES.includes(s) ? ink("statuses." + s) : inDom(s));
 const inQuery = () => new URLSearchParams(location.hash.split("?")[1] || "");
@@ -193,7 +192,6 @@ async function reviewInvoiceList(role) {
         .join("")}</tr></thead><tbody>${invoices.map(row).join("") || `<tr><td colspan="7">${l("empty")}</td></tr>`}</tbody></table></div></section>`,
     ]
       .filter(Boolean)
-      .map(inKeys)
       .join(""),
   );
 }
@@ -318,12 +316,10 @@ async function invoiceDetailPage(id, role = state.user.role) {
   app.innerHTML = dashboardShell(
     role,
     "invoices",
-    inKeys(
-      `<div class="ds-inv-cols"><h1 class="sr-only">${d("title", { number: invNo(i) })}</h1><div class="ds-inv-left"><div class="ds-inv-bar"><a class="ds-inv-back" href="#${esc(back)}">${d("back")}</a><div class="ds-inv-pills">${dl("pdf", "pdf")}${dl("xrechnung", "xrechnung")}${dl(
+    `<div class="ds-inv-cols"><h1 class="sr-only">${d("title", { number: invNo(i) })}</h1><div class="ds-inv-left"><div class="ds-inv-bar"><a class="ds-inv-back" href="#${esc(back)}">${d("back")}</a><div class="ds-inv-pills">${dl("pdf", "pdf")}${dl("xrechnung", "xrechnung")}${dl(
         "email",
         "email",
       )}</div></div>${paper}<div class="ds-inv-below">${below}</div></div>${panel}</div>`,
-    ),
   );
   document.querySelector(".dashboard-content")?.classList.add("ds-invoice");
 }
@@ -384,7 +380,7 @@ async function rvFixInvoice(id) {
   inFixing = i;
   modal(
     t("inv.fix.title"),
-    `<form id="rvInvoiceForm" class="modal-form" data-i18n="keys" data-action="inv.resubmit" data-input="inv.fixTotal" data-id="${esc(id)}">
+    `<form id="rvInvoiceForm" class="modal-form" data-action="inv.resubmit" data-input="inv.fixTotal" data-id="${esc(id)}">
     ${i.comments ? `<div class="notice warn"><b>${f(i.status === "Rejected" ? "reasonRejected" : "requested")}:</b> ${inDom(i.comments)}</div>` : ""}
     <div class="cc-table-wrap"><table class="cc-table rv-lines"><thead><tr><th>${f("colPosition")}</th><th>${f("colQty")}</th><th>${f("colUnit")}</th><th>${f("colPrice")}</th><th>${f("colTotal")}</th><th></th></tr></thead><tbody id="rvLines">${lines
       .map(inFixRow)
@@ -393,7 +389,7 @@ async function rvFixInvoice(id) {
     <label>${f("description")}<textarea name="description" rows="2" required>${esc(i.description || "")}</textarea></label>
     <label>${f("whatChanged")} <small class="subtle">${f("shown")}</small><textarea name="note" rows="2" required placeholder="${f("changedPlaceholder")}"></textarea></label>
     <label>${f("replace")} <small class="subtle">${f("optional")}</small><input name="attachmentFile" type="file"></label>
-    <div id="rvInvoiceError" class="form-error" data-i18n="dom"></div><button class="btn primary">${f("resubmit")}</button></form>`,
+    <div id="rvInvoiceError" class="form-error"></div><button class="btn primary">${f("resubmit")}</button></form>`,
   );
   rvInvoiceTotal();
 }
@@ -464,7 +460,7 @@ async function newInvoice() {
     chosen = eligible.find((x) => x.p.id === q.get("project") && x.ph.id === q.get("phase") && (x.t?.id || "") === (q.get("task") || ""));
   modal(
     t("inv.new.title"),
-    `<div data-i18n="keys">${
+    `<div>${
       taxMissing ? `<div class="notice warn">${n("taxMissing")} <a href="#/supplier/profile" data-action="inv.closeModal">${n("openProfile")}</a></div>` : ""
     }<p class="modal-intro">${n("intro")}</p><form id="invF" class="modal-form" data-action="inv.submit" data-input="inv.newTotal"><label>${n("target")}<input type="search" class="cc-invoice-search" placeholder="${n(
       "search",
@@ -485,16 +481,16 @@ async function newInvoice() {
       "total",
     )}</span><strong id="invoiceTotal"></strong></div><div id="invoiceOrderCheck" class="order-check">${n("selectWork")}</div><label>${n("note")}<textarea name="description" required></textarea></label><label>${n(
       "attachment",
-    )}<input name="attachmentFile" type="file"></label><div id="invoiceError" class="form-error" data-i18n="dom"></div><div class="action-row"><button class="btn primary">${n("submit")}</button><button type="button" class="btn outline" data-action="inv.closeModal">${n(
+    )}<input name="attachmentFile" type="file"></label><div id="invoiceError" class="form-error"></div><div class="action-row"><button class="btn primary">${n("submit")}</button><button type="button" class="btn outline" data-action="inv.closeModal">${n(
       "cancel",
     )}</button></div></form></div>`,
   );
   inShowTarget();
 }
-// One invoice position; services are the supplier's own (data, on the old translation)
+// One invoice position; services are the supplier's own (data)
 function inLine() {
   const l = (key) => ink("new.line." + key);
-  return `<div class="invoice-line"><label>${l("service")}<select name="service" required data-i18n="dom"><option value="">${esc(t("inv.new.line.chooseService"))}</option>${inNew.services
+  return `<div class="invoice-line"><label>${l("service")}<select name="service" required><option value="">${esc(t("inv.new.line.chooseService"))}</option>${inNew.services
     .map((x) => `<option value="${esc(x)}">${esc(x)}</option>`)
     .join("")}</select></label><label>${l("amount")}<input name="quantity" type="number" min="0.01" step="0.01" value="1" required></label><label>${l("unit")}<select name="unit"><option value="hours">${l(
     "hours",

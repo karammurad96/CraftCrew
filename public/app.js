@@ -30,6 +30,7 @@ function ccSignedIn(user) {
   state.token = "session";
   localStorage.setItem("cc_user", JSON.stringify(user));
   localStorage.removeItem("cc_token");
+  setTimeout(langSyncAccount, 500);
 }
 const app = document.getElementById("app"),
   modalRoot = document.getElementById("modalRoot"),
@@ -39,16 +40,12 @@ const esc = (s) =>
     /[&<>'"]/g,
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[c],
   );
-const money = (n) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(
-    Number(n) || 0,
-  );
-const date = (d) =>
-  d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+// Amounts in the user's language (fmt is in core/t.js; the old German phrase map converted these before T136)
+const money = (n) => fmt.money(n);
+const date = (d) => fmt.date(d);
 const pct = (p) =>
   Math.round((p?.length ? p.filter((x) => x.status === "Completed").length / p.length : 0) * 100);
 function toast(msg, type = "success") {
-  delete toastEl.dataset.i18n; // tToast marks text that is already translated
   toastEl.textContent = msg;
   toastEl.className = "toast " + type;
   toastEl.style.display = "block";
@@ -106,8 +103,9 @@ async function uploadFile(file) {
 function navigate(path) {
   location.hash = path.startsWith("#") ? path.slice(1) : path;
 }
+// A dialog. A click on the backdrop (outside the dialog) or on × closes it; see the ui.modal* actions.
 function modal(title, body) {
-  modalRoot.innerHTML = `<div class="modal-backdrop" id="mb"><div class="modal"><div class="modal-head"><h2>${title}</h2><button class="close" onclick="closeModal()">×</button></div>${body}</div></div>`;
+  modalRoot.innerHTML = `<div class="modal-backdrop" id="mb" data-action="ui.modalBackdrop"><div class="modal"><div class="modal-head"><h2>${esc(title)}</h2><button class="close" type="button" aria-label="${esc(t("common.close"))}" data-action="ui.modalClose">×</button></div>${body}</div></div>`;
 }
 function closeModal() {
   modalRoot.innerHTML = "";
@@ -118,7 +116,6 @@ function topActions() {
   const el = document.getElementById("topActions"),
     k = (key) => esc(t("ui.top." + key));
   if (el) {
-    el.dataset.i18n = "keys";
     const u = state.user;
     if (!u) el.innerHTML = `${langSwitch(t("shell.language"), "shell.lang")}<a class="ds-top-signin" href="#/login">${k("signIn")}</a><a class="btn small primary ds-top-start" href="#/signup">${k("start")}</a>`;
     else {
@@ -138,16 +135,14 @@ function topActions() {
 }
 function uiStaticTexts() {
   const nav = document.querySelector("body > .topbar .main-nav");
-  if (nav && !nav.dataset.i18n) {
-    nav.dataset.i18n = "keys";
+  if (nav) {
     for (const a of nav.querySelectorAll("a")) {
       const key = { "#/how-it-works": "how", "#/suppliers": "suppliers", "#/pricing": "pricing", "#/faq": "support" }[a.getAttribute("href")];
       if (key) a.textContent = t("ui.nav." + key);
     }
   }
   const footer = document.querySelector("body > footer");
-  if (footer && !footer.dataset.i18n) {
-    footer.dataset.i18n = "keys";
+  if (footer) {
     const p = footer.querySelector(":scope > p");
     if (p) p.textContent = t("ui.footer.claim");
   }
@@ -183,7 +178,7 @@ async function route() {
     console.error(e);
     toast(e.message, "error");
     app.innerHTML = publicLayout(
-      `<div class="cc-page" data-i18n="keys"><div class="empty"><h2>${esc(t("errors.pageFailed"))}</h2><p data-i18n="dom">${esc(e.message)}</p><a class="btn primary" href="#/">${esc(t("ui.home"))}</a></div></div>`,
+      `<div class="cc-page"><div class="empty"><h2>${esc(t("errors.pageFailed"))}</h2><p>${esc(e.message)}</p><a class="btn primary" href="#/">${esc(t("ui.home"))}</a></div></div>`,
     );
   }
 }

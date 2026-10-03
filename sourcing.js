@@ -109,21 +109,22 @@ module.exports = function createSourcing(ctx) {
       .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))[0];
     const risks = [];
     if (!s.verified || !s.live)
-      risks.push({ level: "high", text: "Not verified or not live in the directory" });
+      risks.push({ level: "high", text: "Not verified or not live in the directory", q: ["notVerified"] });
     if (app?.insuranceExpiry) {
       const d = Math.ceil((Date.parse(app.insuranceExpiry) - Date.now()) / 86400000);
-      if (d < 0) risks.push({ level: "high", text: `Liability insurance expired ${-d} day(s) ago` });
-      else if (d <= 60) risks.push({ level: "medium", text: `Liability insurance expires in ${d} day(s)` });
-    } else risks.push({ level: "low", text: "No insurance evidence on file" });
+      if (d < 0) risks.push({ level: "high", text: `Liability insurance expired ${-d} day(s) ago`, q: ["insuranceExpired", { n: -d }] });
+      else if (d <= 60) risks.push({ level: "medium", text: `Liability insurance expires in ${d} day(s)`, q: ["insuranceExpiring", { n: d }] });
+    } else risks.push({ level: "low", text: "No insurance evidence on file", q: ["noInsurance"] });
     if (app?.verification?.riskLevel && ["Medium", "High"].includes(app.verification.riskLevel))
       risks.push({
         level: app.verification.riskLevel.toLowerCase(),
         text: `Vetting risk assessment: ${app.verification.riskLevel}`,
+        q: ["vettingRisk", { status: app.verification.riskLevel }],
       });
-    if (late) risks.push({ level: late > 2 ? "high" : "medium", text: `${late} work item(s) overdue` });
-    if (!(s.certifications || []).length) risks.push({ level: "low", text: "No certifications listed" });
+    if (late) risks.push({ level: late > 2 ? "high" : "medium", text: `${late} work item(s) overdue`, q: ["overdue", { n: late }] });
+    if (!(s.certifications || []).length) risks.push({ level: "low", text: "No certifications listed", q: ["noCertifications"] });
     if (ctx.extraRisks) risks.push(...ctx.extraRisks(s.id));
-    if (s.availability === "Busy") risks.push({ level: "low", text: "Currently marked as busy" });
+    if (s.availability === "Busy") risks.push({ level: "low", text: "Currently marked as busy", q: ["busy"] });
     const pct = (a, b) => (b ? Math.round((a / b) * 100) : null);
     const metrics = {
       rating: s.rating || null,

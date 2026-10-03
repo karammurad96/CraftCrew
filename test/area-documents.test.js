@@ -76,7 +76,7 @@ describe("project files (T128e)", () => {
       assert.deepEqual(ctx.warnings, []);
       assert.doesNotMatch(text(html), /\bdocs\.[a-zA-Z.]+/, "raw key");
       assert.doesNotMatch(html, /\son[a-z]+="/, "no inline handlers");
-      assert.match(html, /<div class="xp-page" data-i18n="keys">/);
+      assert.match(html, /<div class="xp-page">/);
       if (lang === "de") {
         assert.ok(html.includes("Projektdateien") && html.includes("Schnellzugriff") && html.includes("Hochladen"));
         assert.ok(html.includes("CAD-Zeichnung"), "file types in German");
@@ -86,8 +86,8 @@ describe("project files (T128e)", () => {
   it("lists folders and files with the commands of the selection, and keeps data on the old translation", async () => {
     const ctx = area("en");
     let html = await ctx.render();
-    assert.ok(html.includes('<b><bdi data-i18n="dom">Build &amp; integration</bdi></b>'));
-    assert.ok(html.includes('<span class="status completed" data-i18n="dom">Approved</span>'));
+    assert.ok(html.includes('<b><bdi>Build &amp; integration</bdi></b>'));
+    assert.ok(html.includes('<span class="status completed">Approved</span>'));
     assert.ok(html.includes("CAD drawing") && html.includes("3.0 MB"));
     assert.match(html, /data-action="docs\.toggle" data-folder="root"/);
     assert.match(html, /data-action="docs\.sortBy" data-key="size">Size</);

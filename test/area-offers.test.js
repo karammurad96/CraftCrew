@@ -102,7 +102,7 @@ describe("offers and bids (T129b)", () => {
         assert.deepEqual(ctx.warnings, []);
         assert.doesNotMatch(text(html), /\boffers\.[a-zA-Z.]+/, "raw key");
         assert.doesNotMatch(html, /\son[a-z]+="/, "no inline handlers");
-        assert.ok(html.startsWith(`[${role}:${role === "customer" ? "offers" : "bids"}]<div data-i18n="keys" class="dash-top">`));
+        assert.ok(html.startsWith(`[${role}:${role === "customer" ? "offers" : "bids"}]<div class="dash-top">`));
         if (lang === "de") {
           assert.ok(html.includes('<option value="Open">Offen</option>'), "bid status is a noun, not the verb Öffnen");
           assert.ok(html.includes("2 Angebote") && html.includes("Änderungen angefordert"));
@@ -116,7 +116,7 @@ describe("offers and bids (T129b)", () => {
     assert.match(html, /data-action="offers\.award" data-bid="b1" data-offer="o1">Award task/);
     assert.match(html, /data-action="offers\.changes" data-bid="b1" data-offer="o1">Request changes/);
     assert.match(html, /data-action="offers\.close" data-bid="b1">Close bidding/);
-    assert.ok(html.includes("Changes requested: <bdi data-i18n=\"dom\">Split price</bdi>"));
+    assert.ok(html.includes("Changes requested: <bdi>Split price</bdi>"));
     assert.ok(!html.includes('href="#/customer/sourcing/b2"'), "no comparison without offers");
     const supplier = await area("en", { role: "supplier", hash: "#/supplier/bids" }).render();
     assert.match(supplier, /data-action="offers\.offer" data-bid="b1">Edit \/ resend offer/);
@@ -141,7 +141,7 @@ describe("offers and bids (T129b)", () => {
     await ctx.call("ccOpenBidOffer('b1')");
     const { title, body } = ctx.shown.at(-1);
     assert.equal(title, "Angebot überarbeiten", "s1 already sent an offer");
-    assert.match(body, /<form id="srOfferForm" class="modal-form" data-i18n="keys" data-action="offers\.send" data-bid="b1">/);
+    assert.match(body, /<form id="srOfferForm" class="modal-form" data-action="offers\.send" data-bid="b1">/);
     assert.ok(body.includes('name="answer_0"') && body.includes('name="hourlyRate"') && body.includes("Üblicher Satz für"));
   });
 

@@ -80,7 +80,7 @@ const clean = (ctx, html) => {
   assert.deepEqual(ctx.warnings, []);
   assert.doesNotMatch(text(html), /\bprof\.[a-zA-Z.]+/, "raw key");
   assert.doesNotMatch(html, /\son[a-z]+="/, "no inline handlers");
-  assert.match(html, /data-i18n="keys"/);
+  assert.doesNotMatch(html, /data-i18n/); // no markers of the old translation layer (T136)
 };
 
 describe("profile and settings (T135a)", () => {

@@ -2,7 +2,7 @@
    acceptance report with a drawn signature (T63). Drawn with translation keys; reports, defects, names and notes
    are data. The function names (drOpen, puOpen, acOpen) stay because the workspace and the dashboard open them. */
 const wsk = (key, params) => esc(t("site." + key, params));
-const wsDomText = (text) => `<bdi data-i18n="dom">${esc(text)}</bdi>`;
+const wsDomText = (text) => `<bdi>${esc(text)}</bdi>`;
 const wsForm = (id, action, data, html, cls = "modal-form") =>
   `<form id="${id}" class="${cls}" data-action="${action}"${Object.entries(data)
     .map(([k, v]) => ` data-${k}="${esc(v)}"`)
@@ -33,10 +33,10 @@ async function drOpen(projectId, taskId) {
     }</div></li>`;
   const first = d.reports.at(-1)?.date || wsToday(),
     last = d.reports[0]?.date || wsToday(),
-    error = '<div id="drError" class="form-error" data-i18n="dom" role="alert"></div>';
+    error = '<div id="drError" class="form-error" role="alert"></div>';
   modal(
     t("site.dr.title"),
-    `<div data-i18n="keys">${
+    `<div>${
       d.reports.length
         ? wsForm(
             "drExport",
@@ -174,10 +174,10 @@ async function puOpen(projectId, taskId) {
     }${d.fixNote ? `<p class="pu-note"><b>${k("supplierNote")}</b> ${wsDomText(d.fixNote)}</p>` : ""}<div class="pu-photos">${photos(d.photoUrls, "photo")}${photos(d.fixPhotoUrls, "fixPhotoN")}</div>${tools}</li>`;
   };
   const order = { open: 0, fixed: 1, verified: 2 },
-    error = '<div id="puError" class="form-error" data-i18n="dom" role="alert"></div>';
+    error = '<div id="puError" class="form-error" role="alert"></div>';
   modal(
     t("site.pu.title"),
-    `<div data-i18n="keys"><ul class="pu-list">${[...defects].sort((a, b) => order[a.status] - order[b.status]).map(row).join("") || `<li class="pa-empty">${k("none")}</li>`}</ul>${
+    `<div><ul class="pu-list">${[...defects].sort((a, b) => order[a.status] - order[b.status]).map(row).join("") || `<li class="pa-empty">${k("none")}</li>`}</ul>${
       role === "customer"
         ? wsForm(
             "puForm",
@@ -260,8 +260,8 @@ async function acOpen(projectId, taskId) {
         "placeHint",
       )}"></label></div><div class="ac-sign"><span id="acSignLabel">${k("signature")}</span><canvas id="acCanvas" width="560" height="180" role="img" aria-labelledby="acSignLabel"></canvas><button type="button" class="btn small outline" data-action="ac.clear">${k(
         "clear",
-      )}</button></div><div id="acError" class="form-error" data-i18n="dom" role="alert"></div><button class="btn primary">${k("sign")}</button>`,
-    ).replace("<form ", '<form data-i18n="keys" '),
+      )}</button></div><div id="acError" class="form-error" role="alert"></div><button class="btn primary">${k("sign")}</button>`,
+    ).replace("<form ", '<form '),
   );
   const canvas = document.getElementById("acCanvas");
   if (canvas) acSignaturePad(canvas);

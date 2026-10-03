@@ -51,35 +51,42 @@ module.exports = function createGdpr(ctx) {
     if (user.isMember || user.role === "admin") return [];
     const db = getDb(),
       list = [],
-      add = (label, link) => list.push({ label, link });
+      // q: the label as a translation key with its values (prof.del.b.* in the locale files, T136)
+      add = (label, link, q) => list.push({ label, link, ...(q ? { q } : {}) });
     if (user.role === "customer") {
       for (const p of db.projects || [])
         if (p.customerId === user.id && !["Completed", "Archived"].includes(p.status) && !p.archived)
-          add(`Project "${p.name}" is still ${String(p.status || "open").toLowerCase()}`, `/customer/projects/${p.id}`);
+          add(`Project "${p.name}" is still ${String(p.status || "open").toLowerCase()}`, `/customer/projects/${p.id}`, ["projectOpen", { name: p.name, status: p.status || "Open" }]);
       for (const i of db.invoices || [])
         if (i.customerId === user.id && ["Submitted", "Approved", "Changes Requested"].includes(i.status))
-          add(`Invoice ${invoiceNo(i)} is ${i.status === "Approved" ? "approved but not paid" : "not decided yet"}`, `/customer/invoice/${i.id}`);
+          add(`Invoice ${invoiceNo(i)} is ${i.status === "Approved" ? "approved but not paid" : "not decided yet"}`, `/customer/invoice/${i.id}`, [
+            i.status === "Approved" ? "invoiceApproved" : "invoiceUndecided",
+            { number: invoiceNo(i) },
+          ]);
       for (const d of db.disputes || [])
-        if (d.customerId === user.id && OPEN_DISPUTE.includes(d.status)) add("An escalation is still open", "/customer/projects/" + d.projectId);
+        if (d.customerId === user.id && OPEN_DISPUTE.includes(d.status)) add("An escalation is still open", "/customer/projects/" + d.projectId, ["escalationOpen"]);
     }
     if (user.role === "supplier") {
       const sid = user.supplierId;
       for (const p of db.projects || [])
         for (const ph of p.phases || []) {
           if (ph.supplierId === sid && ph.acceptanceStatus === "Accepted" && ph.status !== "Completed")
-            add(`Phase "${ph.name}" (${p.name}) is not completed`, `/supplier/projects/${p.id}`);
+            add(`Phase "${ph.name}" (${p.name}) is not completed`, `/supplier/projects/${p.id}`, ["phaseOpen", { name: ph.name, project: p.name }]);
           for (const t of ph.tasks || [])
             if (t.assignedSupplierId === sid && t.acceptanceStatus === "Accepted" && t.status !== "Completed")
-              add(`Task "${t.name}" (${p.name}) is not completed`, `/supplier/projects/${p.id}/tasks/${t.id}`);
+              add(`Task "${t.name}" (${p.name}) is not completed`, `/supplier/projects/${p.id}/tasks/${t.id}`, ["taskOpen", { name: t.name, project: p.name }]);
         }
       for (const i of db.invoices || [])
         if (i.supplierId === sid && ["Submitted", "Approved", "Changes Requested"].includes(i.status))
-          add(`Invoice ${invoiceNo(i)} is not paid yet`, `/supplier/invoice/${i.id}`);
+          add(`Invoice ${invoiceNo(i)} is not paid yet`, `/supplier/invoice/${i.id}`, ["invoiceNotPaid", { number: invoiceNo(i) }]);
       for (const d of db.disputes || [])
-        if (d.supplierId === sid && OPEN_DISPUTE.includes(d.status)) add("An escalation is still open", "/supplier/projects/" + d.projectId);
+        if (d.supplierId === sid && OPEN_DISPUTE.includes(d.status)) add("An escalation is still open", "/supplier/projects/" + d.projectId, ["escalationOpen"]);
       for (const v of db.siteVisits || [])
         if (v.supplierId === sid && ["Approved", "Checked in"].includes(v.status))
-          add(`A site visit on ${v.date} is still ${v.status === "Approved" ? "planned" : "checked in"}`, "/supplier/compliance");
+          add(`A site visit on ${v.date} is still ${v.status === "Approved" ? "planned" : "checked in"}`, "/supplier/compliance", [
+            v.status === "Approved" ? "visitPlanned" : "visitCheckedIn",
+            { date: v.date },
+          ]);
     }
     return list;
   }

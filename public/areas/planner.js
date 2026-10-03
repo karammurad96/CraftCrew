@@ -2,8 +2,9 @@
    visits. Click an empty day to plan, click a bar to edit, drag a bar to move it to another day or person. Drawn
    with translation keys; names, jobs, titles and notes are data. */
 const plk = (key, params) => esc(t("pl." + key, params));
-const plDom = (text) => `<bdi data-i18n="dom">${esc(text)}</bdi>`;
-const plKeys = (html) => html.replace(/^<(\w+)/, '<$1 data-i18n="keys"');
+const plDom = (text) => `<bdi>${esc(text)}</bdi>`;
+// A person's role: the account owner's comes from a key, team members' roles are their own text
+const plRole = (p) => (p.kind === "owner" ? plk("ownerRole") : plDom(p.role || ""));
 const PL_DAY = 86400000;
 const plIso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const plParse = (s) => {
@@ -76,7 +77,7 @@ async function plPage() {
           .map((x) => x[0])
           .join("")
           .slice(0, 2),
-      )}</span><div><b>${esc(p.name)}</b><small>${plDom(p.role)}</small></div><span class="pl-util ${u > 90 ? "high" : u < 30 ? "low" : ""}" title="${plk("utilTip", { n: u })}">${u}%</span></div><div class="pl-track" data-person="${esc(
+      )}</span><div><b>${esc(p.name)}</b><small>${plRole(p)}</small></div><span class="pl-util ${u > 90 ? "high" : u < 30 ? "low" : ""}" title="${plk("utilTip", { n: u })}">${u}%</span></div><div class="pl-track" data-person="${esc(
         p.id,
       )}" style="grid-template-columns:repeat(${days},minmax(0,1fr));grid-template-rows:repeat(${count},26px)">${dates
         .map(
@@ -127,7 +128,6 @@ async function plPage() {
       }</section>`,
       `<section class="panel"><div class="panel-title"><h3>${plk("jobs")}</h3><span class="ui-count">${jobs.length}</span></div>${jobs.map(job).join("") || `<p class="pa-empty">${plk("noJobs")}</p>`}</section>`,
     ]
-      .map(plKeys)
       .join(""),
   );
   plBindDrag();
@@ -157,8 +157,8 @@ function plForm(e) {
   plEditing = e.id ? e : null;
   modal(
     t(e.id ? "pl.form.editTitle" : "pl.form.newTitle"),
-    `<form id="plForm" class="modal-form" data-i18n="keys" data-action="pl.save"><div class="two"><label>${f("person")}<select name="personId" required>${people
-      .map((p) => `<option value="${esc(p.id)}" ${e.personId === p.id ? "selected" : ""}>${esc(p.name)} · ${esc(p.role)}</option>`)
+    `<form id="plForm" class="modal-form" data-action="pl.save"><div class="two"><label>${f("person")}<select name="personId" required>${people
+      .map((p) => `<option value="${esc(p.id)}" ${e.personId === p.id ? "selected" : ""}>${esc(p.name)} · ${plRole(p)}</option>`)
       .join("")}</select></label><label>${f("type")}<select name="type" data-action="pl.type">${Object.entries(types)
       .map(([k, l]) => `<option value="${esc(k)}" ${e.type === k ? "selected" : ""}>${esc(plType(k, l))}</option>`)
       .join("")}</select></label></div><label class="pl-job-field">${f("job")}<select name="taskId" data-action="pl.job"><option value="">${f("chooseJob")}</option>${jobs
@@ -167,7 +167,7 @@ function plForm(e) {
       "from",
     )}<input name="start" type="date" value="${esc(e.start || "")}" required data-action="pl.start"></label><label>${f("to")}<input name="end" type="date" value="${esc(e.end || e.start || "")}" required></label></div><label>${f(
       "note",
-    )} <small class="subtle">${f("optional")}</small><textarea name="note" rows="2">${esc(e.note || "")}</textarea></label><div id="plError" class="form-error" data-i18n="dom"></div><div class="cc-actions">${
+    )} <small class="subtle">${f("optional")}</small><textarea name="note" rows="2">${esc(e.note || "")}</textarea></label><div id="plError" class="form-error"></div><div class="cc-actions">${
       e.id ? `<button type="button" class="btn outline danger-text" data-action="pl.delete">${f("delete")}</button>` : ""
     }<button class="btn primary">${f("save")}</button></div></form>`,
   );
@@ -237,18 +237,18 @@ function plPlanJob(taskId = "") {
     f = (key) => plk("jobForm." + key);
   modal(
     t("pl.jobForm.title"),
-    `<form id="plJobForm" class="modal-form" data-i18n="keys" data-action="pl.saveJob"><label>${f("job")}<select name="taskId" data-action="pl.switchJob">${jobs
+    `<form id="plJobForm" class="modal-form" data-action="pl.saveJob"><label>${f("job")}<select name="taskId" data-action="pl.switchJob">${jobs
       .map((j) => `<option value="${esc(j.taskId)}" ${j.taskId === job.taskId ? "selected" : ""}>${esc(j.projectName)} · ${esc(j.taskName)}</option>`)
       .join("")}</select></label><div class="two"><label>${f("from")}<input name="start" type="date" value="${esc(job.startDate || plIso(new Date()))}" required></label><label>${f("to")}<input name="end" type="date" value="${esc(
       job.dueDate || job.startDate || plIso(new Date()),
     )}" required></label></div><fieldset class="cm-fieldset"><legend>${f("people")}</legend><div class="cm-checks">${people
       .map(
         (p) =>
-          `<label class="cc-check-label"><input type="checkbox" name="people" value="${esc(p.id)}" ${planned.has(p.id) ? "checked disabled" : ""}> ${esc(p.name)} <small class="subtle">${plDom(p.role)}${
+          `<label class="cc-check-label"><input type="checkbox" name="people" value="${esc(p.id)}" ${planned.has(p.id) ? "checked disabled" : ""}> ${esc(p.name)} <small class="subtle">${plRole(p)}${
             planned.has(p.id) ? " · " + f("already") : ""
           }</small></label>`,
       )
-      .join("")}</div></fieldset><div id="plJobError" class="form-error" data-i18n="dom"></div><button class="btn primary">${f("save")}</button></form>`,
+      .join("")}</div></fieldset><div id="plJobError" class="form-error"></div><button class="btn primary">${f("save")}</button></form>`,
   );
 }
 actions.on("pl.planJob", (el) => plPlanJob(el.dataset.task || ""));

@@ -4,8 +4,7 @@
    awarding, declining and closing. Drawn with translation keys; bid titles, scopes and company names are data.
    The function names stay, because the sourcing event page (T129c) still calls them. */
 const ofk = (key, params) => esc(t("offers." + key, params));
-const ofDom = (text) => `<bdi data-i18n="dom">${esc(text)}</bdi>`;
-const ofKeys = (html) => html.replace(/^<(\w+)/, '<$1 data-i18n="keys"');
+const ofDom = (text) => `<bdi>${esc(text)}</bdi>`;
 const OF_ACTIVE = ["Open", "Shortlist", "Second round", "Final round"];
 const OF_STATUSES = ["All", ...OF_ACTIVE, "Awarded", "Closed"];
 const OF_OFFER_STATUSES = ["Submitted", "Changes requested", "Accepted", "Not selected", "Declined"];
@@ -18,14 +17,14 @@ function bmRateNote(rate, service) {
   const b = bmFor(service),
     r = Number(rate);
   if (!r) return "";
-  if (!b) return `<small class="bm-note" data-i18n="keys">${ofk("rate.plain", { rate: fmt.money(r) })}</small>`;
+  if (!b) return `<small class="bm-note">${ofk("rate.plain", { rate: fmt.money(r) })}</small>`;
   const where = r < b.p25 ? "low" : r > b.p75 ? "high" : "ok";
-  return `<small class="bm-note bm-${where}" data-i18n="keys">${ofk("rate." + where, { rate: fmt.money(r), from: fmt.money(b.p25), to: fmt.money(b.p75) })}</small>`;
+  return `<small class="bm-note bm-${where}">${ofk("rate." + where, { rate: fmt.money(r), from: fmt.money(b.p25), to: fmt.money(b.p75) })}</small>`;
 }
 function bmRangeNote(service) {
   const b = bmFor(service);
   return b
-    ? `<small class="bm-note" data-i18n="keys">${tHtml("offers.rate.range", { service: ofDom(b.service), from: esc(fmt.money(b.p25)), to: esc(fmt.money(b.p75)), median: esc(fmt.money(b.median)) })}</small>`
+    ? `<small class="bm-note">${tHtml("offers.rate.range", { service: ofDom(b.service), from: esc(fmt.money(b.p25)), to: esc(fmt.money(b.p75)), median: esc(fmt.money(b.median)) })}</small>`
     : "";
 }
 
@@ -92,7 +91,6 @@ async function ofPage(role, query) {
         .join("")}</select></label></div>`,
       `<div class="wf-bid-grid review-bid-grid">${list.map(card).join("") || `<div class="empty">${ofk("empty")}</div>`}</div>`,
     ]
-      .map(ofKeys)
       .join(""),
   );
 }
@@ -126,7 +124,7 @@ async function ccOpenBidOffer(id) {
   const f = (key, params) => ofk("form." + key, params);
   modal(
     t(mine ? "offers.form.reviseTitle" : "offers.form.submitTitle"),
-    `<form id="srOfferForm" class="modal-form" data-i18n="keys" data-action="offers.send" data-bid="${esc(id)}"><p><b>${esc(b.title)}</b><br><small class="subtle">${f("meta", {
+    `<form id="srOfferForm" class="modal-form" data-action="offers.send" data-bid="${esc(id)}"><p><b>${esc(b.title)}</b><br><small class="subtle">${f("meta", {
       type: b.eventType || "RFQ",
       project: b.projectName,
       task: b.taskName,
@@ -141,7 +139,7 @@ async function ccOpenBidOffer(id) {
       mine?.attachment ? `<a href="${esc(mine.attachment)}">${f("current")}</a>` : ""
     }${
       mine ? `<label>${f("changed")} <small class="subtle">${f("changedHint")}</small><textarea name="revisionNote" rows="2" placeholder="${f("changedPlaceholder")}"></textarea></label>` : ""
-    }<div id="srOfferError" class="form-error" data-i18n="dom"></div><button class="btn primary">${f(mine ? "resend" : "send")}</button></form>`,
+    }<div id="srOfferError" class="form-error"></div><button class="btn primary">${f(mine ? "resend" : "send")}</button></form>`,
   );
 }
 actions.on("offers.send", async (form) => {
@@ -176,7 +174,7 @@ async function wfSupplierBid(pid, phid, tid) {
     k = (key, params) => ofk("task." + key, params);
   modal(
     t("offers.task.title"),
-    `<div data-i18n="keys">${
+    `<div>${
       open
         .map(
           (b) =>
@@ -216,11 +214,11 @@ async function wfCreateBid(pid, phid, tid) {
     e = (key, params) => ofk("event." + key, params);
   modal(
     t("offers.event.title"),
-    `<form id="srEventForm" class="modal-form" data-i18n="keys" data-action="offers.publish" data-project="${esc(pid)}" data-phase="${esc(phid)}" data-task="${esc(tid)}"><p class="modal-intro">${tHtml("offers.event.intro", {
+    `<form id="srEventForm" class="modal-form" data-action="offers.publish" data-project="${esc(pid)}" data-phase="${esc(phid)}" data-task="${esc(tid)}"><p class="modal-intro">${tHtml("offers.event.intro", {
       task: `<b>${esc(task.name)}</b>`,
     })}</p><div class="two"><label>${e("type")}<select name="eventType">${["RFQ", "RFP", "RFI"].map((x) => `<option value="${x}">${e("types." + x)}</option>`).join("")}</select></label><label>${e(
       "category",
-    )}<select name="category" data-i18n="dom"><option value="">${esc(t("offers.event.choose"))}</option>${(cfg.serviceCategories || []).map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join("")}</select></label></div><label>${e(
+    )}<select name="category"><option value="">${esc(t("offers.event.choose"))}</option>${(cfg.serviceCategories || []).map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join("")}</select></label></div><label>${e(
       "name",
     )}<input name="title" value="${esc(task.name)}" required></label><label>${e("scope")}<textarea name="description" rows="3" required>${esc(task.description || "")}</textarea></label><div class="two"><label>${e(
       "due",
@@ -230,7 +228,7 @@ async function wfCreateBid(pid, phid, tid) {
       "questionsPlaceholder",
     ).replace(/\n/g, "&#10;")}"></textarea></label><label class="cc-check-label pv-invite"><input type="checkbox" id="pvInviteBox" name="preferredOnly"${preferred.length ? "" : " disabled"}> ${e("preferred", {
       n: preferred.length,
-    })} <small class="subtle">${e("preferredHint")}</small></label><div id="srEventError" class="form-error" data-i18n="dom"></div><button class="btn primary">${e("publish")}</button></form>`,
+    })} <small class="subtle">${e("preferredHint")}</small></label><div id="srEventError" class="form-error"></div><button class="btn primary">${e("publish")}</button></form>`,
   );
 }
 actions.on("offers.publish", async (form) => {
@@ -266,11 +264,11 @@ async function ccEditBid(id) {
   if (!b) return;
   modal(
     t("offers.edit.title"),
-    `<form id="ccEditBidForm" class="modal-form" data-i18n="keys" data-action="offers.saveEdit" data-bid="${esc(id)}"><label>${e("name")}<input name="title" value="${esc(b.title)}" maxlength="160" required></label><label>${e(
+    `<form id="ccEditBidForm" class="modal-form" data-action="offers.saveEdit" data-bid="${esc(id)}"><label>${e("name")}<input name="title" value="${esc(b.title)}" maxlength="160" required></label><label>${e(
       "scope",
     )}<textarea name="description" rows="5">${esc(b.description)}</textarea></label><label>${e("due")}<input name="dueDate" type="date" value="${esc(b.dueDate)}" required></label><p>${e(
       "note",
-    )}</p><div id="ccEditBidError" class="form-error" data-i18n="dom"></div><button class="btn primary">${e("save")}</button></form>`,
+    )}</p><div id="ccEditBidError" class="form-error"></div><button class="btn primary">${e("save")}</button></form>`,
   );
 }
 actions.on("offers.saveEdit", async (form) => {
@@ -293,7 +291,7 @@ async function reviewInviteBid(bidId) {
     k = (key) => ofk("inv." + key);
   modal(
     t("offers.inv.title"),
-    `<form id="reviewInviteForm" class="modal-form" data-i18n="keys" data-action="offers.sendInvites" data-bid="${esc(bidId)}"><p class="modal-intro">${k("intro")}</p><label>${k(
+    `<form id="reviewInviteForm" class="modal-form" data-action="offers.sendInvites" data-bid="${esc(bidId)}"><p class="modal-intro">${k("intro")}</p><label>${k(
       "search",
     )}<input id="reviewInviteSearch" placeholder="${k("searchHint")}" data-input="offers.searchInvite"></label>${
       pvData.suppliers.length ? `<button type="button" class="btn small outline pv-invite" data-action="offers.tickPreferred">${k("preferred")}</button>` : ""
@@ -340,7 +338,7 @@ async function reviewOfferTalk(bidId, offerId) {
     k = (key) => ofk("talk." + key);
   modal(
     t(customer ? "offers.talk.customerTitle" : "offers.talk.supplierTitle"),
-    `<div data-i18n="keys"><div class="review-chat-log">${
+    `<div><div class="review-chat-log">${
       (offer.clarifications || []).map((m) => `<article><b>${esc(m.authorName)}</b><p>${esc(m.text)}</p><small>${esc(fmt.date(m.createdAt))}</small></article>`).join("") || `<div class="empty">${k("empty")}</div>`
     }</div><form id="reviewClarifyForm" class="modal-form" data-action="offers.clarify" data-bid="${esc(bidId)}" data-offer="${esc(offerId)}"><label>${k(customer ? "question" : "reply")}<textarea name="text" maxlength="3000" required></textarea></label><button class="btn primary">${k(
       customer ? "ask" : "send",
