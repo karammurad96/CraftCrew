@@ -122,6 +122,12 @@ describe("API error codes (T137)", () => {
         "Check-in ist vom 2026-10-04 bis 2026-10-05 möglich",
       );
       assert.equal(de.apiErrorText({ error: "x", code: "teamNone.supplier.invoices" }), "Ihre Teamrolle hat keinen Zugriff auf Rechnungen");
+      // status values inside a message are translated too
+      assert.equal(
+        de.apiErrorText({ error: "x", code: "chooseOneOfTheseStatuses", params: { list: "Not Started, In Progress" } }),
+        "Wählen Sie einen dieser Status: Nicht begonnen, In Bearbeitung.",
+      );
+      assert.equal(de.apiErrorText({ error: "x", code: "thisInvoiceWasAlreadyDecided", params: { status: "Paid" } }), "Über diese Rechnung wurde bereits entschieden (Status: Bezahlt).");
     });
 
     it("finds an error with its own code by its English message, and shows unknown messages as sent", () => {

@@ -99,7 +99,13 @@ function statusHtml(value) {
 let ccErrorTexts;
 function apiErrorText(d) {
   if (!d || !d.error) return t("ui.requestFailed");
-  if (d.code && typeof ccLookup("en", "errors.api." + d.code) === "string") return t("errors.api." + d.code, d.params);
+  if (d.code && typeof ccLookup("en", "errors.api." + d.code) === "string") {
+    // Status values inside the message are shown in the user's language too
+    const params = { ...d.params };
+    if (params.status) params.status = tStatus(params.status);
+    if (params.list) params.list = String(params.list).split(", ").map(tStatus).join(", ");
+    return t("errors.api." + d.code, params);
+  }
   if (!ccErrorTexts) {
     ccErrorTexts = new Map();
     (function walk(node, prefix) {
