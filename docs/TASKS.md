@@ -179,10 +179,10 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 **Wave 6 — strategic (P3, needs a human decision or a stronger model)**
 - [ ] T80 Real payments: escrow-like milestones, payment terms, early payout
 - [ ] T81 Move data to PostgreSQL
-- [ ] T82 Replace DOM-based translation with translation keys
-- [ ] T83 Merge the frontend add-on layers; cookie sessions; strict CSP
+- [x] T82 Replace DOM-based translation with translation keys (done by T125–T137)
+- [x] T83 Merge the frontend add-on layers; cookie sessions; strict CSP (done by T124–T136)
 - [x] T84 Installable phone app (PWA) with offline time and photo capture
-- [ ] T85 GDPR self-service: data export, account deletion with invoice retention
+- [x] T85 GDPR self-service: data export, account deletion with invoice retention (done by T120–T123)
 - [x] T86 Re-verify supplier profile changes after approval
 
 **Wave 6 split (decided with Karam on 2 October 2026; details under "Wave 6 — split into tasks")**
