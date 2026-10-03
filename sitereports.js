@@ -7,48 +7,9 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { pdfText, wrapPdfText, imageOf, pdfDocument } = require("./pdf");
 
-const LABELS = {
-  en: {
-    title: "Daily site reports",
-    project: "Project",
-    task: "Task",
-    supplier: "Supplier",
-    period: "Period",
-    weather: "Weather",
-    team: "Team on site",
-    hours: "Hours",
-    work: "Work done",
-    problems: "Problems or obstructions",
-    comments: "Comments",
-    acknowledged: "Acknowledged by the customer",
-    notAcknowledged: "Not acknowledged yet",
-    none: "None",
-    photos: "photo(s)",
-    page: "Page",
-    footer: "Created with CraftCrew.",
-    locale: "en-GB",
-  },
-  de: {
-    title: "Bautagesberichte",
-    project: "Projekt",
-    task: "Aufgabe",
-    supplier: "Auftragnehmer",
-    period: "Zeitraum",
-    weather: "Wetter",
-    team: "Personal vor Ort",
-    hours: "Stunden",
-    work: "Ausgeführte Arbeiten",
-    problems: "Probleme oder Behinderungen",
-    comments: "Kommentare",
-    acknowledged: "Vom Auftraggeber zur Kenntnis genommen",
-    notAcknowledged: "Noch nicht zur Kenntnis genommen",
-    none: "Keine",
-    photos: "Foto(s)",
-    page: "Seite",
-    footer: "Erstellt mit CraftCrew.",
-    locale: "de-DE",
-  },
-};
+const locales = require("./locales");
+// The PDF's labels are in server.pdf.siteReports of the locale files (T137).
+const labelsFor = (lang) => ({ ...locales.group(lang, "server.pdf.siteReports"), locale: locales.localeOf(lang) });
 
 module.exports = function createSiteReports(ctx) {
   const { getDb, save, send, body, id, now, notify, projectFor, ownUpload, uploadDir } = ctx;
@@ -127,7 +88,7 @@ module.exports = function createSiteReports(ctx) {
   }
 
   function reportsPdf(reports, { project, task, supplier }, from, to, lang) {
-    const L = LABELS[lang] || LABELS.en,
+    const L = labelsFor(lang),
       pages = [],
       images = [];
     let commands, y;
@@ -250,7 +211,7 @@ module.exports = function createSiteReports(ctx) {
         .sort((a, b) => a.date.localeCompare(b.date))
         .map(view);
       if (!list.length) return (send(res, 404, { error: "No site reports in this period" }), true);
-      const lang = user.language === "de" ? "de" : "en",
+      const lang = locales.pdfLang(user),
         pdf = reportsPdf(
           list,
           { project, task, supplier: db.suppliers.find((s) => s.id === task.assignedSupplierId) },

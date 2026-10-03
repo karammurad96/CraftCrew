@@ -54,6 +54,8 @@ const REQUIREMENTS = {
   forklift: { scope: "worker", label: "Forklift licence", de: "Staplerschein", expires: false },
   firstAid: { scope: "worker", label: "First aider training", de: "Ersthelfer-Ausbildung", expires: true },
 };
+// A requirement's name in a notification, in the recipient's language (cm.req.<key> of the locale files)
+const requirementParam = (key) => (REQUIREMENTS[key] ? { t: "cm.req." + key, or: REQUIREMENTS[key].label } : key);
 const PERMITS = {
   none: { label: "No special permit", checklist: [] },
   hotWork: {
@@ -255,7 +257,7 @@ module.exports = function createCompliance(ctx) {
         for (const u of db.users.filter((x) => x.supplierId === d.supplierId))
           notify(
             u.id,
-            `Compliance document expires on ${d.expiresAt}: ${REQUIREMENTS[d.requirementKey]?.label || d.requirementKey} (${who})`,
+            { key: "complianceExpiring", params: { date: d.expiresAt, requirement: requirementParam(d.requirementKey), who } },
             "/supplier/compliance",
           );
         d.expiryNoticeSent = now();
@@ -470,7 +472,10 @@ module.exports = function createCompliance(ctx) {
       for (const cid of customers)
         notify(
           cid,
-          `Compliance document to review: ${r.label} from ${db.suppliers.find((s) => s.id === user.supplierId)?.company || "a supplier"}`,
+          {
+            key: "complianceToReview",
+            params: { requirement: requirementParam(b.requirementKey), company: db.suppliers.find((s) => s.id === user.supplierId)?.company || "—" },
+          },
           "/customer/sites",
         );
       save();
@@ -496,7 +501,10 @@ module.exports = function createCompliance(ctx) {
       for (const u of db.users.filter((x) => x.supplierId === doc.supplierId))
         notify(
           u.id,
-          `${REQUIREMENTS[doc.requirementKey]?.label}: ${b.status}${b.note ? " — " + b.note : ""}`,
+          {
+            key: b.note ? "complianceReviewedNote" : "complianceReviewed",
+            params: { requirement: requirementParam(doc.requirementKey), status: b.status, note: b.note },
+          },
           "/supplier/compliance",
         );
       save();
@@ -572,7 +580,10 @@ module.exports = function createCompliance(ctx) {
       db.siteVisits.unshift(visit);
       notify(
         site.customerId,
-        `Site access requested for ${site.name} on ${visit.date} (${workerIds.length} worker(s))${visit.readinessAtRequest ? "" : " — compliance incomplete"}`,
+        {
+          key: visit.readinessAtRequest ? "siteAccessRequested" : "siteAccessRequestedIncomplete",
+          params: { site: site.name, date: visit.date, n: workerIds.length },
+        },
         "/customer/sites",
       );
       save();
@@ -607,12 +618,12 @@ module.exports = function createCompliance(ctx) {
           override: r.ready ? null : String(b.overrideReason).slice(0, 500),
         });
         for (const u of db.users.filter((x) => x.supplierId === v.supplierId))
-          notify(u.id, `Site access approved: ${site.name} on ${v.date}`, "/supplier/compliance");
+          notify(u.id, { key: "siteAccessApproved", params: { site: site.name, date: v.date } }, "/supplier/compliance");
       } else if (b.action === "reject" && isCustomer && ["Requested", "Approved"].includes(v.status)) {
         if (!String(b.note || "").trim()) return (send(res, 400, { error: "Enter a reason" }), true);
         move("Rejected");
         for (const u of db.users.filter((x) => x.supplierId === v.supplierId))
-          notify(u.id, `Site access rejected: ${site.name} on ${v.date} — ${b.note}`, "/supplier/compliance");
+          notify(u.id, { key: "siteAccessRejected", params: { site: site.name, date: v.date, note: b.note } }, "/supplier/compliance");
       } else if (b.action === "checkin" && (isCustomer || isSupplier) && v.status === "Approved") {
         if (today() < v.date || today() > v.endDate)
           return (send(res, 400, { error: `Check-in is possible from ${v.date} to ${v.endDate}` }), true);

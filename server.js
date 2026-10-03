@@ -75,6 +75,7 @@ function publicSupplier(s) {
 const createVies = require("./vies");
 const { pdfText, wrapPdfText } = require("./pdf");
 const geo = require("./geo");
+const locales = require("./locales");
 const vies = createVies({
   fetch: (...a) => fetch(...a),
   ...(process.env.VIES_URL ? { url: process.env.VIES_URL } : {}),
@@ -891,7 +892,7 @@ function normaliseStoredEmails() {
       for (const admin of db.users.filter((x) => x.role === "admin"))
         notify(
           admin.id,
-          `Two accounts share the email ${u.email} (${other.id}, ${u.id}). Please review them.`,
+          { key: "duplicateEmail", params: { email: u.email, first: other.id, second: u.id } },
           "/admin/users",
         );
     } else seen.set(u.email, u);
@@ -3144,114 +3145,11 @@ function archiveAudit() {
     fs.appendFileSync(path.join(dir, `audit-${month}.jsonl`), lines.join(""), { mode: 0o600 });
   db.auditLog = db.auditLog.slice(0, AUDIT_IN_MEMORY);
 }
-/* Notification texts in both languages. notify(userId, {key, params}, link) renders the text in the recipient's
-   language; plain strings still work for the rarer notifications. Status values are translated too. */
-const NOTIFY_TEXT = {
-  en: {
-    invoiceSubmitted: "Invoice {number} submitted for review",
-    invoiceStatus: "Invoice {number}: {status}",
-    invoiceResubmitted: "Invoice {number} was corrected and resubmitted{note}",
-    invoicePaid: "Invoice {number} has been paid",
-    invoiceRefunded: "Invoice {number} payment was refunded",
-    invoiceReminder: "Reminder: invoice {number} is waiting for your review",
-    invoiceReminder2: "Second reminder: invoice {number} has been waiting for your review for 7 days",
-    invoiceWaitingAdmin: "Invoice {number} has been waiting for customer review for 7 days",
-    invoiceOverdue: "Invoice {number} is overdue: payment was due {date}",
-    invoiceDueUnreviewed: "Invoice {number} was due on {date} and still waits for your review",
-    taskInvitation: "Task invitation: {task} · {project}",
-    taskInvitationWithdrawn: "Task invitation withdrawn: {task}",
-    phaseInvitation: "New phase invitation: {phase} on {project}",
-    newMessage: "New message from {name}",
-    chatMessage: "New message in {chat}",
-    bidInvitation: "Invitation to bid: {title} · {project}",
-    offerAccepted: "Your offer was accepted for {title}",
-    offerChanges: "Changes requested on your offer for {title}: {note}",
-    documentAwaiting: "Document awaiting approval: {file}",
-    documentReviewed: "Document {file}: {status}",
-    timeSubmitted: "{name} submitted {hours}h for {task}",
-    timeReviewed: "{hours}h time entry for {task}: {status}",
-    applicationNew: "New supplier application: {company}",
-    applicationApproved: "Your supplier application was approved. Sign in to manage your service catalog.",
-    escalationOpened: "Escalation opened for {project}: {type}",
-    escalationStatus: "Escalation for {project} is now {status}",
-    preferredJoined: "{company} joined CraftCrew and is on your preferred suppliers list",
-    workAccepted: "Work accepted: {task}. The acceptance report is in the project documents.",
-    workRejected: "Work not accepted: {task}. Reason: {note}",
-    siteReportNew: "Daily site report for {task} on {date}",
-    siteReportAcknowledged: "Your site report for {task} on {date} was acknowledged",
-    siteReportComment: "{name} commented on the site report for {task} on {date}",
-    defectCreated: "New defect on {task}: {title}",
-    defectFixed: "Defect marked as fixed on {task}: {title}",
-    defectVerified: "Defect fix accepted on {task}: {title}",
-    defectReopened: "Defect reopened on {task}: {title}. {note}",
-    profileChangePending: "Profile change awaiting re-verification: {company}",
-    profileChangeApproved: "Your profile change for {company} was approved and is now live",
-    profileChangeRejected: "Your profile change for {company} was not approved. Reason: {note}",
-  },
-  de: {
-    invoiceSubmitted: "Rechnung {number} zur Prüfung eingereicht",
-    invoiceStatus: "Rechnung {number}: {status}",
-    invoiceResubmitted: "Rechnung {number} wurde korrigiert und erneut eingereicht{note}",
-    invoicePaid: "Rechnung {number} wurde bezahlt",
-    invoiceRefunded: "Zahlung für Rechnung {number} wurde erstattet",
-    invoiceReminder: "Erinnerung: Rechnung {number} wartet auf Ihre Prüfung",
-    invoiceReminder2: "Zweite Erinnerung: Rechnung {number} wartet seit 7 Tagen auf Ihre Prüfung",
-    invoiceWaitingAdmin: "Rechnung {number} wartet seit 7 Tagen auf die Prüfung durch den Kunden",
-    invoiceOverdue: "Rechnung {number} ist überfällig: Zahlung war fällig am {date}",
-    invoiceDueUnreviewed: "Rechnung {number} war am {date} fällig und wartet noch auf Ihre Prüfung",
-    taskInvitation: "Aufgabeneinladung: {task} · {project}",
-    taskInvitationWithdrawn: "Aufgabeneinladung zurückgezogen: {task}",
-    phaseInvitation: "Neue Phaseneinladung: {phase} in {project}",
-    newMessage: "Neue Nachricht von {name}",
-    chatMessage: "Neue Nachricht in {chat}",
-    bidInvitation: "Einladung zur Angebotsabgabe: {title} · {project}",
-    offerAccepted: "Ihr Angebot für {title} wurde angenommen",
-    offerChanges: "Änderungen an Ihrem Angebot für {title} angefragt: {note}",
-    documentAwaiting: "Dokument wartet auf Freigabe: {file}",
-    documentReviewed: "Dokument {file}: {status}",
-    timeSubmitted: "{name} hat {hours} h für {task} eingereicht",
-    timeReviewed: "Zeiteintrag über {hours} h für {task}: {status}",
-    applicationNew: "Neue Lieferantenbewerbung: {company}",
-    applicationApproved:
-      "Ihre Lieferantenbewerbung wurde freigegeben. Melden Sie sich an, um Ihren Leistungskatalog zu pflegen.",
-    escalationOpened: "Eskalation eröffnet für {project}: {type}",
-    escalationStatus: "Eskalation für {project} ist jetzt {status}",
-    preferredJoined: "{company} ist jetzt auf CraftCrew und steht auf Ihrer Liste bevorzugter Anbieter",
-    workAccepted: "Leistung abgenommen: {task}. Das Abnahmeprotokoll liegt in den Projektdokumenten.",
-    workRejected: "Abnahme verweigert: {task}. Grund: {note}",
-    siteReportNew: "Bautagesbericht für {task} vom {date}",
-    siteReportAcknowledged: "Ihr Bautagesbericht für {task} vom {date} wurde zur Kenntnis genommen",
-    siteReportComment: "{name} hat den Bautagesbericht für {task} vom {date} kommentiert",
-    defectCreated: "Neuer Mangel bei {task}: {title}",
-    defectFixed: "Mangel als behoben gemeldet bei {task}: {title}",
-    defectVerified: "Mängelbeseitigung bestätigt bei {task}: {title}",
-    defectReopened: "Mangel wieder geöffnet bei {task}: {title}. {note}",
-    profileChangePending: "Profiländerung wartet auf erneute Prüfung: {company}",
-    profileChangeApproved: "Ihre Profiländerung für {company} wurde freigegeben und ist jetzt aktiv",
-    profileChangeRejected: "Ihre Profiländerung für {company} wurde nicht freigegeben. Grund: {note}",
-  },
-};
-const STATUS_DE = {
-  Approved: "Freigegeben",
-  Rejected: "Abgelehnt",
-  "Changes Requested": "Änderungen angefordert",
-  "Changes requested": "Änderungen angefordert",
-  Paid: "Bezahlt",
-  Submitted: "Eingereicht",
-  Open: "Offen",
-  "In progress": "In Bearbeitung",
-  Resolved: "Gelöst",
-  Closed: "Geschlossen",
-  "Pending approval": "Wartet auf Freigabe",
-};
+/* Notification texts (T137) are in server.notify of the locale files. notify(userId, {key, params}, link) renders
+   the text in the recipient's language; status and type values in it are translated too. Plain strings still
+   work but stay English, so new notifications use a key. */
 function notifyText(spec, lang) {
-  if (typeof spec === "string") return spec;
-  const de = lang === "de",
-    template = (de && NOTIFY_TEXT.de[spec.key]) || NOTIFY_TEXT.en[spec.key] || spec.key;
-  return template.replace(/\{(\w+)\}/g, (_, k) => {
-    const v = String(spec.params?.[k] ?? "");
-    return de && k === "status" ? STATUS_DE[v] || v : v;
-  });
+  return locales.notifyText(spec, lang);
 }
 // The project a message notification belongs to: stored since T109, or found from the chat in its link.
 function notificationProject(n) {
@@ -3291,15 +3189,15 @@ function notify(userId, spec, link = "", extra = {}) {
           : /time entry|\dh /.test(lower)
             ? "time"
             : "projects";
-  if (recipient?.notificationPrefs?.[category])
+  if (recipient?.notificationPrefs?.[category]) {
+    const lang = locales.langOf(recipient);
     queueEmail(
       recipient.email,
       "notification",
-      `CraftCrew: ${String(text).slice(0, 120)}`,
-      recipient.language === "de"
-        ? `${text}\n\nIn CraftCrew öffnen: ${APP_URL}/#${link}`
-        : `${text}\n\nOpen CraftCrew: ${APP_URL}/#${link}`,
+      locales.text(lang, "server.email.notification.subject", { text: String(text).slice(0, 120) }),
+      locales.text(lang, "server.email.notification.body", { text, link: `${APP_URL}/#${link}` }),
     );
+  }
 }
 // Escalations: allowed values, and the people on both sides who hear about them.
 const DISPUTE_TYPES = ["Support", "Quality", "Schedule", "Payment", "Safety", "Other"];
@@ -3460,25 +3358,16 @@ function consumeAuthToken(token, type) {
   db.authTokens = db.authTokens.filter((x) => x !== t);
   return db.users.find((u) => u.id === t.userId) || null;
 }
-// German or English text for a recipient (user record or application with a `language` field).
-const isDe = (x) => x?.language === "de";
+// An email from server.email of the locale files, in the language of the recipient (a user, an application or a code).
+// An admin's own subject for a template (Platform settings) is English and replaces the English subject only.
+function sendMail(to, name, recipient, params, template = name) {
+  const lang = locales.langOf(recipient),
+    m = locales.email(name, lang, params);
+  queueEmail(to, template, (lang === "en" ? emailSubject(template, m.subject) : m.subject).replace(/[\r\n]+/g, " "), m.body);
+}
 function sendVerification(u) {
-  const token = issueAuthToken(u.id, "verify", 48 * 3600000),
-    link = `${APP_URL}/#/verify?token=${token}`;
-  if (isDe(u))
-    queueEmail(
-      u.email,
-      "verifyEmail",
-      "Bitte bestätigen Sie Ihre E-Mail-Adresse für CraftCrew",
-      `Hallo ${u.name},\n\nbitte bestätigen Sie Ihre E-Mail-Adresse, um Ihr CraftCrew-Konto zu aktivieren:\n\n${link}\n\nDer Link ist 48 Stunden gültig. Falls Sie kein Konto angelegt haben, können Sie diese E-Mail ignorieren.`,
-    );
-  else
-    queueEmail(
-      u.email,
-      "verifyEmail",
-      "Confirm your CraftCrew email address",
-      `Hello ${u.name},\n\nplease confirm your email address to activate your CraftCrew account:\n\n${link}\n\nThe link is valid for 48 hours. If you did not create an account, you can ignore this email.`,
-    );
+  const token = issueAuthToken(u.id, "verify", 48 * 3600000);
+  sendMail(u.email, "verifyEmail", u, { name: u.name, link: `${APP_URL}/#/verify?token=${token}` });
 }
 // Supplier accounts take over an approved application only once the email address is proven.
 function linkApprovedSupplier(u) {
@@ -3542,21 +3431,9 @@ function emailSubject(key, fallback) {
    Line items are net. VAT is computed once per invoice and rounded to cents. `amount` keeps the gross
    total for older code; fees, payouts and the order-cap check use the net amount. */
 const VAT_MODES = { standard: 19, reduced: 7, reverseCharge13b: 0, smallBusiness19: 0, intraEU: 0 };
-// Legal notes printed on the invoice. Have them checked by a tax adviser before relying on them.
-const VAT_NOTES = {
-  reverseCharge13b: {
-    de: "Steuerschuldnerschaft des Leistungsempfängers (§ 13b UStG).",
-    en: "Reverse charge: the recipient of the service is liable for VAT (Steuerschuldnerschaft des Leistungsempfängers, § 13b UStG).",
-  },
-  smallBusiness19: {
-    de: "Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.",
-    en: "No VAT is charged under the small-business rule (§ 19 UStG).",
-  },
-  intraEU: {
-    de: "Steuerschuldnerschaft des Leistungsempfängers (innergemeinschaftliche Leistung).",
-    en: "Reverse charge: intra-EU service, VAT is payable by the recipient.",
-  },
-};
+// Legal notes printed on the invoice are in server.pdf.vat of the locale files (by VAT mode). Have them checked by a
+// tax adviser before relying on them.
+const VAT_NOTE_MODES = ["reverseCharge13b", "smallBusiness19", "intraEU"];
 const cents = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 function vatTotals(net, vatMode) {
   const vatRate = VAT_MODES[vatMode],
@@ -3583,14 +3460,14 @@ function missingTaxDetails(supplierId) {
 }
 // Plain-text amount breakdown for emails: net, VAT and gross, plus the legal note when one applies.
 function invoiceAmountLines(inv, lang = "en") {
-  const L = PDF_LABELS[lang] || PDF_LABELS.en,
+  const L = invoiceLabels(lang),
     eur = (n) => `EUR ${Number(n || 0).toFixed(2)}`;
   if (!inv.vatMode) return [`${L.invoiceTotal}: ${eur(inv.amount)} (${L.vatNotRecorded})`];
   return [
     `${L.net}: ${eur(inv.netAmount)}`,
     `${L.vat} ${inv.vatRate} %: ${eur(inv.vatAmount)}`,
     `${L.gross}: ${eur(inv.grossAmount)}`,
-    ...(VAT_NOTES[inv.vatMode] ? [VAT_NOTES[inv.vatMode][lang === "de" ? "de" : "en"]] : []),
+    ...(VAT_NOTE_MODES.includes(inv.vatMode) ? [locales.text(lang, "server.pdf.vat." + inv.vatMode)] : []),
   ];
 }
 // Plain data for the XRechnung builder (xrechnung.js), from the invoice, both company profiles and the project.
@@ -3667,82 +3544,10 @@ function invoiceParties(inv) {
       : "",
   };
 }
-const PDF_LABELS = {
-  en: {
-    invoice: "INVOICE",
-    no: "INVOICE NO.",
-    issued: "Issued",
-    from: "FROM",
-    billTo: "BILL TO",
-    tax: "VAT / Tax ID",
-    work: "PROJECT / WORK ITEM",
-    status: "STATUS",
-    desc: "DESCRIPTION",
-    qty: "QTY / UNIT",
-    unitPrice: "UNIT PRICE",
-    total: "TOTAL",
-    invoiceTotal: "Invoice total",
-    cap: "Order cap",
-    notSpecified: "Not specified",
-    terms: "Terms",
-    termsDefault: "As agreed in the project order",
-    termsDays: (n, due) => `${n} days net, due ${due}`,
-    payTo: "Pay to",
-    reference: "Reference",
-    note: "Note",
-    thanks: "Thank you for your business.",
-    footer: "CraftCrew · Industrial services marketplace",
-    copy: "Generated invoice copy",
-    service: "Service",
-    units: "units",
-    page: "Page",
-    net: "Net amount",
-    vat: "VAT",
-    gross: "Total (gross)",
-    servicePeriod: "Service period",
-    serviceDate: "Service date",
-    vatNotRecorded: "Net amounts – VAT not recorded",
-    locale: "en-GB",
-  },
-  de: {
-    invoice: "RECHNUNG",
-    no: "RECHNUNGS-NR.",
-    issued: "Datum",
-    from: "VON",
-    billTo: "RECHNUNG AN",
-    tax: "USt-IdNr. / Steuer-ID",
-    work: "PROJEKT / LEISTUNG",
-    status: "STATUS",
-    desc: "BESCHREIBUNG",
-    qty: "MENGE / EINHEIT",
-    unitPrice: "EINZELPREIS",
-    total: "GESAMT",
-    invoiceTotal: "Rechnungsbetrag",
-    cap: "Auftragsobergrenze",
-    notSpecified: "Nicht festgelegt",
-    terms: "Zahlungsbedingungen",
-    termsDefault: "Gemäß Projektauftrag",
-    termsDays: (n, due) => `${n} Tage netto, fällig am ${due}`,
-    payTo: "Zahlung an",
-    reference: "Referenz",
-    note: "Hinweis",
-    thanks: "Vielen Dank für Ihren Auftrag.",
-    footer: "CraftCrew · Marktplatz für Industriedienstleistungen",
-    copy: "Erstellte Rechnungskopie",
-    service: "Leistung",
-    units: "Einheiten",
-    page: "Seite",
-    net: "Nettobetrag",
-    vat: "USt.",
-    gross: "Gesamtbetrag (brutto)",
-    servicePeriod: "Leistungszeitraum",
-    serviceDate: "Leistungsdatum",
-    vatNotRecorded: "Nettobeträge – Umsatzsteuer nicht erfasst",
-    locale: "de-DE",
-  },
-};
+// The labels of the invoice PDF and the amount lines of invoice emails are in server.pdf.invoice of the locale files.
+const invoiceLabels = (lang) => locales.group(lang, "server.pdf.invoice");
 function invoicePdf(inv, lang = "en") {
-  const L = PDF_LABELS[lang] || PDF_LABELS.en,
+  const L = { ...invoiceLabels(lang), locale: locales.localeOf(lang) },
     parties = invoiceParties(inv),
     project = db.projects.find((x) => x.id === inv.projectId),
     phase = project?.phases.find((x) => x.id === inv.phaseId),
@@ -3803,7 +3608,7 @@ function invoicePdf(inv, lang = "en") {
     "0.38 0.45 0.56",
   );
   text(390, 616, 8, L.status, "F2", "0.38 0.45 0.56");
-  text(390, 587, 10, inv.status, "F2");
+  text(390, 587, 10, locales.statusText(lang, inv.status), "F2");
   if (inv.serviceDateFrom) {
     const day = (x) => new Date(x + "T00:00:00Z").toLocaleDateString(L.locale, { timeZone: "UTC" }),
       period = inv.serviceDateTo && inv.serviceDateTo !== inv.serviceDateFrom;
@@ -3846,7 +3651,7 @@ function invoicePdf(inv, lang = "en") {
   }
   // Totals, reference, note and bank details go on the last page.
   const note = wrapPdfText(`${L.note}: ${inv.description || L.thanks}`, 528, 8, 3),
-    legal = VAT_NOTES[inv.vatMode] ? wrapPdfText(VAT_NOTES[inv.vatMode][lang], 528, 8, 2) : [];
+    legal = VAT_NOTE_MODES.includes(inv.vatMode) ? wrapPdfText(locales.text(lang, "server.pdf.vat." + inv.vatMode), 528, 8, 2) : [];
   if (y < 220 + (note.length + legal.length) * 12) y = continuationPage();
   const totalY = y - 70;
   // Net, VAT and gross; older invoices without VAT data say so instead.
@@ -3872,7 +3677,7 @@ function invoicePdf(inv, lang = "en") {
     totalY - 14,
     8,
     wrapPdfText(
-      `${L.terms}: ${inv.paymentTerms || (inv.dueDate && inv.paymentTermsDays != null ? L.termsDays(inv.paymentTermsDays, new Date((inv.scheduledPayment || inv.dueDate) + "T00:00:00Z").toLocaleDateString(L.locale, { timeZone: "UTC" })) : L.termsDefault)}`,
+      `${L.terms}: ${inv.paymentTerms || (inv.dueDate && inv.paymentTermsDays != null ? locales.text(lang, "server.pdf.invoice.termsDays", { n: inv.paymentTermsDays, due: new Date((inv.scheduledPayment || inv.dueDate) + "T00:00:00Z").toLocaleDateString(L.locale, { timeZone: "UTC" }) }) : L.termsDefault)}`,
       222,
       8,
       1,
@@ -4010,7 +3815,7 @@ async function api(req, res, url) {
         salt: hp.salt,
         passwordHash: hp.hash,
         createdAt: now(),
-        ...(["de", "en"].includes(b.language) ? { language: b.language } : {}),
+        ...(locales.codes().includes(b.language) ? { language: b.language } : {}),
         ...(b.legalConsent ? { termsAcceptedAt: now() } : {}),
         ...(mailer.enabled ? { emailVerified: false } : {}),
       };
@@ -4099,20 +3904,7 @@ async function api(req, res, url) {
       if (u) {
         const token = issueAuthToken(u.id, "reset", 3600000),
           link = `${APP_URL}/#/reset?token=${token}`;
-        if (isDe(u))
-          queueEmail(
-            u.email,
-            "passwordReset",
-            "Passwort für CraftCrew zurücksetzen",
-            `Hallo ${u.name},\n\nfür Ihr CraftCrew-Konto wurde das Zurücksetzen des Passworts angefordert. Hier können Sie ein neues Passwort wählen:\n\n${link}\n\nDer Link ist eine Stunde gültig. Falls Sie dies nicht angefordert haben, ignorieren Sie diese E-Mail – Ihr Passwort bleibt unverändert.`,
-          );
-        else
-          queueEmail(
-            u.email,
-            "passwordReset",
-            "Reset your CraftCrew password",
-            `Hello ${u.name},\n\nsomeone requested a password reset for your CraftCrew account. Choose a new password here:\n\n${link}\n\nThe link is valid for one hour. If you did not request this, you can ignore this email; your password stays unchanged.`,
-          );
+        sendMail(u.email, "passwordReset", u, { name: u.name, link });
         save();
       }
       return (send(res, 200, { ok: true }), true); // same answer whether or not the address exists
@@ -4434,12 +4226,7 @@ async function api(req, res, url) {
         updatedAt: now(),
       };
       db.applications.push(a);
-      queueEmail(
-        a.email,
-        "applicationReceived",
-        emailSubject("applicationReceived", "Supplier application received"),
-        `Hello ${a.contactName || a.company},\n\nWe received the CraftCrew supplier application for ${a.company} (reference ${a.id}). The review covers company registration, insurance, certifications and references; we will contact you with the outcome.`,
-      );
+      sendMail(a.email, "applicationReceived", a, { name: a.contactName || a.company, company: a.company, id: a.id });
       for (const admin of db.users.filter((x) => x.role === "admin"))
         notify(admin.id, { key: "applicationNew", params: { company: a.company } }, "/admin/applications");
       save();
@@ -4635,18 +4422,19 @@ async function api(req, res, url) {
           invite = { temporaryPassword: temp };
           if (mailer.enabled) {
             const token = issueAuthToken(colleague.id, "reset", 7 * 86400000);
-            queueEmail(
-              email,
-              "projectShare",
-              `${user.name} shared the project ${p.name} with you on CraftCrew`.replace(/[\r\n]+/g, " "),
-              `Hello ${colleague.name},\n\n${user.name} (${user.company || "CraftCrew"}) shared the project "${p.name}" with you. Choose your password to open it:\n\n${APP_URL}/#/reset?token=${token}\n\nThe link is valid for 7 days.`,
-            );
+            sendMail(email, "projectShare", colleague, {
+              name: colleague.name,
+              sender: user.name,
+              company: user.company || "CraftCrew",
+              project: p.name,
+              link: `${APP_URL}/#/reset?token=${token}`,
+            });
             invite = { emailed: true };
           }
         } else
           notify(
             colleague.id,
-            `${user.name} shared the project ${p.name} with you`,
+            { key: "projectShared", params: { name: user.name, project: p.name } },
             `/customer/projects/${p.id}`,
           );
         p.participantIds.push(colleague.id);
@@ -5403,7 +5191,7 @@ async function api(req, res, url) {
           });
           notify(
             p.customerId,
-            `Progress update on ${t.name}: ${t.progress}%${milestone ? ` · milestone "${milestone}" reached` : ""}`,
+            { key: milestone ? "progressMilestone" : "progressUpdate", params: { task: t.name, progress: t.progress, milestone } },
             `/customer/projects/${p.id}/tasks/${t.id}`,
           );
         }
@@ -5551,7 +5339,10 @@ async function api(req, res, url) {
       if (last) Object.assign(last, { status: t.acceptanceStatus, answeredAt: now(), ...(reason ? { reason } : {}) });
       notify(
         p.customerId,
-        `${supplierForUser(user).company} ${b.accept ? "accepted" : "declined"} ${t.name}${!b.accept && reason ? `: ${reason}` : ""}`,
+        {
+          key: b.accept ? "taskAccepted" : reason ? "taskDeclinedReason" : "taskDeclined",
+          params: { company: supplierForUser(user).company, task: t.name, reason },
+        },
         `/customer/projects/${p.id}`,
       );
       save();
@@ -5924,9 +5715,7 @@ async function api(req, res, url) {
       if (!b.accept) ph.supplierId = null;
       notify(
         p.customerId,
-        b.accept
-          ? `${supplierForUser(user).company} accepted ${ph.name}`
-          : `${supplierForUser(user).company} declined ${ph.name}; please reassign`,
+        { key: b.accept ? "phaseAccepted" : "phaseDeclined", params: { company: supplierForUser(user).company, phase: ph.name } },
       );
       activity(user, `${b.accept ? "Accepted" : "Declined"} ${ph.name} on ${p.name}`);
       save();
@@ -6181,9 +5970,8 @@ async function api(req, res, url) {
       const parties = invoiceParties(i),
         project = db.projects.find((x) => x.id === i.projectId),
         safeName = String(invoiceNo(i)).replace(/[^a-zA-Z0-9_-]/g, "_");
-      const pdfLang = ["de", "en"].includes(url.searchParams.get("lang"))
-        ? url.searchParams.get("lang")
-        : user.language || "en";
+      const textLang = locales.langOf(url.searchParams.get("lang") || user),
+        pdfLang = locales.pdfLang(textLang);
       if (parts[3] === "pdf") {
         const buffer = invoicePdf(i, pdfLang);
         res.writeHead(200, {
@@ -6215,16 +6003,18 @@ async function api(req, res, url) {
           /[\r\n<>]/g,
           "",
         ),
-        subject = `CraftCrew invoice ${invoiceNo(i)} - ${project?.name || i.projectId}`.replace(
-          /[\r\n]/g,
-          " ",
-        ),
+        m = locales.email("invoice", textLang, {
+          number: invoiceNo(i),
+          project: project?.name || i.projectId,
+          amounts: invoiceAmountLines(i, textLang).join("\n"),
+        }),
+        subject = m.subject.replace(/[\r\n]/g, " "),
         boundary = `cc_${crypto.randomBytes(12).toString("hex")}`,
         pdf = invoicePdf(i, pdfLang)
           .toString("base64")
           .match(/.{1,76}/g)
           .join("\r\n"),
-        body = `Please find invoice ${invoiceNo(i)} for ${project?.name || i.projectId}.\r\n\r\n${invoiceAmountLines(i, pdfLang).join("\r\n")}\r\n\r\nCraftCrew invoice PDF is attached.`;
+        body = m.body.replace(/\n/g, "\r\n");
       const eml = `To: ${to}\r\nSubject: ${subject}\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n--${boundary}\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n${body}\r\n\r\n--${boundary}\r\nContent-Type: application/pdf; name="CraftCrew-${safeName}.pdf"\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename="CraftCrew-${safeName}.pdf"\r\n\r\n${pdf}\r\n--${boundary}--\r\n`;
       res.writeHead(200, {
         "Content-Type": "message/rfc822; charset=utf-8",
@@ -6640,87 +6430,31 @@ async function api(req, res, url) {
       }
       if (b.status && b.status !== previousStatus) {
         const applicant = db.users.find((x) => normEmail(x.email) === normEmail(a.email)),
-          greeting = `Hello ${a.contactName || a.directorName || a.company},\n\n`;
+          // The applicant's language once they have an account, else the one they applied in
+          lang = locales.langOf(applicant?.language ? applicant : a),
+          badge = a.badgeDecision || "Bronze",
+          mail = { name: a.contactName || a.directorName || a.company, company: a.company, note: a.decisionNote || "" };
         a.decisionHistory ||= [];
         a.decisionHistory.push({ status: a.status, note: a.decisionNote || "", by: user.id, at: now() });
-        const deMail = isDe(applicant) || isDe(a),
-          hallo = `Hallo ${a.contactName || a.directorName || a.company},\n\n`;
-        if (deMail && a.status === "Approved") {
+        if (a.status === "Approved") {
           a.approvedAt = now();
-          queueEmail(
-            a.email,
-            "applicationApproved",
-            "Ihr Lieferantenprofil ist freigegeben",
-            `${hallo}${a.company} ist auf CraftCrew mit dem Badge „${a.badgeDecision || "Bronze"}“ freigegeben und jetzt im Lieferantenverzeichnis sichtbar.${applicant ? "\n\nMelden Sie sich an, um Leistungskatalog und Auszahlungsdaten zu vervollständigen." : "\n\nLegen Sie mit dieser E-Mail-Adresse ein Lieferantenkonto an, um Ihr Profil zu verwalten."}\n\n${a.decisionNote || ""}`,
-          );
-        } else if (deMail && a.status === "Rejected") {
+          sendMail(a.email, "applicationApproved", lang, {
+            ...mail,
+            badge: ["Gold", "Silver", "Bronze"].includes(badge) ? locales.text(lang, "common.badge." + badge) : badge,
+            next: locales.text(lang, `server.email.applicationApproved.${applicant ? "signIn" : "createAccount"}`),
+          });
+        }
+        if (a.status === "Rejected") {
           a.rejectedAt = now();
-          queueEmail(
-            a.email,
-            "applicationRejected",
-            "Ihre Lieferantenbewerbung bei CraftCrew",
-            `${hallo}wir können ${a.company} derzeit leider nicht freigeben.\n\nBegründung: ${a.decisionNote}\n\nSie können sich gerne erneut bewerben, sobald die genannten Punkte geklärt sind.`,
-          );
+          sendMail(a.email, "applicationRejected", lang, mail);
           if (applicant)
-            notify(
-              applicant.id,
-              `Lieferantenbewerbung nicht freigegeben: ${a.decisionNote}`,
-              "/supplier-application",
-            );
-        } else if (deMail && a.status === "On Hold") {
+            notify(applicant.id, { key: "applicationRejected", params: { note: a.decisionNote } }, "/supplier-application");
+        }
+        if (a.status === "On Hold") {
           a.infoRequestedAt = now();
-          queueEmail(
-            a.email,
-            "applicationOnHold",
-            "Weitere Informationen zu Ihrer Lieferantenbewerbung benötigt",
-            `${hallo}Ihre Bewerbung für ${a.company} ist zurückgestellt, bis uns weitere Informationen vorliegen:\n\n${a.decisionNote}\n\nAntworten Sie auf diese E-Mail oder reichen Sie die angeforderten Unterlagen nach.`,
-          );
+          sendMail(a.email, "applicationOnHold", lang, mail);
           if (applicant)
-            notify(
-              applicant.id,
-              `Weitere Informationen zu Ihrer Lieferantenbewerbung benötigt: ${a.decisionNote}`,
-              "/supplier-application",
-            );
-        } else {
-          if (a.status === "Approved") {
-            a.approvedAt = now();
-            queueEmail(
-              a.email,
-              "applicationApproved",
-              emailSubject("applicationApproved", "Your supplier profile is approved"),
-              `${greeting}${a.company} is approved on CraftCrew with a ${a.badgeDecision || "Bronze"} badge and is now visible in the supplier directory.${applicant ? "\n\nSign in to complete your service catalog and payout details." : "\n\nCreate a supplier account with this email address to manage your profile."}\n\n${a.decisionNote || ""}`,
-            );
-          }
-          if (a.status === "Rejected") {
-            a.rejectedAt = now();
-            queueEmail(
-              a.email,
-              "applicationRejected",
-              emailSubject("applicationRejected", "Update on your CraftCrew supplier application"),
-              `${greeting}We cannot approve ${a.company} at this time.\n\nReason: ${a.decisionNote}\n\nYou are welcome to reapply once the points above are resolved.`,
-            );
-            if (applicant)
-              notify(
-                applicant.id,
-                `Supplier application not approved: ${a.decisionNote}`,
-                "/supplier-application",
-              );
-          }
-          if (a.status === "On Hold") {
-            a.infoRequestedAt = now();
-            queueEmail(
-              a.email,
-              "applicationOnHold",
-              emailSubject("applicationOnHold", "More information needed for your supplier application"),
-              `${greeting}Your application for ${a.company} is on hold while we wait for more information:\n\n${a.decisionNote}\n\nReply to this email or submit the requested documents.`,
-            );
-            if (applicant)
-              notify(
-                applicant.id,
-                `More information needed for your supplier application: ${a.decisionNote}`,
-                "/supplier-application",
-              );
-          }
+            notify(applicant.id, { key: "applicationOnHold", params: { note: a.decisionNote } }, "/supplier-application");
         }
       }
       save();
@@ -7202,7 +6936,7 @@ async function api(req, res, url) {
       };
       db.rfqs.unshift(r);
       const supplierUser = db.users.find((x) => x.supplierId === supplier.id);
-      if (supplierUser) notify(supplierUser.id, `New quote request for ${r.service}`);
+      if (supplierUser) notify(supplierUser.id, { key: "quoteRequestNew", params: { service: r.service } });
       save();
       return (send(res, 201, { rfq: r }), true);
     }
@@ -7250,7 +6984,7 @@ async function api(req, res, url) {
           }));
       }
       r.updatedAt = now();
-      notify(r.customerId, `${r.supplierCompany} updated your quote request`);
+      notify(r.customerId, { key: "quoteRequestUpdated", params: { company: r.supplierCompany } });
       save();
       return (send(res, 200, { rfq: r }), true);
     }
@@ -7399,9 +7133,7 @@ async function api(req, res, url) {
       bid.updatedAt = now();
       notify(
         bid.customerId,
-        revised
-          ? `${supplier.company} revised its offer for ${bid.title}`
-          : `${supplier.company} submitted an offer for ${bid.title}`,
+        { key: revised ? "offerRevised" : "offerSubmitted", params: { company: supplier.company, title: bid.title } },
       );
       save();
       return (send(res, 201, { offer }), true);
@@ -7428,7 +7160,7 @@ async function api(req, res, url) {
         });
         for (const sid of bid.invitedSupplierIds || [])
           for (const su of db.users.filter((x) => x.supplierId === sid))
-            notify(su.id, `Updated bid request: ${bid.title} · response requested again`, `/supplier/bids`);
+            notify(su.id, { key: "bidUpdated", params: { title: bid.title } }, `/supplier/bids`);
         activity(user, `Updated and resent bid request ${bid.title}`);
         save();
         return (send(res, 200, { bid }), true);
@@ -7544,7 +7276,7 @@ async function api(req, res, url) {
       bid.invitedSupplierIds = [...new Set([...(bid.invitedSupplierIds || []), ...ids])];
       for (const sid of ids)
         for (const su of db.users.filter((x) => x.supplierId === sid))
-          notify(su.id, `Invitation to bid: ${bid.title}`);
+          notify(su.id, { key: "bidInvited", params: { title: bid.title } });
       bid.updatedAt = now();
       save();
       return (send(res, 200, { bid }), true);
@@ -7578,7 +7310,7 @@ async function api(req, res, url) {
         user.role === "supplier"
           ? bid.customerId
           : db.users.find((x) => x.supplierId === offer.supplierId)?.id,
-        `Clarification added to ${bid.title}`,
+        { key: "clarificationAdded", params: { title: bid.title } },
       );
       save();
       return (send(res, 201, { clarifications: offer.clarifications }), true);
@@ -7605,7 +7337,7 @@ async function api(req, res, url) {
       for (const sid of projectSupplierIds(p))
         notify(
           db.users.find((u) => u.supplierId === sid)?.id,
-          `Project ${p.name} was completed and closed by the customer`,
+          { key: "projectClosed", params: { project: p.name } },
         );
       activity(user, `Completed project ${p.name}`);
       save();
@@ -7644,7 +7376,7 @@ async function api(req, res, url) {
       s.projectsCompleted = (Number(s.projectsCompleted) || 0) + 1;
       notify(
         db.users.find((u) => u.supplierId === s.id)?.id,
-        `New ${rating}-star review from ${user.company || user.name} for ${p.name}`,
+        { key: "reviewNew", params: { rating, name: user.company || user.name, project: p.name } },
       );
       s.rating = Number((s.reviews.reduce((a, r) => a + r.rating, 0) / s.reviews.length).toFixed(1));
       save();
@@ -7938,7 +7670,7 @@ async function api(req, res, url) {
         me.notificationPrefs = Object.fromEntries(keys.map((k) => [k, !!b.notificationPrefs[k]]));
         me.notificationPrefsSavedAt = now();
       }
-      if (["de", "en"].includes(b.language)) me.language = b.language;
+      if (locales.codes().includes(b.language)) me.language = b.language;
       if (typeof b.onboardingHidden === "boolean") me.onboardingHidden = b.onboardingHidden;
       save();
       return (send(res, 200, { user: publicUser(me) }), true);
@@ -8009,12 +7741,7 @@ async function api(req, res, url) {
       target.mustChangePassword = true;
       target.passwordChangedAt = now();
       db.sessions = (db.sessions || []).filter((x) => x.userId !== target.id);
-      queueEmail(
-        target.email,
-        "passwordReset",
-        "Your CraftCrew password was reset",
-        "An administrator reset your CraftCrew password. Use the temporary password you received from them and choose a new password after signing in.",
-      );
+      sendMail(target.email, "adminPasswordReset", target, {}, "passwordReset");
       save();
       return (send(res, 200, { temporaryPassword: temp, user: publicUser(target) }), true);
     }
@@ -8042,11 +7769,8 @@ async function api(req, res, url) {
           true
         );
       try {
-        await mailer.sendMail({
-          to: user.email,
-          subject: "CraftCrew test email",
-          text: `This test email confirms that CraftCrew can deliver email from ${mailer.fromAddress}.\n\n${APP_URL}`,
-        });
+        const m = locales.email("testEmail", locales.langOf(user), { from: mailer.fromAddress, link: APP_URL });
+        await mailer.sendMail({ to: user.email, subject: m.subject, text: m.body });
         return (send(res, 200, { ok: true, to: user.email }), true);
       } catch (e) {
         return (send(res, 502, { error: `Delivery failed: ${e.message}` }), true);

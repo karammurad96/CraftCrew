@@ -207,7 +207,7 @@ module.exports = function createPlanning(ctx) {
       )
         notify(
           e.personId.slice(4),
-          `You are planned on ${e.title} (${e.start}${e.end !== e.start ? " – " + e.end : ""})`,
+          { key: "planned", params: { title: e.title, dates: e.start + (e.end !== e.start ? " – " + e.end : "") } },
           "/supplier/planning",
         );
       save();

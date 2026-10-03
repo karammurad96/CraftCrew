@@ -2,6 +2,7 @@
  * GDPR self-service (T120–T122): "Download my data" (Art. 15/20), the account deletion request with a
  * 14-day grace period, and the job that anonymises an account once the grace period is over.
  */
+const locales = require("./locales");
 
 // Fields that are never handed out, not even to their owner: password hashes, 2FA secrets, tokens.
 const SECRET = /password|salt|totp|secret|recovery|token/i;
@@ -37,6 +38,11 @@ module.exports = function createGdpr(ctx) {
     id,
   } = ctx;
   const GRACE_DAYS = 14;
+  // An email from server.email of the locale files, in the recipient's language (T137)
+  const mail = (to, name, recipient, params) => {
+    const m = locales.email(name, locales.langOf(recipient), params);
+    queueEmail(to, name, m.subject, m.body);
+  };
   const OPEN_DISPUTE = ["Open", "In progress"];
 
   /* What still has to be finished before the account can go (T121): the other party needs a counterpart
@@ -87,13 +93,8 @@ module.exports = function createGdpr(ctx) {
       delete x.deleteAfter;
       delete x.deletionViaOwner;
     }
-    notify(u.id, "Your account deletion was cancelled because you signed in.", `/${u.role}/profile`);
-    queueEmail(
-      u.email,
-      "deletionCancelled",
-      "Your CraftCrew account deletion was cancelled",
-      `Hello ${u.name},\n\nyou signed in to CraftCrew, so your account will not be deleted. If you still want to delete it, request it again on your profile page.`,
-    );
+    notify(u.id, { key: "deletionCancelled" }, `/${u.role}/profile`);
+    mail(u.email, "deletionCancelled", u, { name: u.name });
     return true;
   }
 
@@ -228,12 +229,7 @@ module.exports = function createGdpr(ctx) {
         }
         const ids = new Set((user.isMember ? [self] : covered(self)).map((x) => x.id));
         db.sessions = (db.sessions || []).filter((s) => !ids.has(s.userId));
-        queueEmail(
-          self.email,
-          "deletionRequested",
-          "Your CraftCrew account will be deleted in 14 days",
-          `Hello ${self.name},\n\nwe received your request to delete your CraftCrew account. It is locked now and will be deleted on ${after.slice(0, 10)}.\n\nChanged your mind? Sign in before that date and the deletion is cancelled.\n\nInvoices are kept for the legal retention period of 10 years, without your contact details.`,
-        );
+        mail(self.email, "deletionRequested", self, { name: self.name, date: after.slice(0, 10) });
         save();
         return (send(res, 200, { requestedAt: at, deleteAfter: after }), true);
       }

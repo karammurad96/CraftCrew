@@ -3,6 +3,8 @@
  * no access, view-only or full access. Members act within the owner's company data under their own
  * name; the server enforces the limits on every API call.
  */
+const locales = require("./locales");
+
 const MODULES = {
   customer: {
     projects: "Projects, phases, tasks and documents",
@@ -175,12 +177,14 @@ module.exports = function createTeam(ctx) {
       let invite = { temporaryPassword: temp };
       if (mailEnabled()) {
         const token = issueAuthToken(m.id, "reset", 7 * 86400000);
-        queueEmail(
-          email,
-          "teamInvite",
-          `${user.name} invited you to ${user.company || "their company"} on CraftCrew`,
-          `Hello ${m.name},\n\n${user.name} added you to the ${user.company || ""} team on CraftCrew. Choose your password to get started:\n\n${appUrl()}/#/reset?token=${token}\n\nThe link is valid for 7 days.`,
-        );
+        const lang = locales.langOf(m),
+          mail = locales.email("teamInvite", lang, {
+            name: m.name,
+            sender: user.name,
+            company: user.company || locales.text(lang, "server.email.teamInvite.theirCompany"),
+            link: `${appUrl()}/#/reset?token=${token}`,
+          });
+        queueEmail(email, "teamInvite", mail.subject.replace(/[\r\n]+/g, " "), mail.body);
         invite = { emailed: true };
       }
       save();

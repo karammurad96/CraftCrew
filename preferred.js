@@ -3,6 +3,8 @@
  * email invitations for suppliers who are not on CraftCrew yet. An invited company that later gets approved
  * lands on the inviting customer's list. Nobody else ever sees the list, the notes or the tags.
  */
+const locales = require("./locales");
+
 module.exports = function createPreferred(ctx) {
   const { getDb, save, send, body, id, now, notify, queueEmail, appUrl, normEmail, rateLimited } = ctx;
   const text = (v, max) =>
@@ -89,12 +91,13 @@ module.exports = function createPreferred(ctx) {
       };
       db.supplierInvites.push(invite);
       const from = me.companyProfile?.legalName || me.company || me.name;
-      queueEmail(
-        email,
-        "supplierInvite",
-        `${from} invites you to CraftCrew`,
-        `Hello,\n\n${from} works with ${company} and would like to manage your projects, offers and invoices on CraftCrew, a marketplace for industrial services.\n\nCreate your free supplier account and send your company profile for verification:\n${appUrl()}/#/signup?role=supplier&email=${encodeURIComponent(email)}\n\nOnce your profile is approved, ${from} sees you in their list of preferred suppliers.`,
-      );
+      // The invited company has no account yet: the email is in the inviter's language
+      const m = locales.email("supplierInvite", locales.langOf(me), {
+        from,
+        company,
+        link: `${appUrl()}/#/signup?role=supplier&email=${encodeURIComponent(email)}`,
+      });
+      queueEmail(email, "supplierInvite", m.subject.replace(/[\r\n]+/g, " "), m.body);
       save();
       const { customerId, ...shown } = invite;
       return (send(res, 201, { invite: shown }), true);
