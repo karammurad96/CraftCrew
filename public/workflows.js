@@ -20,95 +20,6 @@ async function wfOpenDocument(url) {
     toast(e.message, "error");
   }
 }
-async function messages(role) {
-  const q = wfQuery(),
-    projects = (await api("/projects")).projects,
-    contacts = (await api("/contacts")).users || [],
-    projectId = q.get("project") || "",
-    phaseId = q.get("phase") || "",
-    taskId = q.get("task") || "",
-    back = q.get("back") || "",
-    project = projects.find((x) => x.id === projectId);
-  let items = [];
-  if (project) {
-    const full = await api("/projects/" + project.id);
-    for (const ph of full.project.phases)
-      for (const t of ph.tasks || [])
-        if (!phaseId || phaseId === ph.id)
-          if (!taskId || taskId === t.id) {
-            const sid = t.assignedSupplierId;
-            if (sid && state.user.role === "customer")
-              contacts.filter((u) => u.supplierId === sid).forEach((u) => items.push({ ph, t, u }));
-            else if (sid && state.user.supplierId === sid) {
-              const u = contacts.find((x) => x.id === project.customerId);
-              if (u) items.push({ ph, t, u });
-            }
-          }
-  }
-  const selected = items[0],
-    params = new URLSearchParams();
-  if (projectId) params.set("projectId", projectId);
-  if (phaseId) params.set("phaseId", phaseId);
-  if (taskId) params.set("taskId", taskId);
-  const d = await api("/messages" + (params.size ? "?" + params : "")),
-    messagesBy = new Map();
-  for (const m of d.messages) {
-    const k = [m.projectId || "", m.phaseId || "", m.taskId || "", m.senderId, m.recipientId].join("|");
-    if (!messagesBy.has(k)) messagesBy.set(k, []);
-    messagesBy.get(k).push(m);
-  }
-  const content = `<div class="dash-top"><div><h1>Project messages</h1><p>Private conversations are visible only to the selected project and task participants.</p></div><div class="cc-actions">${back ? `<button class="btn outline" onclick="navigate(decodeURIComponent('${encodeURIComponent(back)}'))">← Back to project</button>` : ""}<button class="btn primary" onclick="wfNewMessage('${projectId}','${phaseId}','${taskId}')" ${selected ? "" : "disabled"}>+ New message</button></div></div>${project ? `<div class="notice">${esc(project.name)}${selected ? " · " + esc(selected.ph.name) + " · " + esc(selected.t.name) : ""}</div>` : `<div class="wf-filter-row"><label>Project<select id="wfMsgProject" onchange="wfMsgSelect()"><option value="">Choose project</option>${projects.map((x) => `<option value="${x.id}" ${x.id === projectId ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></label><label>Phase<select id="wfMsgPhase" onchange="wfMsgSelect()"><option value="">All phases</option>${project?.phases.map((x) => `<option value="${x.id}" ${x.id === phaseId ? "selected" : ""}>${esc(x.name)}</option>`).join("") || ""}</select></label><label>Task<select id="wfMsgTask" onchange="wfMsgSelect()"><option value="">All tasks</option>${project?.phases.flatMap((ph) => (ph.tasks || []).map((t) => `<option value="${t.id}" ${t.id === taskId ? "selected" : ""}>${esc(ph.name)} · ${esc(t.name)}</option>`)).join("") || ""}</select></label></div>`}<div class="wf-message-groups">${[...messagesBy.entries()].map(([k, arr]) => `<section class="panel"><div class="panel-title"><b>${esc(projects.find((x) => x.id === arr[0].projectId)?.name || project?.name || "Project")} · ${esc(arr[0].taskId || "Project discussion")}</b><span>${arr.length} messages <a class="btn small outline" href="#/${role}/projects/${encodeURIComponent(arr[0].projectId || project?.id || "")}">Open project</a></span></div>${arr.map((m) => `<article class="wf-message ${m.senderId === state.user.id ? "mine" : ""}"><b>${m.senderId === state.user.id ? "You" : esc(contacts.find((u) => u.id === m.senderId)?.name || "Project participant")}</b><p>${esc(m.text)}</p><small>${date(m.createdAt)}</small></article>`).join("")}</section>`).join("") || '<div class="empty">Select a project and task to view its private conversation.</div>'}</div>`;
-  app.innerHTML = dashboardShell(role, "messages", content);
-}
-function wfMsgSelect() {
-  const p = document.getElementById("wfMsgProject").value,
-    ph = document.getElementById("wfMsgPhase").value,
-    t = document.getElementById("wfMsgTask").value;
-  navigate(`/${state.user.role}/messages?project=${p}&phase=${ph}&task=${t}`);
-  messages(state.user.role);
-}
-async function wfNewMessage(pid, phid, tid) {
-  if (!pid || !phid || !tid) {
-    toast("Choose a task first", "error");
-    return;
-  }
-  const p = (await api("/projects/" + pid)).project,
-    ph = p.phases.find((x) => x.id === phid),
-    t = ph?.tasks?.find((x) => x.id === tid);
-  if (!t?.assignedSupplierId) {
-    toast("This task has no assigned supplier", "error");
-    return;
-  }
-  const contacts = (await api("/contacts")).users || [],
-    recipients =
-      state.user.role === "customer"
-        ? contacts.filter((x) => x.supplierId === t.assignedSupplierId)
-        : contacts.filter(
-            (x) =>
-              x.role === "customer" && (x.id === p.customerId || (p.participantIds || []).includes(x.id)),
-          );
-  if (!recipients.length) {
-    toast("No project contact available", "error");
-    return;
-  }
-  modal(
-    "Message task participants",
-    `<form id="wfF" class="modal-form"><div class="notice">${esc(p.name)} · ${esc(ph.name)} · ${esc(t.name)}</div><label>Send privately to<select name="recipientId" required>${recipients.map((x) => `<option value="${x.id}">${esc(x.name)} — ${esc(x.company || x.role)}</option>`).join("")}</select></label><label>Message<textarea name="text" maxlength="5000" required></textarea></label><button class="btn primary">Send privately</button></form>`,
-  );
-  document.getElementById("wfF").onsubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await api("/messages", {
-        method: "POST",
-        body: { ...Object.fromEntries(new FormData(e.target)), projectId: pid, phaseId: phid, taskId: tid },
-      });
-      closeModal();
-      messages(state.user.role);
-    } catch (x) {
-      toast(x.message, "error");
-    }
-  };
-}
 async function profilePage(role) {
   const d = await api("/profile"),
     s = d.supplier || {},
@@ -278,11 +189,9 @@ async function route() {
   }
   try {
     if (parts[0] === "customer") {
-      if (parts[1] === "messages") return messages("customer");
       if (parts[1] === "profile") return profilePage("customer");
     }
     if (parts[0] === "supplier") {
-      if (parts[1] === "messages") return messages("supplier");
       if (parts[1] === "profile") return profilePage("supplier");
       if (parts[1] === "suppliers") return supplierCatalog();
     }

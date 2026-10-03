@@ -2436,4 +2436,62 @@ LOCALES.de = {
       "saved": "Abnahmeprotokoll gespeichert"
     }
   },
+  msg: {
+    "title": "Nachrichten",
+    "chats": "Chats",
+    "newChat": "+ Neuer Chat",
+    "search": "Chats oder Personen suchen",
+    "projectTeam": "Projektteam",
+    "noMessagesYet": "Noch keine Nachrichten",
+    "noMatch": "Keine Chats passen zu Ihrer Suche.",
+    "openProject": "Projekt öffnen",
+    "you": "Sie",
+    "participant": "Teilnehmer",
+    "emptyThread": "Noch keine Nachrichten. Beginnen Sie die Unterhaltung unten.",
+    "write": "Nachricht schreiben…",
+    "send": "Senden",
+    "select": "Wählen Sie eine freigegebene Projektunterhaltung oder starten Sie einen neuen Chat.",
+    "n": {
+      "title": "Projektchat starten",
+      "needProject": "Legen Sie ein Projekt an oder treten Sie einem bei, bevor Sie einen Chat starten",
+      "project": "Projekt",
+      "scope": "Bereich",
+      "scopes": {
+        "project": "Ganzes Projekt",
+        "phase": "Phase",
+        "task": "Aufgabe"
+      },
+      "phase": "Phase",
+      "task": "Aufgabe",
+      "name": "Name der Unterhaltung",
+      "nameHint": "Optional",
+      "find": "Teilnehmer suchen",
+      "findHint": "Namen oder Unternehmen suchen",
+      "create": "Chat erstellen"
+    },
+    "in": {
+      "eyebrow": "AKTIVITÄTEN IM ARBEITSBEREICH",
+      "title": "Posteingang",
+      "intro": "Nachrichten, Angebotsupdates, Dokumentprüfungen und Arbeitsmeldungen an einem Ort.",
+      "readAll": "Alle als gelesen markieren",
+      "search": "Benachrichtigungen suchen",
+      "stateLabel": "Nach Lesestatus filtern",
+      "all": "Alle Aktivitäten ({n})",
+      "unread": "Ungelesen ({n})",
+      "read": "Gelesen",
+      "typeLabel": "Nach Typ filtern",
+      "types": {
+        "all": "Alle Typen",
+        "message": "Nachrichten",
+        "invoice": "Rechnungen",
+        "bid": "Ausschreibungen & Angebote",
+        "time": "Zeiteinträge",
+        "document": "Dokumente",
+        "request": "Anfragen"
+      },
+      "open": "Öffnen",
+      "markRead": "Als gelesen markieren",
+      "empty": "Keine Benachrichtigungen passen zu diesen Filtern."
+    }
+  },
 };

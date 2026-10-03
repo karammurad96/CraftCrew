@@ -333,5 +333,19 @@
     "action ccExportTime('supplier','pdf')": "action [time.export]",
     "action ccExportTime('supplier','xlsx')": "action [time.export]",
     "action ccNewTimeEntry()": "action [time.log]"
+  },
+  "customer /customer/messages": {
+    "action reviewNewChat()": "action [msg.new]"
+  },
+  "customer /customer/inbox": {
+    "action ccReadAll()": "action [inbox.readAll]"
+  },
+  "supplier /supplier/inbox": {
+    "action ccMarkRead('not_<id>')": "action [inbox.read]",
+    "action ccOpenNotification('not_<id>','/supplier/compliance')": "action [inbox.open]",
+    "action ccReadAll()": "action [inbox.readAll]"
+  },
+  "supplier /supplier/messages": {
+    "action reviewNewChat()": "action [msg.new]"
   }
 }
