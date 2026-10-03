@@ -4500,8 +4500,10 @@ async function api(req, res, url) {
       const items = [],
         today = now().slice(0, 10),
         in30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
-        add = (kind, text, sub, link, action, amount, extra) =>
-          items.push({ kind, text, sub, link, action, amount, ...extra }),
+        // q: the title and sub-line as translation keys with their values (dash.q.* in the locale files, T136);
+        // text and sub stay in English for API clients.
+        add = (kind, text, sub, link, action, amount, extra, q) =>
+          items.push({ kind, text, sub, link, action, amount, ...extra, ...(q ? { q } : {}) }),
         // Company names and ids let the dashboards show and act on an item without another request (T95).
         companyOf = (supplierId) => db.suppliers.find((s) => s.id === supplierId)?.company || "",
         mine = user.role === "customer" ? db.projects.filter((p) => projectFor(user, p.id)) : [],
@@ -4527,6 +4529,7 @@ async function api(req, res, url) {
               projectId: i.projectId,
               supplier: i.supplierCompany || companyOf(i.supplierId),
             },
+            { title: ["reviewInvoice", { number: invoiceNo(i) }] },
           );
         for (const b of (db.bids || []).filter(
           (b) =>
@@ -4585,6 +4588,7 @@ async function api(req, res, url) {
             "Review",
             undefined,
             { projectId: d.projectId, documentId: d.id },
+            { title: ["approveDocument", { file: d.filename }] },
           );
         for (const { p, ph, t } of tasksOf(mine, (t) => open(t) && t.dueDate < today))
           add(
@@ -4634,6 +4638,7 @@ async function api(req, res, url) {
                 "Respond",
                 undefined,
                 invite(ph, { phaseId: ph.id, name: ph.name }),
+                { title: ["phaseInvitation", { name: ph.name }] },
               );
             for (const t of ph.tasks || [])
               if (t.assignedSupplierId === sid && t.acceptanceStatus === "Pending")
@@ -4645,6 +4650,7 @@ async function api(req, res, url) {
                   "Respond",
                   undefined,
                   invite(t, { taskId: t.id, name: t.name }),
+                  { title: ["taskInvitation", { name: t.name }] },
                 );
           }
         for (const b of (db.bids || []).filter(
@@ -4659,6 +4665,9 @@ async function api(req, res, url) {
             b.dueDate ? `Deadline ${b.dueDate}` : "",
             "/supplier/bids",
             "Offer",
+            undefined,
+            undefined,
+            { title: ["bidRequest", { title: b.title }], ...(b.dueDate ? { sub: ["deadline", { date: b.dueDate }] } : {}) },
           );
         for (const b of db.bids || [])
           for (const o of (b.offers || []).filter(
@@ -4670,6 +4679,9 @@ async function api(req, res, url) {
               o.changeNote || "",
               "/supplier/bids",
               "Revise",
+              undefined,
+              undefined,
+              { title: ["offerChanges", { title: b.title }] },
             );
         for (const i of db.invoices.filter((i) => i.supplierId === sid && i.status === "Changes Requested"))
           add(
@@ -4678,6 +4690,9 @@ async function api(req, res, url) {
             i.comments || "",
             `/supplier/invoice/${i.id}`,
             "Fix",
+            undefined,
+            undefined,
+            { title: ["invoiceChanges", { number: invoiceNo(i) }] },
           );
         for (const d of (db.complianceDocs || []).filter(
           (d) => d.supplierId === sid && d.expiresAt && d.expiresAt <= in30,
@@ -4688,6 +4703,9 @@ async function api(req, res, url) {
             `Valid until ${d.expiresAt}`,
             "/supplier/compliance",
             "Renew",
+            undefined,
+            undefined,
+            { title: [d.expiresAt < today ? "expired" : "expiring", { file: d.filename }], sub: ["validUntil", { date: d.expiresAt }] },
           );
         upcoming = tasksOf(db.projects, (t) => t.assignedSupplierId === sid && open(t) && t.dueDate >= today);
       }
@@ -4699,6 +4717,9 @@ async function api(req, res, url) {
             a.status || "New",
             "/admin/applications",
             "Review",
+            undefined,
+            undefined,
+            { title: ["vetApplication", { company: a.company }], sub: ["status", { status: a.status || "New" }] },
           );
         for (const d of (db.disputes || []).filter((d) => ["Open", "In progress"].includes(d.status)))
           add(
@@ -4707,6 +4728,9 @@ async function api(req, res, url) {
             String(d.description || "").slice(0, 80),
             "/admin/disputes",
             "Handle",
+            undefined,
+            undefined,
+            { title: ["escalation", { type: d.type }] },
           );
         for (const i of db.invoices.filter((i) => i.status === "Approved"))
           add(
@@ -4716,6 +4740,8 @@ async function api(req, res, url) {
             "/admin/billing",
             "Record",
             i.amount,
+            undefined,
+            { title: ["markPaid", { number: invoiceNo(i) }], ...(i.scheduledPayment ? { sub: ["due", { date: i.scheduledPayment }] } : {}) },
           );
       }
       const next = upcoming.sort((a, b) => a.t.dueDate.localeCompare(b.t.dueDate))[0];

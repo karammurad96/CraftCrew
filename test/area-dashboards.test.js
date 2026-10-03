@@ -178,7 +178,7 @@ describe("dashboards area", () => {
     assert.match(html, /data-action="dash\.answer" data-project="p1" data-task="t2" data-accept="true">Accept Job</);
     assert.match(html, /href="#\/supplier\/messages\?project=p1">Ask a question ›</);
     assert.ok(html.includes("Also for you"));
-    assert.match(html, /class="btn secondary ds-dec-btn" href="#\/supplier\/compliance"><span>Renew<\/span>/);
+    assert.match(html, /class="btn secondary ds-dec-btn" href="#\/supplier\/compliance">Renew</);
     // The phone "Today" comes first, with the accepted job and the quick actions
     assert.match(html, /^\[supplier:dashboard\]<section class="ds-today" data-lc-section="ds-today">/);
     assert.match(html, /<b>PLC<\/b><small>40 % · due /);
@@ -214,7 +214,7 @@ describe("dashboards area", () => {
     assert.ok(html.includes('<span class="ds-ui">Live suppliers</span><b>25</b>'));
     assert.ok(html.includes("Open escalation: Quality"), "the type comes from common.status (T137)");
     assert.ok(html.includes("Application waiting &gt; 3 days: NordWerk"));
-    assert.ok(html.includes('<b><span>Signed in</span></b>'));
+    assert.ok(html.includes("<b>Signed in</b>"), "audit actions come from common.audit (T136)");
     assert.match(html, /<span class="on">New<\/span><span>Verified<\/span>/);
     ctx.run("dash.application", { id: "app_1" });
     assert.deepEqual(ctx.calls.at(-1), ["application", "app_1"]);

@@ -729,7 +729,7 @@ module.exports = function createCompliance(ctx) {
   function supplierRisk(supplierId) {
     const docs = (getDb().complianceDocs || []).filter((d) => d.supplierId === supplierId);
     const expired = docs.filter((d) => d.expiresAt && d.expiresAt < today()).length;
-    return expired ? [{ level: "medium", text: `${expired} compliance document(s) expired` }] : [];
+    return expired ? [{ level: "medium", text: `${expired} compliance document(s) expired`, q: ["complianceExpired", { n: expired }] }] : [];
   }
 
   return { handle, readiness, canAccessFile, supplierRisk, REQUIREMENTS, PERMITS };

@@ -56,6 +56,15 @@ describe("status keys (T137)", () => {
     assert.equal(de.tStatus(undefined), "");
   });
 
+  it("shows audit actions and supplier risk notes from keys (T136)", () => {
+    const de = browser("de", [EN, DE]);
+    assert.equal(de.auditText("Signed in"), "Angemeldet");
+    assert.equal(de.auditText("Shared project Line 4 with Eva"), "Shared project Line 4 with Eva", "free activity texts stay as stored");
+    assert.equal(de.riskText({ text: "No insurance evidence on file", q: ["noInsurance"] }), "Kein Versicherungsnachweis hinterlegt");
+    assert.equal(de.riskText({ text: "x", q: ["vettingRisk", { status: "High" }] }), "Risikoeinschätzung der Prüfung: Hoch");
+    assert.equal(de.riskText({ text: "Older note" }), "Older note");
+  });
+
   it("works in a test language", () => {
     const zz = browser("zz", [EN, DE, ZZ], { zz: { common: { status: { onHold: "⟦On hold⟧" } } } });
     assert.equal(zz.tStatus("On Hold"), "⟦On hold⟧");

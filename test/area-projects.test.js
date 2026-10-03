@@ -100,7 +100,7 @@ describe("projects area (T128a)", () => {
       html = await ctx.render();
     assert.ok(ctx.calls.some((c) => c[1] === "/projects?archived=1"));
     assert.ok(html.includes('<a class="cc-card click project-card" href="#/customer/projects/p1">'));
-    assert.ok(html.includes('<span class="status in-progress">In Progress</span>'));
+    assert.ok(html.includes('<span class="status in-progress">In progress</span>'), "statuses come from common.status");
     assert.ok(html.includes("33% complete") && html.includes("Due 29 Oct 2026"));
     assert.match(html, /data-action="projects\.archived" checked>/);
     ctx.run("projects.archived", { checked: false });

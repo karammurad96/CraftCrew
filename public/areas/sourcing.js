@@ -52,7 +52,7 @@ function srSummary(bid, ranked) {
   if (spread > 25) lines.push(s("spread", { pct: spread }));
   if (bid.baseline) lines.push(s(best.savings >= 0 ? "saves" : "over", { amount: m(best.savings), baseline: m(bid.baseline) }));
   if (best.card?.riskLevel === "High")
-    lines.push(s("risk", { company: best.o.supplierCompany, flags: best.card.risks.filter((r) => r.level === "high").map((r) => r.text).join("; ") }));
+    lines.push(s("risk", { company: best.o.supplierCompany, flags: best.card.risks.filter((r) => r.level === "high").map(riskText).join("; ") }));
   return lines.join(" ");
 }
 const srScoreBar = (s) =>
@@ -73,7 +73,7 @@ function srScorecardTable(cards) {
           `<tr><td><b>${esc(x.company)}</b><small>${esc(ccBadge(x))}</small></td><td>${srScoreBar(x.score)}</td><td>${x.metrics.rating ? "★ " + Number(x.metrics.rating).toFixed(1) : "—"}</td><td>${pct(
             x.metrics.onTimeRate,
           )}</td><td>${pct(x.metrics.firstTimeRightRate)}</td><td>${pct(x.metrics.responseRate)}</td><td><span class="sr-risk ${esc(String(x.riskLevel).toLowerCase())}">${srRisk(x.riskLevel)}</span>${
-            x.risks.length ? `<small>${srDom(x.risks[0].text)}</small>` : ""
+            x.risks.length ? `<small>${esc(riskText(x.risks[0]))}</small>` : ""
           }</td></tr>`,
       )
       .join("") || `<tr><td colspan="7">${c("none")}</td></tr>`
@@ -205,7 +205,7 @@ async function srEvent(bidId) {
 // Documents row of an offer card, read from the scorecard's risk flags
 function srDocsRow(card) {
   if (!card) return "";
-  const texts = (card.risks || []).map((r) => r.text),
+  const texts = (card.risks || []).map(riskText),
     expired = texts.find((x) => /compliance document\(s\) expired|insurance expired/i.test(x)),
     soon = texts.map((x) => x.match(/insurance expires in (\d+) day/i)).find(Boolean);
   if (expired) return `<span class="ds-red">${srDom(expired)}</span>`;

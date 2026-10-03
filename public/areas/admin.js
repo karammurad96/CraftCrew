@@ -609,7 +609,7 @@ async function adminAudit() {
   const [{ entries = [], total = 0 }, { projects = [] }] = await Promise.all([api("/audit?" + params), api("/projects")]);
   const opt = (value, label, on) => `<option value="${esc(value)}" ${on ? "selected" : ""}>${label}</option>`,
     row = (e) =>
-      `<tr><td>${esc(paTime(e.at))}</td><td><b>${esc(e.actorName)}</b><small>${e.actorRole ? adValue("role", e.actorRole) : ""} · ${esc(e.actorEmail)}</small></td><td>${adDom(e.action)}${e.status ? `<small>${statusHtml(e.status)}</small>` : ""}</td><td>${e.projectName ? adDom(e.projectName) : "—"}</td><td><small>${esc(e.entityId)}</small></td></tr>`;
+      `<tr><td>${esc(paTime(e.at))}</td><td><b>${esc(e.actorName)}</b><small>${e.actorRole ? adValue("role", e.actorRole) : ""} · ${esc(e.actorEmail)}</small></td><td>${`<bdi>${esc(auditText(e.action))}</bdi>`}${e.status ? `<small>${statusHtml(e.status)}</small>` : ""}</td><td>${e.projectName ? adDom(e.projectName) : "—"}</td><td><small>${esc(e.entityId)}</small></td></tr>`;
   app.innerHTML = dashboardShell(
     "admin",
     "audit",

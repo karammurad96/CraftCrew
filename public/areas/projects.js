@@ -3,7 +3,7 @@
    descriptions are stored data, shown as stored. */
 const prk = (key, params) => esc(t("projects." + key, params));
 const prDom = (text) => `<span>${esc(text)}</span>`;
-const prStatus = (s) => `<span class="status ${esc(String(s || "").toLowerCase().replaceAll(" ", "-"))}">${esc(s)}</span>`;
+const prStatus = (s) => `<span class="status ${esc(String(s || "").toLowerCase().replaceAll(" ", "-"))}">${esc(tStatus(s))}</span>`;
 // The page's parts, without the empty ones
 const prJoin = (...parts) => parts.filter(Boolean).join("");
 

@@ -67,7 +67,7 @@ function wsTaskCard(p, ph, t, sups) {
     progress = Number(t.progress) || 0;
   const chip = pending
     ? `<span class="status pending">${wk(role === "supplier" ? "task.waitingAnswer" : "task.awaiting")}</span>`
-    : `<span class="status ${wsStatusClass(t.status || "Not Started")}">${esc(t.status || "Not Started")}</span>`;
+    : `<span class="status ${wsStatusClass(t.status || "Not Started")}">${esc(tStatus(t.status || "Not Started"))}</span>`;
   let note = "";
   if (pending) {
     const invited = wsLastEntry(t, "Invited")?.at || t.invitedAt,
@@ -124,7 +124,7 @@ function wsPhaseCard(p, ph, i, sups, docs) {
     late = tasks.some((x) => x.status !== "Completed" && x.dueDate < wsUtcToday()),
     ids = { project: p.id, phase: ph.id },
     deps = (ph.dependencies || []).map((id) => p.phases.find((x) => x.id === id)?.name).filter(Boolean);
-  return `<section class="wf-phase"><div class="wf-phase-head"><div class="wf-phase-title"><span class="phase-dot ${ph.status === "Completed" ? "done" : ph.status === "In Progress" ? "active" : ""}">${i + 1}</span><div><h3>${wsDom(ph.name)}</h3><p>${ph.description ? wsDom(ph.description) : wk("phase.noScope")}</p><span class="status ${wsStatusClass(ph.status)}">${esc(ph.status)}</span></div></div><div class="cc-actions">${wsBtn("ws.editPhase", ids, "btn small outline", wk("phase.edit"))}${wsBtn("ws.addTask", ids, "btn small primary", wk("phase.addTask"))}</div></div><div class="phase-timeline-bar"><span>${esc(fmt.date(ph.startDate))}</span><div class="gantt-track"><i class="${ph.status === "Completed" ? "done" : ""}" style="${wsBar(p, ph)}"></i></div><span>${esc(fmt.date(ph.dueDate))}</span></div>${
+  return `<section class="wf-phase"><div class="wf-phase-head"><div class="wf-phase-title"><span class="phase-dot ${ph.status === "Completed" ? "done" : ph.status === "In Progress" ? "active" : ""}">${i + 1}</span><div><h3>${wsDom(ph.name)}</h3><p>${ph.description ? wsDom(ph.description) : wk("phase.noScope")}</p><span class="status ${wsStatusClass(ph.status)}">${esc(tStatus(ph.status))}</span></div></div><div class="cc-actions">${wsBtn("ws.editPhase", ids, "btn small outline", wk("phase.edit"))}${wsBtn("ws.addTask", ids, "btn small primary", wk("phase.addTask"))}</div></div><div class="phase-timeline-bar"><span>${esc(fmt.date(ph.startDate))}</span><div class="gantt-track"><i class="${ph.status === "Completed" ? "done" : ""}" style="${wsBar(p, ph)}"></i></div><span>${esc(fmt.date(ph.dueDate))}</span></div>${
     late ? `<div class="notice order-warning">${wk("phase.warning")}</div>` : ""
   }${deps.length ? `<small>${wkHtml("phase.depends", { names: deps.map(wsDom).join(", ") })}</small>` : ""}<div class="wf-task-list">${tasks.map((x) => wsTaskCard(p, ph, x, sups)).join("") || `<div class="empty">${wk("phase.noTasks")}</div>`}</div><div class="wf-phase-footer"><span>${wk("phase.footer", {
     n: tasks.length,
@@ -287,7 +287,7 @@ async function wsPage(role, pid, query) {
       : "",
     customer && invoices.some((i) => i.status === "Submitted") ? wsLink(`#/customer/invoices?project=${encodeURIComponent(p.id)}`, "btn primary ds-review-invoices", wk("head.reviewInvoices")) : "",
   ].join("");
-  const header = `<div class="dash-top"><div class="ds-ws-head"><span class="ds-ws-meta">${esc(meta)}</span><div class="ds-ws-title"><h1>${esc(p.name)}</h1><span class="status">${esc(p.status || "")}</span></div>${p.description ? `<p>${esc(p.description)}</p>` : ""}</div><div class="cc-actions">${actions}</div></div>`;
+  const header = `<div class="dash-top"><div class="ds-ws-head"><span class="ds-ws-meta">${esc(meta)}</span><div class="ds-ws-title"><h1>${esc(p.name)}</h1><span class="status">${esc(tStatus(p.status || ""))}</span></div>${p.description ? `<p>${esc(p.description)}</p>` : ""}</div><div class="cc-actions">${actions}</div></div>`;
 
   // The four summary cards: hidden on the tabbed page (their facts are under the progress ring)
   const stat = (label, value, small) => `<div class="cc-card"><span class="cc-label">${label}</span><b>${value}</b><small>${small}</small></div>`;
@@ -347,7 +347,7 @@ async function wsPage(role, pid, query) {
       .slice(0, 60)
       .map(
         (e) =>
-          `<div class="pa-row"><span><b>${wsDom(e.action)}</b><small>${esc(e.actorName)} · ${esc(new Date(e.at).toLocaleString(fmt.locale(), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }))}${e.status ? " · " + statusHtml(e.status) : ""}</small></span></div>`,
+          `<div class="pa-row"><span><b>${`<bdi>${esc(auditText(e.action))}</bdi>`}</b><small>${esc(e.actorName)} · ${esc(new Date(e.at).toLocaleString(fmt.locale(), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }))}${e.status ? " · " + statusHtml(e.status) : ""}</small></span></div>`,
       )
       .join("") || `<p class="pa-empty">${wk("activity.empty")}</p>`
   }</details>`;

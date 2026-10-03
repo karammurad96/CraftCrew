@@ -3,6 +3,8 @@
    with translation keys; names, jobs, titles and notes are data. */
 const plk = (key, params) => esc(t("pl." + key, params));
 const plDom = (text) => `<bdi>${esc(text)}</bdi>`;
+// A person's role: the account owner's comes from a key, team members' roles are their own text
+const plRole = (p) => (p.kind === "owner" ? plk("ownerRole") : plDom(p.role || ""));
 const PL_DAY = 86400000;
 const plIso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const plParse = (s) => {
@@ -75,7 +77,7 @@ async function plPage() {
           .map((x) => x[0])
           .join("")
           .slice(0, 2),
-      )}</span><div><b>${esc(p.name)}</b><small>${plDom(p.role)}</small></div><span class="pl-util ${u > 90 ? "high" : u < 30 ? "low" : ""}" title="${plk("utilTip", { n: u })}">${u}%</span></div><div class="pl-track" data-person="${esc(
+      )}</span><div><b>${esc(p.name)}</b><small>${plRole(p)}</small></div><span class="pl-util ${u > 90 ? "high" : u < 30 ? "low" : ""}" title="${plk("utilTip", { n: u })}">${u}%</span></div><div class="pl-track" data-person="${esc(
         p.id,
       )}" style="grid-template-columns:repeat(${days},minmax(0,1fr));grid-template-rows:repeat(${count},26px)">${dates
         .map(
@@ -156,7 +158,7 @@ function plForm(e) {
   modal(
     t(e.id ? "pl.form.editTitle" : "pl.form.newTitle"),
     `<form id="plForm" class="modal-form" data-action="pl.save"><div class="two"><label>${f("person")}<select name="personId" required>${people
-      .map((p) => `<option value="${esc(p.id)}" ${e.personId === p.id ? "selected" : ""}>${esc(p.name)} · ${esc(p.role)}</option>`)
+      .map((p) => `<option value="${esc(p.id)}" ${e.personId === p.id ? "selected" : ""}>${esc(p.name)} · ${plRole(p)}</option>`)
       .join("")}</select></label><label>${f("type")}<select name="type" data-action="pl.type">${Object.entries(types)
       .map(([k, l]) => `<option value="${esc(k)}" ${e.type === k ? "selected" : ""}>${esc(plType(k, l))}</option>`)
       .join("")}</select></label></div><label class="pl-job-field">${f("job")}<select name="taskId" data-action="pl.job"><option value="">${f("chooseJob")}</option>${jobs
@@ -242,7 +244,7 @@ function plPlanJob(taskId = "") {
     )}" required></label></div><fieldset class="cm-fieldset"><legend>${f("people")}</legend><div class="cm-checks">${people
       .map(
         (p) =>
-          `<label class="cc-check-label"><input type="checkbox" name="people" value="${esc(p.id)}" ${planned.has(p.id) ? "checked disabled" : ""}> ${esc(p.name)} <small class="subtle">${plDom(p.role)}${
+          `<label class="cc-check-label"><input type="checkbox" name="people" value="${esc(p.id)}" ${planned.has(p.id) ? "checked disabled" : ""}> ${esc(p.name)} <small class="subtle">${plRole(p)}${
             planned.has(p.id) ? " · " + f("already") : ""
           }</small></label>`,
       )

@@ -40,12 +40,9 @@ const esc = (s) =>
     /[&<>'"]/g,
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[c],
   );
-const money = (n) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(
-    Number(n) || 0,
-  );
-const date = (d) =>
-  d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+// Amounts in the user's language (fmt is in core/t.js; the old German phrase map converted these before T136)
+const money = (n) => fmt.money(n);
+const date = (d) => fmt.date(d);
 const pct = (p) =>
   Math.round((p?.length ? p.filter((x) => x.status === "Completed").length / p.length : 0) * 100);
 function toast(msg, type = "success") {

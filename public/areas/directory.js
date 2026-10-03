@@ -461,6 +461,9 @@ actions.on("dir.askSend", async (form) => {
 /* ---------- Certificates & proofs: on the profile, and managed by the supplier on the service catalog ---------- */
 const DIR_DOC_STATE = { Valid: "completed", Expiring: "expiring", Expired: "expired" };
 const DIR_DOC_CATEGORIES = ["Quality certificate", "Trade licence / registration", "Insurance", "Safety certificate", "Training & qualification", "Reference letter", "Other proof"];
+// A document's category and title: keys where the server sends a known value (T136), else as stored
+const dirDocCategory = (c) => (DIR_DOC_CATEGORIES.includes(c) ? esc(t("dir.dc.categories." + c)) : statusHtml(c));
+const dirDocTitle = (d) => (d.requirementKey && typeof ccLookup("en", "cm.req." + d.requirementKey) === "string" ? esc(t("cm.req." + d.requirementKey)) : dirDom(d.title));
 const DIR_CHECKS = ["registration", "vat", "insurance", "certifications", "references", "sanctions"];
 function dirDocRow(d, manage) {
   const c = (key, params) => dirk("dc." + key, params),
@@ -475,7 +478,7 @@ function dirDocRow(d, manage) {
       ? `<button class="btn small outline" data-action="dc.visibility" data-id="${esc(d.id)}" data-to="${d.visibility === "public" ? "partners" : "public"}">${c(d.visibility === "public" ? "makePartner" : "makePublic")}</button><button class="btn small outline danger-text" data-action="dc.delete" data-id="${esc(d.id)}">${c("delete")}</button>`
       : "";
   const where = own ? ` · ${c(d.visibility === "public" ? "visPublic" : "visPartners")}` : manage && d.source === "compliance" ? ` · ${c("compliance")}` : "";
-  return `<div class="dc-row"><span class="dc-icon" aria-hidden="true">${uiIcon(d.source === "compliance" ? "vetting" : "file")}</span><div class="dc-main"><b>${dirDom(d.title)}</b><small>${statusHtml(d.category)}${d.issuer ? " · " + esc(d.issuer) : ""}${where}</small></div><div class="dc-side">${state_}<div class="cc-actions">${open}${tools}</div></div></div>`;
+  return `<div class="dc-row"><span class="dc-icon" aria-hidden="true">${uiIcon(d.source === "compliance" ? "vetting" : "file")}</span><div class="dc-main"><b>${dirDocTitle(d)}</b><small>${dirDocCategory(d.category)}${d.issuer ? " · " + esc(d.issuer) : ""}${where}</small></div><div class="dc-side">${state_}<div class="cc-actions">${open}${tools}</div></div></div>`;
 }
 function dirVetting(v, own) {
   if (!v) return "";
@@ -491,7 +494,7 @@ function dirVetting(v, own) {
       ? `<details class="dc-files"><summary>${c("ownFiles", { n: v.files.length })}</summary>${v.files
           .map(
             (f) =>
-              `<div class="dc-row"><span class="dc-icon">${uiIcon("paperclip")}</span><div class="dc-main"><b>${esc(f.filename)}</b><small>${statusHtml(f.category)} · ${esc(fmt.date(f.uploadedAt))}</small></div><div class="dc-side"><a class="btn small outline" href="${esc(f.url)}" target="_blank" rel="noopener">${c("open")}</a></div></div>`,
+              `<div class="dc-row"><span class="dc-icon">${uiIcon("paperclip")}</span><div class="dc-main"><b>${esc(f.filename)}</b><small>${dirDocCategory(f.category)} · ${esc(fmt.date(f.uploadedAt))}</small></div><div class="dc-side"><a class="btn small outline" href="${esc(f.url)}" target="_blank" rel="noopener">${c("open")}</a></div></div>`,
           )
           .join("")}</details>`
       : !own && v.fileCount
@@ -597,7 +600,7 @@ function dirScorecard(c) {
     m.responseRate,
     "%",
   )}${stat("win", m.winRate, "%")}</div></div>${
-    c.risks.length ? `<ul class="sr-risks">${c.risks.map((r) => `<li class="${esc(r.level)}">${dirDom(r.text)}</li>`).join("")}</ul>` : `<p class="success-text">${s("noRisks")}</p>`
+    c.risks.length ? `<ul class="sr-risks">${c.risks.map((r) => `<li class="${esc(r.level)}">${esc(riskText(r))}</li>`).join("")}</ul>` : `<p class="success-text">${s("noRisks")}</p>`
   }</section>`;
 }
 async function srScorecardPanel(supplierId, target) {

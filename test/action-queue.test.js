@@ -43,6 +43,9 @@ describe("action queue", () => {
     assert.equal(item.link, `/customer/invoice/${inv.id}`);
     assert.equal(item.text, `Review invoice ${inv.number}`);
     assert.equal(item.amount, inv.amount);
+    // The dashboard words it from a key with values, in the user's language (T136)
+    assert.deepEqual(item.q, { title: ["reviewInvoice", { number: inv.number }] });
+    assert.deepEqual(sq.items[0].q.title, ["taskInvitation", { name: phase.tasks[1].name }]);
   });
 
   it("gives the supplier dashboard the invitation details (T96)", async () => {

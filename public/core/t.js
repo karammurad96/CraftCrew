@@ -102,6 +102,17 @@ function tStatus(value) {
 function statusHtml(value) {
   return value && typeof ccLookup("en", ccStatusKey(value)) === "string" ? esc(tStatus(value)) : `<bdi>${esc(value ?? "")}</bdi>`;
 }
+// An audit log action ("Signed in"): common.audit.<camelCase>; other activity texts are shown as stored.
+function auditText(label) {
+  const key = ccStatusKey(label).replace("common.status.", "common.audit.");
+  return label && typeof ccLookup("en", key) === "string" ? t(key) : String(label ?? "");
+}
+// A supplier risk note: a key with values from the server (sourcing scorecards, T136), else its English text
+function riskText(r) {
+  const [key, params = {}] = r?.q || [];
+  if (!key || typeof ccLookup("en", "common.risk." + key) !== "string") return String(r?.text ?? "");
+  return t("common.risk." + key, params.status ? { ...params, status: tStatus(params.status) } : params);
+}
 // An API error in the user's language (T137): the server sends { error, code, params }. The text comes from
 // errors.api.<code>; an error with its own code (e.g. TOTP_REQUIRED) is found by its English message; an unknown
 // message is shown as sent.

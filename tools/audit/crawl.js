@@ -200,7 +200,8 @@ async function login(email, password) {
       Object.assign(current, info);
       if (process.env.AXE !== "0") {
         try {
-          await page.addScriptTag({ content: AXE });
+          // Evaluated, not added as a <script>: the CSP allows no inline scripts (T136)
+          await page.evaluate(AXE);
           const ax = await page.evaluate(async () => {
             const r = await axe.run(document, {
               runOnly: ["wcag2a", "wcag2aa"],

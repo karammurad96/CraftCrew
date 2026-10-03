@@ -5,6 +5,8 @@
    people are data. profilePage, supplierCatalog and paSignOutOthers keep their names for older callers. */
 const pfk = (key, params) => esc(t("prof." + key, params));
 const pfDom = (text) => `<bdi>${esc(text)}</bdi>`;
+// What still blocks an account deletion: a key with values from the server (T136), else its English label
+const pfBlocker = (b) => (b.q ? pfk("del.b." + b.q[0], { ...b.q[1], ...(b.q[1]?.status ? { status: tStatus(b.q[1].status) } : {}) }) : pfDom(b.label));
 const pfAvailability = (v) => (["Available", "Busy", "Unavailable"].includes(v) ? pfk("availability." + v) : pfDom(v));
 
 /* ---------- The settings page of each role ---------- */
@@ -384,7 +386,7 @@ async function pfDeletion() {
   const f = (key, params) => pfk("del." + key, params);
   box.innerHTML = `<h4>${f("title")}</h4><p>${state.user?.isMember ? f("member") : f("lead", { days: d.graceDays }) + (d.coversTeam ? " " + f("team") : "")}</p>${
     d.blockers.length
-      ? `<p class="gd-blocked"><b>${f("blocked")}</b></p><ul class="gd-blockers">${d.blockers.map((b) => `<li><a href="#${esc(b.link)}">${pfDom(b.label)}</a></li>`).join("")}</ul>`
+      ? `<p class="gd-blocked"><b>${f("blocked")}</b></p><ul class="gd-blockers">${d.blockers.map((b) => `<li><a href="#${esc(b.link)}">${pfBlocker(b)}</a></li>`).join("")}</ul>`
       : `<form id="gdDeleteForm" class="modal-form gd-delete-form" data-action="prof.delete"><label>${f("password")}<input name="password" type="password" autocomplete="current-password" required></label>${
           state.user?.twoFactor ? `<label>${f("code")}<input name="code" inputmode="numeric" autocomplete="one-time-code" required></label>` : ""
         }<div id="gdDeleteError" class="form-error"></div><button class="btn danger">${f("submit")}</button></form>`
