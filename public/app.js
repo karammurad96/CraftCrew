@@ -240,37 +240,6 @@ async function importData(input) {
     toast(e.message, "error");
   }
 }
-async function adminApplications() {
-  const d = await api("/admin/applications");
-  app.innerHTML = dashboardShell(
-    "admin",
-    "applications",
-    `<div class="dash-top"><div><h1>Supplier vetting queue</h1><p>Review applications through New → Verified → References → Approved/Rejected.</p></div></div><div class="panel"><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Company</th><th>Stage</th><th>Status</th><th>Submitted</th><th></th></tr></thead><tbody>${d.applications.map((a) => `<tr><td><b>${esc(a.company)}</b><small>${esc(a.email)}</small></td><td><span class="tag blue">${esc(a.stage)}</span></td><td>${esc(a.status)}</td><td>${date(a.createdAt)}</td><td><button class="btn small primary" onclick="reviewApplication('${a.id}')">Review</button></td></tr>`).join("") || '<tr><td colspan="5">No applications.</td></tr>'}</tbody></table></div></div>`,
-  );
-}
-async function reviewApplication(id) {
-  const d = await api("/admin/applications"),
-    a = d.applications.find((x) => x.id === id);
-  modal(
-    "Supplier application",
-    `<div class="stage-flow"><span class="${a.stage === "New" ? "on" : ""}">New</span><span class="${a.stage === "Verified" ? "on" : ""}">Verified</span><span class="${a.stage === "References" ? "on" : ""}">References</span><span class="${a.status === "Approved" ? "on" : ""}">Approved</span><span>Badge</span><span>Live</span></div><div class="detail-grid"><div class="detail-box"><small>Company</small><b>${esc(a.company)}</b></div><div class="detail-box"><small>Contact</small><b>${esc(a.contactName || "—")}</b></div><div class="detail-box"><small>Email / phone</small><b>${esc(a.email)}<br>${esc(a.phone)}</b></div><div class="detail-box"><small>Insurance</small><b>${esc(a.insurance)}</b></div><div class="detail-box"><small>Years</small><b>${esc(a.yearsInBusiness)}</b></div><div class="detail-box"><small>Reference</small><b>${esc(a.referenceName)}<br>${esc(a.referenceEmail)}</b></div></div><h4>Services</h4>${a.services.map((x) => `<span class="chip">${esc(x)}</span>`).join("")}<h4>Certifications</h4>${a.certifications.map((x) => `<span class="chip">${esc(x)}</span>`).join("")}<h4>Portfolio</h4><p>${esc(a.portfolio)}</p><div class="action-row"><select id="astage"><option>New</option><option>Verified</option><option>References</option></select><button class="btn outline" onclick="updateApplication('${id}',{stage:document.getElementById('astage').value})">Save stage</button><select id="abadge"><option>Bronze</option><option>Silver</option><option>Gold</option></select><button class="btn success" onclick="updateApplication('${id}',{status:'Approved',badge:document.getElementById('abadge').value,stage:'Approved'})">Approve & assign badge</button><button class="btn danger" onclick="updateApplication('${id}',{status:'Rejected',stage:'Rejected'})">Reject</button></div>`,
-  );
-  document.getElementById("astage").value = a.stage;
-}
-async function updateApplication(id, b) {
-  await api("/admin/applications/" + id, { method: "PATCH", body: b });
-  closeModal();
-  toast(b.status === "Approved" ? "Supplier approved and published" : "Application updated");
-  adminApplications();
-}
-async function adminUsers() {
-  const d = await api("/admin/users");
-  app.innerHTML = dashboardShell(
-    "admin",
-    "users",
-    `<div class="dash-top"><div><h1>User management</h1><p>Accounts and roles.</p></div></div><div class="panel"><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Company</th></tr></thead><tbody>${d.users.map((u) => `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td><span class="tag">${u.role}</span></td><td>${esc(u.company || "—")}</td></tr>`).join("")}</tbody></table></div></div>`,
-  );
-}
 async function adminBilling() {
   const d = await api("/invoices");
   app.innerHTML = dashboardShell(
@@ -324,8 +293,6 @@ async function route() {
       if (parts[1] === "profile") return profilePage("supplier");
     }
     if (parts[0] === "admin") {
-      if (parts[1] === "applications") return adminApplications();
-      if (parts[1] === "users") return adminUsers();
       if (parts[1] === "billing") return adminBilling();
       if (parts[1] === "reports") return adminReports();
       if (parts[1] === "disputes") return adminDisputes();

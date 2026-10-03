@@ -119,8 +119,6 @@ async function route() {
       if (parts[1] === "profile") return profilePage("supplier");
     }
     if (parts[0] === "admin") {
-      if (parts[1] === "applications") return adminApplications();
-      if (parts[1] === "users") return adminUsers();
       if (parts[1] === "billing") return adminBilling();
       if (parts[1] === "reports") return adminReports();
       if (parts[1] === "disputes") return adminDisputes();

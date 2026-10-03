@@ -87,29 +87,3 @@ function reviewScore(s, query) {
 function reviewQuery() {
   return new URLSearchParams(location.hash.split("?")[1] || "");
 }
-async function adminUsers() {
-  const [d, sd] = await Promise.all([api("/admin/users"), api("/admin/suppliers")]),
-    roles = d.users || [],
-    su = new Map((sd.suppliers || []).map((s) => [s.id, s]));
-  app.innerHTML = dashboardShell(
-    "admin",
-    "users",
-    `<div class="dash-top"><div><h1>Users & supplier badges</h1><p>Review accounts and assign the public supplier verification badge.</p></div></div><section class="panel"><div class="panel-title"><h3>Supplier directory badges</h3><span>${sd.suppliers.length} suppliers</span></div><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Supplier</th><th>Location</th><th>Account</th><th>Current badge</th><th>Change badge</th></tr></thead><tbody>${
-      sd.suppliers
-        .map((s) => {
-          const account = roles.find((u) => u.supplierId === s.id);
-          return `<tr><td><b>${reviewEsc(s.company)}</b><small>${s.live ? "Live in directory" : "Not live"}</small></td><td>${reviewEsc(s.location || "—")}</td><td>${reviewEsc(account?.email || "No linked account")}</td><td>${reviewEsc(supplierBadge(s))}</td><td><select aria-label="Badge for ${reviewEsc(s.company)}" onchange="reviewChangeBadge('${s.id}',this.value)">${["None", "Bronze", "Silver", "Gold"].map((x) => `<option ${x === (s.badge || "None") ? "selected" : ""}>${x}</option>`).join("")}</select></td></tr>`;
-        })
-        .join("") || '<tr><td colspan="5">No supplier companies yet.</td></tr>'
-    }</tbody></table></div></section><section class="panel"><div class="panel-title"><h3>Accounts</h3><span>${roles.length} users</span></div><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Company</th></tr></thead><tbody>${roles.map((u) => `<tr><td>${reviewEsc(u.name)}</td><td>${reviewEsc(u.email)}</td><td><span class="tag">${reviewEsc(u.role)}</span></td><td>${reviewEsc(u.company || "—")}</td></tr>`).join("")}</tbody></table></div></section>`,
-  );
-}
-async function reviewChangeBadge(id, badge) {
-  try {
-    await api(`/admin/suppliers/${id}/badge`, { method: "PATCH", body: { badge } });
-    toast(`Supplier badge set to ${badge}`);
-  } catch (e) {
-    toast(e.message, "error");
-    route();
-  }
-}

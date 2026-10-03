@@ -922,7 +922,7 @@
   color: #53647a;
 }
 .cc-preflight span b {
-  text-transform: capitalize;
+  /* The labels come from translation keys in sentence case (T134a); capitalising them broke German ("Ablauf Der …") */
   color: #233953;
 }
 .cc-rel {

@@ -68,24 +68,3 @@ async function gdExport(btn) {
     toast(x.message, "error");
   }
 }
-
-/* Admin (T123): accounts with a pending deletion, read-only. */
-const gdBaseAdminUsers = adminUsers;
-adminUsers = async function (...args) {
-  await gdBaseAdminUsers(...args);
-  const content = document.querySelector(".dashboard-content");
-  if (!content || content.querySelector("#gdPending")) return;
-  const users = ((await api("/admin/users").catch(() => ({}))).users || []).filter((u) => u.deleteAfter && u.status !== "Deleted");
-  const panels = content.querySelectorAll(":scope > section.panel");
-  const html = `<section class="panel" id="gdPending"><div class="panel-title"><h3>Pending account deletions</h3><span>${users.length}</span></div>${
-    users.length
-      ? `<div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Requested</th><th>Deleted on</th></tr></thead><tbody>${users
-          .map(
-            (u) =>
-              `<tr><td><b>${esc(u.name)}</b>${u.deletionViaOwner ? "<small>With the main account</small>" : ""}</td><td>${esc(u.email)}</td><td><span class="tag">${esc(u.role)}</span></td><td>${date(u.deletionRequestedAt)}</td><td>${date(u.deleteAfter)}</td></tr>`,
-          )
-          .join("")}</tbody></table></div>`
-      : '<p class="pa-empty">No account is waiting to be deleted.</p>'
-  }<p class="subtle">People cancel a deletion themselves by signing in before the date. After it, the account is anonymised automatically; invoices are kept with their legal details.</p></section>`;
-  (panels[panels.length - 1] || content.lastElementChild).insertAdjacentHTML("beforebegin", html);
-};
