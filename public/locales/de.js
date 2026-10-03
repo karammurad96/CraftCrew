@@ -3651,4 +3651,218 @@ LOCALES.de = {
     "viewOnly": "Sie haben in diesem Bereich nur Lesezugriff. Wenden Sie sich an den Kontoinhaber, wenn Sie Änderungen vornehmen müssen.",
     "noAccess": "Ihre Teamrolle hat keinen Zugriff auf diesen Bereich"
   },
+  pl: {
+    "eyebrow": "TEAMPLANER",
+    "title": "Teamplaner",
+    "lead": "Planen Sie, wer an welchem Auftrag arbeitet, sehen Sie Urlaube und Einsätze vor Ort und erkennen Sie Doppelbuchungen.",
+    "planJob": "Auftrag planen",
+    "newEntry": "+ Neuer Eintrag",
+    "kpi": {
+      "team": "Team",
+      "workers": {
+        "one": "{n} Monteur",
+        "other": "{n} Monteure"
+      },
+      "working": "Heute im Einsatz",
+      "workingSub": "bei Aufträgen oder vor Ort",
+      "absent": "Heute abwesend",
+      "absentSub": "Urlaub, krank oder Schulung",
+      "unstaffed": "Aufträge ohne Personal",
+      "double": {
+        "one": "{n} Doppelbuchung",
+        "other": "{n} Doppelbuchungen"
+      }
+    },
+    "prev": "Zurück",
+    "next": "Weiter",
+    "today": "Heute",
+    "legend": {
+      "assignment": "Auftrag",
+      "visit": "Einsatz vor Ort",
+      "vacation": "Urlaub",
+      "sick": "Krank",
+      "training": "Schulung",
+      "other": "Sonstiges"
+    },
+    "type": {
+      "assignment": "Auftrag",
+      "visit": "Einsatz vor Ort",
+      "vacation": "Urlaub",
+      "sick": "Krank",
+      "training": "Schulung",
+      "other": "Sonstiges"
+    },
+    "span": {
+      "week": "Woche",
+      "twoweeks": "2 Wochen",
+      "month": "4 Wochen"
+    },
+    "people": {
+      "one": "{n} Person",
+      "other": "{n} Personen"
+    },
+    "utilTip": "An {n} % der Arbeitstage in dieser Ansicht eingeplant",
+    "overlaps": "überschneidet sich mit einer anderen Buchung",
+    "emptyTitle": "Legen Sie zuerst Ihr Team an",
+    "emptyText": "Laden Sie Teammitglieder ein oder erfassen Sie Monteure unter Compliance – sie erscheinen hier automatisch.",
+    "inviteTeam": "Teammitglieder einladen",
+    "registerWorkers": "Mitarbeitende erfassen",
+    "jobs": "Zu besetzende Aufträge",
+    "planned": {
+      "one": "{n} Person eingeplant",
+      "other": "{n} Personen eingeplant"
+    },
+    "nobody": "Niemand eingeplant",
+    "planPeople": "Personal planen",
+    "noJobs": "Ihrem Unternehmen sind keine offenen Aufträge zugewiesen.",
+    "visitHint": "Einsätze vor Ort werden unter Compliance verwaltet",
+    "addPeople": "Legen Sie zuerst Teammitglieder oder Monteure an",
+    "noOpenJobs": "Ihrem Unternehmen sind keine offenen Aufträge zugewiesen",
+    "form": {
+      "newTitle": "Neuer Planungseintrag",
+      "editTitle": "Planungseintrag bearbeiten",
+      "person": "Person",
+      "type": "Typ",
+      "job": "Auftrag",
+      "chooseJob": "Zugewiesene Aufgabe wählen…",
+      "title": "Titel",
+      "titleHint": "z. B. Sommerurlaub, SCC-Kurs",
+      "from": "Von",
+      "to": "Bis",
+      "note": "Notiz",
+      "optional": "optional",
+      "delete": "Löschen",
+      "save": "Speichern"
+    },
+    "saved": "Planung aktualisiert",
+    "savedOverlap": "Gespeichert – überschneidet sich mit {titles}",
+    "deleteConfirm": "Diesen Planungseintrag löschen?",
+    "deleted": "Eintrag gelöscht",
+    "moved": "Verschoben",
+    "movedOverlap": "Verschoben – überschneidet sich mit einer anderen Buchung",
+    "jobForm": {
+      "title": "Personal für einen Auftrag planen",
+      "job": "Auftrag",
+      "from": "Von",
+      "to": "Bis",
+      "people": "Personen",
+      "already": "bereits eingeplant",
+      "save": "Ausgewählte Personen planen",
+      "choose": "Wählen Sie mindestens eine Person",
+      "clashes": "{n} eingeplant – {clashes} mit Überschneidungen",
+      "done": {
+        "one": "{n} Person eingeplant",
+        "other": "{n} Personen eingeplant"
+      }
+    }
+  },
+  an: {
+    "eyebrow": "ANALYSEN",
+    "export": "CSV exportieren",
+    "period": "Zeitraum",
+    "months": "Letzte {n} Monate",
+    "others": "Sonstige",
+    "paid": "Bezahlt",
+    "approved": "Freigegeben",
+    "doneOverdue": "{done} erledigt · {late} überfällig",
+    "late": {
+      "one": "{n} T. verspätet",
+      "other": "{n} T. verspätet"
+    },
+    "work": {
+      "Completed": "Abgeschlossen",
+      "InProgress": "In Bearbeitung",
+      "NotStarted": "Nicht begonnen",
+      "OnHold": "Pausiert",
+      "Overdue": "Überfällig"
+    },
+    "c": {
+      "title": "Projektanalysen",
+      "lead": "Budget, Ausgaben, Terminlage und Lieferantenausgaben über alle Projekte.",
+      "project": "Projekt",
+      "allProjects": "Alle Projekte",
+      "budget": "Gesamtbudget",
+      "projects": {
+        "one": "{n} Projekt",
+        "other": "{n} Projekte"
+      },
+      "committed": "An Lieferanten vergeben",
+      "ofBudget": "{n} % des Budgets",
+      "invoiced": "Abgerechnet",
+      "paidApproved": "{paid} bezahlt · {approved} freigegeben",
+      "remaining": "Restbudget",
+      "left": "{n} % übrig",
+      "schedule": "Terminlage",
+      "toReview": "Zu prüfende Rechnungen",
+      "budgetVsSpend": "Budget vs. Ausgaben je Projekt",
+      "budgetShort": "Budget",
+      "committedShort": "Vergeben",
+      "committedCaps": "Vergeben (Auftragsobergrenzen)",
+      "invoicedShort": "Abgerechnet",
+      "monthly": "Monatliche Ausgaben",
+      "bySupplier": "Ausgaben je Lieferant",
+      "suppliers": "Lieferanten",
+      "workStatus": "Arbeitsstatus",
+      "workItems": "Arbeitspakete",
+      "overdue": "Überfällige Arbeiten",
+      "nothingOverdue": "Nichts ist überfällig. 🎉"
+    },
+    "s": {
+      "title": "Geschäftsanalysen",
+      "lead": "Umsatz, Pipeline, Angebotserfolg, Lieferleistung und Teamauslastung.",
+      "customer": "Kunde",
+      "revenue": "Bezahlter Umsatz",
+      "invoices": {
+        "one": "{n} Rechnung",
+        "other": "{n} Rechnungen"
+      },
+      "pipeline": "Pipeline",
+      "pipelineSub": "{approved} freigegeben · {review} in Prüfung",
+      "winRate": "Zuschlagsquote",
+      "winSub": "{won} gewonnen · {lost} verloren · {open} offen",
+      "approvalRate": "Rechnungsfreigabequote",
+      "decided": {
+        "one": "{n} entschiedene Rechnung",
+        "other": "{n} entschiedene Rechnungen"
+      },
+      "onTime": "Liefertermintreue",
+      "hours": "Freigegebene Stunden diesen Monat",
+      "pending": "{hours} warten auf Freigabe",
+      "monthly": "Monatlicher Umsatz",
+      "byCustomer": "Umsatz je Kunde",
+      "customers": "Kunden",
+      "invoiceStatus": "Rechnungsstatus",
+      "statuses": "Status",
+      "byPerson": "Freigegebene Stunden je Mitarbeiter",
+      "hoursLabel": "Stunden",
+      "noTime": "Keine freigegebene Zeit in diesem Zeitraum.",
+      "offers": "Angebote",
+      "days": {
+        "one": "{n} Tag",
+        "other": "{n} Tage"
+      },
+      "noOffers": "Noch keine Angebote abgegeben.",
+      "offer": {
+        "Submitted": "Eingereicht",
+        "Accepted": "Angenommen",
+        "Notselected": "Nicht ausgewählt",
+        "Declined": "Abgelehnt",
+        "Withdrawn": "Zurückgezogen"
+      }
+    },
+    "csv": {
+      "project": "Projekt",
+      "status": "Status",
+      "budget": "Budget",
+      "committed": "Vergeben",
+      "invoiced": "Abgerechnet",
+      "paid": "Bezahlt",
+      "due": "Fällig",
+      "invoice": "Rechnung",
+      "customer": "Kunde",
+      "task": "Aufgabe",
+      "amount": "Betrag",
+      "created": "Erstellt"
+    }
+  },
 };

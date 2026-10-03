@@ -3652,4 +3652,218 @@ LOCALES.en = {
     "viewOnly": "You have view-only access to this area. Ask your account owner if you need to make changes.",
     "noAccess": "Your team role has no access to this area"
   },
+  pl: {
+    "eyebrow": "TEAM PLANNER",
+    "title": "Team planner",
+    "lead": "Plan who works on which job, see vacations and site visits, and spot double bookings.",
+    "planJob": "Plan a job",
+    "newEntry": "+ New entry",
+    "kpi": {
+      "team": "Team",
+      "workers": {
+        "one": "{n} field worker",
+        "other": "{n} field workers"
+      },
+      "working": "Working today",
+      "workingSub": "on jobs or site visits",
+      "absent": "Absent today",
+      "absentSub": "vacation, sick or training",
+      "unstaffed": "Jobs without people",
+      "double": {
+        "one": "{n} double booking",
+        "other": "{n} double bookings"
+      }
+    },
+    "prev": "Previous",
+    "next": "Next",
+    "today": "Today",
+    "legend": {
+      "assignment": "Job",
+      "visit": "Site visit",
+      "vacation": "Vacation",
+      "sick": "Sick",
+      "training": "Training",
+      "other": "Other"
+    },
+    "type": {
+      "assignment": "Job",
+      "visit": "Site visit",
+      "vacation": "Vacation",
+      "sick": "Sick",
+      "training": "Training",
+      "other": "Other"
+    },
+    "span": {
+      "week": "Week",
+      "twoweeks": "2 weeks",
+      "month": "4 weeks"
+    },
+    "people": {
+      "one": "{n} person",
+      "other": "{n} people"
+    },
+    "utilTip": "Booked on {n}% of working days in this view",
+    "overlaps": "overlaps another booking",
+    "emptyTitle": "Add your team first",
+    "emptyText": "Invite team members or register field workers under Compliance — they appear here automatically.",
+    "inviteTeam": "Invite team members",
+    "registerWorkers": "Register workers",
+    "jobs": "Jobs to staff",
+    "planned": {
+      "one": "{n} person planned",
+      "other": "{n} people planned"
+    },
+    "nobody": "Nobody planned",
+    "planPeople": "Plan people",
+    "noJobs": "No open jobs assigned to your company.",
+    "visitHint": "Site visits are managed under Compliance",
+    "addPeople": "Add team members or workers first",
+    "noOpenJobs": "There are no open jobs assigned to your company",
+    "form": {
+      "newTitle": "New planner entry",
+      "editTitle": "Edit planner entry",
+      "person": "Person",
+      "type": "Type",
+      "job": "Job",
+      "chooseJob": "Choose an assigned task…",
+      "title": "Title",
+      "titleHint": "e.g. Summer vacation, SCC course",
+      "from": "From",
+      "to": "To",
+      "note": "Note",
+      "optional": "optional",
+      "delete": "Delete",
+      "save": "Save"
+    },
+    "saved": "Planner updated",
+    "savedOverlap": "Saved — overlaps {titles}",
+    "deleteConfirm": "Delete this planner entry?",
+    "deleted": "Entry deleted",
+    "moved": "Moved",
+    "movedOverlap": "Moved — overlaps another booking",
+    "jobForm": {
+      "title": "Plan people on a job",
+      "job": "Job",
+      "from": "From",
+      "to": "To",
+      "people": "People",
+      "already": "already planned",
+      "save": "Plan selected people",
+      "choose": "Choose at least one person",
+      "clashes": "{n} planned — {clashes} with overlapping bookings",
+      "done": {
+        "one": "{n} person planned",
+        "other": "{n} people planned"
+      }
+    }
+  },
+  an: {
+    "eyebrow": "INSIGHTS",
+    "export": "Export CSV",
+    "period": "Period",
+    "months": "Last {n} months",
+    "others": "Others",
+    "paid": "Paid",
+    "approved": "Approved",
+    "doneOverdue": "{done} done · {late} overdue",
+    "late": {
+      "one": "{n}d late",
+      "other": "{n}d late"
+    },
+    "work": {
+      "Completed": "Completed",
+      "InProgress": "In Progress",
+      "NotStarted": "Not Started",
+      "OnHold": "On Hold",
+      "Overdue": "Overdue"
+    },
+    "c": {
+      "title": "Project analytics",
+      "lead": "Budget, spend, schedule health and supplier spend across your projects.",
+      "project": "Project",
+      "allProjects": "All projects",
+      "budget": "Total budget",
+      "projects": {
+        "one": "{n} project",
+        "other": "{n} projects"
+      },
+      "committed": "Committed to suppliers",
+      "ofBudget": "{n}% of budget",
+      "invoiced": "Invoiced",
+      "paidApproved": "{paid} paid · {approved} approved",
+      "remaining": "Budget remaining",
+      "left": "{n}% left",
+      "schedule": "Schedule health",
+      "toReview": "Invoices to review",
+      "budgetVsSpend": "Budget vs. spend by project",
+      "budgetShort": "Budget",
+      "committedShort": "Committed",
+      "committedCaps": "Committed (order caps)",
+      "invoicedShort": "Invoiced",
+      "monthly": "Monthly spend",
+      "bySupplier": "Spend by supplier",
+      "suppliers": "suppliers",
+      "workStatus": "Work status",
+      "workItems": "work items",
+      "overdue": "Overdue work",
+      "nothingOverdue": "Nothing is overdue. 🎉"
+    },
+    "s": {
+      "title": "Business analytics",
+      "lead": "Revenue, pipeline, bid success, delivery performance and team utilisation.",
+      "customer": "Customer",
+      "revenue": "Revenue paid",
+      "invoices": {
+        "one": "{n} invoice",
+        "other": "{n} invoices"
+      },
+      "pipeline": "Pipeline",
+      "pipelineSub": "{approved} approved · {review} in review",
+      "winRate": "Bid win rate",
+      "winSub": "{won} won · {lost} lost · {open} open",
+      "approvalRate": "Invoice approval rate",
+      "decided": {
+        "one": "{n} decided invoice",
+        "other": "{n} decided invoices"
+      },
+      "onTime": "On-time delivery",
+      "hours": "Approved hours this month",
+      "pending": "{hours} pending approval",
+      "monthly": "Monthly revenue",
+      "byCustomer": "Revenue by customer",
+      "customers": "customers",
+      "invoiceStatus": "Invoice status",
+      "statuses": "statuses",
+      "byPerson": "Approved hours by team member",
+      "hoursLabel": "Hours",
+      "noTime": "No approved time in this period.",
+      "offers": "Offers",
+      "days": {
+        "one": "{n} day",
+        "other": "{n} days"
+      },
+      "noOffers": "No offers submitted yet.",
+      "offer": {
+        "Submitted": "Submitted",
+        "Accepted": "Accepted",
+        "Notselected": "Not selected",
+        "Declined": "Declined",
+        "Withdrawn": "Withdrawn"
+      }
+    },
+    "csv": {
+      "project": "Project",
+      "status": "Status",
+      "budget": "Budget",
+      "committed": "Committed",
+      "invoiced": "Invoiced",
+      "paid": "Paid",
+      "due": "Due",
+      "invoice": "Invoice",
+      "customer": "Customer",
+      "task": "Task",
+      "amount": "Amount",
+      "created": "Created"
+    }
+  },
 };

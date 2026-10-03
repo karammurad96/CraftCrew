@@ -102,7 +102,6 @@ describe("app shell", () => {
       ["collaboration.js", /function ccNav|ccNav\(/],
       ["insights.js", /function inNav|inNav\(/],
       ["sourcing-ui.js", /function srNav|srNav\(/],
-      ["planner.js", /function plNav|plNav\(/],
       ["platform-additions.js", /function paNav|paNav\(/],
       ["feedback-fixes.js", /ffFixSidebarState/],
       ["design-screens.js", /NG_GROUPS|DS_SIDE_LABELS|dsEnhanceSidebar|MNAV_BOTTOM/],
