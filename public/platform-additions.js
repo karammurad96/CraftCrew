@@ -85,7 +85,7 @@ api = async function (path, opts = {}) {
   try {
     return await paBaseApi(path, opts);
   } catch (e) {
-    if (tokenUsed && tokenUsed === state.token && /^Authentication required$/.test(e.message))
+    if (tokenUsed && tokenUsed === state.token && e.code === "authenticationRequired")
       paClearSession(t("ui.sessionEnded"));
     throw e;
   }

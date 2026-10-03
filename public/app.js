@@ -78,7 +78,7 @@ async function api(path, opts = {}) {
       d = await r.json();
     } catch {}
     if (!r.ok)
-      throw Object.assign(new Error(d.error || t("ui.requestFailed")), { status: r.status, code: d.code });
+      throw Object.assign(new Error(apiErrorText(d)), { status: r.status, code: d.code });
     return d;
   } finally {
     if (busy) {

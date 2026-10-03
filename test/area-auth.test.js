@@ -87,7 +87,7 @@ describe("auth area", () => {
       'err.code === "TOTP_REQUIRED" || err.code === "TOTP_INVALID"', // two-factor code field
       'err.code === "EMAIL_UNVERIFIED"', // resend the confirmation link
       "if (d.verificationRequired) return authCheckInbox(d.email);", // check your inbox
-      'err.message === "Email already registered"', // friendlier duplicate message
+      'err.code === "emailAlreadyRegistered"', // friendlier duplicate message
       'span.dataset.i18n = translated ? "keys" : "dom";', // server messages keep the old translation
       "language: ccLang", // new accounts start in the chosen language
     ])

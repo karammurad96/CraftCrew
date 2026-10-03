@@ -62,7 +62,7 @@ async function reviewApplication(id) {
   ];
   const files = a.proofUploads || [],
     fileButton = (x) =>
-      `<button type="button" class="cc-vetting-file ff-evidence-file" data-action="adm.evidence" data-url="${esc(x.url)}" data-name="${esc(x.filename)}">📄 ${esc(x.filename)} <small>${adDom(x.category)} · ${esc(
+      `<button type="button" class="cc-vetting-file ff-evidence-file" data-action="adm.evidence" data-url="${esc(x.url)}" data-name="${esc(x.filename)}">📄 ${esc(x.filename)} <small>${statusHtml(x.category)} · ${esc(
         fmt.number(Math.ceil((x.size || 0) / 1024)),
       )} KB</small><span class="ff-evidence-open">${f("view")}</span></button>`;
   const preflight = Object.entries(a.preflight || {})
@@ -401,7 +401,7 @@ async function adminDisputes() {
     f = (key) => adk("disputes." + key);
   const card = (x) =>
     `<article class="cc-card"><div style="display:flex;justify-content:space-between"><b>${
-      typeof ccLookup("en", "dlg.support.types." + x.type) === "string" ? esc(t("dlg.support.types." + x.type)) : adDom(x.type)
+      typeof ccLookup("en", "dlg.support.types." + x.type) === "string" ? esc(t("dlg.support.types." + x.type)) : statusHtml(x.type)
     }</b><span class="tag ${x.status === "Open" ? "orange" : "green"}">${adValue("disputeStatus", x.status)}</span></div><p>${esc(x.description)}</p><small>${esc(x.projectId)} · ${esc(fmt.date(x.createdAt))}</small>${
       x.status === "Open" ? `<div class="cc-actions" style="margin-top:12px"><button class="btn small success" data-action="adm.resolve" data-id="${esc(x.id)}">${f("resolve")}</button></div>` : ""
     }</article>`;
@@ -615,7 +615,7 @@ async function adminAudit() {
   const [{ entries = [], total = 0 }, { projects = [] }] = await Promise.all([api("/audit?" + params), api("/projects")]);
   const opt = (value, label, on) => `<option value="${esc(value)}" ${on ? "selected" : ""}>${label}</option>`,
     row = (e) =>
-      `<tr><td>${esc(paTime(e.at))}</td><td><b>${esc(e.actorName)}</b><small>${e.actorRole ? adValue("role", e.actorRole) : ""} · ${esc(e.actorEmail)}</small></td><td>${adDom(e.action)}${e.status ? `<small>${adDom(e.status)}</small>` : ""}</td><td>${e.projectName ? adDom(e.projectName) : "—"}</td><td><small>${esc(e.entityId)}</small></td></tr>`;
+      `<tr><td>${esc(paTime(e.at))}</td><td><b>${esc(e.actorName)}</b><small>${e.actorRole ? adValue("role", e.actorRole) : ""} · ${esc(e.actorEmail)}</small></td><td>${adDom(e.action)}${e.status ? `<small>${statusHtml(e.status)}</small>` : ""}</td><td>${e.projectName ? adDom(e.projectName) : "—"}</td><td><small>${esc(e.entityId)}</small></td></tr>`;
   app.innerHTML = dashboardShell(
     "admin",
     "audit",

@@ -105,7 +105,7 @@ async function srDashboard() {
   const kpi = (label, value, sub, tone = "") => `<div class="in-kpi ${tone}"><span class="cc-label">${label}</span><strong>${esc(value)}</strong><small>${sub}</small></div>`,
     statusTag = (s) => `<span class="status ${s === "Awarded" ? "completed" : s === "Closed" ? "rejected" : "submitted"}">${srStatus(s)}</span>`,
     row = (b) =>
-      `<tr><td><b>${esc(b.title)}</b><small>${esc(b.eventType || "RFQ")} · ${esc(b.taskName || "")}</small></td><td>${b.category ? srDom(b.category) : "—"}</td><td>${esc(b.projectName || "")}</td><td>${
+      `<tr><td><b>${esc(b.title)}</b><small>${esc(b.eventType || "RFQ")} · ${esc(b.taskName || "")}</small></td><td>${b.category ? statusHtml(b.category) : "—"}</td><td>${esc(b.projectName || "")}</td><td>${
         b.baseline ? esc(fmt.money(b.baseline)) : "—"
       }</td><td>${(b.offers || []).length}</td><td>${esc(fmt.date(b.dueDate))}</td><td>${statusTag(b.status)}${
         b.savings ? `<small class="${b.savings >= 0 ? "success-text" : "danger-text"}">${d(b.savings >= 0 ? "saved" : "over", { amount: fmt.money(Math.abs(b.savings)) })}</small>` : ""
@@ -369,7 +369,7 @@ async function srContracts(role, query) {
     tone = { Active: "completed", Expiring: "submitted", Expired: "rejected", Terminated: "rejected", Draft: "" },
     counts = SR_CONTRACT_STATES.map((s) => [s, contracts.filter((x) => x.state === s).length]).filter(([, n]) => n);
   const row = (x) =>
-    `<tr><td><b>${esc(x.title)}</b><small>${[x.category ? srDom(x.category) : "", x.bidId ? c("fromEvent") : "", x.autoRenew ? c("autoRenews") : ""].filter(Boolean).join(" · ")}</small></td><td>${esc(
+    `<tr><td><b>${esc(x.title)}</b><small>${[x.category ? statusHtml(x.category) : "", x.bidId ? c("fromEvent") : "", x.autoRenew ? c("autoRenews") : ""].filter(Boolean).join(" · ")}</small></td><td>${esc(
       customer ? x.supplierCompany : x.projectName || "—",
     )}</td><td><b>${esc(fmt.money(x.value))}</b></td><td>${x.startDate ? esc(fmt.date(x.startDate)) : "—"} → ${x.endDate ? esc(fmt.date(x.endDate)) : `<span class="subtle">${c("openEnd")}</span>`}${
       x.daysToEnd !== null && x.daysToEnd >= 0 && x.state !== "Draft" ? `<small>${c("daysLeft", { n: x.daysToEnd })}</small>` : ""

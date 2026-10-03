@@ -147,7 +147,10 @@ function cleanSupplierProfile(b) {
       const list = cleanTextList(b[key], 30, 80);
       if (!list)
         return {
-          error: `${key === "services" ? "Services" : "Certifications"}: up to 30 entries of up to 80 characters each.`,
+          error:
+            key === "services"
+              ? "Services: up to 30 entries of up to 80 characters each."
+              : "Certifications: up to 30 entries of up to 80 characters each.",
         };
       out[key] = list;
     }
@@ -161,7 +164,10 @@ function cleanSupplierProfile(b) {
       const n = rate(b[key]);
       if (!Number.isFinite(n) || n < 0)
         return {
-          error: `${key === "hourlyRate" ? "Hourly rate" : "Project rate"} must be a number of at least 0.`,
+          error:
+            key === "hourlyRate"
+              ? "Hourly rate must be a number of at least 0."
+              : "Project rate must be a number of at least 0.",
         };
       out[key] = n;
     }
@@ -2778,7 +2784,42 @@ function selfUser(u) {
   const { passwordHash, salt, self, icsTokenHash, totp, totpPending, ...safe } = u;
   return { ...safe, twoFactor: !!totp?.enabledAt };
 }
+/* API error codes (T137). Every error message has a stable code: its key in errors.api of public/locales/en.js.
+   send() adds { code, params } to an error, so the browser can show it in the user's language. Messages with
+   {placeholders} there match by pattern, and the parts become params. A new message needs an entry there
+   (test/error-codes.test.js checks it). */
+const ERROR_CODES = (() => {
+  const sandbox = { window: {} },
+    exact = new Map(),
+    patterns = [];
+  require("vm").runInNewContext(fs.readFileSync(path.join(__dirname, "public", "locales", "en.js"), "utf8"), sandbox);
+  (function walk(node, prefix) {
+    for (const [key, text] of Object.entries(node)) {
+      const code = prefix + key;
+      if (typeof text === "object") walk(text, code + ".");
+      else if (!/\{\w+\}/.test(text)) exact.has(text) || exact.set(text, code);
+      else {
+        const names = [],
+          source = text
+            .split(/(\{\w+\})/)
+            .map((part) => (/^\{\w+\}$/.test(part) ? (names.push(part.slice(1, -1)), "(.+?)") : part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")))
+            .join("");
+        patterns.push({ code, names, re: new RegExp("^" + source + "$") });
+      }
+    }
+  })(sandbox.window.LOCALES.en.errors.api, "");
+  return { exact, patterns };
+})();
+function errorCode(message) {
+  if (ERROR_CODES.exact.has(message)) return { code: ERROR_CODES.exact.get(message) };
+  for (const p of ERROR_CODES.patterns) {
+    const m = p.re.exec(message);
+    if (m) return { code: p.code, params: Object.fromEntries(p.names.map((name, i) => [name, m[i + 1]])) };
+  }
+  return null;
+}
 function send(res, status, data, headers = {}) {
+  if (data && typeof data.error === "string" && !data.code) data = { ...data, ...errorCode(data.error) };
   const body = JSON.stringify(data);
   res.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",

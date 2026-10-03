@@ -60,7 +60,9 @@ when signing in to get the token in the response body, then use `Authorization: 
 7. **Every new English UI text needs a German entry** in `I18N_DE` in `public/i18n.js`, using the exact
    English phrase as the key.
 8. **Stay inside the task.** Don't reformat, rename or "improve" code the task doesn't mention.
-9. Keep API error messages short, friendly and actionable. They are shown to users.
+9. Keep API error messages short, friendly and actionable. They are shown to users, translated: every new
+   message needs an entry in `errors.api` of `public/locales/en.js` and `de.js` (T137; `test/error-codes.test.js`
+   checks it). Status values shown to users need a `common.status` key.
 
 ## Git workflow
 
