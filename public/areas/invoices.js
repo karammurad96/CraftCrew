@@ -393,7 +393,7 @@ async function rvFixInvoice(id) {
     <label>${f("description")}<textarea name="description" rows="2" required>${esc(i.description || "")}</textarea></label>
     <label>${f("whatChanged")} <small class="subtle">${f("shown")}</small><textarea name="note" rows="2" required placeholder="${f("changedPlaceholder")}"></textarea></label>
     <label>${f("replace")} <small class="subtle">${f("optional")}</small><input name="attachmentFile" type="file"></label>
-    <div id="rvInvoiceError" class="form-error"></div><button class="btn primary">${f("resubmit")}</button></form>`,
+    <div id="rvInvoiceError" class="form-error" data-i18n="dom"></div><button class="btn primary">${f("resubmit")}</button></form>`,
   );
   rvInvoiceTotal();
 }
@@ -485,7 +485,7 @@ async function newInvoice() {
       "total",
     )}</span><strong id="invoiceTotal"></strong></div><div id="invoiceOrderCheck" class="order-check">${n("selectWork")}</div><label>${n("note")}<textarea name="description" required></textarea></label><label>${n(
       "attachment",
-    )}<input name="attachmentFile" type="file"></label><div id="invoiceError" class="form-error"></div><div class="action-row"><button class="btn primary">${n("submit")}</button><button type="button" class="btn outline" data-action="inv.closeModal">${n(
+    )}<input name="attachmentFile" type="file"></label><div id="invoiceError" class="form-error" data-i18n="dom"></div><div class="action-row"><button class="btn primary">${n("submit")}</button><button type="button" class="btn outline" data-action="inv.closeModal">${n(
       "cancel",
     )}</button></div></form></div>`,
   );

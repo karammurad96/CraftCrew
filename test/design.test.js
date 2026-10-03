@@ -152,21 +152,7 @@ describe("design 2026", () => {
     assert.match(read("design-screens.css"), /html body \.ds-today \{\n  display: none;\n\}\n@media \(max-width: 640px\)/);
   });
 
-  it("regroups the Log time form without losing a field (T103)", () => {
-    const src = read("design-screens.js");
-    assert.match(src, /const dsBaseNewTime = ccNewTimeEntry;/);
-    // Every field of today's form is moved into a row, none is rebuilt
-    for (const f of ['#ffTimeTarget', '#ffTimeSearch', '[name="employeeName"]', '[name="workDate"]', '[name="location"]', '[name="startTime"]', '[name="endTime"]', '[name="breakMinutes"]', '[name="description"]'])
-      assert.ok(src.includes(`$("${f.replace(/"/g, '\\"')}")`) || src.includes(`$('${f}')`), `field ${f} is kept`);
-    // The break segments set the existing break field; the button shows the live hours
-    assert.match(src, /pause\.value = b\.dataset\.m;/);
-    assert.match(src, /`Submit \$\{h\.toFixed\(1\)\} Hours`/);
-    // The offline banner follows the connection
-    assert.match(src, /banner\.hidden = navigator\.onLine/);
-    const de = read("i18n.js");
-    for (const k of ["No signal. Saved on this phone and sent later.", "Submit (\\d+[.,]\\d) Hours", '"Billable time"'])
-      assert.ok(de.includes(k.replace(/\\\\/g, "\\")), `no German for ${k}`);
-  });
+  // T103 (Log time sheet) moved to the time area: test/area-time.test.js
 
   it("approves invoices and time from the Approvals page with the existing functions (T104)", () => {
     const src = read("design-screens.js");
@@ -192,32 +178,7 @@ describe("design 2026", () => {
     for (const t of ["T106", "T107", "T108", "T109", "T110"]) assert.match(tasks, new RegExp(`#### ${t} · `));
   });
 
-  it("sends time entry photos with the entry and queues both offline (T106)", async () => {
-    const calls = [];
-    const ctx = loadScreens({
-      api: async (p, o) => (calls.push(["api", p]), {}),
-      oflPostWithPhotos: async (p, body, files) => (calls.push(["photos", p, body.hours, files.length]), {}),
-    });
-    const vm = require("node:vm");
-    await ctx.api("/time-entries", { method: "POST", body: { hours: 8 } });
-    vm.runInContext('dsTimePhotos = [{ filename: "a.jpg", content: "data:" }];', ctx);
-    await ctx.api("/time-entries", { method: "POST", body: { hours: 8 } });
-    await ctx.api("/time-entries", { method: "POST", body: { hours: 7 } });
-    assert.deepEqual(calls, [
-      ["api", "/time-entries"],
-      ["photos", "/time-entries", 8, 1],
-      ["api", "/time-entries"],
-    ]);
-    assert.equal(
-      vm.runInContext('dsTimeThumbs(["/uploads/a.png"])', ctx),
-      '<div class="ds-thumbs"><a href="/uploads/a.png" aria-label="Photo 1"><img data-ds-src="/uploads/a.png" alt=""></a></div>',
-    );
-    // The offline replay uploads the queued photos before it posts the entry
-    assert.match(read("offline-sync.js"), /body: \{ \.\.\.item\.body\.body, photoUrls: await oflUploadAll\(item\.body\.uploads\) \}/);
-    assert.match(read("design-screens.css"), /\.ds-photo-grid \{\n  display: grid;\n  grid-template-columns: repeat\(4, minmax\(0, 1fr\)\);/);
-    const de = read("i18n.js");
-    for (const k of ['Photos: "Fotos"', '"Add photo": "Foto hinzufügen"', '"Attach up to 6 photos"']) assert.ok(de.includes(k), k);
-  });
+  // T106 (time entry photos) moved to the time area: test/area-time.test.js
 
   it("shows the arrival time of site visits on Today, the week and the access lists (T107)", () => {
     const src = read("areas/dashboards.js"),
