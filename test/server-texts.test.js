@@ -58,7 +58,12 @@ function notifySpecs() {
 
 describe("server texts by language (T137)", () => {
   it("reads the same language registry as the browser", () => {
-    assert.deepEqual([...locales.codes()].filter((c) => c !== "zz"), ["en", "de"]);
+    const ctx = {};
+    vm.createContext(ctx);
+    vm.runInContext(read("public/core/languages.js") + ";this.L = JSON.stringify(LANGUAGES);", ctx);
+    ctx.L = JSON.parse(ctx.L);
+    assert.deepEqual([...locales.codes()].filter((c) => c !== "zz"), ctx.L.map((l) => l.code));
+    assert.deepEqual(ctx.L.map((l) => l.code).slice(0, 5), ["en", "de", "fr", "es", "ar"]);
     assert.equal(locales.langOf({ language: "de" }), "de");
     assert.equal(locales.langOf({ language: "xx" }), "en", "an unknown language falls back to English");
     assert.equal(locales.langOf(undefined), "en");
@@ -108,6 +113,11 @@ describe("server texts by language (T137)", () => {
     assert.equal(locales.text("de", "server.pdf.invoice.termsDays", { n: 14, due: "1.10.2026" }), "14 Tage netto, fällig am 1.10.2026");
     // ⟦ ⟧ are outside WinAnsi, like Polish or Arabic letters
     assert.equal(locales.pdfLang("zz"), "en");
+    // French and Spanish fit the font; Arabic gets English PDFs
+    assert.deepEqual(["fr", "es", "ar"].map(locales.pdfLang), ["fr", "es", "en"]);
+    assert.equal(locales.email("testEmail", "fr", { from: "a@b.c", link: "x" }).subject, "E-mail de test CraftCrew");
+    assert.equal(locales.notifyText({ key: "invoicePaid", params: { number: "R-1" } }, "es"), "La factura R-1 se ha pagado");
+    assert.equal(locales.notifyText({ key: "invoicePaid", params: { number: "R-1" } }, "ar"), "تم دفع الفاتورة R-1");
   });
 
   describe("on the server", () => {
