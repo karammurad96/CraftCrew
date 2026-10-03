@@ -3550,4 +3550,105 @@ LOCALES.de = {
       "saved": "Unternehmensprofil aktualisiert"
     }
   },
+  team: {
+    "eyebrow": "KONTO",
+    "title": "Team",
+    "lead": "Laden Sie Kolleginnen und Kollegen ein und legen Sie für jeden Bereich fest, ob sie keinen Zugriff haben, nur ansehen oder voll arbeiten dürfen. Nur Sie verwalten das Team.",
+    "invite": "+ Teammitglied einladen",
+    "kpi": {
+      "members": "Teammitglieder",
+      "membersSub": "mit Zugriff auf dieses Konto",
+      "open": "Offene Einladungen",
+      "openSub": "noch nicht angemeldet",
+      "full": "Vollzugriff",
+      "fullSub": "auf alle Bereiche",
+      "removed": "Entfernt",
+      "removedSub": "haben keinen Zugriff mehr"
+    },
+    "members": "Mitglieder und Zugriff",
+    "member": "Mitglied",
+    "actions": "Aktionen",
+    "invited": "Eingeladen",
+    "lastSignIn": "Letzte Anmeldung {when}",
+    "levelFor": "{area} für {name}",
+    "level": {
+      "none": "Kein Zugriff",
+      "view": "Nur ansehen",
+      "full": "Vollzugriff"
+    },
+    "levelText": {
+      "none": "Der Bereich ist ausgeblendet und seine Daten können nicht geöffnet werden.",
+      "view": "Sieht alles im Bereich, kann aber nichts anlegen, ändern, freigeben oder senden.",
+      "full": "Kann im Bereich wie Sie arbeiten, z. B. Angebote freigeben oder Rechnungen bezahlen."
+    },
+    "edit": "Bearbeiten",
+    "remove": "Entfernen",
+    "emptyTitle": "Gemeinsam als Team arbeiten",
+    "emptyText": "Laden Sie Einkauf, Projektleitung, Buchhaltung oder Standortpersonal ein. Jede Person meldet sich mit eigenem Login an, und jede Aktion wird unter ihrem Namen protokolliert.",
+    "legendTitle": "Was die Zugriffsstufen bedeuten",
+    "removed": "Entfernte Mitglieder ({n})",
+    "restore": "Zugriff wiederherstellen",
+    "area": {
+      "projects": "Projekte",
+      "sourcing": "Beschaffung",
+      "invoices": "Rechnungen",
+      "time": "Zeiten",
+      "compliance": "Compliance",
+      "messages": "Nachrichten",
+      "analytics": "Analysen",
+      "catalog": "Katalog",
+      "settings": "Einstellungen"
+    },
+    "about": {
+      "customer": {
+        "projects": "Projekte, Phasen, Aufgaben und Dokumente",
+        "sourcing": "Beschaffung, Angebote und Verträge",
+        "invoices": "Rechnungen und Zahlungen",
+        "time": "Zeitfreigaben",
+        "compliance": "Standorte und Fremdfirmensicherheit",
+        "messages": "Nachrichten",
+        "analytics": "Analysen und Berichte",
+        "settings": "Firmenprofil und Einstellungen"
+      },
+      "supplier": {
+        "projects": "Zugewiesene Arbeiten, Fortschritt und Dokumente",
+        "sourcing": "Angebote, Anfragen und Verträge",
+        "invoices": "Rechnungen",
+        "time": "Zeiterfassung",
+        "compliance": "Compliance: Mitarbeitende, Nachweise, Standortzugang",
+        "messages": "Nachrichten",
+        "catalog": "Leistungskatalog und öffentliches Profil",
+        "settings": "Firmeneinstellungen und Auszahlungen"
+      }
+    },
+    "form": {
+      "inviteTitle": "Teammitglied einladen",
+      "editTitle": "{name} bearbeiten",
+      "name": "Name",
+      "email": "E-Mail",
+      "jobTitle": "Funktion",
+      "optional": "optional",
+      "jobHint": "z. B. Einkauf, Projektleitung, Buchhaltung",
+      "access": "Zugriff",
+      "setAll": "Alle setzen auf",
+      "save": "Änderungen speichern",
+      "send": "Einladung senden"
+    },
+    "cred": {
+      "title": "Teammitglied hinzugefügt",
+      "lead": "{name} kann sich jetzt anmelden. Geben Sie die Zugangsdaten persönlich weiter – das temporäre Passwort wird nur einmal angezeigt und muss bei der ersten Anmeldung geändert werden.",
+      "email": "E-Mail",
+      "password": "Temporäres Passwort",
+      "copy": "Passwort kopieren",
+      "copied": "Kopiert",
+      "done": "Fertig"
+    },
+    "sent": "Einladung an {email} gesendet",
+    "updated": "Zugriff aktualisiert",
+    "removeConfirm": "Dieses Teammitglied entfernen? Es wird sofort abgemeldet und kann dieses Konto nicht mehr öffnen. Sie können den Zugriff später wiederherstellen.",
+    "removedToast": "Teammitglied entfernt",
+    "restored": "Zugriff wiederhergestellt",
+    "viewOnly": "Sie haben in diesem Bereich nur Lesezugriff. Wenden Sie sich an den Kontoinhaber, wenn Sie Änderungen vornehmen müssen.",
+    "noAccess": "Ihre Teamrolle hat keinen Zugriff auf diesen Bereich"
+  },
 };
