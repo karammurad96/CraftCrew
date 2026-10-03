@@ -92,6 +92,7 @@ function area(lang, role, { user = {}, queue = QUEUE[role], extra = {} } = {}) {
     invAnswerTask: (...a) => calls.push(["task", ...a]),
     invAnswerPhase: (...a) => calls.push(["phase", ...a]),
     reviewApplication: (id) => calls.push(["application", id]),
+    inConfirmApprove: async (id) => (calls.push(["confirm", id]), ctx.confirm !== false),
     api: async (p, opts) => {
       calls.push(["api", p, opts?.method || "GET"]);
       if (p === "/action-queue") return queue;
@@ -228,6 +229,14 @@ describe("dashboards area", () => {
     await new Promise((r) => setTimeout(r, 0));
     assert.ok(ctx.calls.some((c) => c[1] === "/invoices/inv_1" && c[2] === "PATCH"));
     assert.deepEqual(ctx.toasts.at(-1)[0], "Rechnung freigegeben; Zahlung geplant");
+    // T142: it asks first, and "Cancel" changes nothing
+    assert.deepEqual(ctx.calls.find((c) => c[0] === "confirm"), ["confirm", "inv_1"]);
+    const no = area("de", "customer");
+    no.confirm = false;
+    await no.render();
+    await vm.runInContext("actions", no).run("dash.approve", { dataset: { id: "inv_1" }, disabled: false }, { type: "click" });
+    await new Promise((r) => setTimeout(r, 0));
+    assert.ok(!no.calls.some((c) => c[2] === "PATCH"));
   });
 
   it("hides shortcuts a team member may not use", async () => {

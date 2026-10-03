@@ -590,6 +590,7 @@ routes.add("/admin/dashboard", dashAdmin);
 
 /* ---------- Actions ---------- */
 actions.on("dash.approve", async (el) => {
+  if (!(await inConfirmApprove(el.dataset.id))) return;
   el.disabled = true;
   try {
     // The same request as approving on the invoice page, without leaving the dashboard
