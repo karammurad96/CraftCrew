@@ -179,17 +179,11 @@ describe("design 2026", () => {
 
   it("explains the GDPR self-service on the privacy page and lists pending deletions for admins (T123)", () => {
     // The privacy page itself moved to the public area (T126a, test/area-public.test.js)
-    const src = read("gdpr-ui.js"),
-      de = read("i18n.js"),
+    const de = read("i18n.js"),
       en = read("locales/en.js");
     for (const t of ["deleted after 14 days", "kept for 10 years (§ 147 AO, § 14b UStG)", "Download my data"]) assert.ok(en.includes(t), t);
-    // The pending deletions panel moved to the admin area (T134a, test/area-admin.test.js)
-    assert.ok(src.includes("function gdDeletion"));
+    // The pending deletions moved to the admin area (T134a), the self-service panel to the profile area (T135a)
     assert.ok(de.includes('"Deleted user": "Gelöschter Nutzer"'));
-    // Loaded after the files whose pages it extends, before the design layer and the translation
-    const order = [...index.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]);
-    for (const f of ["legal-security.js", "collaboration.js", "calendar-ui.js"]) assert.ok(order.indexOf(f) < order.indexOf("gdpr-ui.js"), f);
-    assert.ok(order.indexOf("gdpr-ui.js") < order.indexOf("design-screens.js"));
   });
 
   it("uses a new service worker cache so installed apps load the new files", () => {

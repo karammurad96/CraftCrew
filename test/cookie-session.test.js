@@ -77,6 +77,22 @@ describe("cookie sessions", () => {
     assert.equal((await fetch(app.base + "/api/auth/upgrade", { method: "POST", headers: { Authorization: "Bearer " + "0".repeat(64) } })).status, 401);
   });
 
+  it("keeps the browser's own session when it signs out other sessions or changes the password (T135a)", async () => {
+    const other = await app.login("cookie@test.local", PW),
+      change = (path, method, body) => withCookie(path, { method, body: JSON.stringify(body || {}), headers: { "X-CSRF": "1" } }),
+      bearerMe = (token) => fetch(app.base + "/api/auth/me", { headers: { Authorization: "Bearer " + token } }).then((r) => r.status);
+    const r = await change("/account/sessions", "DELETE");
+    assert.equal(r.status, 200);
+    assert.ok((await r.json()).revoked >= 1);
+    assert.equal((await withCookie("/auth/me")).status, 200, "this browser stays signed in");
+    assert.equal(await bearerMe(other), 401, "the other session ended");
+    const other2 = await app.login("cookie@test.local", PW);
+    assert.equal((await change("/account/password", "POST", { currentPassword: PW, newPassword: PW + "x1", confirm: PW + "x1" })).status, 200);
+    assert.equal((await withCookie("/auth/me")).status, 200, "still signed in after the change");
+    assert.equal(await bearerMe(other2), 401);
+    assert.equal((await change("/account/password", "POST", { currentPassword: PW + "x1", newPassword: PW, confirm: PW })).status, 200);
+  });
+
   it("signs out: ends the session and clears the cookie", async () => {
     const r = await withCookie("/auth/logout", { method: "POST", headers: { "X-CSRF": "1" } });
     assert.equal(r.status, 200);

@@ -244,7 +244,9 @@
     "action window.__ccRfqFilters={q:'',status:'All',sort:'newest'};supplierRequests()": "action [rq.reset]"
   },
   "supplier /supplier/suppliers": {
-    "action dcUpload()": "action [dc.upload]"
+    "action dcUpload()": "action [dc.upload]",
+    "action editProfile()": "action [prof.editDetails]",
+    "action wfEditCatalog()": "action [prof.editCatalog]"
   },
   "customer /customer/offers": {
     "action ccEditBid('bid_demo_vision')": "action [offers.edit]",
@@ -424,5 +426,24 @@
   },
   "admin /admin/platform": {
     "action adminTestEmail()": "action [adm.testEmail]"
+  },
+  "customer /customer/profile": {
+    "action cfCreate()": "action [prof.calCreate]",
+    "action gdExport(this)": "action [prof.export]",
+    "action paSignOutOthers()": "action [prof.signOutOthers]",
+    "action tfSetup()": "action [prof.tfSetup]",
+    "action wfEditCompanyProfile()": "action [prof.edit]"
+  },
+  "supplier /supplier/profile": {
+    "action cfCreate()": "action [prof.calCreate]",
+    "action gdExport(this)": "action [prof.export]",
+    "action paSignOutOthers()": "action [prof.signOutOthers]",
+    "action tfSetup()": "action [prof.tfSetup]",
+    "action wfEditCompanyProfile()": "action [prof.edit]"
+  },
+  "admin /admin/profile": {
+    "action gdExport(this)": "action [prof.export]",
+    "action paSignOutOthers()": "action [prof.signOutOthers]",
+    "action tfSetup()": "action [prof.tfSetup]"
   }
 }
