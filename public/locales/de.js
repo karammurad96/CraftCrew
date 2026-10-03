@@ -2494,4 +2494,328 @@ LOCALES.de = {
       "empty": "Keine Benachrichtigungen passen zu diesen Filtern."
     }
   },
+  cm: {
+    "short": {
+      "insurance": "Haftpflicht",
+      "tax48b": "Freistellung §48b",
+      "bgCertificate": "BG-Bescheinigung",
+      "scc": "SCC / SCP",
+      "minimumWage": "Mindestlohn",
+      "a1": "A1-Bescheinigung",
+      "electrician": "Elektrofachkraft",
+      "heightFitness": "Höhentauglichkeit (G41)",
+      "forklift": "Staplerschein",
+      "firstAid": "Ersthelfer",
+      "briefing": "Sicherheitsunterweisung"
+    },
+    "state": {
+      "Valid": "Gültig",
+      "Expiring": "Läuft aus",
+      "Pending review": "Prüfung ausstehend",
+      "Missing": "Fehlt",
+      "Expired": "Abgelaufen",
+      "Rejected": "Abgelehnt",
+      "Outdated": "Veraltet",
+      "Accepted": "Angenommen",
+      "Requested": "Angefragt",
+      "Approved": "Freigegeben",
+      "Checked in": "Eingecheckt",
+      "Checked out": "Ausgecheckt",
+      "Cancelled": "Storniert"
+    },
+    "req": {
+      "insurance": "Betriebshaftpflicht-Nachweis",
+      "tax48b": "Freistellungsbescheinigung (§48b EStG)",
+      "bgCertificate": "Unbedenklichkeitsbescheinigung der Berufsgenossenschaft",
+      "scc": "SCC-/SCP-Zertifikat",
+      "minimumWage": "Mindestlohnerklärung (MiLoG)",
+      "a1": "A1-Bescheinigung (Entsendung aus dem Ausland)",
+      "electrician": "Nachweis Elektrofachkraft",
+      "heightFitness": "Eignung Arbeiten mit Absturzgefahr (G41)",
+      "forklift": "Staplerschein",
+      "firstAid": "Ersthelfer-Ausbildung",
+      "briefing": "Sicherheitsunterweisung Standort"
+    },
+    "permit": {
+      "none": "Keine besondere Erlaubnis",
+      "hotWork": "Heißarbeiten (Schweißen, Trennen, Schleifen)",
+      "height": "Arbeiten in der Höhe",
+      "electrical": "Elektroarbeiten (Freischalten / LOTO)",
+      "confinedSpace": "Arbeiten in engen Räumen"
+    },
+    "check": {
+      "hotWork": [
+        "Brandwache eingeteilt",
+        "Brennbares entfernt oder abgedeckt (10 m Umkreis)",
+        "Feuerlöscher am Arbeitsplatz",
+        "Brandmeldeanlage/Leitstelle informiert"
+      ],
+      "height": [
+        "Absturzsicherung geprüft",
+        "Bereich darunter abgesperrt",
+        "Rettungskonzept vorhanden"
+      ],
+      "electrical": [
+        "Freigeschaltet und gegen Wiedereinschalten gesichert",
+        "Spannungsfreiheit festgestellt",
+        "Geerdet und kurzgeschlossen",
+        "Benachbarte unter Spannung stehende Teile abgedeckt"
+      ],
+      "confinedSpace": [
+        "Atmosphäre gemessen",
+        "Belüftung in Betrieb",
+        "Sicherungsposten draußen",
+        "Rettungsausrüstung bereit"
+      ]
+    },
+    "compliant": "Vollständig",
+    "incomplete": "Unvollständig",
+    "ready": "Bereit",
+    "notReady": "Nicht bereit",
+    "actionNeeded": "Handlung nötig",
+    "approve": "Freigeben",
+    "reject": "Ablehnen",
+    "checkIn": "Einchecken",
+    "checkOut": "Auschecken",
+    "cancel": "Abbrechen",
+    "view": "Ansehen",
+    "accept": "Akzeptieren",
+    "override": "Ohne vollständige Nachweise freigegeben: {reason}",
+    "validUntil": "gültig bis {date}",
+    "coverage": "Haftpflichtdeckung unter dem Minimum des Standorts",
+    "coverageOf": "{actual} von {required} erforderlich",
+    "sites": {
+      "eyebrow": "FREMDFIRMENMANAGEMENT",
+      "title": "Standorte & Arbeitsschutz",
+      "lead": "Wer auf Ihren Standorten arbeiten darf, mit welchen Nachweisen, Unterweisungen und Erlaubnissen – und wer gerade vor Ort ist.",
+      "new": "+ Neuer Standort",
+      "onSite": "Jetzt vor Ort",
+      "visits": {
+        "one": "{n} Firmeneinsatz",
+        "other": "{n} Firmeneinsätze"
+      },
+      "requests": "Zutrittsanfragen",
+      "waiting": "warten auf Freigabe",
+      "toReview": "Zu prüfende Dokumente",
+      "certs": "Zertifikate und Qualifikationen",
+      "sites": "Standorte",
+      "links": {
+        "one": "{n} Lieferantenverknüpfung",
+        "other": "{n} Lieferantenverknüpfungen"
+      },
+      "onSiteCount": "{n} vor Ort",
+      "noAddress": "Noch keine Adresse",
+      "counts": "{suppliers} · {projects}",
+      "suppliers": {
+        "one": "{n} Lieferant",
+        "other": "{n} Lieferanten"
+      },
+      "projects": {
+        "one": "{n} Projekt",
+        "other": "{n} Projekte"
+      },
+      "openRequests": {
+        "one": "{n} Anfrage",
+        "other": "{n} Anfragen"
+      },
+      "noRequests": "Keine offenen Anfragen",
+      "open": "Standort öffnen →",
+      "firstTitle": "Ersten Standort anlegen",
+      "firstText": "Legen Sie fest, welche Nachweise und Qualifikationen Fremdfirmen brauchen, hinterlegen Sie Ihre Sicherheitsunterweisung und verknüpfen Sie die Projekte am Standort.",
+      "noneWaiting": "Keine offenen Anfragen.",
+      "allReviewed": "Alle Dokumente geprüft."
+    },
+    "decide": {
+      "rejectPrompt": "Grund für die Ablehnung dieser Zutrittsanfrage:",
+      "overridePrompt": "Die Nachweise sind unvollständig. Begründung für eine Freigabe trotzdem (z. B. Dokumente am Tor auf Papier geprüft):",
+      "approved": "Zutritt freigegeben",
+      "rejected": "Zutritt abgelehnt",
+      "checkedIn": "Eingecheckt",
+      "checkedOut": "Ausgecheckt",
+      "cancelled": "Anfrage storniert",
+      "docRejectPrompt": "Warum wird das Dokument abgelehnt?",
+      "docAccepted": "Dokument angenommen",
+      "docRejected": "Dokument abgelehnt"
+    },
+    "form": {
+      "new": "Neuer Standort",
+      "edit": "Standort bearbeiten",
+      "name": "Standortname",
+      "nameHint": "z. B. Werk Regensburg",
+      "address": "Adresse",
+      "contact": "Ansprechpartner vor Ort",
+      "phone": "Telefon",
+      "emergency": "Notrufnummer",
+      "coverage": "Mindestdeckung der Haftpflicht in € (optional)",
+      "coverageHint": "z. B. 5000000",
+      "company": "Erforderliche Unternehmensnachweise",
+      "worker": "Erforderliche Qualifikationen der Mitarbeitenden",
+      "expires": "läuft ab",
+      "permits": "Arbeitserlaubnisse an diesem Standort",
+      "briefing": "Sicherheitsunterweisung (Mitarbeitende lesen und unterschreiben sie online; eine Änderung verlangt eine neue Unterschrift von allen)",
+      "briefingHint": "PSA, Sammelplatz, Notrufnummern, Gefahrenbereiche, Rauch- und Heißarbeitsregeln…",
+      "projects": "Projekte an diesem Standort",
+      "noProjects": "Noch keine Projekte.",
+      "save": "Standort speichern",
+      "create": "Standort anlegen",
+      "saved": "Standort gespeichert",
+      "created": "Standort angelegt"
+    },
+    "detail": {
+      "back": "← Standorte & Arbeitsschutz",
+      "eyebrow": "STANDORT",
+      "emergency": "Notruf {number}",
+      "contact": "Kontakt {name}",
+      "print": "Anwesenheitsliste drucken",
+      "edit": "Standort bearbeiten",
+      "openRequests": "Offene Anfragen",
+      "suppliersReady": "Lieferanten bereit",
+      "meetAll": "erfüllen alle Anforderungen",
+      "briefing": "Sicherheitsunterweisung",
+      "updated": "aktualisiert {date}",
+      "notWritten": "noch nicht erstellt",
+      "since": "seit {time}",
+      "nobody": "Niemand ist eingecheckt.",
+      "noOpen": "Keine offenen Anfragen.",
+      "readiness": "Bereitschaft der Lieferanten",
+      "reqCount": {
+        "one": "{n} Anforderung an diesem Standort",
+        "other": "{n} Anforderungen an diesem Standort"
+      },
+      "companyDocs": "{ok}/{n} Unternehmensnachweise",
+      "workersReady": "{ok}/{n} Mitarbeitende bereit",
+      "expiringSoon": "{n} laufen bald ab",
+      "noWorkers": "Noch keine Mitarbeitenden erfasst.",
+      "noSuppliers": "Noch keine Lieferanten an diesem Standort. Verknüpfen Sie Projekte in den Standorteinstellungen.",
+      "briefingVersion": "Sicherheitsunterweisung · Version {n}"
+    },
+    "print": {
+      "title": "Anwesenheitsliste · {site}",
+      "heading": "Anwesenheitsliste – {site}",
+      "emergency": "Notruf: {number}",
+      "name": "Name",
+      "company": "Unternehmen",
+      "role": "Rolle",
+      "checkedIn": "Eingecheckt",
+      "present": "Am Sammelplatz anwesend ✓",
+      "nobody": "Niemand eingecheckt",
+      "popups": "Erlauben Sie Pop-ups, um die Liste zu drucken"
+    },
+    "sup": {
+      "eyebrow": "STANDORT-COMPLIANCE",
+      "title": "Compliance",
+      "lead": "Nachweise einmal hochladen, Qualifikationen aktuell halten, Unterweisungen abschließen und Zutritt anfragen.",
+      "request": "+ Zutritt anfragen",
+      "sites": "Ihre Standorte",
+      "more": "+ {n} weitere",
+      "briefing": "Sicherheitsunterweisung",
+      "requestAccess": "Zutritt anfragen",
+      "noSites": "Standorte erscheinen hier, sobald ein Kunde ein Projekt, an dem Sie arbeiten, einem Standort zuordnet.",
+      "companyDocs": "Unternehmensnachweise",
+      "workers": "Mitarbeitende",
+      "addWorker": "+ Mitarbeiter hinzufügen",
+      "posted": "aus dem Ausland entsandt (A1 nötig)",
+      "editWorker": "Mitarbeiter bearbeiten",
+      "noWorkers": "Erfassen Sie die Personen, die bei Kunden vor Ort arbeiten.",
+      "access": "Zutritt",
+      "noAccess": "Noch keine Zutrittsanfragen.",
+      "notUploaded": "Nicht hochgeladen",
+      "replace": "Ersetzen",
+      "upload": "Hochladen"
+    },
+    "worker": {
+      "add": "Mitarbeiter hinzufügen",
+      "edit": "Mitarbeiter bearbeiten",
+      "name": "Vollständiger Name",
+      "role": "Rolle",
+      "roleHint": "z. B. Elektriker, Schweißer",
+      "phone": "Mobiltelefon",
+      "posted": "Aus dem Ausland entsandt (A1-Bescheinigung erforderlich)",
+      "inactive": "Arbeitet nicht mehr für uns",
+      "save": "Mitarbeiter speichern",
+      "saved": "Mitarbeiter gespeichert",
+      "added": "Mitarbeiter hinzugefügt"
+    },
+    "doc": {
+      "title": "Dokument hochladen",
+      "file": "Datei (PDF, JPG oder PNG)",
+      "issued": "Ausgestellt am",
+      "validRequired": "Gültig bis *",
+      "validOptional": "Gültig bis (optional)",
+      "note": "Jeder Kunde prüft das Dokument für seine Standorte. Sie werden 30 Tage vor Ablauf erinnert.",
+      "upload": "Hochladen",
+      "uploaded": "Dokument zur Prüfung hochgeladen"
+    },
+    "brief": {
+      "title": "Sicherheitsunterweisung · {site}",
+      "note": "Geben Sie das Gerät dem Mitarbeiter: Er liest die Unterweisung oben, bestätigt sie und unterschreibt mit vollem Namen. Gültig 12 Monate oder bis der Standort die Unterweisung ändert.",
+      "worker": "Mitarbeiter",
+      "choose": "Auswählen…",
+      "confirm": "Ich habe die Sicherheitsunterweisung (Version {n}) gelesen und verstanden und werde sie befolgen.",
+      "signature": "Unterschrift – vollständigen Namen eingeben",
+      "sign": "Unterweisung unterschreiben",
+      "signed": "Unterweisung unterschrieben"
+    },
+    "access": {
+      "title": "Zutritt anfragen",
+      "noSites": "Sie arbeiten noch an keinem Kundenstandort",
+      "site": "Standort",
+      "project": "Projekt",
+      "from": "Von",
+      "until": "Bis",
+      "arrival": "Ankunftszeit (optional)",
+      "workers": "Mitarbeitende",
+      "addWorkers": "Legen Sie zuerst Mitarbeitende an.",
+      "permit": "Arbeitserlaubnis",
+      "description": "Tätigkeitsbeschreibung",
+      "descriptionHint": "Was wird wo auf dem Gelände gemacht",
+      "companyIncomplete": "Ihre Unternehmensnachweise für diesen Standort sind unvollständig – der Kunde kann die Anfrage ablehnen.",
+      "send": "Anfrage senden",
+      "requested": "Zutritt angefragt"
+    }
+  },
+  appr: {
+    "eyebrow": "ARBEITSABLAUF",
+    "title": "Freigaben",
+    "waiting": {
+      "one": "{n} Entscheidung wartet auf Sie, älteste zuerst.",
+      "other": "{n} Entscheidungen warten auf Sie, älteste zuerst."
+    },
+    "nothing": "Nichts wartet auf Ihre Entscheidung.",
+    "show": "Anzeigen",
+    "all": "Alle · {n}",
+    "invoicesTab": "Rechnungen",
+    "timeTab": "Zeiten",
+    "group": {
+      "visits": "Zutrittsanfragen",
+      "compliance": "Compliance-Dokumente",
+      "invoices": "Rechnungen zur Freigabe",
+      "documents": "Zu prüfende Dokumente",
+      "time": "Zeiteinträge zur Freigabe",
+      "offers": "Angebote zur Entscheidung",
+      "contracts": "Verträge zur Aktivierung"
+    },
+    "overCap": "über dem Auftragsrahmen",
+    "project": "Projekt",
+    "offers": {
+      "one": "{n} Angebot · Frist {date}",
+      "other": "{n} Angebote · Frist {date}"
+    },
+    "age": {
+      "one": "wartet seit {n} T.",
+      "other": "wartet seit {n} T."
+    },
+    "today": "heute",
+    "clear": "Alles erledigt.",
+    "invoice": "Rechnung {number}",
+    "corrected": "Korrigiert",
+    "submitted": "Eingereicht",
+    "withinCap": "Innerhalb des Auftragsrahmens",
+    "overCapCheck": "Über dem Auftragsrahmen",
+    "hoursMatch": "Stunden passen zur freigegebenen Zeit",
+    "hoursOver": "Mehr Stunden als freigegeben",
+    "changes": "Änderungen",
+    "approve": "Freigeben",
+    "hours": "{n} h · {name}"
+  },
 };

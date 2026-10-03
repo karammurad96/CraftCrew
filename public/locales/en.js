@@ -2495,4 +2495,328 @@ LOCALES.en = {
       "empty": "No notifications match these filters."
     }
   },
+  cm: {
+    "short": {
+      "insurance": "Liability insurance",
+      "tax48b": "§48b exemption",
+      "bgCertificate": "BG certificate",
+      "scc": "SCC / SCP",
+      "minimumWage": "Minimum wage",
+      "a1": "A1 certificate",
+      "electrician": "Electrician",
+      "heightFitness": "Height fitness (G41)",
+      "forklift": "Forklift licence",
+      "firstAid": "First aid",
+      "briefing": "Safety briefing"
+    },
+    "state": {
+      "Valid": "Valid",
+      "Expiring": "Expiring",
+      "Pending review": "Pending review",
+      "Missing": "Missing",
+      "Expired": "Expired",
+      "Rejected": "Rejected",
+      "Outdated": "Outdated",
+      "Accepted": "Accepted",
+      "Requested": "Requested",
+      "Approved": "Approved",
+      "Checked in": "Checked in",
+      "Checked out": "Checked out",
+      "Cancelled": "Cancelled"
+    },
+    "req": {
+      "insurance": "Public liability insurance certificate",
+      "tax48b": "Tax exemption certificate (§48b EStG)",
+      "bgCertificate": "Certificate of good standing (BG / accident insurance)",
+      "scc": "SCC / SCP safety certificate",
+      "minimumWage": "Minimum wage declaration (MiLoG)",
+      "a1": "A1 certificate (workers posted from abroad)",
+      "electrician": "Qualified electrician (Elektrofachkraft)",
+      "heightFitness": "Fitness for work at height (G41)",
+      "forklift": "Forklift licence",
+      "firstAid": "First aider training",
+      "briefing": "Site safety briefing"
+    },
+    "permit": {
+      "none": "No special permit",
+      "hotWork": "Hot work (welding, cutting, grinding)",
+      "height": "Work at height",
+      "electrical": "Electrical work (isolation / LOTO)",
+      "confinedSpace": "Confined space entry"
+    },
+    "check": {
+      "hotWork": [
+        "Fire watch assigned",
+        "Combustibles removed or covered (10 m radius)",
+        "Extinguisher at the work place",
+        "Fire detection section informed"
+      ],
+      "height": [
+        "Fall protection equipment inspected",
+        "Area below cordoned off",
+        "Rescue plan in place"
+      ],
+      "electrical": [
+        "Isolated and secured against reconnection",
+        "Absence of voltage verified",
+        "Earthed and short-circuited",
+        "Adjacent live parts covered"
+      ],
+      "confinedSpace": [
+        "Atmosphere measured",
+        "Ventilation running",
+        "Attendant posted outside",
+        "Rescue equipment ready"
+      ]
+    },
+    "compliant": "Compliant",
+    "incomplete": "Incomplete",
+    "ready": "Ready",
+    "notReady": "Not ready",
+    "actionNeeded": "Action needed",
+    "approve": "Approve",
+    "reject": "Reject",
+    "checkIn": "Check in",
+    "checkOut": "Check out",
+    "cancel": "Cancel",
+    "view": "View",
+    "accept": "Accept",
+    "override": "Approved without full compliance: {reason}",
+    "validUntil": "valid until {date}",
+    "coverage": "Liability coverage below the site minimum",
+    "coverageOf": "{actual} of {required} required",
+    "sites": {
+      "eyebrow": "CONTRACTOR SAFETY",
+      "title": "Sites & safety",
+      "lead": "Who may work on your sites, with which evidence, briefing and permit — and who is there right now.",
+      "new": "+ New site",
+      "onSite": "On site now",
+      "visits": {
+        "one": "{n} company visit",
+        "other": "{n} company visits"
+      },
+      "requests": "Access requests",
+      "waiting": "waiting for approval",
+      "toReview": "Documents to review",
+      "certs": "certificates and qualifications",
+      "sites": "Sites",
+      "links": {
+        "one": "{n} supplier link",
+        "other": "{n} supplier links"
+      },
+      "onSiteCount": "{n} on site",
+      "noAddress": "No address yet",
+      "counts": "{suppliers} · {projects}",
+      "suppliers": {
+        "one": "{n} supplier",
+        "other": "{n} suppliers"
+      },
+      "projects": {
+        "one": "{n} project",
+        "other": "{n} projects"
+      },
+      "openRequests": {
+        "one": "{n} request",
+        "other": "{n} requests"
+      },
+      "noRequests": "No open requests",
+      "open": "Open site →",
+      "firstTitle": "Set up your first site",
+      "firstText": "Define which certificates and qualifications contractors need, add your safety briefing, and link the projects that take place there.",
+      "noneWaiting": "No requests waiting.",
+      "allReviewed": "All documents reviewed."
+    },
+    "decide": {
+      "rejectPrompt": "Reason for rejecting this access request:",
+      "overridePrompt": "Compliance is incomplete for this request. Enter a reason to approve anyway (e.g. documents checked on paper at the gate):",
+      "approved": "Access approved",
+      "rejected": "Access rejected",
+      "checkedIn": "Checked in",
+      "checkedOut": "Checked out",
+      "cancelled": "Request cancelled",
+      "docRejectPrompt": "Tell the supplier why this document is rejected:",
+      "docAccepted": "Document accepted",
+      "docRejected": "Document rejected"
+    },
+    "form": {
+      "new": "New site",
+      "edit": "Edit site",
+      "name": "Site name",
+      "nameHint": "e.g. Plant Regensburg",
+      "address": "Address",
+      "contact": "Site contact",
+      "phone": "Contact phone",
+      "emergency": "Emergency number",
+      "coverage": "Minimum liability coverage in € (optional)",
+      "coverageHint": "e.g. 5000000",
+      "company": "Company evidence required",
+      "worker": "Worker qualifications required",
+      "expires": "expires",
+      "permits": "Work permits used on this site",
+      "briefing": "Safety briefing (workers read and sign this online; changing it asks everyone to sign again)",
+      "briefingHint": "PPE, assembly point, emergency numbers, hazardous areas, smoking and hot-work rules…",
+      "projects": "Projects at this site",
+      "noProjects": "No projects yet.",
+      "save": "Save site",
+      "create": "Create site",
+      "saved": "Site saved",
+      "created": "Site created"
+    },
+    "detail": {
+      "back": "← Sites & safety",
+      "eyebrow": "SITE",
+      "emergency": "Emergency {number}",
+      "contact": "Contact {name}",
+      "print": "Print on-site list",
+      "edit": "Edit site",
+      "openRequests": "Open requests",
+      "suppliersReady": "Suppliers ready",
+      "meetAll": "meet every requirement",
+      "briefing": "Safety briefing",
+      "updated": "updated {date}",
+      "notWritten": "not written yet",
+      "since": "since {time}",
+      "nobody": "Nobody is checked in.",
+      "noOpen": "No open requests.",
+      "readiness": "Supplier readiness",
+      "reqCount": {
+        "one": "{n} requirement on this site",
+        "other": "{n} requirements on this site"
+      },
+      "companyDocs": "{ok}/{n} company documents",
+      "workersReady": "{ok}/{n} workers ready",
+      "expiringSoon": "{n} expiring soon",
+      "noWorkers": "No workers registered yet.",
+      "noSuppliers": "No suppliers work at this site yet. Link projects in the site settings.",
+      "briefingVersion": "Safety briefing · version {n}"
+    },
+    "print": {
+      "title": "On-site list · {site}",
+      "heading": "On-site list — {site}",
+      "emergency": "Emergency: {number}",
+      "name": "Name",
+      "company": "Company",
+      "role": "Role",
+      "checkedIn": "Checked in",
+      "present": "Present at assembly point ✓",
+      "nobody": "Nobody checked in",
+      "popups": "Allow pop-ups to print the list"
+    },
+    "sup": {
+      "eyebrow": "SITE COMPLIANCE",
+      "title": "Compliance",
+      "lead": "Upload certificates once, keep your workers' qualifications current, complete site briefings and request site access.",
+      "request": "+ Request site access",
+      "sites": "Your sites",
+      "more": "+ {n} more",
+      "briefing": "Safety briefing",
+      "requestAccess": "Request access",
+      "noSites": "Sites appear here once a customer links a project you work on to one of their sites.",
+      "companyDocs": "Company documents",
+      "workers": "Workers",
+      "addWorker": "+ Add worker",
+      "posted": "posted from abroad (A1 needed)",
+      "editWorker": "Edit worker",
+      "noWorkers": "Add the people who work on customer sites.",
+      "access": "Site access",
+      "noAccess": "No access requests yet.",
+      "notUploaded": "Not uploaded",
+      "replace": "Replace",
+      "upload": "Upload"
+    },
+    "worker": {
+      "add": "Add worker",
+      "edit": "Edit worker",
+      "name": "Full name",
+      "role": "Role",
+      "roleHint": "e.g. Electrician, Welder",
+      "phone": "Mobile phone",
+      "posted": "Posted from abroad (an A1 certificate is required)",
+      "inactive": "No longer works for us",
+      "save": "Save worker",
+      "saved": "Worker saved",
+      "added": "Worker added"
+    },
+    "doc": {
+      "title": "Upload document",
+      "file": "File (PDF, JPG or PNG)",
+      "issued": "Issued on",
+      "validRequired": "Valid until *",
+      "validOptional": "Valid until (optional)",
+      "note": "Each customer reviews the document for their sites. You are reminded 30 days before it expires.",
+      "upload": "Upload",
+      "uploaded": "Document uploaded for review"
+    },
+    "brief": {
+      "title": "Safety briefing · {site}",
+      "note": "Hand the device to the worker: they read the briefing above, confirm and sign with their full name. Valid for 12 months or until the site changes the briefing.",
+      "worker": "Worker",
+      "choose": "Choose…",
+      "confirm": "I have read and understood the safety briefing (version {n}) and will follow it.",
+      "signature": "Signature — type your full name",
+      "sign": "Sign briefing",
+      "signed": "Briefing signed"
+    },
+    "access": {
+      "title": "Request site access",
+      "noSites": "You have no work at a customer site yet",
+      "site": "Site",
+      "project": "Project",
+      "from": "From",
+      "until": "Until",
+      "arrival": "Arrival time (optional)",
+      "workers": "Workers",
+      "addWorkers": "Add workers first.",
+      "permit": "Work permit",
+      "description": "Work description",
+      "descriptionHint": "What will be done where on site",
+      "companyIncomplete": "Your company documents for this site are incomplete — the customer may reject the request.",
+      "send": "Send request",
+      "requested": "Access requested"
+    }
+  },
+  appr: {
+    "eyebrow": "WORKFLOW",
+    "title": "Approvals",
+    "waiting": {
+      "one": "{n} decision waiting for you, oldest first.",
+      "other": "{n} decisions waiting for you, oldest first."
+    },
+    "nothing": "Nothing is waiting for your decision.",
+    "show": "Show",
+    "all": "All · {n}",
+    "invoicesTab": "Invoices",
+    "timeTab": "Time",
+    "group": {
+      "visits": "Site access requests",
+      "compliance": "Compliance documents",
+      "invoices": "Invoices to approve",
+      "documents": "Documents to review",
+      "time": "Time entries to approve",
+      "offers": "Offers to decide",
+      "contracts": "Contracts to activate"
+    },
+    "overCap": "over order cap",
+    "project": "Project",
+    "offers": {
+      "one": "{n} offer · deadline {date}",
+      "other": "{n} offers · deadline {date}"
+    },
+    "age": {
+      "one": "{n} d waiting",
+      "other": "{n} d waiting"
+    },
+    "today": "today",
+    "clear": "All clear.",
+    "invoice": "Invoice {number}",
+    "corrected": "Corrected",
+    "submitted": "Submitted",
+    "withinCap": "Within order cap",
+    "overCapCheck": "Over the order cap",
+    "hoursMatch": "Hours match approved time",
+    "hoursOver": "More hours than approved time",
+    "changes": "Changes",
+    "approve": "Approve",
+    "hours": "{n} h · {name}"
+  },
 };

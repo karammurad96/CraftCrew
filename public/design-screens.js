@@ -58,7 +58,8 @@ function dsEnhanceChips(root) {
 }
 
 /* ---------- Destructive actions: red text, no fill (they keep their confirmation) ---------- */
-const DS_DESTRUCTIVE = /^(reject|delete|delete .*|remove|archive|archive project)$/i;
+// English, and German for pages drawn from translation keys (their text is not translated by i18n.js)
+const DS_DESTRUCTIVE = /^(reject|delete|delete .*|remove|archive|archive project|ablehnen|löschen|.* löschen|entfernen|archivieren|projekt archivieren)$/i;
 function dsEnhanceButtons(root) {
   root.querySelectorAll(".btn:not([data-ds-danger])").forEach((b) => {
     if (DS_DESTRUCTIVE.test(dsText(b))) b.dataset.dsDanger = "1";
@@ -69,7 +70,7 @@ function dsEnhanceButtons(root) {
 function dsEnhanceEmpty(root) {
   root.querySelectorAll(".panel p:not([data-ds]), .cc-card p:not([data-ds])").forEach((p) => {
     p.dataset.ds = "1";
-    if (!p.children.length && /^No .+ yet\.?$/.test(dsText(p))) p.classList.add("ds-empty");
+    if (!p.children.length && /^(No .+ yet|Noch keine? .+)\.?$/.test(dsText(p))) p.classList.add("ds-empty");
   });
 }
 
@@ -141,113 +142,6 @@ function dsShortRange(a, b) {
           })
         : "";
   return a && b && a !== b ? `${f(a)} – ${f(b)}` : f(a || b) || "—";
-}
-
-/* ---------- Approvals (T104, board PhoneApprove) ----------
-   srApprovals (with the site-access and compliance sections from compliance-ui.js) renders one panel per kind of
-   decision; the wrapper adds the title and a filter, turns invoices into cards and time entries into a grouped
-   list with the existing approve functions, and lets every card hug its content. */
-const dsBaseApprovals = srApprovals;
-srApprovals = async function (...args) {
-  await dsBaseApprovals(...args);
-  const content = document.querySelector(".dashboard-content"),
-    grid = content?.querySelector(".in-grid");
-  if (!grid) return;
-  const [{ invoices = [] }, { entries = [] }] = await Promise.all([
-    api("/invoices").catch(() => ({})),
-    api("/time-entries").catch(() => ({})),
-  ]);
-  if (!document.contains(grid)) return;
-  content.classList.add("ds-approvals");
-  const sections = [...grid.querySelectorAll(":scope > section")],
-    kindOf = (sec) => {
-      const t = dsText(sec.querySelector("h3")).toLowerCase();
-      return /^invoices to approve/.test(t) ? "invoices" : /^time entries to approve/.test(t) ? "time" : "other";
-    };
-  sections.forEach((sec) => (sec.dataset.dsKind = kindOf(sec)));
-  // Invoices and time entries first, as on the board; the other sections follow in their order
-  for (const kind of ["time", "invoices"]) {
-    const sec = sections.find((x) => x.dataset.dsKind === kind);
-    if (sec) grid.prepend(sec);
-  }
-  // Invoice cards
-  const invSec = sections.find((x) => x.dataset.dsKind === "invoices"),
-    waiting = invoices.filter((i) => i.status === "Submitted");
-  if (invSec && waiting.length) {
-    invSec.querySelectorAll(".pa-row").forEach((r) => r.remove());
-    const approved = entries.filter((e) => e.status === "Approved");
-    invSec.insertAdjacentHTML(
-      "beforeend",
-      waiting
-        .map((i) => {
-          const net = i.vatMode ? Number(i.netAmount) : Number(i.amount),
-            cap = Number(i.orderedAmount) || 0,
-            hourLines = (i.lineItems || []).filter((x) => /^(h|hour|hours|std|stunden)$/i.test(String(x.unit))),
-            hours = hourLines.reduce((a, x) => a + Number(x.quantity || 0), 0),
-            okHours = approved.filter((e) => e.taskId === i.taskId).reduce((a, e) => a + Number(e.hours || 0), 0),
-            check = (ok, text) => `<li class="${ok ? "ds-ok" : "ds-warn"}"><span aria-hidden="true">${ok ? "✓" : "!"}</span>${esc(text)}</li>`,
-            checks = [
-              cap ? check(net <= cap, net <= cap ? "Within order cap" : "Over the order cap") : "",
-              hourLines.length ? check(hours <= okHours, hours <= okHours ? "Hours match approved time" : "More hours than approved time") : "",
-            ].join("");
-          return `<article class="ds-approve-card"><div class="ds-approve-top"><a class="ds-approve-kicker" href="#/customer/invoice/${encodeURIComponent(i.id)}">${esc(`Invoice ${invNo(i)}`)}</a><span class="status" data-ds-fixed data-ds-tone="orange">${(i.revisions || []).length ? "Corrected" : "Submitted"}</span></div><b class="ds-approve-amount">${money(i.vatMode ? i.grossAmount : i.amount)}</b><span class="ds-approve-sub">${esc([i.supplierCompany, i.taskName || i.description].filter(Boolean).join(" · "))}</span>${checks ? `<ul class="ds-approve-checks">${checks}</ul>` : ""}<div class="ds-approve-btns"><button type="button" class="btn secondary" onclick="dsApprovalDo(() => invoiceAction('${esc(i.id)}','Request Changes'))">Changes</button><button type="button" class="btn primary" onclick="dsApprovalDo(() => invoiceAction('${esc(i.id)}','Approve'))">Approve</button></div></article>`;
-        })
-        .join(""),
-    );
-  }
-  // Time entries as a grouped list
-  const timeSec = sections.find((x) => x.dataset.dsKind === "time"),
-    pending = entries.filter((e) => e.status === "Pending approval");
-  if (timeSec && pending.length) {
-    timeSec.querySelectorAll(".pa-row").forEach((r) => r.remove());
-    const lang = typeof i18nLang !== "undefined" && i18nLang === "de" ? "de-DE" : "en-GB";
-    timeSec.insertAdjacentHTML(
-      "beforeend",
-      `<div class="ds-time-list">${pending
-        .map(
-          (e) =>
-            `<div class="ds-time-row"><a href="#/customer/time"><b>${esc(`${Number(e.hours).toFixed(1)} h · ${e.employeeName}`)}</b><span>${esc([new Date(String(e.workDate).slice(0, 10) + "T12:00:00").toLocaleDateString(lang, { weekday: "short", day: "numeric", month: "short" }), e.location || e.projectName].filter(Boolean).join(" · "))}</span></a><button type="button" class="ds-pill-approve" onclick="dsApprovalDo(() => ccReviewTime('${esc(e.id)}','Approved'))">Approve</button></div>`,
-        )
-        .join("")}</div>`,
-    );
-  }
-  // Title and filter
-  const top = content.querySelector(":scope > .dash-top"),
-    total = waiting.length + pending.length + sections.filter((x) => x.dataset.dsKind === "other").reduce((a, sec) => a + (Number(dsText(sec.querySelector(".ui-count"))) || 0), 0);
-  if (top && !content.querySelector(".ds-approve-filter")) {
-    top.classList.add("ds-approve-head");
-    const filter = document.createElement("div");
-    filter.className = "ds-seg ds-approve-filter ds-ui";
-    filter.setAttribute("role", "group");
-    filter.setAttribute("aria-label", "Show");
-    filter.innerHTML = [
-      ["all", `All · ${total}`],
-      ["invoices", "Invoices"],
-      ["time", "Time"],
-    ]
-      .map(([k, l], n) => `<button type="button" data-show="${k}" aria-pressed="${n === 0}">${l}</button>`)
-      .join("");
-    filter.addEventListener("click", (e) => {
-      const b = e.target.closest("button[data-show]");
-      if (!b) return;
-      filter.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-      sections.forEach((sec) => sec.classList.toggle("ds-hidden", b.dataset.show !== "all" && sec.dataset.dsKind !== b.dataset.show));
-    });
-    top.after(filter);
-  }
-};
-// Runs an existing approval function and stays on Approvals: those functions end by rendering the invoice list
-// or the time page (without waiting for it), so that render is skipped while they run.
-async function dsApprovalDo(fn) {
-  const keep = { customerInvoices, ccTimePage };
-  customerInvoices = ccTimePage = async () => {};
-  try {
-    await fn();
-  } finally {
-    customerInvoices = keep.customerInvoices;
-    ccTimePage = keep.ccTimePage;
-  }
-  if (/^#\/customer\/approvals/.test(location.hash)) route();
 }
 
 /* ---------- Run the enhancers after every render ---------- */

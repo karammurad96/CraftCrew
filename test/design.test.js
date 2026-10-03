@@ -154,18 +154,7 @@ describe("design 2026", () => {
 
   // T103 (Log time sheet) moved to the time area: test/area-time.test.js
 
-  it("approves invoices and time from the Approvals page with the existing functions (T104)", () => {
-    const src = read("design-screens.js");
-    assert.match(src, /const dsBaseApprovals = srApprovals;/);
-    assert.match(src, /dsApprovalDo\(\(\) => invoiceAction\('\$\{esc\(i\.id\)\}','Request Changes'\)\)/);
-    assert.match(src, /dsApprovalDo\(\(\) => invoiceAction\('\$\{esc\(i\.id\)\}','Approve'\)\)/);
-    assert.match(src, /dsApprovalDo\(\(\) => ccReviewTime\('\$\{esc\(e\.id\)\}','Approved'\)\)/);
-    // The filter only hides sections
-    assert.match(src, /sec\.classList\.toggle\("ds-hidden", b\.dataset\.show !== "all" && sec\.dataset\.dsKind !== b\.dataset\.show\)/);
-    // The card stretch bug: the flex-basis of the first block must not become its height
-    assert.match(read("design-screens.css"), /\.ds-approvals :is\(\.cm-visit, \.cm-doc, \.cm-site-ready\) > div:first-child \{\n  flex-basis: auto !important;/);
-    assert.ok(read("i18n.js").includes('[/^All · (\\d+)$/, "Alle · $1"]'));
-  });
+  // T104 (approvals) moved to the sites area: test/area-sites.test.js
 
   it("keeps the fixes of the final check (T105)", () => {
     const css = read("design-screens.css");
@@ -180,17 +169,10 @@ describe("design 2026", () => {
 
   // T106 (time entry photos) moved to the time area: test/area-time.test.js
 
-  it("shows the arrival time of site visits on Today, the week and the access lists (T107)", () => {
-    const src = read("areas/dashboards.js"),
-      cm = read("compliance-ui.js"),
-      de = read("i18n.js");
+  it("shows the arrival time of site visits on Today and the week (T107; the access lists: test/area-sites.test.js)", () => {
+    const src = read("areas/dashboards.js");
     assert.ok(src.includes('sub: [v.siteName, v.startTime, v.permitLabel].filter(Boolean).join(" · ")'));
     assert.ok(src.includes('visit.status === "Checked in" ? t("dash.today.checkedIn") : visit.startTime || t("dash.today.today")'));
-    assert.ok(cm.includes('<label>Arrival time (optional)<input name="startTime" type="time"></label>'));
-    assert.ok(cm.includes('startTime: f.get("startTime"),'));
-    assert.equal(cm.split('${v.startTime ? " · " + cmEsc(v.startTime) : ""}').length, 3, "both access lists");
-    assert.ok(de.includes('[/^Site visit · (\\d\\d:\\d\\d)$/, "Baustellenbesuch · $1"]'));
-    assert.ok(de.includes('"Arrival time (optional)": "Ankunftszeit (optional)"'));
   });
 
   // T108 (due dates of invoices) moved to the invoices area: test/area-invoices.test.js

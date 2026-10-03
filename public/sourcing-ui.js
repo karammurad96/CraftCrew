@@ -1,6 +1,5 @@
-/* Strategic sourcing: shared constants and icons, the approvals inbox, and the scorecards on admin reports. The
-   sourcing dashboard, the offer comparison and contracts are in areas/sourcing.js (T129c). */
-const srEsc = (v) => esc(v ?? "");
+/* Strategic sourcing: shared constants and icons, and the scorecards on admin reports. The sourcing dashboard, the
+   offer comparison and contracts are in areas/sourcing.js (T129c), the approvals inbox in areas/sites.js (T133). */
 const SR_WEIGHTS = { price: 50, delivery: 20, quality: 20, experience: 10 };
 const SR_ACTIVE = ["Open", "Shortlist", "Second round", "Final round"];
 const srDays = (a, b) => Math.max(0, Math.round((Date.parse(b) - Date.parse(a)) / 86400000));
@@ -14,111 +13,6 @@ Object.assign(UI_ICON_PATHS, {
 });
 Object.assign(UI_NAV_ICONS, { sourcing: "sourcing", contracts: "contracts", approvals: "approvals" });
 
-/* ---------- Approvals inbox ---------- */
-async function srApprovals() {
-  const [{ invoices = [] }, { projects = [] }, { entries = [] }, { bids = [] }, { contracts = [] }] =
-    await Promise.all([
-      api("/invoices"),
-      api("/projects"),
-      api("/time-entries").catch(() => ({})),
-      api("/bids"),
-      api("/contracts"),
-    ]);
-  const docs = (
-    await Promise.all(
-      projects.map((p) =>
-        api(`/projects/${p.id}/documents`)
-          .then((d) => (d.documents || []).map((x) => ({ ...x, projectName: p.name })))
-          .catch(() => []),
-      ),
-    )
-  ).flat();
-  const groups = [
-    [
-      "Invoices to approve",
-      "invoices",
-      invoices
-        .filter((i) => i.status === "Submitted")
-        .map((i) => ({
-          title: `${i.supplierCompany || ""} · ${money(i.amount)}`,
-          sub: `${i.taskName || i.description || invNo(i)}${i.orderedAmount && invNet(i) > i.orderedAmount ? " · over order cap" : ""}`,
-          since: i.updatedAt || i.createdAt,
-          link: `/customer/invoice/${encodeURIComponent(i.id)}`,
-        })),
-    ],
-    [
-      "Documents to review",
-      "contracts",
-      docs
-        .filter((d) => d.status === "Pending approval")
-        .map((d) => ({
-          title: d.filename,
-          sub: `${d.projectName} · ${d.taskName || d.phaseName || "Project"}`,
-          since: d.uploadedAt,
-          link: `/customer/projects/${d.projectId}/documents`,
-        })),
-    ],
-    [
-      "Time entries to approve",
-      "time",
-      entries
-        .filter((t) => t.status === "Pending approval")
-        .map((t) => ({
-          title: `${t.employeeName} · ${t.hours} h`,
-          sub: `${t.taskName} · ${date(t.workDate)}`,
-          since: t.submittedAt,
-          link: "/customer/time",
-        })),
-    ],
-    [
-      "Offers to decide",
-      "sourcing",
-      bids
-        .filter((b) => SR_ACTIVE.includes(b.status) && (b.offers || []).some((o) => o.status === "Submitted"))
-        .map((b) => ({
-          title: b.title,
-          sub: `${b.offers.filter((o) => o.status === "Submitted").length} offer(s) · deadline ${date(b.dueDate)}`,
-          since: b.updatedAt,
-          link: `/customer/sourcing/${b.id}`,
-        })),
-    ],
-    [
-      "Contracts to activate",
-      "contracts",
-      contracts
-        .filter((c) => c.state === "Draft")
-        .map((c) => ({
-          title: c.title,
-          sub: `${c.supplierCompany} · ${money(c.value)}`,
-          since: c.createdAt,
-          link: "/customer/contracts?state=Draft",
-        })),
-    ],
-  ];
-  const total = groups.reduce((a, [, , l]) => a + l.length, 0),
-    age = (d) => {
-      const n = srDays(d || new Date(), new Date());
-      return n ? `${n} d waiting` : "today";
-    };
-  app.innerHTML = dashboardShell(
-    "customer",
-    "approvals",
-    `<div class="dash-top"><div><div class="eyebrow">WORKFLOW</div><h1>Approvals</h1><p>${total ? `${total} decision(s) waiting for you, oldest first.` : "Nothing is waiting for your decision."}</p></div></div><div class="in-grid">${groups
-      .map(
-        ([title, icon, list]) =>
-          `<section class="panel"><div class="panel-title"><h3>${uiIcon(icon, "ui-icon sr-h-icon")} ${title}</h3><span class="ui-count">${list.length}</span></div>${
-            list
-              .sort((a, b) => String(a.since).localeCompare(String(b.since)))
-              .map(
-                (x) =>
-                  `<a class="pa-row" href="#${x.link}"><span><b>${srEsc(x.title)}</b><small>${srEsc(x.sub)}</small></span><span class="pa-pill ${srDays(x.since || new Date(), new Date()) > 5 ? "red" : ""}">${age(x.since)}</span></a>`,
-              )
-              .join("") || '<p class="pa-empty">All clear.</p>'
-          }</section>`,
-      )
-      .join("")}</div>`,
-  );
-}
 /* ---------- Scorecards on admin reports (the supplier scorecard panel is in areas/directory.js) ---------- */
 async function srAdminScorecards() {
   const content = document.querySelector(".dashboard-content");
@@ -134,19 +28,7 @@ async function srAdminScorecards() {
 const srBaseRoute = window.route;
 window.route = async function () {
   const path = location.hash.replace(/^#/, "").split("?")[0],
-    parts = path.split("/").filter(Boolean),
-    role = state.user?.role;
-  const own = parts[0] === role;
-  try {
-    if (own && role === "customer" && parts[1] === "approvals") {
-      await srApprovals();
-      return;
-    }
-  } catch (e) {
-    console.error(e);
-    toast(e.message, "error");
-    return;
-  }
+    parts = path.split("/").filter(Boolean);
   const result = await srBaseRoute();
   try {
     if (parts[0] === "supplier" && parts[1] === "analytics" && state.user?.supplierId)

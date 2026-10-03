@@ -3087,6 +3087,8 @@ html body .ds-approvals .in-grid > section {
 }
 html body .ds-approvals .in-grid .ui-scroll {
   flex: 0 1 auto !important;
+  /* The cards are drawn inside the scroll box now (T133); the panels hug their content, so nothing scrolls */
+  overflow: visible !important;
 }
 /* In a column, the 280 px flex-basis of the first block became its height */
 html body .ds-approvals :is(.cm-visit, .cm-doc, .cm-site-ready) > div:first-child {
