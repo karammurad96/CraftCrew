@@ -7,7 +7,7 @@
 const dk = (key, params) => esc(t("dash." + key, params));
 // Stored data and server texts, shown as stored
 const dashDom = (text) => `<span>${esc(text)}</span>`;
-const dashStatus = (s) => `<span class="status ${esc(String(s || "").toLowerCase().replaceAll(" ", "-"))}">${esc(s)}</span>`;
+const dashStatus = (s) => `<span class="status ${esc(String(s || "").toLowerCase().replaceAll(" ", "-"))}">${esc(tStatus(s))}</span>`;
 const dashIso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const dashToday = () => dashIso(new Date());
 const dashUtcToday = () => new Date().toISOString().slice(0, 10);

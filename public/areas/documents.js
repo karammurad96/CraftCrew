@@ -214,7 +214,7 @@ function xpItems() {
   return { folders, files };
 }
 function xpStatusTag(s) {
-  return s ? `<span class="status ${s === "Approved" ? "completed" : s === "Pending approval" ? "submitted" : /changes|rejected/i.test(s) ? "rejected" : "active"}">${xpEsc(s)}</span>` : "";
+  return s ? `<span class="status ${s === "Approved" ? "completed" : s === "Pending approval" ? "submitted" : /changes|rejected/i.test(s) ? "rejected" : "active"}">${xpEsc(tStatus(s))}</span>` : "";
 }
 function xpRenderContent() {
   const { folders, files } = xpItems(),
