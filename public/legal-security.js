@@ -30,38 +30,6 @@ function legalFooter() {
   );
 }
 
-/* Sign-up: explicit acceptance of terms and privacy policy. */
-
-/* Admin: legal page editor on Platform management. */
-async function legalAdminPanel() {
-  const content = document.querySelector(".dashboard-content");
-  if (!content || content.querySelector(".legal-admin")) return;
-  const legal = await legalContent();
-  content.insertAdjacentHTML(
-    "beforeend",
-    `<section class="panel legal-admin"><div class="panel-title"><h3>Legal pages</h3><small class="subtle">Public at /#/imprint, /#/privacy and /#/terms</small></div><p class="subtle">Required before going live in Germany (§ 5 DDG Impressum, Art. 13 GDPR privacy notice). Plain text: blank line = new paragraph, a line starting with "# " = heading. Have the final texts checked by a lawyer or a trusted generator.</p><form id="legalForm" class="modal-form">${Object.entries(
-      LEGAL_PAGES,
-    )
-      .map(
-        ([k, t]) =>
-          `<label>${t}<textarea name="${k}" rows="8" placeholder="${k === "imprint" ? "Company name, legal form, address, managing director, contact email/phone, register court and number, VAT ID" : k === "privacy" ? "Controller, data collected, purposes, legal bases, processors (hosting, email), storage periods, rights of data subjects, supervisory authority" : "Scope, account rules, supplier vetting, invoicing and payment tracking, liability, governing law"}">${esc(legal[k] || "")}</textarea></label>`,
-      )
-      .join(
-        "",
-      )}<div class="cc-actions"><button class="btn primary">Save legal pages</button><a class="btn outline" href="#/imprint" target="_blank">Preview</a></div></form></section>`,
-  );
-  document.getElementById("legalForm").onsubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await api("/admin/legal", { method: "PUT", body: Object.fromEntries(new FormData(e.target)) });
-      legalCache = null;
-      toast("Legal pages published");
-    } catch (x) {
-      toast(x.message, "error");
-    }
-  };
-}
-
 /* Forced password change after an admin reset or a team invite.
    The server refuses every other call until then, so this page needs no other data. */
 function legalForceChangePage() {
@@ -97,26 +65,6 @@ api = async function (path, opts = {}) {
   return result;
 };
 
-async function adminTestEmail() {
-  try {
-    const r = await api("/admin/test-email", { method: "POST", body: {} });
-    toast(`Test email sent to ${r.to}`);
-  } catch (x) {
-    toast(x.message, "error");
-  }
-}
-function adminMailStatus() {
-  const panel = document.querySelector(".pa-outbox");
-  if (!panel || panel.querySelector(".mail-test")) return;
-  panel
-    .querySelector("summary")
-    // Buttons may not sit inside <summary>; the test button opens the panel body instead.
-    ?.insertAdjacentHTML(
-      "afterend",
-      '<div class="cc-actions mail-test-row"><button type="button" class="btn small outline mail-test" onclick="adminTestEmail()">Send test email</button></div>',
-    );
-}
-
 /* ---------- Router hook ---------- */
 const legalBaseRoute = window.route;
 window.route = async function () {
@@ -128,10 +76,6 @@ window.route = async function () {
   }
   const result = await legalBaseRoute();
   legalFooter();
-  if (path === "/admin/platform") {
-    await legalAdminPanel();
-    adminMailStatus();
-  }
   return result;
 };
 legalFooter();

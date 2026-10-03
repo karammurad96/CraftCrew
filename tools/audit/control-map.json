@@ -401,5 +401,28 @@
     "action legalResetPassword('u_supplier', this)": "action [adm.reset]",
     "action ccSetAccountStatus('usr_<id>','Suspended')": "action [adm.access]",
     "action legalResetPassword('usr_<id>', this)": "action [adm.reset]"
+  },
+  "admin /admin/billing": {
+    "action ccRefundInvoice('inv_001')": "action [adm.refund]",
+    "action ccRefundInvoice('inv_hist_0_0')": "action [adm.refund]",
+    "action ccRefundInvoice('inv_hist_0_1')": "action [adm.refund]",
+    "action ccRefundInvoice('inv_hist_0_2')": "action [adm.refund]",
+    "action ccRefundInvoice('inv_hist_1_0')": "action [adm.refund]",
+    "action ccRefundInvoice('inv_hist_1_1')": "action [adm.refund]",
+    "action ccRefundInvoice('inv_hist_1_2')": "action [adm.refund]",
+    "action ccRefundInvoice('inv_hist_2_0')": "action [adm.refund]",
+    "action ccRefundInvoice('inv_hist_2_1')": "action [adm.refund]",
+    "action ccRefundInvoice('inv_hist_2_2')": "action [adm.refund]",
+    "action markPaid('inv_002')": "action [adm.paid]",
+    "action markPaid('inv_demo_approved')": "action [adm.paid]"
+  },
+  "admin /admin/reports": {
+    "action exportData()": "action [adm.backup]",
+    "action paExportReport('customers')": "action [adm.export]",
+    "action paExportReport('months')": "action [adm.export]",
+    "action paExportReport('suppliers')": "action [adm.export]"
+  },
+  "admin /admin/platform": {
+    "action adminTestEmail()": "action [adm.testEmail]"
   }
 }

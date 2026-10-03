@@ -60,7 +60,6 @@ const I18N_DE = {
   Done: "Fertig",
   Copy: "Kopieren",
   Hide: "Ausblenden",
-  Preview: "Vorschau",
   "Export CSV": "CSV exportieren",
   Grid: "Raster",
   List: "Liste",
@@ -81,9 +80,6 @@ const I18N_DE = {
   Suspend: "Sperren",
   Reactivate: "Reaktivieren",
   "Reset password": "Passwort zurücksetzen",
-  "Send test email": "Test-E-Mail senden",
-  "Save platform settings": "Plattformeinstellungen speichern",
-  "Save legal pages": "Rechtstexte speichern",
   "Change password": "Passwort ändern",
   "Sign out other sessions": "Andere Sitzungen abmelden",
   "Save preferences": "Einstellungen speichern",
@@ -199,14 +195,10 @@ const I18N_DE = {
   Category: "Kategorie",
   Bids: "Angebote",
   Deadline: "Frist",
-  "Supplier scorecards": "Lieferanten-Scorecards",
-  "Supplier scorecard": "Lieferanten-Scorecard",
-  "Supplier scorecards & risk": "Lieferanten-Scorecards & Risiko",
   Score: "Score",
   Rating: "Bewertung",
   Risk: "Risiko",
   Price: "Preis",
-  "Supplier performance": "Lieferantenleistung",
   Offer: "Angebot",
   Scope: "Leistungsumfang",
   Title: "Titel",
@@ -244,14 +236,10 @@ const I18N_DE = {
   "Revenue by customer": "Umsatz je Kunde",
   "Approved hours by team member": "Freigegebene Stunden je Mitarbeiter",
   Offers: "Angebote",
-  "No data yet.": "Noch keine Daten.",
-  "No activity in this period yet.": "In diesem Zeitraum noch keine Aktivität.",
   Paid: "Bezahlt",
   "Committed (order caps)": "Vergeben (Auftragsobergrenzen)",
   "Reports & analytics": "Berichte & Analysen",
-  "Financial report · last 6 months": "Finanzbericht · letzte 6 Monate",
   "Customer analytics": "Kundenanalysen",
-  "Vetting funnel": "Prüftrichter",
   // Invoices, time, messages, settings
   "Invoices & payments": "Rechnungen & Zahlungen",
   Find: "Suchen",
@@ -400,59 +388,15 @@ Object.assign(I18N_DE, {
     "Marktplatzqualität, Lieferantenprüfung und Finanzen.",
   "Signed in": "Angemeldet",
   Accounts: "Konten",
-  "Payments, fees & supplier payouts": "Zahlungen, Gebühren & Auszahlungen",
-  "Track invoice decisions and payout records. Actual bank transfers and refunds still require a connected payment provider.":
-    "Rechnungsentscheidungen und Auszahlungen verfolgen. Echte Überweisungen und Erstattungen erfordern einen angebundenen Zahlungsanbieter.",
-  "No payout record": "Keine Auszahlung erfasst",
-  "Refunds change the CraftCrew ledger and notify the supplier. Complete the matching refund with your payment provider separately.":
-    "Erstattungen ändern das CraftCrew-Buch und informieren den Lieferanten. Die Erstattung beim Zahlungsanbieter separat durchführen.",
-  "Open dispute resolution": "Streitbeilegung öffnen",
-  "Record refund": "Erstattung erfassen",
-  "Record paid": "Als bezahlt erfassen",
-  "Refunds & disputes": "Erstattungen & Streitfälle",
-  "Maintain marketplace rules and help content. Payment, map and email connectors are shown as configuration notes; live credentials are not stored here.":
-    "Marktplatzregeln und Hilfetexte pflegen. Zahlungs-, Karten- und E-Mail-Anbindungen sind Konfigurationshinweise; Zugangsdaten werden hier nicht gespeichert.",
-  "One category per line": "Eine Kategorie pro Zeile",
-  "Thresholds used by admins when assigning Bronze, Silver or Gold":
-    "Schwellenwerte für die Vergabe von Bronze, Silber oder Gold",
-  "Editable labels for future outbound mail integration": "Bearbeitbare Betreffzeilen für ausgehende E-Mails",
-  "Live payment processing, email delivery and external map credentials require provider setup before activation.":
-    "Zahlungsabwicklung, E-Mail-Versand und Kartendienste müssen vor der Aktivierung beim Anbieter eingerichtet werden.",
   "Service categories": "Leistungskategorien",
-  "Supplier badge criteria": "Badge-Kriterien",
-  "Completed projects": "Abgeschlossene Projekte",
-  "Minimum rating": "Mindestbewertung",
-  "System settings": "Systemeinstellungen",
-  "Support email": "Support-E-Mail",
-  "Platform fee estimate (%)": "Plattformgebühr (%)",
-  "Default payment terms (days)": "Standard-Zahlungsziel (Tage)",
-  "Upload limit (MB)": "Upload-Limit (MB)",
-  "FAQ & help content": "FAQ & Hilfetexte",
-  "Email template subjects": "E-Mail-Betreffzeilen",
-  Integrations: "Integrationen",
-  "No emails yet.": "Noch keine E-Mails.",
-  "Public at /#/imprint, /#/privacy and /#/terms": "Öffentlich unter /#/imprint, /#/privacy und /#/terms",
-  "Project, supplier, customer and financial performance across the marketplace.":
-    "Projekt-, Lieferanten-, Kunden- und Finanzkennzahlen des Marktplatzes.",
-  "In verification": "In Prüfung",
   Received: "Eingegangen",
-  "Backup / restore": "Sicherung / Wiederherstellung",
-  "Export full JSON": "Vollständiges JSON exportieren",
   "Import JSON": "JSON importieren",
   "Export the full JSON database. Admin import is available through the API and can be wired to a file picker for production deployment.":
     "Vollständige Datenbank als JSON exportieren oder eine Sicherung importieren.",
-  "Every change made through CraftCrew is recorded with who did it, when, and on which project.":
-    "Jede Änderung in CraftCrew wird mit Person, Zeitpunkt und Projekt protokolliert.",
-  "All roles": "Alle Rollen",
   When: "Wann",
   Who: "Wer",
   Action: "Aktion",
   Record: "Datensatz",
-  COMPLIANCE: "COMPLIANCE",
-  "Resolve delivery, quality, timeline and invoice disputes.":
-    "Streitfälle zu Lieferung, Qualität, Terminen und Rechnungen klären.",
-  "Escalations & support": "Eskalationen & Support",
-  "No escalations.": "Keine Eskalationen.",
   "Your administrator account, security and notification preferences. Marketplace-wide settings live in Platform management.":
     "Ihr Administratorkonto, Sicherheit und Benachrichtigungen. Marktplatzweite Einstellungen finden Sie in der Plattformverwaltung.",
   "Administrator · full access to vetting, users, billing, reports and settings":
@@ -728,8 +672,6 @@ Object.assign(I18N_DE, {
   Continue: "Fortfahren",
   Required: "Pflichtfeld",
   "What should be changed?": "Was soll geändert werden?",
-  "Reason for recording this refund": "Grund für die Erstattung",
-  "Resolution / outcome": "Lösung / Ergebnis",
   "Delete this task?": "Diese Aufgabe löschen?",
   "Delete phase?": "Phase löschen?",
   "Delete this project and its invoices?": "Projekt und zugehörige Rechnungen löschen?",
@@ -934,20 +876,11 @@ Object.assign(I18N_DE, {
   "Enter the minimum liability coverage in euros, or leave it empty":
     "Geben Sie die Mindestdeckung in Euro ein oder lassen Sie das Feld leer",
   // German interface gaps (T58)
-  'Required before going live in Germany (§ 5 DDG Impressum, Art. 13 GDPR privacy notice). Plain text: blank line = new paragraph, a line starting with "# " = heading. Have the final texts checked by a lawyer or a trusted generator.':
-    "Vor dem Livegang in Deutschland erforderlich (§ 5 DDG Impressum, Art. 13 DSGVO Datenschutzhinweis). Reiner Text: Leerzeile = neuer Absatz, eine Zeile mit „# “ am Anfang = Überschrift. Lassen Sie die endgültigen Texte von einer Anwältin, einem Anwalt oder einem verlässlichen Generator prüfen.",
-  "Gross invoice volume": "Brutto-Rechnungsvolumen",
-  "Total project budget": "Gesamtes Projektbudget",
-  "Approved invoice value": "Freigegebener Rechnungswert",
-  "Project / supplier": "Projekt / Lieferant",
-  "Payment / payout status": "Zahlungs- / Auszahlungsstatus",
   "Create invoice": "Rechnung erstellen",
   "Approved hours": "Freigegebene Stunden",
   "Approved order cap": "Freigegebene Auftragsobergrenze",
   // Accessibility labels (T57)
-  "Bar chart": "Balkendiagramm",
   Table: "Tabelle",
-  "Service categories, one per line": "Leistungskategorien, eine pro Zeile",
   // Suppliers not yet verified (T55)
   "Not yet verified": "Noch nicht verifiziert",
   Verified: "Verifiziert",
@@ -1043,8 +976,6 @@ Object.assign(I18N_DE, {
   Dates: "Termine",
   Decline: "Ablehnen",
   // Admin dashboard (T97)
-  "Live suppliers": "Aktive Lieferanten",
-  "Invoice volume": "Rechnungsvolumen",
   // Project workspace (T98)
   Phases: "Phasen",
   Progress: "Fortschritt",
@@ -1156,7 +1087,6 @@ Object.assign(I18N_DE, {
   "This invoice was just submitted. Check your invoices before sending it again.":
     "Diese Rechnung wurde gerade eingereicht. Prüfen Sie Ihre Rechnungen, bevor Sie sie erneut senden.",
   // Escalations (T25)
-  "Escalation resolved": "Eskalation gelöst",
   Support: "Unterstützung",
   Quality: "Qualität",
   Payment: "Zahlung",
@@ -1165,9 +1095,6 @@ Object.assign(I18N_DE, {
   "Choose a supplier who works on this project.":
     "Wählen Sie einen Lieferanten, der an diesem Projekt arbeitet.",
   // Backup import (T24)
-  "Import backup?": "Sicherung importieren?",
-  "Import backup": "Sicherung importieren",
-  "Backup imported": "Sicherung importiert",
   "This is not a CraftCrew backup: users, projects, invoices and suppliers are missing.":
     "Dies ist keine CraftCrew-Sicherung: Benutzer, Projekte, Rechnungen und Lieferanten fehlen.",
   "The backup has no active admin account, so nobody could sign in.":

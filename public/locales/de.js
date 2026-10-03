@@ -2,6 +2,7 @@
 var LOCALES = window.LOCALES || (window.LOCALES = {});
 LOCALES.de = {
   common: {
+    chart: {"noActivity":"In diesem Zeitraum noch keine Aktivität.","noData":"Noch keine Daten.","bars":"Balkendiagramm"},
     save: "Speichern",
     cancel: "Abbrechen",
     close: "Schließen",
@@ -2819,6 +2820,231 @@ LOCALES.de = {
     "hours": "{n} h · {name}"
   },
   adm: {
+    "invStatus": {
+      "Submitted": "Eingereicht",
+      "Approved": "Freigegeben",
+      "Changes Requested": "Änderungen angefordert",
+      "Rejected": "Abgelehnt",
+      "Paid": "Bezahlt",
+      "Refunded": "Erstattet"
+    },
+    "payStatus": {
+      "Scheduled": "Geplant",
+      "Paid": "Bezahlt",
+      "Refunded": "Erstattet"
+    },
+    "disputeStatus": {
+      "Open": "Öffnen",
+      "In progress": "In Bearbeitung",
+      "Resolved": "Gelöst",
+      "Closed": "Geschlossen"
+    },
+    "mailStatus": {
+      "Queued": "In Warteschlange",
+      "Sent": "Gesendet",
+      "Failed": "Fehlgeschlagen"
+    },
+    "billing": {
+      "title": "Zahlungen, Gebühren & Auszahlungen",
+      "lead": "Rechnungsentscheidungen und Auszahlungen verfolgen. Echte Überweisungen und Erstattungen erfordern einen angebundenen Zahlungsanbieter.",
+      "volume": "Rechnungsvolumen",
+      "awaiting": "Wartet auf Zahlung",
+      "paidOut": "Bezahlt / Auszahlung erfasst",
+      "fee": "Geschätzte Plattformgebühr · {n} %",
+      "invoice": "Rechnung",
+      "projectSupplier": "Projekt / Lieferant",
+      "gross": "Brutto",
+      "feePayout": "Gebühr · Auszahlung",
+      "status": "Zahlungs- / Auszahlungsstatus",
+      "actions": "Aktionen",
+      "supplier": "Lieferant",
+      "rate": "{n} % eingestellter Satz",
+      "noPayout": "Keine Auszahlung erfasst",
+      "recordPaid": "Als bezahlt erfassen",
+      "recordRefund": "Erstattung erfassen",
+      "none": "Keine Rechnungen erfasst.",
+      "refunds": "Erstattungen & Streitfälle",
+      "refundsLead": "Erstattungen ändern das CraftCrew-Buch und informieren den Lieferanten. Die Erstattung beim Zahlungsanbieter separat durchführen.",
+      "openDisputes": "Streitbeilegung öffnen",
+      "refunded": {
+        "one": "{n} Erstattung erfasst · {amount}",
+        "other": "{n} Erstattungen erfasst · {amount}"
+      },
+      "paid": "Zahlung als bezahlt markiert",
+      "refundPrompt": "Grund für die Erstattung",
+      "refundDone": "Erstattung im Rechnungsbuch erfasst"
+    },
+    "disputes": {
+      "title": "Eskalationen & Support",
+      "lead": "Streitfälle zu Lieferung, Qualität, Terminen und Rechnungen klären.",
+      "resolve": "Lösen",
+      "none": "Keine Eskalationen.",
+      "prompt": "Lösung / Ergebnis",
+      "resolved": "Eskalation gelöst"
+    },
+    "reports": {
+      "title": "Berichte & Analysen",
+      "lead": "Projekt-, Lieferanten-, Kunden- und Finanzkennzahlen des Marktplatzes.",
+      "users": "Benutzer",
+      "liveSuppliers": "Aktive Lieferanten",
+      "projects": "Projekte",
+      "gross": "Brutto-Rechnungsvolumen",
+      "volumeChart": "Marktplatzvolumen brutto · 12 Monate",
+      "invoiced": "Abgerechnet",
+      "paid": "Bezahlt",
+      "accountsChart": "Neue Konten · 12 Monate",
+      "customers": "Kunden",
+      "suppliers": "Lieferanten",
+      "funnel": "Prüftrichter",
+      "funnelStep": {
+        "received": "Eingegangen",
+        "verifying": "In Prüfung",
+        "approved": "Freigegeben"
+      },
+      "funnelNote": "{pct} % der Bewerbungen freigegeben · {rejected} abgelehnt · {hold} zurückgestellt",
+      "onTime": "Liefertermintreue",
+      "onTimeSub": "{done} erledigt · {late} überfällige Arbeitspakete",
+      "budget": "Gesamtes Projektbudget",
+      "projectState": {
+        "InProgress": "{n} in Bearbeitung",
+        "OnHold": "{n} pausiert",
+        "Completed": "{n} abgeschlossen"
+      },
+      "approvedValue": "Freigegebener Rechnungswert",
+      "paidSub": "{amount} bezahlt",
+      "approvalRate": "Rechnungsfreigabequote",
+      "returnedSub": "{n} abgelehnt oder zurückgegeben",
+      "financial": "Finanzbericht · letzte 6 Monate",
+      "export": "CSV exportieren",
+      "col": {
+        "month": "Monat",
+        "invoices": "Rechnungen",
+        "invoiced": "Abgerechnet",
+        "approved": "Freigegeben",
+        "paid": "Bezahlt",
+        "supplier": "Lieferant",
+        "badge": "Badge",
+        "rating": "Bewertung",
+        "items": "Arbeitspakete",
+        "completed": "Abgeschlossen",
+        "overdue": "Überfällig",
+        "customer": "Kunde",
+        "email": "E-Mail",
+        "projects": "Projekte",
+        "active": "Aktiv",
+        "budget": "Budget"
+      },
+      "noSuppliers": "Noch keine Lieferantenaktivität.",
+      "customersTitle": "Kundenanalysen",
+      "noCustomers": "Noch keine Kundenprojekte.",
+      "backup": "Sicherung / Wiederherstellung",
+      "backupLead": "Exportieren Sie die gesamte JSON-Datenbank oder importieren Sie eine Sicherung, die alle Daten ersetzt.",
+      "exportJson": "Vollständiges JSON exportieren",
+      "importJson": "JSON importieren",
+      "importTitle": "Sicherung importieren?",
+      "importText": "Alle aktuellen Daten werden durch die Sicherung ersetzt: {users} Benutzer, {projects} Projekte, {invoices} Rechnungen, {suppliers} Lieferanten. Eine Kopie der aktuellen Daten wird vorher gespeichert.",
+      "importConfirm": "Sicherung importieren",
+      "imported": "Sicherung importiert",
+      "scorecards": "Lieferanten-Scorecards & Risiko",
+      "suppliersTitle": "Lieferantenleistung"
+    },
+    "audit": {
+      "eyebrow": "COMPLIANCE",
+      "title": "Audit-Protokoll",
+      "lead": "Jede Änderung in CraftCrew wird mit Person, Zeitpunkt und Projekt protokolliert.",
+      "search": "Suche",
+      "searchHint": "Aktion, Person oder Datensatz",
+      "role": "Rolle",
+      "allRoles": "Alle Rollen",
+      "roles": {
+        "customer": "Kunde",
+        "supplier": "Lieferant",
+        "admin": "Admin",
+        "public": "Öffentlich"
+      },
+      "project": "Projekt",
+      "allProjects": "Alle Projekte",
+      "apply": "Anwenden",
+      "reset": "Zurücksetzen",
+      "count": {
+        "one": "{n} protokollierte Aktion",
+        "other": "{n} protokollierte Aktionen"
+      },
+      "latest": "Die neuesten {n}",
+      "when": "Wann",
+      "who": "Wer",
+      "action": "Aktion",
+      "record": "Datensatz",
+      "none": "Noch keine Aktionen erfasst. Neue Änderungen erscheinen hier automatisch."
+    },
+    "platform": {
+      "eyebrow": "BETRIEBSKONFIGURATION",
+      "title": "Plattformverwaltung",
+      "lead": "Marktplatzregeln und Hilfetexte pflegen. Zahlungs-, Karten- und E-Mail-Anbindungen sind Konfigurationshinweise; Zugangsdaten werden hier nicht gespeichert.",
+      "categories": "Leistungskategorien",
+      "categoriesHint": "Eine Kategorie pro Zeile",
+      "categoriesLabel": "Leistungskategorien, eine pro Zeile",
+      "badges": "Badge-Kriterien",
+      "badgesHint": "Schwellenwerte für die Vergabe von Bronze, Silber oder Gold",
+      "projectsDone": "Abgeschlossene Projekte",
+      "minRating": "Mindestbewertung",
+      "system": "Systemeinstellungen",
+      "supportEmail": "Support-E-Mail",
+      "feePercent": "Plattformgebühr (%)",
+      "paymentDays": "Standard-Zahlungsziel (Tage)",
+      "uploadLimit": "Upload-Limit (MB)",
+      "faq": "FAQ & Hilfetexte",
+      "faqHint": "Gemeinsamer öffentlicher Hilfetext",
+      "faqPlaceholder": "Hilfeartikel oder aktualisierte FAQ-Inhalte hinzufügen",
+      "emailSubjects": "E-Mail-Betreffzeilen",
+      "emailSubjectsHint": "Bearbeitbare Betreffzeilen für ausgehende E-Mails",
+      "templates": {
+        "applicationReceived": "Bewerbung eingegangen",
+        "applicationApproved": "Bewerbung freigegeben",
+        "invoiceSubmitted": "Rechnung eingereicht"
+      },
+      "integrations": "Integrationen",
+      "integrationsHint": "Aktueller Stand der Anbindungen",
+      "integration": {
+        "payments": "Zahlungen",
+        "maps": "Karten",
+        "email": "E-Mail"
+      },
+      "configOnly": "Nur Konfiguration",
+      "integrationsNote": "Zahlungsabwicklung, E-Mail-Versand und Kartendienste müssen vor der Aktivierung beim Anbieter eingerichtet werden.",
+      "save": "Plattformeinstellungen speichern",
+      "saved": "Gespeichert",
+      "savedToast": "Plattform-Einstellungen gespeichert",
+      "outbox": "E-Mail-Ausgang",
+      "messages": {
+        "one": "{n} Nachricht",
+        "other": "{n} Nachrichten"
+      },
+      "outboxCount": "{messages} · {sent} gesendet",
+      "testEmail": "Test-E-Mail senden",
+      "testSent": "Test-E-Mail an {to} gesendet",
+      "queued": "In Warteschlange",
+      "to": "An",
+      "subject": "Betreff",
+      "status": "Status",
+      "noEmails": "Noch keine E-Mails.",
+      "legal": "Rechtstexte",
+      "legalWhere": "Öffentlich unter /#/imprint, /#/privacy und /#/terms",
+      "legalLead": "Vor dem Livegang in Deutschland erforderlich (§ 5 DDG Impressum, Art. 13 DSGVO Datenschutzhinweis). Reiner Text: Leerzeile = neuer Absatz, eine Zeile mit „# “ am Anfang = Überschrift. Lassen Sie die endgültigen Texte von einer Anwältin, einem Anwalt oder einem verlässlichen Generator prüfen.",
+      "legalPage": {
+        "imprint": "Impressum",
+        "privacy": "Datenschutzerklärung",
+        "terms": "Nutzungsbedingungen"
+      },
+      "legalHint": {
+        "imprint": "Firmenname, Rechtsform, Anschrift, Geschäftsführung, Kontakt (E-Mail/Telefon), Registergericht und -nummer, USt-IdNr.",
+        "privacy": "Verantwortlicher, erhobene Daten, Zwecke, Rechtsgrundlagen, Auftragsverarbeiter (Hosting, E-Mail), Speicherdauer, Betroffenenrechte, Aufsichtsbehörde",
+        "terms": "Geltungsbereich, Kontoregeln, Lieferantenprüfung, Rechnungs- und Zahlungsverfolgung, Haftung, anwendbares Recht"
+      },
+      "saveLegal": "Rechtstexte speichern",
+      "preview": "Vorschau",
+      "legalSaved": "Rechtstexte veröffentlicht"
+    },
     "stage": {
       "New": "Neu",
       "Verified": "Verifiziert",

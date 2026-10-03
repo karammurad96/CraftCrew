@@ -164,7 +164,7 @@ describe("admin: applications, profile changes, users (T134a)", () => {
     assert.ok(read("index.html").includes('<script src="areas/sites.js"></script><script src="areas/admin.js"></script>'));
     assert.deepEqual(
       area("en").calls.filter((c) => c[0] === "routes").map((c) => c[1]),
-      ["/admin/applications", "/admin/profile-changes", "/admin/users"],
+      ["/admin/applications", "/admin/profile-changes", "/admin/users", "/admin/billing", "/admin/disputes", "/admin/reports", "/admin/audit", "/admin/platform"],
     );
   });
 });
