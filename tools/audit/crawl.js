@@ -34,23 +34,7 @@ const START = {
 };
 const MAX = Number(process.env.MAX || 70);
 
-// A made-up language: English with every text wrapped in ⟦…⟧ (placeholders kept), registered like a real one.
-async function pseudoLanguage(ctx, code) {
-  const path = require("path"),
-    root = path.join(__dirname, "..", "..", "public"),
-    vm = require("vm"),
-    box = { window: {} };
-  box.window = box;
-  vm.createContext(box);
-  vm.runInContext(fs.readFileSync(path.join(root, "locales/en.js"), "utf8"), box);
-  const mark = (v) => (typeof v === "string" ? `⟦${v}⟧` : Array.isArray(v) ? v.map(mark) : Object.fromEntries(Object.entries(v).map(([k, x]) => [k, mark(x)])));
-  const locale = `var LOCALES = window.LOCALES || (window.LOCALES = {});\nLOCALES.${code} = ${JSON.stringify(mark(box.LOCALES.en))};\n`,
-    registry = fs
-      .readFileSync(path.join(root, "core/languages.js"), "utf8")
-      .replace("var LANGUAGES = [", `var LANGUAGES = [\n  { code: "${code}", name: "Pseudo", locale: "en-GB", dir: "${process.env.PSEUDO_DIR || "ltr"}" },`);
-  await ctx.route(/\/core\/languages\.js(\?.*)?$/, (r) => r.fulfill({ contentType: "text/javascript", body: registry }));
-  await ctx.route(new RegExp(`/locales/${code}\\.js(\\?.*)?$`), (r) => r.fulfill({ contentType: "text/javascript", body: locale }));
-}
+const { pseudoLanguage } = require("./pseudo");
 
 async function login(email, password) {
   const r = await fetch(BASE + "/api/auth/login", {
@@ -85,7 +69,7 @@ async function login(email, password) {
       },
       [session, LANG],
     );
-    if (process.env.PSEUDO) await pseudoLanguage(ctx, LANG);
+    if (process.env.PSEUDO) await pseudoLanguage(ctx, LANG, { dir: process.env.PSEUDO_DIR || "ltr" });
     const page = await ctx.newPage();
     let current = null;
     const log = (k, v) => {

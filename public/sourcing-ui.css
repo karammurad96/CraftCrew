@@ -130,9 +130,9 @@
 .sr-note {
   padding: 10px 12px;
   margin: 0 0 8px;
-  border-left: 3px solid #dbe6ff;
+  border-inline-start: 3px solid #dbe6ff;
   background: #fafcff;
-  border-radius: 0 8px 8px 0;
+  border-start-start-radius: 0; border-start-end-radius: 8px; border-end-end-radius: 8px; border-end-start-radius: 0;
 }
 .sr-note p {
   margin: 4px 0;
@@ -154,7 +154,7 @@
   text-decoration: none !important;
 }
 .sr-chips a b {
-  margin-left: 4px;
+  margin-inline-start: 4px;
   color: var(--ui-muted, #5b6576);
 }
 .sr-chips a.on {
@@ -224,7 +224,7 @@
   border-radius: 8px;
   font-size: 12.5px;
   background: #f4f7fb;
-  border-left: 3px solid #94a3b8;
+  border-inline-start: 3px solid #94a3b8;
 }
 .sr-risks li.medium {
   background: #fffbeb;

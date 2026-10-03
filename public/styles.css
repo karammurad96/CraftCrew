@@ -75,8 +75,8 @@ a {
 .main-nav {
   display: flex;
   gap: 30px;
-  margin-left: auto;
-  margin-right: 30px;
+  margin-inline-start: auto;
+  margin-inline-end: 30px;
 }
 .main-nav a {
   color: #526174;
@@ -214,7 +214,7 @@ h2 span {
 .robot {
   position: absolute;
   font-size: 170px;
-  right: 15%;
+  inset-inline-end: 15%;
   top: 23%;
   color: #18283d;
   opacity: 0.85;
@@ -228,16 +228,16 @@ h2 span {
   border-radius: 45px 45px 0 0;
 }
 .p1 {
-  left: 16%;
+  inset-inline-start: 16%;
 }
 .p2 {
-  left: 34%;
+  inset-inline-start: 34%;
   height: 230px;
   background: #334963;
 }
 .progress-card {
   position: absolute;
-  right: -25px;
+  inset-inline-end: -25px;
   top: 45px;
   background: #fff;
   padding: 17px;
@@ -280,7 +280,7 @@ h2 span {
 }
 .metric-card {
   position: absolute;
-  left: -25px;
+  inset-inline-start: -25px;
   bottom: 30px;
   background: #fff;
   padding: 17px;
@@ -317,8 +317,8 @@ h2 span {
   text-align: center;
 }
 .center h2 {
-  margin-left: auto;
-  margin-right: auto;
+  margin-inline-start: auto;
+  margin-inline-end: auto;
 }
 .feature-grid {
   display: grid;
@@ -407,7 +407,7 @@ h2 span {
 }
 .price-card label {
   position: absolute;
-  right: 18px;
+  inset-inline-end: 18px;
   top: 15px;
   font-size: 12px;
   color: #2563eb;
@@ -568,7 +568,7 @@ footer {
   min-height: calc(100vh - 76px);
 }
 .sidebar {
-  border-right: 1px solid #e8ecf2;
+  border-inline-end: 1px solid #e8ecf2;
   padding: 25px 15px;
   display: flex;
   flex-direction: column;
@@ -601,7 +601,7 @@ footer {
   color: #2563eb;
 }
 .sidebar nav em {
-  float: right;
+  float: inline-end;
   background: #2563eb;
   color: #fff;
   border-radius: 20px;
@@ -892,7 +892,7 @@ table {
   font-size: 13px;
 }
 th {
-  text-align: left;
+  text-align: start;
   color: var(--text-muted);
   font-size: 11px;
   letter-spacing: 0.7px;
@@ -1010,7 +1010,7 @@ td small {
   font-size: 13px;
 }
 .login-card label {
-  text-align: left;
+  text-align: start;
   display: block;
   font-size: 13px;
   font-weight: 800;
@@ -1160,7 +1160,7 @@ td small {
 }
 .file-list {
   margin: 8px 0;
-  padding-left: 16px;
+  padding-inline-start: 16px;
   font-size: 13px;
   color: #526174;
 }
@@ -1381,7 +1381,7 @@ td small {
 .toast {
   display: none;
   position: fixed;
-  right: 20px;
+  inset-inline-end: 20px;
   bottom: 20px;
   z-index: 300;
   background: #0d1b32;

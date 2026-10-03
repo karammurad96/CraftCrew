@@ -129,7 +129,7 @@ textarea:focus {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin: 0 4px 22px 8px;
+  margin-block: 0 22px; margin-inline: 8px 4px;
 }
 .ui-side-top .side-brand {
   margin: 0 !important;
@@ -148,7 +148,7 @@ textarea:focus {
   font-size: 13px !important;
   font-weight: 600;
   text-decoration: none !important;
-  text-align: left !important;
+  text-align: start !important;
 }
 .sidebar nav a .ui-icon {
   flex: 0 0 18px;
@@ -172,7 +172,7 @@ textarea:focus {
   color: var(--ui-blue);
 }
 .sidebar nav a em {
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 .ui-icon {
   fill: none;
@@ -230,7 +230,7 @@ textarea:focus {
 .ui-badge {
   position: absolute;
   top: -6px;
-  right: -6px;
+  inset-inline-end: -6px;
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
@@ -305,7 +305,7 @@ textarea:focus {
   border: 0;
   border-bottom: 1px solid #f0f3f7;
   background: #fff;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
   font: inherit;
 }
@@ -465,8 +465,8 @@ a.project-card {
 /* ---------- Narrow screens ---------- */
 @media (min-width: 651px) and (max-width: 1000px) {
   .ui-side-top {
-    margin-left: 4px;
-    margin-right: 0;
+    margin-inline-start: 4px;
+    margin-inline-end: 0;
   }
   .sidebar nav a {
     font-size: 12.5px !important;
@@ -476,13 +476,13 @@ a.project-card {
   .ui-side-top {
     position: absolute;
     top: 8px;
-    right: 10px;
+    inset-inline-end: 10px;
     margin: 0;
     z-index: 2;
   }
   .app-shell .sidebar {
     position: sticky;
-    padding-right: 56px !important;
+    padding-inline-end: 56px !important;
   }
   .sidebar nav a {
     padding: 8px 10px !important;
@@ -503,8 +503,8 @@ a.project-card {
 }
 .dashboard-content > * {
   max-width: 1400px;
-  margin-left: auto !important;
-  margin-right: auto !important;
+  margin-inline-start: auto !important;
+  margin-inline-end: auto !important;
 }
 .ff-documents-content > *,
 .app-shell:has(.cc-chat-workspace) .dashboard-content > * {
@@ -566,7 +566,7 @@ details + .panel {
   min-width: 22px;
   height: 22px;
   padding: 0 7px;
-  margin-left: 8px;
+  margin-inline-start: 8px;
   border-radius: 11px;
   background: #eef2f7;
   color: #4a5a70;
@@ -575,7 +575,7 @@ details + .panel {
   vertical-align: middle;
 }
 .panel-title h3 .ui-count {
-  margin-left: 8px;
+  margin-inline-start: 8px;
 }
 .project-row {
   padding: 10px 8px !important;
@@ -668,7 +668,7 @@ details + .panel {
 /* ---------- Rearrangeable dashboard panels ---------- */
 .ui-grip {
   display: inline-block;
-  margin-right: 8px;
+  margin-inline-end: 8px;
   color: #b3bfcf;
   font-size: 12px;
   letter-spacing: -2px;
@@ -689,7 +689,7 @@ details + .panel {
 .ui-load-bar {
   position: fixed;
   top: 0;
-  left: 0;
+  inset-inline-start: 0;
   height: 3px;
   width: 0;
   z-index: 500;
@@ -736,7 +736,7 @@ details + .panel {
 }
 .ui-search-btn kbd,
 .ui-search-input kbd {
-  margin-left: auto;
+  margin-inline-start: auto;
   padding: 2px 6px;
   border: 1px solid var(--ui-line);
   border-radius: 5px;
@@ -798,7 +798,7 @@ details + .panel {
   border: 0;
   border-radius: 9px;
   background: none;
-  text-align: left;
+  text-align: start;
   font: inherit;
   cursor: pointer;
 }
@@ -933,7 +933,7 @@ details + .panel {
 }
 .dashboard-content label > select,
 .dashboard-content .wf-filter-row select {
-  padding-right: 30px;
+  padding-inline-end: 30px;
 }
 .dashboard-content label > textarea {
   padding: 10px 12px;
@@ -975,7 +975,7 @@ details + .panel {
   content: "";
   width: 6px;
   height: 6px;
-  border-right: 1.6px solid currentColor;
+  border-inline-end: 1.6px solid currentColor;
   border-bottom: 1.6px solid currentColor;
   transform: rotate(-45deg);
   transition: transform 0.15s;
@@ -993,7 +993,7 @@ details + .panel {
   gap: 12px;
   padding: 8px 10px;
   margin-top: 4px;
-  border-left: 2px solid #e2e8f0;
+  border-inline-start: 2px solid #e2e8f0;
   font-size: 12px;
   color: var(--ui-text);
 }
@@ -1040,7 +1040,7 @@ details + .panel {
   box-shadow: none !important;
 }
 .cc-chat-sidebar {
-  border-right: 1px solid var(--ui-line) !important;
+  border-inline-end: 1px solid var(--ui-line) !important;
   background: #fbfcfe;
 }
 .cc-chat-sidebar-head b {
@@ -1052,7 +1052,7 @@ details + .panel {
   place-items: center;
   min-width: 20px;
   height: 20px;
-  margin-left: 6px;
+  margin-inline-start: 6px;
   padding: 0 6px;
   border-radius: 10px;
   background: #eef2f7;
@@ -1213,7 +1213,7 @@ footer .legal-footer-links a:hover {
   color: var(--ui-ink);
 }
 .legal-reset {
-  margin-left: 6px;
+  margin-inline-start: 6px;
 }
 .legal-admin textarea {
   width: 100%;
@@ -1231,15 +1231,15 @@ footer .legal-footer-links a:hover {
 .auth-forgot {
   display: block;
   margin: 6px 0 0;
-  text-align: right;
+  text-align: end;
   font-size: 12.5px;
   font-weight: 600;
 }
 .pa-outbox summary .mail-test {
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 .pa-outbox summary::after {
-  margin-left: 10px;
+  margin-inline-start: 10px;
 }
 
 /* ================= Constant layout: long lists, tables and charts scroll inside their panel ================= */
@@ -1276,8 +1276,8 @@ footer .legal-footer-links a:hover {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  margin-right: -8px;
-  padding-right: 8px;
+  margin-inline-end: -8px;
+  padding-inline-end: 8px;
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;
 }
@@ -1296,13 +1296,13 @@ footer .legal-footer-links a:hover {
 .in-hbars {
   max-height: 380px;
   overflow-y: auto;
-  padding-right: 6px;
+  padding-inline-end: 6px;
   scrollbar-width: thin;
 }
 .in-donut ul {
   max-height: 220px;
   overflow-y: auto;
-  padding-right: 4px;
+  padding-inline-end: 4px;
   scrollbar-width: thin;
 }
 /* Other long lists */

@@ -5,8 +5,10 @@
 //   W / H   viewport (default 1440 x 960; use W=390 H=844 for the phone boards)
 //   FULL=1  whole page instead of the first screen
 //   --lang=<code> (or CC_LANG=<code>) another language than English, e.g. --lang=de; LANG=de still works
+//   --rtl (or CC_RTL=1) the English texts right to left (T138)
 // Example: node tools/design/shot.js http://localhost:3100 shots customer:/customer/dashboard
 const { chromium } = require(process.env.PW || "playwright");
+const { pseudoLanguage, toolLanguage } = require("../audit/pseudo");
 const path = require("path");
 const fs = require("fs");
 
@@ -23,13 +25,14 @@ const LOGINS = {
   fs.mkdirSync(out, { recursive: true });
   const width = Number(process.env.W || 1440),
     height = Number(process.env.H || 960),
-    lang = (process.argv.find((a) => a.startsWith("--lang="))?.slice(7) || process.env.CC_LANG || (process.env.LANG === "de" ? "de" : "en"));
+    { lang, rtl } = toolLanguage();
   const browser = await chromium.launch();
   for (const spec of pages) {
     const [role, route] = [spec.slice(0, spec.indexOf(":")), spec.slice(spec.indexOf(":") + 1)];
     const ctx = await browser.newContext({ viewport: { width, height }, serviceWorkers: "block" });
     const page = await ctx.newPage();
     page.on("pageerror", (e) => console.log(`  script error on ${spec}: ${e.message}`));
+    if (rtl) await pseudoLanguage(ctx, lang, { dir: "rtl", mark: false });
     await page.addInitScript((l) => localStorage.setItem("cc_lang", l), lang);
     if (role !== "public") {
       const [email, password] = LOGINS[role];

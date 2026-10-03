@@ -27,7 +27,7 @@
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 .pv-invite {
   margin: 4px 0 8px;

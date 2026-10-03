@@ -28,7 +28,7 @@
 }
 .cm-visit-side {
   flex: 0 1 auto;
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 .cm-visit b,
 .cm-doc b,
@@ -64,7 +64,7 @@
 }
 .cm-site-ready ul {
   margin: 8px 0 0;
-  padding-left: 18px;
+  padding-inline-start: 18px;
   font-size: 12.5px;
   color: #b45309;
 }
@@ -119,10 +119,10 @@
   flex-basis: 100%;
   color: var(--ui-muted);
   font-size: 12px;
-  margin-left: 0;
+  margin-inline-start: 0;
 }
 .cm-summary-actions {
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 .cm-matrix {
   display: grid;
@@ -141,7 +141,7 @@
 }
 .cm-matrix > div small {
   color: var(--ui-muted);
-  text-align: right;
+  text-align: end;
 }
 .cm-matrix h4 {
   margin: 10px 0 2px;
@@ -181,7 +181,7 @@
   margin-top: 2px;
 }
 .cm-checks .status {
-  margin-left: 4px;
+  margin-inline-start: 4px;
 }
 .cm-briefing > summary {
   display: flex;
@@ -225,7 +225,7 @@
   display: block;
   margin-top: 6px;
   padding: 6px 10px;
-  border-left: 3px solid #d9a400;
+  border-inline-start: 3px solid #d9a400;
   background: #fff7df;
   color: var(--warn-text);
   font-size: var(--fs-sm);

@@ -4,7 +4,7 @@
   min-width: 18px;
   height: 18px;
   place-items: center;
-  margin-left: 4px;
+  margin-inline-start: 4px;
   padding: 0 5px;
   border-radius: 999px;
   background: #b42318;
@@ -21,14 +21,14 @@
 .pu-item {
   padding: 10px 12px;
   border: 1px solid #e6eaf0;
-  border-left: 4px solid #b42318;
+  border-inline-start: 4px solid #b42318;
   border-radius: 8px;
 }
 .pu-item.pu-fixed {
-  border-left-color: #d9a400;
+  border-inline-start-color: #d9a400;
 }
 .pu-item.pu-verified {
-  border-left-color: #1f7a3d;
+  border-inline-start-color: #1f7a3d;
 }
 .pu-head {
   display: flex;

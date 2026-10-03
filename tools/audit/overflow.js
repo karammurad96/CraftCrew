@@ -1,7 +1,9 @@
 // Opens every sidebar page per role and reports: the page scrolling sideways, chips or buttons whose text is
 // cut off, controls pushed off screen, and script errors.
-// Usage: node tools/audit/overflow.js <base-url>     (W=390 for the phone; --lang=<code> or CC_LANG=<code> for another language, LANG=de still works)
+// Usage: node tools/audit/overflow.js <base-url>     (W=390 for the phone; --lang=<code> or CC_LANG=<code> for another language, LANG=de still works;
+//   --rtl or CC_RTL=1: the English texts right to left, T138)
 const { chromium } = require(process.env.PW || "playwright");
+const { pseudoLanguage, toolLanguage } = require("./pseudo");
 
 const BASE = process.argv[2] || "http://localhost:3100";
 const LOGINS = {
@@ -51,10 +53,9 @@ function check() {
     const ctx = await browser.newContext({ viewport: { width, height: 900 }, serviceWorkers: "block" });
     const page = await ctx.newPage();
     page.on("pageerror", (e) => problems.push(`${role}: script error: ${e.message}`));
-    await page.addInitScript(
-      (l) => localStorage.setItem("cc_lang", l),
-      (process.argv.find((a) => a.startsWith("--lang="))?.slice(7) || process.env.CC_LANG || (process.env.LANG === "de" ? "de" : "en")),
-    );
+    const { lang, rtl } = toolLanguage();
+    if (rtl) await pseudoLanguage(ctx, lang, { dir: "rtl", mark: false });
+    await page.addInitScript((l) => localStorage.setItem("cc_lang", l), lang);
     let routes = PUBLIC;
     if (role !== "public") {
       const [email, password] = LOGINS[role];

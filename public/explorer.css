@@ -55,7 +55,7 @@ body.xp-max .app-shell:has(.xp-page) .dashboard-content {
   align-items: center;
   gap: 12px;
   height: 38px;
-  padding: 0 0 0 12px;
+  padding-block: 0 0; padding-inline: 12px 0;
   background: var(--xp-soft);
   border-bottom: 1px solid var(--xp-line);
 }
@@ -257,7 +257,7 @@ body.xp-max .app-shell:has(.xp-page) .dashboard-content {
 }
 .xp-views {
   display: flex;
-  margin-left: 6px;
+  margin-inline-start: 6px;
   border: 1px solid var(--xp-line);
   border-radius: 6px;
   overflow: hidden;
@@ -283,7 +283,7 @@ body.xp-max .app-shell:has(.xp-page) .dashboard-content {
 .xp-tree {
   overflow: auto;
   padding: 6px 0;
-  border-right: 1px solid var(--xp-line);
+  border-inline-end: 1px solid var(--xp-line);
   user-select: none;
 }
 .xp-tree-group {
@@ -299,7 +299,7 @@ body.xp-max .app-shell:has(.xp-page) .dashboard-content {
   align-items: center;
   gap: 6px;
   height: 28px;
-  padding: 0 10px 0 calc(6px + var(--d) * 16px);
+  padding-block: 0 0; padding-inline: calc(6px + var(--d) * 16px) 10px;
   margin: 0 4px;
   border-radius: 5px;
   cursor: pointer;
@@ -412,7 +412,7 @@ body.xp-max .app-shell:has(.xp-page) .dashboard-content {
   border: 0;
   background: none;
   padding: 0;
-  text-align: left;
+  text-align: start;
   font: inherit;
   font-size: 12px;
   color: var(--muted, #64748b);
@@ -555,7 +555,7 @@ body.xp-max .app-shell:has(.xp-page) .dashboard-content {
   text-overflow: ellipsis;
 }
 .xp-status-hint {
-  margin-left: auto;
+  margin-inline-start: auto;
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--muted, #94a3b8);
@@ -610,7 +610,7 @@ body.xp-max .app-shell:has(.xp-page) .dashboard-content {
   border: 0;
   border-radius: 5px;
   background: none;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
   font: inherit;
   color: inherit;

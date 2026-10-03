@@ -181,7 +181,7 @@ a.pa-row:hover {
 }
 .pa-table td,
 .pa-table th {
-  text-align: left;
+  text-align: start;
   vertical-align: top;
 }
 .pa-filters {
@@ -234,7 +234,7 @@ a.pa-row:hover {
 .pa-project-activity summary::after,
 .pa-outbox summary::after {
   content: "▾";
-  margin-left: auto;
+  margin-inline-start: auto;
   color: #2563eb;
 }
 .pa-project-activity[open] summary,
@@ -394,7 +394,7 @@ label output {
 }
 .pa-role {
   display: inline-block;
-  margin-left: 4px;
+  margin-inline-start: 4px;
   padding: 2px 7px;
   border-radius: 10px;
   background: #eaf2ff;

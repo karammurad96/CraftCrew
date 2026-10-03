@@ -230,7 +230,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
   - [x] T137b statuses as keys, API error codes shown through `errors.*` keys
   - [x] T137c emails, notifications and PDFs in the recipient's language
 - [x] T136 Strict CSP without `'unsafe-inline'` scripts; remove the DOM translation layer and the old files · S
-- [ ] T138 Right-to-left layout for Arabic · M (after T136)
+- [x] T138 Right-to-left layout for Arabic · M (after T136)
 
 **Wave 7 — Design 2026 (P1; in this order; read "Rules for every design task" first)**
 - [x] T90 Design foundation: tokens, type, cards, buttons, forms · M · cheap model OK

@@ -32,7 +32,7 @@ function wsBar(p, item) {
     span = Math.max(1, end - start),
     left = Math.max(0, Math.min(100, ((a - start) / span) * 100)),
     width = Math.max(3, Math.min(100 - left, ((b - a) / span) * 100));
-  return `left:${left}%;width:${width}%`;
+  return `inset-inline-start:${left}%;width:${width}%`; // logical: the time axis runs right to left in RTL (T138)
 }
 const wsLastEntry = (x, status) => [...(x.assignmentHistory || [])].reverse().find((h) => !status || h.status === status);
 const wsSupplierName = (t) => [...(t.assignmentHistory || [])].reverse().find((h) => h.supplierId === t.assignedSupplierId)?.company || "";
@@ -108,7 +108,7 @@ function wsTaskCard(p, ph, t, sups) {
     buttons +=
       wsLink(scope.documents, "btn small outline", wk("task.documents")) + wsLink(scope.invoices, "btn small outline", wk("task.invoices")) + wsLink(scope.messages, "btn small outline", wk("task.messages"));
   }
-  return `<article class="wf-task ${late ? "wf-late" : ""}"><div class="wf-task-head"><div><div class="eyebrow">${wk("task.eyebrow")}</div><h4>${esc(t.name)}</h4><p>${t.description ? wsDom(t.description) : wk("task.noDescription")}</p></div>${chip}</div><div class="wf-task-meta"><span>${esc(fmt.date(t.startDate))} → ${esc(fmt.date(t.dueDate))}</span><span>${s ? `${esc(s.company)} · ${statusHtml(t.acceptanceStatus || "Invited")}` : wk("task.noSupplier")}</span><span>${t.orderAmount ? wk("task.order", { amount: fmt.money(t.orderAmount), n: progress }) : wk("task.orderNotSet", { n: progress })}</span></div>${note}${
+  return `<article class="wf-task ${late ? "wf-late" : ""}"><div class="wf-task-head"><div><div class="eyebrow">${wk("task.eyebrow")}</div><h4>${esc(t.name)}</h4><p>${t.description ? wsDom(t.description) : wk("task.noDescription")}</p></div>${chip}</div><div class="wf-task-meta"><span>${esc(fmt.date(t.startDate))} <span class="dir-flip" aria-hidden="true">→</span> ${esc(fmt.date(t.dueDate))}</span><span>${s ? `${esc(s.company)} · ${statusHtml(t.acceptanceStatus || "Invited")}` : wk("task.noSupplier")}</span><span>${t.orderAmount ? wk("task.order", { amount: fmt.money(t.orderAmount), n: progress }) : wk("task.orderNotSet", { n: progress })}</span></div>${note}${
     deps.length ? `<small>${wk("task.depends", { names: deps.map((x) => x.name).join(", ") })}</small>` : ""
   }${late ? `<div class="notice order-warning">${wk("task.overdue")}</div>` : ""}${strip}<div class="wf-task-actions">${buttons}</div>${
     t.assignmentHistory?.length
@@ -296,7 +296,7 @@ async function wsPage(role, pid, query) {
     customer
       ? stat(wk("stats.budget"), esc(fmt.money(p.budget)), wk("stats.remaining", { remaining: fmt.money(Math.max(0, p.budget - spent)), invoiced: fmt.money(spent) }))
       : stat(wk("stats.orderValue"), esc(fmt.money(own.reduce((a, x) => a + (Number(x.t.orderAmount) || 0), 0))), wk("stats.invoicedByYou", { amount: fmt.money(ownInvoiced) }))
-  }${stat(wk("stats.schedule"), `${esc(fmt.date(p.startDate))} → ${esc(fmt.date(p.dueDate))}`, wk("stats.overdueOpen", { late: late.length, open }))}${stat(wk("stats.delivery"), wk("stats.complete", { n: done }), wk("stats.tasksComplete", { done: completed, total: allTasks.length }))}${stat(
+  }${stat(wk("stats.schedule"), `${esc(fmt.date(p.startDate))} <span class="dir-flip" aria-hidden="true">→</span> ${esc(fmt.date(p.dueDate))}`, wk("stats.overdueOpen", { late: late.length, open }))}${stat(wk("stats.delivery"), wk("stats.complete", { n: done }), wk("stats.tasksComplete", { done: completed, total: allTasks.length }))}${stat(
     wk("stats.desk"),
     wk("stats.deskDocs", { docs: documents.length, approvals: pendingDocs }),
     customer ? wk("stats.deskInvoices", { invoices: projectInvoices.length, suppliers: sups.length }) : wk("stats.invoicesFromYou", { n: projectInvoices.length }),
@@ -318,7 +318,7 @@ async function wsPage(role, pid, query) {
   const gantt = `<section class="panel project-timeline"><div class="panel-title"><div><h3>${wk("gantt.title")}</h3><small>${wk("gantt.hint")}</small></div><span>${wk("gantt.complete", { n: done })}</span></div><div class="wf-gantt-head"><span>${wk("gantt.item")}</span><span>${wk("gantt.schedule")}</span><span>${wk("gantt.owner")}</span></div>${p.phases
     .map(
       (ph, i) =>
-        `<div class="wf-gantt-phase"><b>${i + 1}. ${wsDom(ph.name)}</b><span>${esc(fmt.date(ph.startDate))} → ${esc(fmt.date(ph.dueDate))}</span><span>${statusHtml(ph.status)}${duePhaseIds.has(ph.id) ? ` · ${wk("gantt.risk")}` : ""}</span></div>${(ph.tasks || [])
+        `<div class="wf-gantt-phase"><b>${i + 1}. ${wsDom(ph.name)}</b><span>${esc(fmt.date(ph.startDate))} <span class="dir-flip" aria-hidden="true">→</span> ${esc(fmt.date(ph.dueDate))}</span><span>${statusHtml(ph.status)}${duePhaseIds.has(ph.id) ? ` · ${wk("gantt.risk")}` : ""}</span></div>${(ph.tasks || [])
           .map(
             (x) =>
               `<div class="wf-gantt-task"><span>${esc(x.name)}</span><div class="gantt-track"><i class="${x.status === "Completed" ? "done" : x.dueDate < wsUtcToday() ? "late" : ""}" style="${wsBar(p, x)}"></i></div><span>${wk("gantt.due", { date: fmt.date(x.dueDate), n: Number(x.progress) || 0 })}</span></div>`,

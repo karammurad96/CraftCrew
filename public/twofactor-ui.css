@@ -3,7 +3,7 @@
   display: grid;
   gap: 10px;
   margin: 0 0 12px;
-  padding-left: 20px;
+  padding-inline-start: 20px;
 }
 .tf-secret {
   display: block;

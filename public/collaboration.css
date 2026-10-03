@@ -99,7 +99,7 @@
 }
 .cc-folder-tree {
   padding: 18px 12px;
-  border-right: 1px solid #e8edf3;
+  border-inline-end: 1px solid #e8edf3;
   background: #f8fafd;
 }
 .cc-folder-tree > b {
@@ -127,11 +127,11 @@
   color: #1754d1;
 }
 .cc-folder span {
-  float: right;
+  float: inline-end;
   color: #8592a5;
 }
 .cc-subfolder {
-  padding-left: 25px;
+  padding-inline-start: 25px;
   font-size: 13px;
 }
 .cc-file-browser {
@@ -348,7 +348,7 @@
   flex-direction: column;
   min-height: 0;
   background: #f8fafd;
-  border-right: 1px solid #e8edf3;
+  border-inline-end: 1px solid #e8edf3;
 }
 .cc-chat-sidebar-head {
   display: flex;
@@ -377,8 +377,8 @@
 }
 .cc-chat-thread.active {
   background: #eaf1ff;
-  border-left: 3px solid #2563eb;
-  padding-left: 11px;
+  border-inline-start: 3px solid #2563eb;
+  padding-inline-start: 11px;
 }
 .cc-chat-thread b,
 .cc-chat-thread small {
@@ -433,14 +433,14 @@
   max-width: min(76%, 620px);
   padding: 10px 13px;
   border: 1px solid #e6ebf1;
-  border-radius: 4px 12px 12px 12px;
+  border-start-start-radius: 4px; border-start-end-radius: 12px; border-end-end-radius: 12px; border-end-start-radius: 12px;
   background: #fff;
 }
 .cc-chat-bubble.mine {
   align-self: flex-end;
   background: #edf4ff;
   border-color: #d8e6ff;
-  border-radius: 12px 4px 12px 12px;
+  border-start-start-radius: 12px; border-start-end-radius: 4px; border-end-end-radius: 12px; border-end-start-radius: 12px;
 }
 .cc-chat-bubble p {
   margin: 5px 0;
@@ -580,7 +580,7 @@
   height: 16px;
 }
 .wf-bid-card > .btn {
-  margin: 10px 7px 0 0;
+  margin-block: 10px 0; margin-inline: 0 7px;
 }
 .review-invoice-filters {
   display: grid !important;
@@ -643,7 +643,7 @@
     display: flex;
     gap: 5px;
     overflow: auto;
-    border-right: 0;
+    border-inline-end: 0;
     border-bottom: 1px solid #e8edf3;
   }
   .cc-folder-tree > b {
@@ -868,7 +868,7 @@
 .cc-vetting-file small {
   display: block;
   color: var(--text-muted);
-  margin: 3px 0 0 22px;
+  margin-block: 3px 0; margin-inline: 22px 0;
 }
 .cc-verification-intake {
   margin: 24px 0;

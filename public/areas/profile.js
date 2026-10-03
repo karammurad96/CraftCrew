@@ -53,8 +53,8 @@ function pfCompany(d) {
     value = { ...c, contactName: c.contactName || u.name };
   return [`<div class="wf-profile-head">${
     u.profileImage ? `<img class="wf-profile-image" src="${esc(u.profileImage)}" alt="${pfk("photoAlt")}">` : `<div class="supplier-avatar large">${esc((u.company || u.name).slice(0, 2).toUpperCase())}</div>`
-  }<div><h2>${u.company ? esc(u.company) : pfk("companyRequired")}</h2><b>${esc(u.name)}</b><p>${esc(u.email)} · ${c.phone ? esc(c.phone) : pfk("addPhone")}</p></div></div>`, `<div class="wf-profile-grid">${fields
-    .map((k) => `<article class="cc-card"><span class="cc-label">${pfk("field." + k)}</span><b>${value[k] ? (k === "description" || k === "industry" ? pfDom(value[k]) : esc(value[k])) : pfk("addInfo")}</b></article>`)
+  }<div><h2>${u.company ? esc(u.company) : pfk("companyRequired")}</h2><b>${esc(u.name)}</b><p>${ltr(u.email)} · ${c.phone ? ltr(c.phone) : pfk("addPhone")}</p></div></div>`, `<div class="wf-profile-grid">${fields
+    .map((k) => `<article class="cc-card"><span class="cc-label">${pfk("field." + k)}</span><b>${value[k] ? (k === "description" || k === "industry" ? pfDom(value[k]) : ["taxId", "website", "phone", "procurementEmail"].includes(k) ? ltr(value[k]) : esc(value[k])) : pfk("addInfo")}</b></article>`)
     .join("")}</div>`];
 }
 function pfMarketplace(s) {
@@ -86,7 +86,7 @@ function pfSettings(role, user) {
       ? ""
       : `<section class="panel"><h3>${pfk("pay.title")}</h3><p class="subtle">${pfk("pay.lead")}</p>${
           p
-            ? `<div class="pa-kv"><span>${pfk("pay.holder")}</span><b>${esc(p.accountHolder)}</b><span>IBAN</span><b>${esc(p.iban.slice(0, 4) + " •••• " + p.iban.slice(-4))}</b><span>BIC</span><b>${esc(p.bic || "—")}</b><span>${pfk(
+            ? `<div class="pa-kv"><span>${pfk("pay.holder")}</span><b>${esc(p.accountHolder)}</b><span>IBAN</span><b>${ltr(p.iban.slice(0, 4) + " •••• " + p.iban.slice(-4))}</b><span>BIC</span><b>${esc(p.bic || "—")}</b><span>${pfk(
                 "pay.bank",
               )}</span><b>${esc(p.bankName || "—")}</b><span>${pfk("pay.email")}</span><b>${esc(p.billingEmail || user.email)}</b></div>`
             : `<p class="danger-text">${pfk("pay.none")}</p>`
