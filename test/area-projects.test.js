@@ -73,7 +73,7 @@ function area(lang, role, hash) {
   };
   ctx.window = ctx;
   vm.createContext(ctx);
-  for (const f of ["locales/en.js", "locales/de.js", "core/t.js", "core/actions.js", "core/router.js", "areas/projects.js"])
+  for (const f of ["core/languages.js", "locales/en.js", "locales/de.js", "core/t.js", "core/actions.js", "core/router.js", "areas/projects.js"])
     vm.runInContext(read(f), ctx, { filename: f });
   Object.assign(ctx, { warnings, calls, navigations });
   ctx.render = async () => (await ctx.route(), ctx.app.innerHTML);

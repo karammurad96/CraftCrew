@@ -67,7 +67,6 @@ function dashboardShell(role, active, content) {
     .map((x) => x[0])
     .join("")
     .slice(0, 2);
-  const lang = typeof i18nLang !== "undefined" ? i18nLang : ccLang;
   const bottom = (SHELL_BOTTOM[role] || []).filter((key) => keys.includes(key)),
     path = location.hash.split("?")[0];
   return `<div class="app-shell"><aside class="sidebar" id="mnavSidebar" data-i18n="keys"><button type="button" class="mnav-menu-btn" aria-controls="mnavSidebar" aria-expanded="false" aria-label="${sk("menu")}" data-action="shell.menu">${MNAV_MENU_ICON}</button><div class="ui-side-top"><div class="brand side-brand"><span class="brand-mark" role="img" aria-label="${esc(t("auth.logo"))}"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M14 50C24 42 40 22 50 14"/><circle cx="14" cy="50" r="8.5"/><circle cx="50" cy="14" r="8.5"/></svg></span><span class="brand-word">Craft<span>Crew</span></span></div><button type="button" class="ui-bell" aria-label="${sk("bellLabel", { n: uiUnread })}" aria-haspopup="true" aria-expanded="false" data-action="shell.bell">${uiIcon("bell")}<span class="ui-badge"${uiUnread ? "" : " hidden"}>${uiUnread > 99 ? "99+" : uiUnread}</span></button></div><button type="button" class="ui-search-btn" data-action="shell.search">${uiIcon("search")}<span>${sk("search")}</span><kbd>Ctrl K</kbd></button><button class="user-mini wf-user-link" data-action="shell.profile"><div class="avatar">${user.profileImage ? `<img src="${esc(user.profileImage)}" alt="">` : esc(initials)}</div><div><b>${esc(user.name)}${user.isMember ? ` <span class="tm-badge">${sk("teamBadge")}</span>` : ""}</b><small>${esc(user.company || role)} · ${sk("profile")}</small></div></button><nav data-ds-role="${role}"${open ? "" : ' class="ds-more-closed"'}><div class="ng-title" data-title=""></div>${nav.daily
@@ -77,7 +76,7 @@ function dashboardShell(role, active, content) {
     more.length
       ? `<div class="ng-title" data-title="More" role="button" tabindex="0" aria-expanded="${open}" data-action="shell.more" data-key="shell.more" data-key-on="Enter,Space">${sk("more")}</div>${more.map(link).join("")}`
       : ""
-  }</nav><div class="help" data-ui="1" data-ds="1"><div class="i18n-switch" role="group" aria-label="${sk("language")}"><button type="button" class="${lang === "de" ? "on" : ""}" data-action="shell.lang" data-lang="de">DE</button><button type="button" class="${lang === "en" ? "on" : ""}" data-action="shell.lang" data-lang="en">EN</button></div><button class="btn small ghost" data-action="shell.help">${uiIcon("help")}<span>${sk("help")}</span></button><button class="btn small danger" style="margin-top:8px;width:100%" data-action="shell.logout">${uiIcon("logout")}<span>${sk("logout")}</span></button><button type="button" class="ui-link-btn ob-reopen" data-action="shell.checklist"${user.isMember || (typeof obShow !== "undefined" && obShow.allDone) ? " hidden" : ""}>${sk("checklist")}</button></div></aside><section class="dashboard-content">${content}</section>${
+  }</nav><div class="help" data-ui="1" data-ds="1">${langSwitch(t("shell.language"), "shell.lang")}<button class="btn small ghost" data-action="shell.help">${uiIcon("help")}<span>${sk("help")}</span></button><button class="btn small danger" style="margin-top:8px;width:100%" data-action="shell.logout">${uiIcon("logout")}<span>${sk("logout")}</span></button><button type="button" class="ui-link-btn ob-reopen" data-action="shell.checklist"${user.isMember || (typeof obShow !== "undefined" && obShow.allDone) ? " hidden" : ""}>${sk("checklist")}</button></div></aside><section class="dashboard-content">${content}</section>${
     bottom.length
       ? `<nav class="mnav-bottom" aria-label="${sk("quickNav")}" data-i18n="keys">${bottom
           .map((key) => {
@@ -150,7 +149,7 @@ actions.on("shell.search", () => {
   uiOpenSearch();
 });
 actions.on("shell.profile", () => navigate(`/${state.user.role}/profile`));
-actions.on("shell.lang", (el) => i18nSet(el.dataset.lang));
+actions.on("shell.lang", (el) => langSet(el.dataset.lang));
 actions.on("shell.help", () => navigate("/faq"));
 actions.on("shell.logout", () => logout());
 actions.on("shell.checklist", () => obShow());

@@ -57,7 +57,7 @@ function area(lang, role) {
   ctx.route = async () => calls.push(["route"]);
   ctx.window = ctx;
   vm.createContext(ctx);
-  for (const f of ["locales/en.js", "locales/de.js", "core/t.js", "core/actions.js", "insights.js", "areas/planner.js", "areas/analytics.js"]) vm.runInContext(read(f), ctx, { filename: f });
+  for (const f of ["core/languages.js", "locales/en.js", "locales/de.js", "core/t.js", "core/actions.js", "insights.js", "areas/planner.js", "areas/analytics.js"]) vm.runInContext(read(f), ctx, { filename: f });
   Object.assign(ctx, { warnings, calls, toasts, shown });
   ctx.run = (name, el) => vm.runInContext("actions", ctx).run(name, el, { type: "click", preventDefault() {} });
   return ctx;

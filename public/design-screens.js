@@ -105,7 +105,7 @@ const dsToday = () => dsIso(new Date());
 const dsDaysBetween = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 86400000);
 // "24 Sep – 11 Oct" in the interface language (the year only when it is not this year)
 function dsShortRange(a, b) {
-  const lang = typeof i18nLang !== "undefined" && i18nLang === "de" ? "de-DE" : "en-GB",
+  const lang = fmt.locale(),
     year = String(new Date().getFullYear()),
     f = (d) =>
       d

@@ -55,7 +55,7 @@ function area(lang, role = "customer") {
   };
   ctx.window = ctx;
   vm.createContext(ctx);
-  for (const f of ["locales/en.js", "locales/de.js", "core/t.js", "core/actions.js", "core/router.js", "areas/time.js"]) vm.runInContext(read(f), ctx, { filename: f });
+  for (const f of ["core/languages.js", "locales/en.js", "locales/de.js", "core/t.js", "core/actions.js", "core/router.js", "areas/time.js"]) vm.runInContext(read(f), ctx, { filename: f });
   Object.assign(ctx, { warnings, calls, toasts, shown, els, field });
   ctx.run = (name, el) => vm.runInContext("actions", ctx).run(name, el, { type: "submit", preventDefault() {} });
   return ctx;

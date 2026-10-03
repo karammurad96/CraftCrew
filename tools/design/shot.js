@@ -4,7 +4,7 @@
 //   role is public, customer, supplier or admin (demo logins). Options via environment:
 //   W / H   viewport (default 1440 x 960; use W=390 H=844 for the phone boards)
 //   FULL=1  whole page instead of the first screen
-//   LANG=de German instead of English
+//   --lang=<code> (or CC_LANG=<code>) another language than English, e.g. --lang=de; LANG=de still works
 // Example: node tools/design/shot.js http://localhost:3100 shots customer:/customer/dashboard
 const { chromium } = require(process.env.PW || "playwright");
 const path = require("path");
@@ -17,13 +17,13 @@ const LOGINS = {
 };
 
 (async () => {
-  const [base, out, ...pages] = process.argv.slice(2);
+  const [base, out, ...pages] = process.argv.slice(2).filter((a) => !a.startsWith("--"));
   if (!base || !out || !pages.length)
     throw new Error("Usage: shot.js <base-url> <out-folder> <role>:<route> ...");
   fs.mkdirSync(out, { recursive: true });
   const width = Number(process.env.W || 1440),
     height = Number(process.env.H || 960),
-    lang = process.env.LANG === "de" ? "de" : "en";
+    lang = (process.argv.find((a) => a.startsWith("--lang="))?.slice(7) || process.env.CC_LANG || (process.env.LANG === "de" ? "de" : "en"));
   const browser = await chromium.launch();
   for (const spec of pages) {
     const [role, route] = [spec.slice(0, spec.indexOf(":")), spec.slice(spec.indexOf(":") + 1)];

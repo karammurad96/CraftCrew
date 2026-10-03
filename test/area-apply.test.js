@@ -33,7 +33,7 @@ function area(lang, { user = null, config = {} } = {}) {
   };
   ctx.window = ctx;
   vm.createContext(ctx);
-  for (const f of ["locales/en.js", "locales/de.js", "core/t.js", "core/actions.js", "core/router.js", "areas/apply.js"])
+  for (const f of ["core/languages.js", "locales/en.js", "locales/de.js", "core/t.js", "core/actions.js", "core/router.js", "areas/apply.js"])
     vm.runInContext(read(f), ctx, { filename: f });
   Object.assign(ctx, { warnings, toasts });
   ctx.render = async () => (await ctx.route(), ctx.app.innerHTML);

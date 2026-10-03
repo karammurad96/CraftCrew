@@ -43,6 +43,30 @@ function leaves(node, prefix = "", out = {}) {
 describe("translation keys", () => {
   const ctx = load(["locales/en.js", "locales/de.js"]);
 
+  it("has a complete locale file for every registered language (T137)", () => {
+    const reg = load(["core/languages.js"]).LANGUAGES,
+      en = leaves(ctx.LOCALES.en);
+    assert.deepEqual(JSON.parse(JSON.stringify(reg.map((l) => l.code).slice(0, 2))), ["en", "de"]);
+    for (const l of reg) {
+      assert.ok(l.name && l.locale && ["ltr", "rtl"].includes(l.dir), l.code);
+      const c = load([`locales/${l.code}.js`]),
+        mine = leaves(c.LOCALES[l.code]);
+      assert.deepEqual(Object.keys(mine).sort(), Object.keys(en).sort(), `${l.code}: same keys as English`);
+      for (const key of Object.keys(en)) assert.equal(mine[key], en[key], `${l.code}: placeholders of ${key}`);
+    }
+  });
+
+  it("uses every plural form a language has (few and many for Polish, Slovak, Arabic)", () => {
+    const pl = load(["core/languages.js"], { lang: "pl" });
+    vm.runInContext('LANGUAGES.push({ code: "pl", name: "Polski", locale: "pl-PL", dir: "ltr" }); LOCALES = { en: { common: { items: { one: "{n} item", other: "{n} items" } } }, pl: { common: { items: { one: "{n} element", few: "{n} elementy", many: "{n} elementów", other: "{n} elementu" } } } };', pl);
+    vm.runInContext(read("core/t.js"), pl);
+    assert.equal(pl.t.plural("common.items", 1), "1 element");
+    assert.equal(pl.t.plural("common.items", 3), "3 elementy");
+    assert.equal(pl.t.plural("common.items", 5), "5 elementów");
+    assert.equal(pl.t.plural("common.items", 1.5), "1.5 elementu");
+    assert.equal(pl.fmt.locale(), "pl-PL");
+  });
+
   it("has every key in both languages, with the same placeholders", () => {
     const en = leaves(ctx.LOCALES.en),
       de = leaves(ctx.LOCALES.de);
@@ -53,7 +77,7 @@ describe("translation keys", () => {
   });
 
   it("looks up keys, fills placeholders and falls back to English, then to the key", () => {
-    const de = load(["locales/en.js", "locales/de.js", "core/t.js"], { lang: "de" });
+    const de = load(["core/languages.js", "locales/en.js", "locales/de.js", "core/t.js"], { lang: "de" });
     assert.equal(de.t("common.save"), "Speichern");
     de.LOCALES.en.common.only = "Only {x} in English";
     assert.equal(de.t("common.only", { x: 1 }), "Only 1 in English");
@@ -63,8 +87,8 @@ describe("translation keys", () => {
   });
 
   it("chooses plural forms by language", () => {
-    const en = load(["locales/en.js", "locales/de.js", "core/t.js"], { lang: "en" }),
-      de = load(["locales/en.js", "locales/de.js", "core/t.js"], { lang: "de" });
+    const en = load(["core/languages.js", "locales/en.js", "locales/de.js", "core/t.js"], { lang: "en" }),
+      de = load(["core/languages.js", "locales/en.js", "locales/de.js", "core/t.js"], { lang: "de" });
     assert.equal(en.t.plural("common.items", 1), "1 item");
     assert.equal(en.t.plural("common.items", 3), "3 items");
     assert.equal(de.t.plural("common.items", 1), "1 Eintrag");
@@ -72,8 +96,8 @@ describe("translation keys", () => {
   });
 
   it("formats dates, money and numbers by language", () => {
-    const en = load(["core/t.js"], { lang: "en" }),
-      de = load(["core/t.js"], { lang: "de" });
+    const en = load(["core/languages.js", "core/t.js"], { lang: "en" }),
+      de = load(["core/languages.js", "core/t.js"], { lang: "de" });
     assert.equal(en.fmt.date("2026-10-16"), "16 Oct 2026");
     assert.equal(de.fmt.date("2026-10-16"), "16. Okt. 2026");
     assert.equal(en.fmt.money(12500), "€12,500");
@@ -130,7 +154,7 @@ describe("actions", () => {
 describe("route table", () => {
   const routerCtx = () => {
     const rendered = [];
-    const ctx = load(["core/t.js", "core/actions.js"], {
+    const ctx = load(["core/languages.js", "core/t.js", "core/actions.js"], {
       extra: {
         location: { hash: "" },
         state: { user: { role: "customer" } },
@@ -160,13 +184,12 @@ describe("route table", () => {
     assert.deepEqual(rendered, ["invoice inv 1 back=/x", "navigate /customer/dashboard", "old route"]);
   });
 
-  it("is loaded right after workflows.js, with the locales and core first", () => {
+  it("is loaded right after workflows.js, with the language registry and core first", () => {
     const order = [...read("index.html").matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]),
       at = (f) => order.indexOf(f);
-    assert.deepEqual(order.slice(0, 8), [
+    assert.deepEqual(order.slice(0, 7), [
       "app.js",
-      "locales/en.js",
-      "locales/de.js",
+      "core/languages.js",
       "core/t.js",
       "core/actions.js",
       "enhancements.js",
@@ -174,6 +197,8 @@ describe("route table", () => {
       "core/router.js",
     ]);
     assert.ok(at("core/router.js") < at("reviews.js"), "wrapped by the later route wrappers");
+    // The registry writes one script tag per language right after itself (T137)
+    assert.match(read("core/languages.js"), /document\.write\(`<script src="locales\/\$\{l\.code\}\.js"><\/script>`\)/);
   });
 
   it("keeps the DOM translation away from pages that use keys", () => {

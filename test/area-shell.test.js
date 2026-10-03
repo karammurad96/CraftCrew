@@ -35,7 +35,7 @@ function shell(lang, user, hash = "#/customer/dashboard") {
   };
   ctx.window = ctx;
   vm.createContext(ctx);
-  for (const f of ["locales/en.js", "locales/de.js", "core/t.js", "core/actions.js", "areas/shell.js"])
+  for (const f of ["core/languages.js", "locales/en.js", "locales/de.js", "core/t.js", "core/actions.js", "areas/shell.js"])
     vm.runInContext(read(f), ctx, { filename: f });
   ctx.warnings = warnings;
   ctx.render = (role, active) => vm.runInContext(`dashboardShell(${JSON.stringify(role)}, ${JSON.stringify(active)}, "<p>page</p>")`, ctx);
