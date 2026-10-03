@@ -4,43 +4,23 @@
      not-found card with a link back to the list instead of error panels, stray buttons and toasts.
    - A 401 while signed in keeps the requested page, signs out and asks the user to sign in again; after
      signing in they return to that page. */
-const NF_KINDS = {
-  projects: [
-    "Project not found",
-    "This project does not exist or you no longer have access to it.",
-    "projects",
-    "Back to projects",
-  ],
-  invoices: [
-    "Invoice not found",
-    "This invoice does not exist or you no longer have access to it.",
-    "invoices",
-    "Back to invoices",
-  ],
-  suppliers: [
-    "Supplier not found",
-    "This supplier profile does not exist or is no longer listed.",
-    "suppliers",
-    "Back to suppliers",
-  ],
-};
-
+// Which list a missing item's page links back to
+const NF_LISTS = { projects: "projects", invoices: "invoices", suppliers: "suppliers" };
 function renderNotFound(kind) {
   const role = state.user?.role,
-    [title, text, list, back] = NF_KINDS[kind] || [
-      "Page not found",
-      "The page you opened does not exist. Check the link or go back.",
-      "dashboard",
-      "Go to dashboard",
-    ],
+    k = NF_LISTS[kind] ? kind : "page",
+    n = (key) => esc(t(`ui.nf.${k}.${key}`)),
+    list = NF_LISTS[kind] || "dashboard",
     home = role ? `#/${role}/${list}` : "#/";
-  const card = `<section class="panel nf-card" role="alert"><h1>${title}</h1><p>${text}</p><div class="cc-actions"><a class="btn primary" href="${home}">${role ? back : "Go to the home page"}</a><button type="button" class="btn outline" onclick="history.back()">Back</button></div></section>`;
-  app.innerHTML = role
-    ? dashboardShell(role, kind ? list : "dashboard", card)
-    : publicLayout(`<div class="cc-page">${card}</div>`);
+  const card = `<section class="panel nf-card" role="alert" data-i18n="keys"><h1>${n("title")}</h1><p>${n("text")}</p><div class="cc-actions"><a class="btn primary" href="${home}">${role ? n("back") : esc(t("ui.nf.home"))}</a><button type="button" class="btn outline" data-action="ui.back">${esc(
+    t("ui.nf.previous"),
+  )}</button></div></section>`;
+  app.innerHTML = role ? dashboardShell(role, kind ? list : "dashboard", card) : publicLayout(`<div class="cc-page">${card}</div>`);
   document.getElementById("toast")?.classList.remove("show");
-  document.title = `${title} · CraftCrew`;
+  document.title = `${t(`ui.nf.${k}.title`)} · CraftCrew`;
 }
+actions.on("ui.back", () => history.back());
+actions.on("ui.retry", () => route());
 
 function sessionExpired() {
   try {

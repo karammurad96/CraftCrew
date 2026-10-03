@@ -91,8 +91,8 @@ describe("design 2026", () => {
     assert.ok(at < scripts.indexOf("i18n.js"), "design-screens.js must come before i18n.js");
   });
 
-  it("tints status chips by meaning and says how late (T92)", () => {
-    const ctx = loadScreens({}, ["dsTone", "dsDaysLate"]);
+  it("tints status chips by meaning (T92)", () => {
+    const ctx = loadScreens({}, ["dsTone"]);
     const chip = (text, ...classes) => ({
       nodeType: 1,
       childNodes: [{ nodeType: 3, textContent: text }],
@@ -116,14 +116,7 @@ describe("design 2026", () => {
     assert.equal(ctx.dsTone(chip("Approved", "submitted")), "green");
     // Unknown text falls back to the class.
     assert.equal(ctx.dsTone(chip("Something", "in-progress")), "blue");
-    const ago = (n) => {
-      const d = new Date();
-      d.setDate(d.getDate() - n);
-      return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-    };
-    assert.equal(ctx.dsDaysLate(ago(5)), "5 days late");
-    assert.equal(ctx.dsDaysLate(ago(1)), "1 day late");
-    assert.equal(ctx.dsDaysLate(""), "Overdue");
+    // The days-late text moved to the invoice keys (inv.time.late, T135d)
   });
 
   it("has German for the late chip (T92)", () => {

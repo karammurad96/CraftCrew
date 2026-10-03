@@ -32,22 +32,16 @@ function ssDecorate(status) {
   if (!content.querySelector(".ss-banner")) {
     const app = status.application,
       [label, detail] = !app
-        ? ["Complete your application", ""]
-        : app.status === "Rejected"
-          ? ["Apply again", `Application status: ${app.status}`]
-          : ["View application status", `Application status: ${app.status || "New"}`];
+        ? [t("ui.ss.complete"), ""]
+        : [t(app.status === "Rejected" ? "ui.ss.again" : "ui.ss.view"), t("ob.supplier.verify.status", { status: obValue("status", app.status || "New") })];
     content.insertAdjacentHTML(
       "afterbegin",
-      `<div class="notice warn ss-banner" role="status"><div><b>Your company is not verified yet. Complete your application to receive bid invitations.</b>${detail ? `<small>${detail}</small>` : ""}</div><a class="btn small primary" href="#/supplier-application">${label}</a></div>`,
+      `<div class="notice warn ss-banner" role="status" data-i18n="keys"><div><b>${esc(t("ui.ss.banner"))}</b>${detail ? `<small>${esc(detail)}</small>` : ""}</div><a class="btn small primary" href="#/supplier-application">${esc(label)}</a></div>`,
     );
   }
   const locked = [
     ...document.querySelectorAll('.sidebar nav a[href="#/supplier/bids"]'),
-    ...[...content.querySelectorAll("button, a")].filter(
-      (el) =>
-        /navigate\('\/supplier\/(invoices\/new|bids)'\)/.test(el.getAttribute("onclick") || "") ||
-        el.getAttribute("href") === "#/supplier/invoices/new",
-    ),
+    ...[...content.querySelectorAll("a")].filter((el) => ["#/supplier/invoices/new", "#/supplier/bids"].includes(el.getAttribute("href"))),
   ];
   for (const el of locked)
     if (!el.classList.contains("ss-locked")) {

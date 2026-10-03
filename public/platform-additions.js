@@ -86,7 +86,7 @@ api = async function (path, opts = {}) {
     return await paBaseApi(path, opts);
   } catch (e) {
     if (tokenUsed && tokenUsed === state.token && /^Authentication required$/.test(e.message))
-      paClearSession("Your session has ended. Please sign in again.");
+      paClearSession(t("ui.sessionEnded"));
     throw e;
   }
 };
@@ -99,7 +99,7 @@ async function paVerifySession() {
     await ccSessionReady;
     const r = await fetch("/api/auth/me", { credentials: "same-origin" });
     if (r.status === 401 || r.status === 403)
-      return paClearSession("Your session has ended. Please sign in again.");
+      return paClearSession(t("ui.sessionEnded"));
     if (!r.ok) return;
     const { user } = await r.json(),
       changed = !state.user || state.user.id !== user.id || state.user.role !== user.role;
@@ -109,22 +109,6 @@ async function paVerifySession() {
     else topActions();
   } catch {}
 }
-const paBaseTopActions = topActions;
-topActions = function () {
-  paBaseTopActions();
-  const el = document.getElementById("topActions");
-  if (!el || !state.user) return;
-  // Signed in: one compact account chip, the way back to the workspace, and sign-out.
-  const u = state.user,
-    initials = String(u.name || "U")
-      .split(" ")
-      .map((x) => x[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
-  const roleLabel = { customer: "Customer", supplier: "Supplier", admin: "Admin" }[u.role] || u.role;
-  el.innerHTML = `<button type="button" class="pa-account" onclick="navigate('/${u.role}/profile')" title="Profile / Settings"><span class="avatar">${paEsc(initials)}</span><span class="pa-account-text"><b>${paEsc(u.name)}</b><small>${paEsc(roleLabel)}</small></span></button><button type="button" class="btn primary" onclick="navigate('/${u.role}/dashboard')">Dashboard</button><button type="button" class="btn outline" onclick="logout()">Log out</button>`;
-};
 paVerifySession();
 
 /* ---------- Router hook ---------- */

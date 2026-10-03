@@ -3866,4 +3866,273 @@ LOCALES.en = {
       "created": "Created"
     }
   },
+  ob: {
+    "eyebrow": "GETTING STARTED",
+    "progress": "{done} of {n} steps done",
+    "progressTip": "{done} of {n} done",
+    "next": "Next:",
+    "welcome": "Welcome to CraftCrew",
+    "welcomeName": "Welcome to CraftCrew, {name}",
+    "showAll": "Show all steps",
+    "showFewer": "Show fewer",
+    "hide": "Hide",
+    "hidden": "Checklist hidden — reopen it any time from the sidebar",
+    "allDone": "All getting-started steps are done",
+    "customer": {
+      "profile": {
+        "title": "Complete your company profile",
+        "text": "Legal name, address and procurement contact appear on invoices and supplier requests.",
+        "cta": "Edit profile"
+      },
+      "project": {
+        "title": "Create your first project",
+        "text": "Pick a template to generate phases and tasks, set budget and dates.",
+        "cta": "New project"
+      },
+      "source": {
+        "title": "Source a supplier for a task",
+        "text": "Invite a vetted supplier directly or run a sourcing event to compare offers.",
+        "cta": "Open project",
+        "ctaFind": "Find suppliers"
+      },
+      "prefs": {
+        "title": "Choose email notifications",
+        "text": "Decide which events should also reach you by email.",
+        "cta": "Settings"
+      }
+    },
+    "supplier": {
+      "profile": {
+        "title": "Complete your company profile",
+        "text": "Legal name, address and tax ID are printed on your invoices.",
+        "cta": "Edit profile"
+      },
+      "verify": {
+        "title": "Get verified",
+        "text": "Submit your company, insurance and certification evidence to be listed.",
+        "cta": "Apply now",
+        "live": "Your company is verified and visible in the directory.",
+        "status": "Application status: {status}",
+        "again": "Apply again",
+        "view": "View"
+      },
+      "catalog": {
+        "title": "Publish your service catalog",
+        "text": "Services, rates, capacity and key people help customers choose you.",
+        "cta": "Service catalog"
+      },
+      "payout": {
+        "title": "Add payout details",
+        "text": "Your bank account is printed on invoices so customers can pay you.",
+        "cta": "Add IBAN"
+      },
+      "bid": {
+        "title": "Answer your first sourcing event",
+        "text": "Open bid opportunities and send an offer.",
+        "cta": "Opportunities"
+      }
+    },
+    "admin": {
+      "password": {
+        "title": "Change the bootstrap password",
+        "text": "Replace the initial administrator password with your own.",
+        "cta": "Security"
+      },
+      "legal": {
+        "title": "Publish Impressum and privacy policy",
+        "text": "Required in Germany before inviting users.",
+        "cta": "Legal pages"
+      },
+      "settings": {
+        "title": "Review platform settings",
+        "text": "Service categories, badge criteria, platform fee and payment terms.",
+        "cta": "Settings"
+      },
+      "email": {
+        "title": "Confirm email delivery",
+        "text": "Send a test email from the email outbox.",
+        "smtp": "Configure SMTP on the server (see DEPLOY.md), then send a test email.",
+        "cta": "Email outbox"
+      },
+      "vetting": {
+        "title": "Decide your first supplier application",
+        "text": "Verify evidence and references, then approve with a badge.",
+        "cta": "Vetting queue"
+      }
+    }
+  },
+  ui: {
+    "home": "Go to the home page",
+    "retry": "Try again",
+    "table": "Table",
+    "requestFailed": "Request failed",
+    "sessionEnded": "Your session has ended. Please sign in again.",
+    "role": {
+      "customer": "Customer",
+      "supplier": "Supplier",
+      "admin": "Admin"
+    },
+    "top": {
+      "signIn": "Sign in",
+      "start": "Start a project",
+      "profile": "Profile / Settings",
+      "dashboard": "Dashboard",
+      "logout": "Log out"
+    },
+    "nav": {
+      "how": "How it works",
+      "suppliers": "Suppliers",
+      "pricing": "Pricing",
+      "support": "Support"
+    },
+    "footer": {
+      "claim": "Building industry together."
+    },
+    "legal": {
+      "label": "Legal",
+      "imprint": "Impressum",
+      "privacy": "Privacy policy",
+      "terms": "Terms of use"
+    },
+    "force": {
+      "title": "Choose a new password",
+      "member": "Welcome to the team. Please replace your temporary password with your own to continue.",
+      "reset": "Your password was reset by an administrator. Please choose a new password to continue.",
+      "temporary": "Temporary password",
+      "signOut": "Sign out"
+    },
+    "nf": {
+      "home": "Go to the home page",
+      "previous": "Back",
+      "page": {
+        "title": "Page not found",
+        "text": "The page you opened does not exist. Check the link or go back.",
+        "back": "Go to dashboard"
+      },
+      "projects": {
+        "title": "Project not found",
+        "text": "This project does not exist or you no longer have access to it.",
+        "back": "Back to projects"
+      },
+      "invoices": {
+        "title": "Invoice not found",
+        "text": "This invoice does not exist or you no longer have access to it.",
+        "back": "Back to invoices"
+      },
+      "suppliers": {
+        "title": "Supplier not found",
+        "text": "This supplier profile does not exist or is no longer listed.",
+        "back": "Back to suppliers"
+      }
+    },
+    "ss": {
+      "banner": "Your company is not verified yet. Complete your application to receive bid invitations.",
+      "complete": "Complete your application",
+      "again": "Apply again",
+      "view": "View application status"
+    },
+    "inv": {
+      "declineTask": "Decline this task? You can tell the customer why (optional).",
+      "declineTaskLabel": "Decline task",
+      "declinePhase": "Decline this phase invitation?",
+      "decline": "Decline",
+      "taskAccepted": "Task accepted — it is now in your assigned work",
+      "phaseAccepted": "Phase accepted",
+      "declined": "Invitation declined"
+    },
+    "ofl": {
+      "saved": "Saved offline — it will be sent automatically once you're back online.",
+      "rejected": "The server rejected this change.",
+      "sent": {
+        "one": "{n} offline change was sent",
+        "other": "{n} offline changes were sent"
+      },
+      "offlineWaiting": {
+        "one": "You're offline — {n} change waiting to sync",
+        "other": "You're offline — {n} changes waiting to sync"
+      },
+      "offline": "You're offline. Changes you make now will be sent once you're back online.",
+      "attention": {
+        "one": "{n} offline change, it needs attention",
+        "other": "{n} offline changes, some need attention"
+      },
+      "sending": {
+        "one": "Sending {n} offline change…",
+        "other": "Sending {n} offline changes…"
+      },
+      "review": "Review",
+      "title": "Offline changes",
+      "auto": "These will be sent automatically.",
+      "later": "These will be sent once you're back online.",
+      "discard": "Discard",
+      "nothing": "Nothing queued.",
+      "syncNow": "Sync now",
+      "discardAll": "Discard all",
+      "discardConfirm": "Discard every queued offline change? This cannot be undone.",
+      "cleared": "Offline queue cleared",
+      "path": {
+        "time-entries": "Time entries",
+        "site-reports": "Site reports",
+        "defects": "Defects",
+        "upload": "Photo upload",
+        "documents": "Documents",
+        "messages": "Messages",
+        "comments": "Comments",
+        "change": "Change"
+      }
+    },
+    "file": {
+      "failed": "This file could not be opened. You may not have access to it.",
+      "download": "Download"
+    },
+    "search": {
+      "label": "Quick search",
+      "input": "Search",
+      "hint": "Search pages, projects, tasks, invoices…",
+      "hintCustomer": "Search pages, projects, tasks, invoices, suppliers…",
+      "none": "No matches.",
+      "drag": "Drag to rearrange",
+      "kind": {
+        "page": "Page",
+        "project": "Project",
+        "task": "Task",
+        "invoice": "Invoice",
+        "supplier": "Supplier"
+      },
+      "page": {
+        "customer_dashboard": "Dashboard",
+        "customer_projects": "Projects",
+        "customer_projects_new": "New project",
+        "customer_analytics": "Analytics",
+        "customer_offers": "Offers overview",
+        "customer_suppliers": "Find suppliers",
+        "customer_invoices": "Invoices",
+        "customer_inbox": "Inbox",
+        "customer_time": "Time approvals",
+        "customer_messages": "Messages",
+        "customer_profile": "Profile & settings",
+        "supplier_dashboard": "Dashboard",
+        "supplier_projects": "Assigned work",
+        "supplier_analytics": "Analytics",
+        "supplier_bids": "Bid opportunities",
+        "supplier_requests": "Quote requests",
+        "supplier_invoices": "Invoices",
+        "supplier_invoices_new": "Create invoice",
+        "supplier_suppliers": "Service catalog",
+        "supplier_time": "Time & approvals",
+        "supplier_inbox": "Inbox",
+        "supplier_messages": "Messages",
+        "supplier_profile": "Profile & billing",
+        "admin_dashboard": "Admin dashboard",
+        "admin_applications": "Vetting queue",
+        "admin_users": "Users",
+        "admin_billing": "Payments & billing",
+        "admin_platform": "Platform management",
+        "admin_reports": "Reports & analytics",
+        "admin_audit": "Audit log",
+        "admin_disputes": "Escalations",
+        "admin_profile": "Account settings"
+      }
+    }
+  },
 };

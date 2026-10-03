@@ -219,7 +219,7 @@ function uiSortablePanels() {
       if (!title) continue;
       title.insertAdjacentHTML(
         "afterbegin",
-        '<span class="ui-grip" title="Drag to rearrange" aria-hidden="true">⋮⋮</span>',
+        `<span class="ui-grip" title="${esc(t("ui.search.drag"))}" aria-hidden="true">⋮⋮</span>`,
       );
       const grip = title.querySelector(".ui-grip");
       grip.addEventListener("mousedown", () => (p.draggable = true));
@@ -276,77 +276,62 @@ window.route = async function () {
 /* ---------- Quick search (Ctrl/⌘+K): jump to any page, project, invoice or supplier ---------- */
 const UI_PAGES = {
   customer: [
-    ["Dashboard", "/customer/dashboard"],
-    ["Projects", "/customer/projects"],
-    ["New project", "/customer/projects/new"],
-    ["Analytics", "/customer/analytics"],
-    ["Offers overview", "/customer/offers"],
-    ["Find suppliers", "/customer/suppliers"],
-    ["Invoices", "/customer/invoices"],
-    ["Inbox", "/customer/inbox"],
-    ["Time approvals", "/customer/time"],
-    ["Messages", "/customer/messages"],
-    ["Profile & settings", "/customer/profile"],
+    "/customer/dashboard",
+    "/customer/projects",
+    "/customer/projects/new",
+    "/customer/analytics",
+    "/customer/offers",
+    "/customer/suppliers",
+    "/customer/invoices",
+    "/customer/inbox",
+    "/customer/time",
+    "/customer/messages",
+    "/customer/profile",
   ],
   supplier: [
-    ["Dashboard", "/supplier/dashboard"],
-    ["Assigned work", "/supplier/projects"],
-    ["Analytics", "/supplier/analytics"],
-    ["Bid opportunities", "/supplier/bids"],
-    ["Quote requests", "/supplier/requests"],
-    ["Invoices", "/supplier/invoices"],
-    ["Create invoice", "/supplier/invoices/new"],
-    ["Service catalog", "/supplier/suppliers"],
-    ["Time & approvals", "/supplier/time"],
-    ["Inbox", "/supplier/inbox"],
-    ["Messages", "/supplier/messages"],
-    ["Profile & billing", "/supplier/profile"],
+    "/supplier/dashboard",
+    "/supplier/projects",
+    "/supplier/analytics",
+    "/supplier/bids",
+    "/supplier/requests",
+    "/supplier/invoices",
+    "/supplier/invoices/new",
+    "/supplier/suppliers",
+    "/supplier/time",
+    "/supplier/inbox",
+    "/supplier/messages",
+    "/supplier/profile",
   ],
   admin: [
-    ["Admin dashboard", "/admin/dashboard"],
-    ["Vetting queue", "/admin/applications"],
-    ["Users", "/admin/users"],
-    ["Payments & billing", "/admin/billing"],
-    ["Platform management", "/admin/platform"],
-    ["Reports & analytics", "/admin/reports"],
-    ["Audit log", "/admin/audit"],
-    ["Escalations", "/admin/disputes"],
-    ["Account settings", "/admin/profile"],
+    "/admin/dashboard",
+    "/admin/applications",
+    "/admin/users",
+    "/admin/billing",
+    "/admin/platform",
+    "/admin/reports",
+    "/admin/audit",
+    "/admin/disputes",
+    "/admin/profile",
   ],
 };
 let uiSearchIndex = null;
+// Search entries: t is the title, s the kind and details, l the link. Page titles come from keys by path.
+const uiKind = (kind, ...details) => [t("ui.search.kind." + kind), ...details].filter(Boolean).join(" · ");
+const uiKnown = (group, v) => (typeof ccLookup("en", `${group}.${v}`) === "string" ? t(`${group}.${v}`) : v);
 async function uiBuildIndex() {
   const role = state.user.role,
-    items = (UI_PAGES[role] || []).map(([t, l]) => ({ t, s: "Page", l }));
-  const [{ projects = [] }, { invoices = [] }] = await Promise.all([
-    api("/projects").catch(() => ({})),
-    api("/invoices").catch(() => ({})),
-  ]);
+    items = (UI_PAGES[role] || []).map((l) => ({ t: t("ui.search.page." + l.slice(1).replaceAll("/", "_")), s: uiKind("page"), l, page: true }));
+  const [{ projects = [] }, { invoices = [] }] = await Promise.all([api("/projects").catch(() => ({})), api("/invoices").catch(() => ({}))]);
   for (const p of projects) {
-    items.push({
-      t: p.name,
-      s: `Project · ${p.status}`,
-      l: `/${role === "admin" ? "admin/reports" : role + "/projects/" + p.id}`,
-    });
+    items.push({ t: p.name, s: uiKind("project", uiKnown("dlg.status", p.status)), l: `/${role === "admin" ? "admin/reports" : role + "/projects/" + p.id}` });
     if (role !== "admin")
-      for (const ph of p.phases || [])
-        for (const t of ph.tasks || [])
-          items.push({ t: t.name, s: `Task · ${p.name}`, l: `/${role}/projects/${p.id}/tasks/${t.id}` });
+      for (const ph of p.phases || []) for (const x of ph.tasks || []) items.push({ t: x.name, s: uiKind("task", p.name), l: `/${role}/projects/${p.id}/tasks/${x.id}` });
   }
   for (const i of invoices)
-    items.push({
-      t: `${invNo(i)} · ${money(i.amount)}`,
-      s: `Invoice · ${i.status} · ${i.supplierCompany || ""}`,
-      l: role === "admin" ? "/admin/billing" : `/${role}/invoice/${encodeURIComponent(i.id)}`,
-    });
+    items.push({ t: `${invNo(i)} · ${fmt.money(i.amount)}`, s: uiKind("invoice", uiKnown("inv.statuses", i.status), i.supplierCompany || ""), l: role === "admin" ? "/admin/billing" : `/${role}/invoice/${encodeURIComponent(i.id)}` });
   if (role === "customer") {
     const { suppliers = [] } = await api("/suppliers").catch(() => ({}));
-    for (const s of suppliers)
-      items.push({
-        t: s.company,
-        s: `Supplier · ${supplierBadge(s)} · ${s.location}`,
-        l: `/customer/suppliers/${s.id}`,
-      });
+    for (const x of suppliers) items.push({ t: x.company, s: uiKind("supplier", ccBadge(x), x.location), l: `/customer/suppliers/${x.id}` });
   }
   return items;
 }
@@ -354,7 +339,9 @@ async function uiOpenSearch() {
   if (!state.user || document.getElementById("uiSearch")) return;
   document.body.insertAdjacentHTML(
     "beforeend",
-    `<div id="uiSearch" class="ui-search-backdrop"><div class="ui-search" role="dialog" aria-label="Quick search"><div class="ui-search-input">${uiIcon("search")}<input placeholder="Search pages, projects, tasks, invoices${state.user.role === "customer" ? ", suppliers" : ""}…" aria-label="Search"><kbd>Esc</kbd></div><div class="ui-search-results" role="listbox"></div></div></div>`,
+    `<div id="uiSearch" class="ui-search-backdrop" data-i18n="keys"><div class="ui-search" role="dialog" aria-label="${esc(t("ui.search.label"))}"><div class="ui-search-input">${uiIcon("search")}<input placeholder="${esc(
+      t(state.user.role === "customer" ? "ui.search.hintCustomer" : "ui.search.hint"),
+    )}" aria-label="${esc(t("ui.search.input"))}"><kbd>Esc</kbd></div><div class="ui-search-results" role="listbox"></div></div></div>`,
   );
   const box = document.getElementById("uiSearch"),
     input = box.querySelector("input"),
@@ -371,7 +358,7 @@ async function uiOpenSearch() {
     shown = (
       q
         ? all.filter((x) => words.every((w) => (x.t + " " + x.s).toLowerCase().includes(w)))
-        : all.filter((x) => x.s === "Page")
+        : all.filter((x) => x.page)
     ).slice(0, 12);
     active = Math.min(active, Math.max(0, shown.length - 1));
     results.innerHTML =
@@ -380,7 +367,7 @@ async function uiOpenSearch() {
           (x, i) =>
             `<button type="button" class="ui-search-item ${i === active ? "active" : ""}" data-i="${i}"><b>${esc(x.t)}</b><small>${esc(x.s)}</small></button>`,
         )
-        .join("") || `<p class="ui-notif-empty">${uiSearchIndex ? "No matches." : "Loading…"}</p>`;
+        .join("") || `<p class="ui-notif-empty">${esc(t(uiSearchIndex ? "ui.search.none" : "common.loading"))}</p>`;
     results.querySelectorAll(".ui-search-item").forEach((b) => (b.onclick = () => go(Number(b.dataset.i))));
   };
   const go = (i) => {
@@ -468,7 +455,7 @@ function uiScrollAreas() {
     if (w.scrollWidth <= w.clientWidth + 1 && w.scrollHeight <= w.clientHeight + 1) return;
     w.setAttribute("tabindex", "0");
     w.setAttribute("role", "region");
-    w.setAttribute("aria-label", w.closest(".panel")?.querySelector("h2, h3")?.textContent.trim() || "Table");
+    w.setAttribute("aria-label", w.closest(".panel")?.querySelector("h2, h3")?.textContent.trim() || t("ui.table"));
   });
 }
 

@@ -3865,4 +3865,273 @@ LOCALES.de = {
       "created": "Erstellt"
     }
   },
+  ob: {
+    "eyebrow": "ERSTE SCHRITTE",
+    "progress": "{done} von {n} Schritten erledigt",
+    "progressTip": "{done} of {n} done",
+    "next": "Als Nächstes:",
+    "welcome": "Willkommen bei CraftCrew",
+    "welcomeName": "Willkommen bei CraftCrew, {name}",
+    "showAll": "Alle Schritte anzeigen",
+    "showFewer": "Weniger anzeigen",
+    "hide": "Ausblenden",
+    "hidden": "Checkliste ausgeblendet – jederzeit über die Seitenleiste wieder öffnen",
+    "allDone": "Alle Schritte für den Start sind erledigt",
+    "customer": {
+      "profile": {
+        "title": "Unternehmensprofil vervollständigen",
+        "text": "Firmenname, Adresse und Einkaufskontakt erscheinen auf Rechnungen und Lieferantenanfragen.",
+        "cta": "Profil bearbeiten"
+      },
+      "project": {
+        "title": "Erstes Projekt anlegen",
+        "text": "Vorlage wählen, um Phasen und Aufgaben zu erzeugen; Budget und Termine festlegen.",
+        "cta": "Neues Projekt"
+      },
+      "source": {
+        "title": "Lieferanten für eine Aufgabe finden",
+        "text": "Einen geprüften Lieferanten direkt einladen oder eine Ausschreibung zum Angebotsvergleich starten.",
+        "cta": "Projekt öffnen",
+        "ctaFind": "Lieferanten finden"
+      },
+      "prefs": {
+        "title": "E-Mail-Benachrichtigungen wählen",
+        "text": "Legen Sie fest, welche Ereignisse Sie zusätzlich per E-Mail erhalten.",
+        "cta": "Einstellungen"
+      }
+    },
+    "supplier": {
+      "profile": {
+        "title": "Unternehmensprofil vervollständigen",
+        "text": "Firmenname, Adresse und Steuer-ID werden auf Ihre Rechnungen gedruckt.",
+        "cta": "Profil bearbeiten"
+      },
+      "verify": {
+        "title": "Verifizieren lassen",
+        "text": "Reichen Sie Unternehmens-, Versicherungs- und Zertifikatsnachweise ein, um gelistet zu werden.",
+        "cta": "Jetzt bewerben",
+        "live": "Ihr Unternehmen ist geprüft und im Verzeichnis sichtbar.",
+        "status": "Bewerbungsstatus: {status}",
+        "again": "Erneut bewerben",
+        "view": "Ansehen"
+      },
+      "catalog": {
+        "title": "Leistungskatalog veröffentlichen",
+        "text": "Leistungen, Sätze, Kapazität und Schlüsselpersonen helfen Kunden bei der Auswahl.",
+        "cta": "Leistungskatalog"
+      },
+      "payout": {
+        "title": "Auszahlungsdaten hinterlegen",
+        "text": "Ihre Bankverbindung wird auf Rechnungen gedruckt, damit Kunden zahlen können.",
+        "cta": "IBAN hinterlegen"
+      },
+      "bid": {
+        "title": "Erste Ausschreibung beantworten",
+        "text": "Ausschreibungen öffnen und ein Angebot senden.",
+        "cta": "Ausschreibungen"
+      }
+    },
+    "admin": {
+      "password": {
+        "title": "Startpasswort ändern",
+        "text": "Ersetzen Sie das Start-Passwort des Administrators durch Ihr eigenes.",
+        "cta": "Sicherheit"
+      },
+      "legal": {
+        "title": "Impressum und Datenschutzerklärung veröffentlichen",
+        "text": "In Deutschland Pflicht, bevor Nutzer eingeladen werden.",
+        "cta": "Rechtstexte"
+      },
+      "settings": {
+        "title": "Plattformeinstellungen prüfen",
+        "text": "Leistungskategorien, Badge-Kriterien, Plattformgebühr und Zahlungsbedingungen.",
+        "cta": "Einstellungen"
+      },
+      "email": {
+        "title": "E-Mail-Versand bestätigen",
+        "text": "Eine Test-E-Mail aus dem E-Mail-Ausgang senden.",
+        "smtp": "SMTP auf dem Server konfigurieren (siehe DEPLOY.md), dann eine Test-E-Mail senden.",
+        "cta": "E-Mail-Ausgang"
+      },
+      "vetting": {
+        "title": "Erste Lieferantenbewerbung entscheiden",
+        "text": "Nachweise und Referenzen prüfen, dann mit Badge freigeben.",
+        "cta": "Prüfwarteschlange"
+      }
+    }
+  },
+  ui: {
+    "home": "Zur Startseite",
+    "retry": "Erneut versuchen",
+    "table": "Tabelle",
+    "requestFailed": "Anfrage fehlgeschlagen",
+    "sessionEnded": "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
+    "role": {
+      "customer": "Kunde",
+      "supplier": "Lieferant",
+      "admin": "Admin"
+    },
+    "top": {
+      "signIn": "Anmelden",
+      "start": "Projekt starten",
+      "profile": "Profil / Einstellungen",
+      "dashboard": "Übersicht",
+      "logout": "Abmelden"
+    },
+    "nav": {
+      "how": "So funktioniert es",
+      "suppliers": "Lieferanten",
+      "pricing": "Preise",
+      "support": "Unterstützung"
+    },
+    "footer": {
+      "claim": "Gemeinsam Industrie gestalten."
+    },
+    "legal": {
+      "label": "Rechtliches",
+      "imprint": "Impressum",
+      "privacy": "Datenschutzerklärung",
+      "terms": "Nutzungsbedingungen"
+    },
+    "force": {
+      "title": "Neues Passwort wählen",
+      "member": "Willkommen im Team. Bitte ersetzen Sie Ihr temporäres Passwort durch ein eigenes, um fortzufahren.",
+      "reset": "Ihr Passwort wurde von einem Administrator zurückgesetzt. Bitte wählen Sie ein neues Passwort, um fortzufahren.",
+      "temporary": "Temporäres Passwort",
+      "signOut": "Abmelden"
+    },
+    "nf": {
+      "home": "Zur Startseite",
+      "previous": "Zurück",
+      "page": {
+        "title": "Seite nicht gefunden",
+        "text": "Die aufgerufene Seite gibt es nicht. Prüfen Sie den Link oder gehen Sie zurück.",
+        "back": "Zur Übersicht"
+      },
+      "projects": {
+        "title": "Projekt nicht gefunden",
+        "text": "Dieses Projekt gibt es nicht oder Sie haben keinen Zugriff mehr darauf.",
+        "back": "Zurück zu den Projekten"
+      },
+      "invoices": {
+        "title": "Rechnung nicht gefunden",
+        "text": "Diese Rechnung gibt es nicht oder Sie haben keinen Zugriff mehr darauf.",
+        "back": "Zurück zu den Rechnungen"
+      },
+      "suppliers": {
+        "title": "Lieferant nicht gefunden",
+        "text": "Dieses Lieferantenprofil gibt es nicht oder es ist nicht mehr gelistet.",
+        "back": "Zurück zu den Lieferanten"
+      }
+    },
+    "ss": {
+      "banner": "Ihr Unternehmen ist noch nicht verifiziert. Schließen Sie Ihre Bewerbung ab, um Angebotsanfragen zu erhalten.",
+      "complete": "Bewerbung abschließen",
+      "again": "Erneut bewerben",
+      "view": "Bewerbungsstatus ansehen"
+    },
+    "inv": {
+      "declineTask": "Diese Aufgabe ablehnen? Sie können dem Kunden den Grund nennen (optional).",
+      "declineTaskLabel": "Aufgabe ablehnen",
+      "declinePhase": "Diese Phaseneinladung ablehnen?",
+      "decline": "Ablehnen",
+      "taskAccepted": "Aufgabe angenommen – sie steht jetzt bei Ihren Aufträgen",
+      "phaseAccepted": "Phase angenommen",
+      "declined": "Einladung abgelehnt"
+    },
+    "ofl": {
+      "saved": "Offline gespeichert – wird automatisch gesendet, sobald Sie wieder online sind.",
+      "rejected": "Der Server hat diese Änderung abgelehnt.",
+      "sent": {
+        "one": "{n} Offline-Änderung wurde gesendet",
+        "other": "{n} Offline-Änderungen wurden gesendet"
+      },
+      "offlineWaiting": {
+        "one": "Sie sind offline – {n} Änderung wartet auf Synchronisierung",
+        "other": "Sie sind offline – {n} Änderungen warten auf Synchronisierung"
+      },
+      "offline": "Sie sind offline. Änderungen werden gesendet, sobald Sie wieder online sind.",
+      "attention": {
+        "one": "{n} Offline-Änderung braucht Ihre Aufmerksamkeit",
+        "other": "{n} Offline-Änderungen, einige brauchen Ihre Aufmerksamkeit"
+      },
+      "sending": {
+        "one": "{n} Offline-Änderung wird gesendet…",
+        "other": "{n} Offline-Änderungen werden gesendet…"
+      },
+      "review": "Prüfen",
+      "title": "Offline-Änderungen",
+      "auto": "Diese werden automatisch gesendet.",
+      "later": "Diese werden gesendet, sobald Sie wieder online sind.",
+      "discard": "Verwerfen",
+      "nothing": "Nichts in der Warteschlange.",
+      "syncNow": "Jetzt synchronisieren",
+      "discardAll": "Alle verwerfen",
+      "discardConfirm": "Alle wartenden Offline-Änderungen verwerfen? Das lässt sich nicht rückgängig machen.",
+      "cleared": "Offline-Warteschlange geleert",
+      "path": {
+        "time-entries": "Zeiteinträge",
+        "site-reports": "Bautagesberichte",
+        "defects": "Mängel",
+        "upload": "Foto-Upload",
+        "documents": "Dokumente",
+        "messages": "Nachrichten",
+        "comments": "Kommentare",
+        "change": "Änderung"
+      }
+    },
+    "file": {
+      "failed": "Diese Datei konnte nicht geöffnet werden. Möglicherweise haben Sie keinen Zugriff.",
+      "download": "Herunterladen"
+    },
+    "search": {
+      "label": "Schnellsuche",
+      "input": "Suche",
+      "hint": "Seiten, Projekte, Aufgaben, Rechnungen suchen…",
+      "hintCustomer": "Seiten, Projekte, Aufgaben, Rechnungen, Lieferanten suchen…",
+      "none": "Keine Treffer.",
+      "drag": "Zum Verschieben ziehen",
+      "kind": {
+        "page": "Seite",
+        "project": "Projekt",
+        "task": "Aufgabe",
+        "invoice": "Rechnung",
+        "supplier": "Lieferant"
+      },
+      "page": {
+        "customer_dashboard": "Übersicht",
+        "customer_projects": "Projekte",
+        "customer_projects_new": "Neues Projekt",
+        "customer_analytics": "Analysen",
+        "customer_offers": "Angebotsübersicht",
+        "customer_suppliers": "Lieferanten finden",
+        "customer_invoices": "Rechnungen",
+        "customer_inbox": "Posteingang",
+        "customer_time": "Zeitfreigaben",
+        "customer_messages": "Nachrichten",
+        "customer_profile": "Profil & Einstellungen",
+        "supplier_dashboard": "Übersicht",
+        "supplier_projects": "Zugewiesene Arbeit",
+        "supplier_analytics": "Analysen",
+        "supplier_bids": "Ausschreibungen",
+        "supplier_requests": "Angebotsanfragen",
+        "supplier_invoices": "Rechnungen",
+        "supplier_invoices_new": "Rechnung erstellen",
+        "supplier_suppliers": "Leistungskatalog",
+        "supplier_time": "Zeiten & Freigaben",
+        "supplier_inbox": "Posteingang",
+        "supplier_messages": "Nachrichten",
+        "supplier_profile": "Profil & Abrechnung",
+        "admin_dashboard": "Admin-Übersicht",
+        "admin_applications": "Prüfwarteschlange",
+        "admin_users": "Benutzer",
+        "admin_billing": "Zahlungen & Abrechnung",
+        "admin_platform": "Plattformverwaltung",
+        "admin_reports": "Berichte & Analysen",
+        "admin_audit": "Audit-Protokoll",
+        "admin_disputes": "Eskalationen",
+        "admin_profile": "Kontoeinstellungen"
+      }
+    }
+  },
 };

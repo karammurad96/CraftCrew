@@ -1,6 +1,5 @@
 /* Go-live essentials: legal pages (Impressum, privacy policy, terms), consent at sign-up,
    admin password resets and forced password change after a reset. */
-const LEGAL_PAGES = { imprint: "Impressum / Legal notice", privacy: "Privacy policy", terms: "Terms of use" };
 let legalCache = null;
 async function legalContent() {
   if (!legalCache) legalCache = (await api("/platform-config").catch(() => ({}))).legal || {};
@@ -24,37 +23,39 @@ function legalFooter() {
   if (!footer || footer.querySelector(".legal-footer-links")) return;
   footer.insertAdjacentHTML(
     "beforeend",
-    `<nav class="legal-footer-links" aria-label="Legal">${Object.entries(LEGAL_PAGES)
-      .map(([k, t]) => `<a href="#/${k}">${t.split(" / ")[0]}</a>`)
-      .join("")}</nav>`,
+    `<nav class="legal-footer-links" aria-label="${esc(t("ui.legal.label"))}" data-i18n="keys">${["imprint", "privacy", "terms"].map((k) => `<a href="#/${k}">${esc(t("ui.legal." + k))}</a>`).join("")}</nav>`,
   );
 }
 
 /* Forced password change after an admin reset or a team invite.
    The server refuses every other call until then, so this page needs no other data. */
 function legalForceChangePage() {
+  const f = (key) => esc(t("ui.force." + key)),
+    s = (key) => esc(t("prof.sec." + key));
   app.innerHTML = publicLayout(
-    `<div class="cc-page"><section class="panel" id="paSecurity" style="max-width:560px;margin:40px auto"><h1>Choose a new password</h1><div class="notice legal-force-note">${state.user.isMember ? "Welcome to the team. Please replace your temporary password with your own to continue." : "Your password was reset by an administrator. Please choose a new password to continue."}</div><form id="legalForceForm" class="modal-form"><label>Current password<input name="currentPassword" type="password" autocomplete="current-password" placeholder="Temporary password" required></label><label>New password<input name="newPassword" type="password" autocomplete="new-password" minlength="10" required></label><label>Repeat new password<input name="confirm" type="password" autocomplete="new-password" minlength="10" required></label><small class="subtle">At least 10 characters with letters and numbers. Other signed-in devices are signed out.</small><div class="form-error" role="alert"></div><div class="cc-actions"><button class="btn primary">Change password</button><button type="button" class="btn outline" onclick="logout()">Sign out</button></div></form></section></div>`,
+    `<div class="cc-page" data-i18n="keys"><section class="panel" id="paSecurity" style="max-width:560px;margin:40px auto"><h1>${f("title")}</h1><div class="notice legal-force-note">${f(state.user.isMember ? "member" : "reset")}</div><form id="legalForceForm" class="modal-form" data-action="ui.forcePassword"><label>${s(
+      "current",
+    )}<input name="currentPassword" type="password" autocomplete="current-password" placeholder="${f("temporary")}" required></label><label>${s("new")}<input name="newPassword" type="password" autocomplete="new-password" minlength="10" required></label><label>${s(
+      "repeat",
+    )}<input name="confirm" type="password" autocomplete="new-password" minlength="10" required></label><small class="subtle">${s("rules")}</small><div class="form-error" role="alert" data-i18n="dom"></div><div class="cc-actions"><button class="btn primary">${s(
+      "change",
+    )}</button><button type="button" class="btn outline" data-action="ui.signOut">${f("signOut")}</button></div></form></section></div>`,
   );
-  const form = document.getElementById("legalForceForm");
-  form.onsubmit = async (e) => {
-    e.preventDefault();
-    const f = Object.fromEntries(new FormData(form)),
-      err = form.querySelector(".form-error");
-    err.textContent = "";
-    if (f.newPassword !== f.confirm) {
-      err.textContent = "The new passwords do not match";
-      return;
-    }
-    try {
-      await api("/account/password", { method: "POST", body: f });
-      toast("Password changed");
-      navigate(`/${state.user.role}`);
-    } catch (x) {
-      err.textContent = x.message;
-    }
-  };
 }
+actions.on("ui.forcePassword", async (form) => {
+  const f = Object.fromEntries(new FormData(form)),
+    err = form.querySelector(".form-error");
+  err.textContent = "";
+  if (f.newPassword !== f.confirm) return (err.textContent = t("prof.sec.mismatch"));
+  try {
+    await api("/account/password", { method: "POST", body: f });
+    tToast(t("prof.sec.done"));
+    navigate(`/${state.user.role}`);
+  } catch (x) {
+    err.textContent = x.message;
+  }
+});
+actions.on("ui.signOut", () => logout());
 const legalBaseApi = api;
 api = async function (path, opts = {}) {
   const result = await legalBaseApi(path, opts);
@@ -69,7 +70,6 @@ api = async function (path, opts = {}) {
 const legalBaseRoute = window.route;
 window.route = async function () {
   const path = location.hash.replace(/^#/, "").split("?")[0];
-  const key = path.replace(/^\//, "");
   if (state.user?.mustChangePassword && /^\/(customer|supplier|admin)(\/|$)/.test(path)) {
     legalForceChangePage();
     return;

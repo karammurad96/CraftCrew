@@ -33,7 +33,7 @@ async function profilePage(role) {
       : [
           `<div class="dash-top"><div><div class="eyebrow">${pfk("eyebrow")}</div><h1>${pfk("title")}</h1><p>${pfk("lead")}</p></div><button class="btn primary" data-action="prof.edit">${pfk("editCompany")}</button></div>`,
           role === "supplier" ? pfPendingBanner(d.supplier?.pendingVerification) : "",
-          pfCompany(d),
+          ...pfCompany(d),
           role === "supplier" && d.supplier ? pfMarketplace(d.supplier) : "",
         ];
   app.innerHTML = dashboardShell(
@@ -51,11 +51,11 @@ function pfCompany(d) {
     u = d.user,
     fields = ["legalName", "taxId", "industry", "companySize", "address", "website", "contactName", "phone", "procurementEmail", "description"],
     value = { ...c, contactName: c.contactName || u.name };
-  return `<div class="wf-profile-head">${
+  return [`<div class="wf-profile-head">${
     u.profileImage ? `<img class="wf-profile-image" src="${esc(u.profileImage)}" alt="${pfk("photoAlt")}">` : `<div class="supplier-avatar large">${esc((u.company || u.name).slice(0, 2).toUpperCase())}</div>`
-  }<div><h2>${u.company ? esc(u.company) : pfk("companyRequired")}</h2><b>${esc(u.name)}</b><p>${esc(u.email)} · ${c.phone ? esc(c.phone) : pfk("addPhone")}</p></div></div><div class="wf-profile-grid">${fields
+  }<div><h2>${u.company ? esc(u.company) : pfk("companyRequired")}</h2><b>${esc(u.name)}</b><p>${esc(u.email)} · ${c.phone ? esc(c.phone) : pfk("addPhone")}</p></div></div>`, `<div class="wf-profile-grid">${fields
     .map((k) => `<article class="cc-card"><span class="cc-label">${pfk("field." + k)}</span><b>${value[k] ? (k === "description" || k === "industry" ? pfDom(value[k]) : esc(value[k])) : pfk("addInfo")}</b></article>`)
-    .join("")}</div>`;
+    .join("")}</div>`];
 }
 function pfMarketplace(s) {
   return `<div class="panel" style="margin-top:16px"><h3>${pfk("marketplace")}</h3><p>${esc(ccBadge(s))} · ${pfk("staffYears", { staff: Number(s.employees) || 0, years: Number(s.experience) || 0 })}</p><a class="btn outline" href="#/supplier/suppliers">${pfk(

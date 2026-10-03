@@ -9,7 +9,7 @@ function wfSupplier(sups, id) {
 async function wfOpenDocument(url) {
   try {
     const r = await fetch(url, { credentials: "same-origin" });
-    if (!r.ok) throw new Error("Could not open this document");
+    if (!r.ok) throw new Error(t("ui.file.failed"));
     const blob = await r.blob(),
       link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -46,7 +46,7 @@ async function route() {
     app.innerHTML = dashboardShell(
       state.user?.role || "customer",
       active,
-      `<div class="empty"><h2>We could not open this page</h2><p>${esc(e.message)}</p><button class="btn primary" onclick="route()">Try again</button></div>`,
+      `<div class="empty" data-i18n="keys"><h2>${esc(t("errors.pageFailed"))}</h2><p data-i18n="dom">${esc(e.message)}</p><button class="btn primary" data-action="ui.retry">${esc(t("ui.retry"))}</button></div>`,
     );
   }
 }
