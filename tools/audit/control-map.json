@@ -347,5 +347,43 @@
   },
   "supplier /supplier/messages": {
     "action reviewNewChat()": "action [msg.new]"
+  },
+  "customer /customer/approvals": {
+    "action cmDecideVisit('visit_demo_1','approve',false)": "action [cm.visit]",
+    "action cmDecideVisit('visit_demo_1','reject')": "action [cm.visit]",
+    "action dsApprovalDo(() => ccReviewTime('time_demo_pending','Approved'))": "action [appr.time]",
+    "action dsApprovalDo(() => invoiceAction('inv_demo_submitted','Approve'))": "action [appr.invoice]",
+    "action dsApprovalDo(() => invoiceAction('inv_demo_submitted','Request Changes'))": "action [appr.invoice]",
+    "action cmReviewDoc('cdoc_<id>','Accepted')": "action [cm.reviewDoc]",
+    "action cmReviewDoc('cdoc_<id>','Rejected')": "action [cm.reviewDoc]"
+  },
+  "customer /customer/sites": {
+    "action cmDecideVisit('visit_demo_1','approve',false)": "action [cm.visit]",
+    "action cmDecideVisit('visit_demo_1','reject')": "action [cm.visit]",
+    "action cmSiteForm()": "action [cm.siteForm]",
+    "action cmReviewDoc('cdoc_<id>','Accepted')": "action [cm.reviewDoc]",
+    "action cmReviewDoc('cdoc_<id>','Rejected')": "action [cm.reviewDoc]"
+  },
+  "supplier /supplier/compliance": {
+    "action cmAccessForm('site_demo_regensburg')": "action [cm.access]",
+    "action cmAccessForm()": "action [cm.access]",
+    "action cmBriefing('site_demo_regensburg')": "action [cm.briefing]",
+    "action cmSupplierVisit('visit_demo_1','cancel')": "action [cm.supplierVisit]",
+    "action cmUploadDoc('bgCertificate')": "action [cm.upload]",
+    "action cmUploadDoc('electrician','wrk_demo_keller')": "action [cm.upload]",
+    "action cmUploadDoc('electrician','wrk_demo_weber')": "action [cm.upload]",
+    "action cmUploadDoc('firstAid','wrk_demo_keller')": "action [cm.upload]",
+    "action cmUploadDoc('firstAid','wrk_demo_weber')": "action [cm.upload]",
+    "action cmUploadDoc('forklift','wrk_demo_keller')": "action [cm.upload]",
+    "action cmUploadDoc('forklift','wrk_demo_weber')": "action [cm.upload]",
+    "action cmUploadDoc('heightFitness','wrk_demo_keller')": "action [cm.upload]",
+    "action cmUploadDoc('heightFitness','wrk_demo_weber')": "action [cm.upload]",
+    "action cmUploadDoc('insurance')": "action [cm.upload]",
+    "action cmUploadDoc('minimumWage')": "action [cm.upload]",
+    "action cmUploadDoc('scc')": "action [cm.upload]",
+    "action cmUploadDoc('tax48b')": "action [cm.upload]",
+    "action cmWorkerForm('wrk_demo_keller')": "action [cm.worker]",
+    "action cmWorkerForm('wrk_demo_weber')": "action [cm.worker]",
+    "action cmWorkerForm()": "action [cm.worker]"
   }
 }

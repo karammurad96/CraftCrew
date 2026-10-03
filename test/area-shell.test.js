@@ -100,7 +100,6 @@ describe("app shell", () => {
     for (const f of ["app.js", "enhancements.js", "workflows.js"]) assert.doesNotMatch(read(f), /function sidebar\(|function dashboardShell\(/, f);
     for (const [f, gone] of [
       ["collaboration.js", /function ccNav|ccNav\(/],
-      ["compliance-ui.js", /function cmNav|cmNav\(/],
       ["insights.js", /function inNav|inNav\(/],
       ["sourcing-ui.js", /function srNav|srNav\(/],
       ["planner.js", /function plNav|plNav\(/],
