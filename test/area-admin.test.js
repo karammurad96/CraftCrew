@@ -159,7 +159,7 @@ describe("admin: applications, profile changes, users (T134a)", () => {
   });
 
   it("replaced the old admin pages and their wrappers", () => {
-    const old = ["app.js", "reviews.js", "collaboration.js", "feedback-fixes.js", "gdpr-ui.js", "legal-security.js", "reverify-ui.js", "workflows.js", "enhancements.js"].map(read).join("\n");
+    const old = ["app.js", "reviews.js", "collaboration.js", "feedback-fixes.js", "gdpr-ui.js", "legal-security.js", "workflows.js", "enhancements.js"].map(read).join("\n");
     assert.doesNotMatch(old, /adminApplications|reviewApplication|adminUsers|adminProfileChanges|ccSetAccountStatus|legalResetPassword|ffPreviewEvidence/);
     assert.ok(read("index.html").includes('<script src="areas/sites.js"></script><script src="areas/admin.js"></script>'));
     assert.deepEqual(

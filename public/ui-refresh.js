@@ -492,7 +492,7 @@ function uiDialog({
         : String(s);
     document.body.insertAdjacentHTML(
       "beforeend",
-      `<div id="uiDialog" class="ui-dialog-backdrop" role="dialog" aria-modal="true" aria-labelledby="uiDialogTitle"><form class="ui-dialog"><h2 id="uiDialogTitle">${esc(tr(title))}</h2>${message ? `<p>${esc(tr(message))}</p>` : ""}${input ? `<textarea name="value" rows="3" ${required ? "required" : ""} placeholder="${esc(tr(placeholder))}">${esc(defaultValue)}</textarea>${required ? `<small class="subtle">${esc(tr("Required"))}</small>` : ""}` : ""}<div class="cc-actions"><button type="button" class="btn outline" data-cancel>${esc(tr("Cancel"))}</button><button class="btn ${danger ? "danger" : "primary"}">${esc(tr(confirmLabel))}</button></div></form></div>`,
+      `<div id="uiDialog" class="ui-dialog-backdrop" role="dialog" aria-modal="true" aria-labelledby="uiDialogTitle"><form class="ui-dialog"><h2 id="uiDialogTitle">${esc(tr(title))}</h2>${message ? `<p>${esc(tr(message))}</p>` : ""}${input ? `<textarea name="value" rows="3" ${required ? "required" : ""} placeholder="${esc(tr(placeholder))}">${esc(defaultValue)}</textarea>${required ? `<small class="subtle">${esc(t("common.dialog.required"))}</small>` : ""}` : ""}<div class="cc-actions"><button type="button" class="btn outline" data-cancel>${esc(t("common.dialog.cancel"))}</button><button class="btn ${danger ? "danger" : "primary"}">${esc(tr(confirmLabel))}</button></div></form></div>`,
     );
     const box = document.getElementById("uiDialog"),
       form = box.querySelector("form"),
@@ -530,10 +530,11 @@ function uiDialog({
 /* Drop-in replacements: uiConfirm(message) → true/false, uiPrompt(message, default) → text or null. */
 const uiConfirm = (message, opts = {}) =>
   uiDialog({
-    title: opts.title || "Please confirm",
+    title: opts.title || t("common.dialog.confirm"),
     message,
-    confirmLabel: opts.confirmLabel || "Continue",
-    danger: /delete|reject|suspend|close|decline|remove/i.test(message) || opts.danger,
+    confirmLabel: opts.confirmLabel || t("common.dialog.continue"),
+    // English, and German for messages from translation keys
+    danger: /delete|reject|suspend|close|decline|remove|lösch|ablehn|sperr|schließ|entfern/i.test(message) || opts.danger,
   });
 const uiPrompt = (message, defaultValue = "", opts = {}) =>
   uiDialog({
@@ -541,7 +542,7 @@ const uiPrompt = (message, defaultValue = "", opts = {}) =>
     input: true,
     required: opts.required ?? /reason|why|what (needs|should)|resolution/i.test(message),
     defaultValue: defaultValue ?? "",
-    confirmLabel: opts.confirmLabel || "Save",
+    confirmLabel: opts.confirmLabel || t("common.dialog.save"),
   });
 
 /* Buttons placed next to each other outside a flex/grid row get the standard gap. */

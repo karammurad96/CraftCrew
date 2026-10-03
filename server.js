@@ -2820,6 +2820,13 @@ function csrfProblem(req) {
   }
   return null;
 }
+// The hash of the token this request signed in with: the bearer token of API clients or the browser's cookie.
+// "Sign out other sessions" and a password change keep this one session.
+function currentTokenHash(req) {
+  const h = req.headers.authorization || "",
+    token = (h.startsWith("Bearer ") ? h.slice(7) : null) || cookieToken(req) || "";
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
 function auth(req) {
   const h = req.headers.authorization || "";
   const bearer = h.startsWith("Bearer ") ? h.slice(7) : null,
@@ -7870,19 +7877,13 @@ async function api(req, res, url) {
       me.passwordHash = hp.hash;
       me.passwordChangedAt = now();
       delete me.mustChangePassword;
-      const current = crypto
-        .createHash("sha256")
-        .update((req.headers.authorization || "").slice(7))
-        .digest("hex");
+      const current = currentTokenHash(req);
       db.sessions = (db.sessions || []).filter((x) => x.userId !== me.id || x.tokenHash === current);
       save();
       return (send(res, 200, { ok: true }), true);
     }
     if (parts[1] === "account" && parts[2] === "sessions" && method === "DELETE") {
-      const current = crypto
-        .createHash("sha256")
-        .update((req.headers.authorization || "").slice(7))
-        .digest("hex");
+      const current = currentTokenHash(req);
       const before = (db.sessions || []).length;
       db.sessions = (db.sessions || []).filter((x) => x.userId !== me.id || x.tokenHash === current);
       save();

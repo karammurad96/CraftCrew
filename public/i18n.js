@@ -81,13 +81,6 @@ const I18N_DE = {
   Reactivate: "Reaktivieren",
   "Reset password": "Passwort zurücksetzen",
   "Change password": "Passwort ändern",
-  "Sign out other sessions": "Andere Sitzungen abmelden",
-  "Save preferences": "Einstellungen speichern",
-  "Save payout details": "Auszahlungsdaten speichern",
-  "Change payout account": "Auszahlungskonto ändern",
-  "Edit company details": "Unternehmensdaten bearbeiten",
-  "Manage service catalog and team": "Leistungskatalog & Team verwalten",
-  "Manage team & service catalog": "Team & Leistungskatalog verwalten",
   "Start a project": "Projekt starten",
   "Explore suppliers": "Lieferanten entdecken",
   "Start as a customer": "Als Kunde starten",
@@ -241,7 +234,6 @@ const I18N_DE = {
   "Reports & analytics": "Berichte & Analysen",
   "Customer analytics": "Kundenanalysen",
   // Invoices, time, messages, settings
-  "Invoices & payments": "Rechnungen & Zahlungen",
   Find: "Suchen",
   From: "Von",
   To: "Bis",
@@ -251,32 +243,16 @@ const I18N_DE = {
   "Invoice positions": "Rechnungspositionen",
   "← Back to invoices": "← Zurück zu den Rechnungen",
   Chats: "Chats",
-  "Company profile & settings": "Unternehmensprofil & Einstellungen",
   "Legal name": "Firmenname",
-  "VAT / tax ID": "USt-IdNr. / Steuer-ID",
   Industry: "Branche",
-  "Company size": "Unternehmensgröße",
   Address: "Adresse",
-  Website: "Website",
-  "Main contact": "Hauptansprechpartner",
   Phone: "Telefon",
-  "Procurement email": "Einkaufs-E-Mail",
-  About: "Über uns",
-  "Email notifications": "E-Mail-Benachrichtigungen",
   "Current password": "Aktuelles Passwort",
   "New password": "Neues Passwort",
   "Repeat new password": "Neues Passwort wiederholen",
-  "New messages": "Neue Nachrichten",
   "Invoices & payments ": "Rechnungen & Zahlungen",
-  "Documents & approvals": "Dokumente & Freigaben",
-  "Bids, offers & quote requests": "Ausschreibungen, Angebote & Anfragen",
-  "Project & assignment updates": "Projekt- & Zuweisungsupdates",
   "Time entries": "Zeiteinträge",
-  "Payouts & billing details": "Auszahlungen & Rechnungsdaten",
   "Account holder *": "Kontoinhaber *",
-  "Bank name": "Bank",
-  "Billing email": "Rechnungs-E-Mail",
-  "Team & roles": "Team & Rollen",
   "Account settings": "Kontoeinstellungen",
   "Platform management": "Plattformverwaltung",
   Administrator: "Administrator",
@@ -360,30 +336,12 @@ Object.assign(I18N_DE, {
   "Depends on phases": "Abhängig von Phasen",
   "Depends on": "Abhängig von",
   You: "Sie",
-  "Share the business identity and contacts project partners need.":
-    "Unternehmensdaten und Kontakte für Projektpartner.",
-  "Choose a strong, unique password.": "Wählen Sie ein starkes, einzigartiges Passwort.",
   "At least 10 characters with letters and numbers. Other signed-in devices are signed out.":
     "Mindestens 10 Zeichen mit Buchstaben und Zahlen. Andere angemeldete Geräte werden abgemeldet.",
-  "In-app notifications are always on. Choose which events also send an email copy.":
-    "Benachrichtigungen in der App sind immer aktiv. Wählen Sie, welche Ereignisse zusätzlich per E-Mail kommen.",
   "Revenue, pipeline, bid success, delivery performance and team utilisation.":
     "Umsatz, Pipeline, Angebotserfolg, Lieferleistung und Teamauslastung.",
   "Task invitations, supplier commitments, documentation and progress.":
     "Aufgabeneinladungen, Zusagen, Dokumentation und Fortschritt.",
-  "YOUR MARKETPLACE PROFILE": "IHR MARKTPLATZPROFIL",
-  "Manage individually priced services and the people qualified to deliver them.":
-    "Einzeln bepreiste Leistungen und qualifiziertes Personal verwalten.",
-  "Customers can see your published services and send requests linked to a project task.":
-    "Kunden sehen Ihre veröffentlichten Leistungen und können projektbezogene Anfragen senden.",
-  "+ Add service / person": "+ Leistung / Person hinzufügen",
-  "Edit catalog & team": "Katalog & Team bearbeiten",
-  "Where customers pay approved invoices. Shown on your invoice PDFs and to CraftCrew administrators only.":
-    "Hierhin zahlen Kunden freigegebene Rechnungen. Nur auf Ihren Rechnungs-PDFs und für CraftCrew-Administratoren sichtbar.",
-  "No payout account yet — add one so approved invoices can be paid.":
-    "Noch kein Auszahlungskonto – bitte hinterlegen, damit freigegebene Rechnungen bezahlt werden können.",
-  "Key people, roles and certifications are managed in your service catalog and shown on your public profile.":
-    "Schlüsselpersonen, Rollen und Zertifikate verwalten Sie im Leistungskatalog; sie erscheinen im öffentlichen Profil.",
   "Marketplace quality, vetting and financial operations.":
     "Marktplatzqualität, Lieferantenprüfung und Finanzen.",
   "Signed in": "Angemeldet",
@@ -397,11 +355,6 @@ Object.assign(I18N_DE, {
   Who: "Wer",
   Action: "Aktion",
   Record: "Datensatz",
-  "Your administrator account, security and notification preferences. Marketplace-wide settings live in Platform management.":
-    "Ihr Administratorkonto, Sicherheit und Benachrichtigungen. Marktplatzweite Einstellungen finden Sie in der Plattformverwaltung.",
-  "Administrator · full access to vetting, users, billing, reports and settings":
-    "Administrator · voller Zugriff auf Prüfung, Benutzer, Abrechnung, Berichte und Einstellungen",
-  "ADMIN ACCOUNT": "ADMIN-KONTO",
   // Landing, public pages and pricing
   "Build complex projects with": "Komplexe Projekte mit",
   "trusted crews.": "verlässlichen Teams umsetzen.",
@@ -423,7 +376,6 @@ Object.assign(I18N_DE, {
     "Kunden steuern ein Phasenprojekt. Lieferanten übernehmen zugewiesene Phasen. CraftCrew organisiert Workflow, Prüfung, Dokumentation und Rechnungsablauf.",
   "A professional operating layer for": "Eine professionelle Arbeitsumgebung für",
   "industrial work.": "industrielle Projekte.",
-  "Contact name": "Ansprechpartner",
   Location: "Standort",
   Certifications: "Zertifizierungen",
   "Portfolio / past work *": "Referenzprojekte *",
@@ -579,7 +531,6 @@ Object.assign(I18N_DE, {
 Object.assign(I18N_DE, {
   // Change requests on invoices and offers
   "Requested changes": "Angeforderte Änderungen",
-  Unit: "Einheit",
   Total: "Summe",
   "Changes requested": "Änderungen angefordert",
   Rejected: "Abgelehnt",
@@ -678,9 +629,6 @@ Object.assign(I18N_DE, {
   "Delete this project? Projects with invoices, documents or accepted suppliers are archived instead.":
     "Dieses Projekt löschen? Projekte mit Rechnungen, Dokumenten oder angenommenen Lieferanten werden stattdessen archiviert.",
   "Please choose a new password first.": "Bitte wählen Sie zuerst ein neues Passwort.",
-  "Change awaiting re-verification": "Änderung wartet auf erneute Prüfung",
-  "Until an admin reviews it, your profile still shows the previous values.":
-    "Bis ein Admin sie prüft, zeigt Ihr Profil weiterhin die bisherigen Angaben.",
   "Company name": "Firmenname",
   "Tax ID": "Steuernummer",
   Field: "Feld",
@@ -708,34 +656,8 @@ Object.assign(I18N_DE, {
     "Admin-Konten brauchen die Zwei-Faktor-Anmeldung. Schalten Sie sie ein, um fortzufahren.",
   "Two-factor sign-in": "Zwei-Faktor-Anmeldung",
   Off: "Aus",
-  "Signing in needs your password and a code from your authenticator app.":
-    "Zur Anmeldung brauchen Sie Ihr Passwort und einen Code aus Ihrer Authenticator-App.",
-  "Protect your account with a second step: a 6-digit code from an authenticator app such as Microsoft Authenticator, Google Authenticator or 1Password.":
-    "Schützen Sie Ihr Konto mit einem zweiten Schritt: einem 6-stelligen Code aus einer Authenticator-App wie Microsoft Authenticator, Google Authenticator oder 1Password.",
-  "Recovery codes left:": "Verbleibende Wiederherstellungscodes:",
-  "Admin accounts must use two-factor sign-in.": "Admin-Konten müssen die Zwei-Faktor-Anmeldung nutzen.",
   "Turn on": "Einschalten",
-  "Require two-factor sign-in for all admin accounts":
-    "Zwei-Faktor-Anmeldung für alle Admin-Konten verlangen",
   "Turn on two-factor sign-in": "Zwei-Faktor-Anmeldung einschalten",
-  "Open your authenticator app and add an account.":
-    "Öffnen Sie Ihre Authenticator-App und fügen Sie ein Konto hinzu.",
-  "Open in authenticator app": "In der Authenticator-App öffnen",
-  "If you can't scan or open the link, enter this key by hand:":
-    "Wenn Sie den Link nicht öffnen können, geben Sie diesen Schlüssel von Hand ein:",
-  "Time-based, 6 digits, every 30 seconds.": "Zeitbasiert, 6 Ziffern, alle 30 Sekunden.",
-  "Enter the 6-digit code the app shows.": "Geben Sie den 6-stelligen Code aus der App ein.",
-  "Code from the app": "Code aus der App",
-  "Save your recovery codes": "Speichern Sie Ihre Wiederherstellungscodes",
-  "Each code signs you in once if you lose your phone. Store them somewhere safe, like a password manager. They are shown only now.":
-    "Jeder Code meldet Sie einmal an, falls Sie Ihr Telefon verlieren. Bewahren Sie sie sicher auf, etwa in einem Passwortmanager. Sie werden nur jetzt angezeigt.",
-  "Download as text file": "Als Textdatei herunterladen",
-  "I saved them": "Ich habe sie gespeichert",
-  "Turn off two-factor sign-in": "Zwei-Faktor-Anmeldung ausschalten",
-  "Code from the app or a recovery code": "Code aus der App oder ein Wiederherstellungscode",
-  "Two-factor sign-in turned off": "Zwei-Faktor-Anmeldung ausgeschaltet",
-  "Two-factor sign-in is now required for admins": "Zwei-Faktor-Anmeldung ist jetzt für Admins Pflicht",
-  "Requirement turned off": "Pflicht ausgeschaltet",
   "Enter the 6-digit code from your authenticator app, or a recovery code.":
     "Geben Sie den 6-stelligen Code aus Ihrer Authenticator-App oder einen Wiederherstellungscode ein.",
   "That code is not right. Check the time on your phone and try again.":
@@ -753,30 +675,9 @@ Object.assign(I18N_DE, {
   "Your password is incorrect": "Ihr Passwort ist falsch",
   Calendar: "Kalender",
   On: "An",
-  "Task due dates, phase dates, bid deadlines, contract notice dates and approved site visits appear in your own calendar as all-day events.":
-    "Fälligkeiten von Aufgaben, Phasentermine, Angebotsfristen, Kündigungsfristen von Verträgen und genehmigte Standortbesuche erscheinen als ganztägige Termine in Ihrem eigenen Kalender.",
-  "Your private calendar link (shown once — keep it secret)":
-    "Ihr privater Kalenderlink (wird nur einmal angezeigt – geheim halten)",
-  "Copy link": "Link kopieren",
-  "How to add it": "So fügen Sie ihn hinzu",
   "Outlook:": "Outlook:",
-  "Calendar → Add calendar → Subscribe from web → paste the link.":
-    "Kalender → Kalender hinzufügen → Aus dem Internet abonnieren → Link einfügen.",
   "Google Calendar:": "Google Kalender:",
-  "Other calendars → + → From URL → paste the link.": "Weitere Kalender → + → Per URL → Link einfügen.",
   "Apple Calendar:": "Apple Kalender:",
-  "File → New Calendar Subscription → paste the link.": "Ablage → Neues Kalenderabonnement → Link einfügen.",
-  "Calendar apps refresh subscribed calendars every few hours.":
-    "Kalender-Apps aktualisieren abonnierte Kalender alle paar Stunden.",
-  "Create new link": "Neuen Link erstellen",
-  "Create calendar link": "Kalenderlink erstellen",
-  "Turn off": "Ausschalten",
-  "Create a new link? The old link stops working in every calendar that uses it.":
-    "Neuen Link erstellen? Der alte Link funktioniert dann in keinem Kalender mehr.",
-  "Turn off the calendar link? Calendars that use it stop updating.":
-    "Kalenderlink ausschalten? Kalender, die ihn nutzen, werden nicht mehr aktualisiert.",
-  "Calendar link turned off": "Kalenderlink ausgeschaltet",
-  "Link copied": "Link kopiert",
   "Daily site reports": "Bautagesberichte",
   Acknowledged: "Zur Kenntnis genommen",
   "Not acknowledged yet": "Noch nicht zur Kenntnis genommen",
@@ -861,7 +762,6 @@ Object.assign(I18N_DE, {
   Services: "Leistungen",
   "Hourly rate": "Stundensatz",
   Reliability: "Zuverlässigkeit",
-  "Lead time": "Vorlaufzeit",
   Availability: "Verfügbarkeit",
   Detail: "Detail",
   "One request to:": "Eine Anfrage an:",
@@ -894,9 +794,6 @@ Object.assign(I18N_DE, {
   "This phase cannot be deleted": "Diese Phase kann nicht gelöscht werden",
   "It has supplier assignments or invoices. Remove the assignments and resolve the invoices first.":
     "Sie hat Lieferantenzuweisungen oder Rechnungen. Entfernen Sie zuerst die Zuweisungen und klären Sie die Rechnungen.",
-  "Sign out all your other sessions? Other browsers and devices will need to sign in again.":
-    "Alle anderen Sitzungen abmelden? Andere Browser und Geräte müssen sich erneut anmelden.",
-  "Sign out others": "Andere abmelden",
   // Dashboard action queue (T53)
   "Action queue": "Zu erledigen",
   "Next deadline:": "Nächste Frist:",
@@ -1005,8 +902,6 @@ Object.assign(I18N_DE, {
   Photo: "Foto",
   // GDPR self-service (T120)
   "Your data": "Ihre Daten",
-  "Download a copy of the personal data CraftCrew stores about you: your account, messages, notifications, projects, invoices and activity. Passwords and security keys are never included.":
-    "Laden Sie eine Kopie der personenbezogenen Daten herunter, die CraftCrew über Sie speichert: Konto, Nachrichten, Benachrichtigungen, Projekte, Rechnungen und Aktivitäten. Passwörter und Sicherheitsschlüssel sind nie enthalten.",
   "Download my data": "Meine Daten herunterladen",
   // Privacy rights and admin view (T123)
   "This account was deleted and can't be changed.": "Dieses Konto wurde gelöscht und kann nicht geändert werden.",
@@ -1017,14 +912,8 @@ Object.assign(I18N_DE, {
   "Deleted": "Gelöscht",
   "Invalid email or password": "E-Mail oder Passwort ist falsch",
   // Account deletion (T121)
-  "Delete account": "Konto löschen",
-  "This deletes your own login. The company account and its data stay.":
-    "Damit wird nur Ihr eigener Zugang gelöscht. Das Firmenkonto und seine Daten bleiben erhalten.",
-  "Finish or hand over these first:": "Schließen Sie zuerst Folgendes ab oder übergeben Sie es:",
   "Finish or hand over these first.": "Schließen Sie zuerst Folgendes ab oder übergeben Sie es.",
   "Your password": "Ihr Passwort",
-  "Code from your authenticator app": "Code aus Ihrer Authenticator-App",
-  "Delete my account": "Mein Konto löschen",
   "The password is not right.": "Das Passwort ist nicht richtig.",
   "Enter the current code from your authenticator app.": "Geben Sie den aktuellen Code aus Ihrer Authenticator-App ein.",
   "Admin accounts can't be deleted this way. Ask another admin.":
@@ -1036,7 +925,6 @@ Object.assign(I18N_DE, {
     "Dieses Firmenkonto wird gelöscht. Wenden Sie sich an den Inhaber des Kontos.",
   "This account is being deleted.": "Dieses Konto wird gelöscht.",
   "An escalation is still open": "Eine Eskalation ist noch offen",
-  "Your data was downloaded": "Ihre Daten wurden heruntergeladen",
   "You can download your data 5 times per hour. Please try again later.":
     "Sie können Ihre Daten 5-mal pro Stunde herunterladen. Bitte versuchen Sie es später erneut.",
   // Share a project (T110)
@@ -1062,7 +950,6 @@ Object.assign(I18N_DE, {
   Profile: "Profil",
   // Log time sheet (T103)
   Date: "Datum",
-  Employee: "Mitarbeiter",
   // Approvals (T104)
   Changes: "Änderungen",
   Show: "Anzeigen",

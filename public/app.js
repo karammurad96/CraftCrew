@@ -150,71 +150,6 @@ function publicLayout(content) {
 function publicHero() {
   return `<section class="hero-lite"><div><div class="eyebrow">INDUSTRIAL SERVICES, COORDINATED</div><h1>Build complex projects with <span>trusted crews.</span></h1><p>CraftCrew connects SMEs with vetted mechanical, electrical, automation and industrial service specialists — managed through one transparent waterfall workflow.</p><div class="hero-actions"><button class="btn primary lg" onclick="navigate('/signup')">Start a project</button><button class="btn outline lg" onclick="navigate('/suppliers')">Explore suppliers</button></div><div class="trust-row"><div><b>20+</b><small>vetted suppliers</small></div><div><b>5-stage</b><small>waterfall delivery</small></div><div><b>1 place</b><small>projects & payments</small></div></div></div><div class="hero-box"><div class="small-label">LIVE PROJECT CONTROL</div><h3 style="font-size:20px;margin:10px 0">Line 15 Integration</h3><div class="progress"><i style="width:68%"></i></div><div style="font-size:11px;color:#9eabc0">68% complete · 12 days remaining</div><div class="mini"><div><div class="small-label">ACTIVE PHASE</div><b>Programming</b><p style="color:#9eabc0">SPS Experts GmbH</p></div><div><div class="small-label">NEXT MILESTONE</div><b>Installation</b><p style="color:#9eabc0">18 Sep 2026</p></div></div></div></section>`;
 }
-async function supplierCatalog() {
-  const d = await api("/profile"),
-    s = d.supplier;
-  app.innerHTML = dashboardShell(
-    "supplier",
-    "suppliers",
-    `<div class="dash-top"><div><h1>Service catalog</h1><p>What customers see when evaluating your company.</p></div><div class="cc-actions"><button class="btn outline" onclick="editProfile()">Edit profile</button><button class="btn primary" onclick="editCatalog()">Edit services & rates</button></div></div><div class="cc-card"><div class="supplier-top"><div class="supplier-avatar">${esc(s.avatar)}</div><div><h2 style="margin:0">${esc(s.company)}</h2><p>${esc(s.location)} · ${esc(supplierBadge(s))} · ★ ${s.rating}</p></div></div><h4>Services</h4>${s.services.map((x) => `<span class="chip">${esc(x)}</span>`).join("")}<h4>Certifications</h4>${s.certifications.map((x) => `<span class="chip">${esc(x)}</span>`).join("")}<div class="detail-grid" style="margin-top:20px"><div class="detail-box"><small>Experience</small><b>${s.experience} years</b></div><div class="detail-box"><small>Projects</small><b>${s.projectsCompleted}</b></div><div class="detail-box"><small>Hourly rate</small><b>${money(s.hourlyRate)}</b></div><div class="detail-box"><small>Availability</small><b>${s.availability}</b></div></div><p>${esc(s.description)}</p></div>`,
-  );
-}
-async function editCatalog() {
-  const d = await api("/profile"),
-    s = d.supplier;
-  modal(
-    "Edit service catalog",
-    `<form id="catf" class="modal-form"><label>Services</label><div class="check-grid2">${["Mechanical Engineering", "Electrical Engineering", "PLC Programming", "Robotics", "CAD / Design", "Manufacturing", "Installation", "Commissioning", "Project Management", "Industrial Shipping"].map((x) => `<label><input type="checkbox" name="services" value="${esc(x)}" ${s.services.includes(x) ? "checked" : ""}> ${esc(x)}</label>`).join("")}</div><label>Certifications</label><div class="check-grid2">${["ISO 9001", "ISO 13849", "ISO 14001", "ISO 45001", "TÜV", "CE Machinery", "VDA 6.3", "SCC Safety"].map((x) => `<label><input type="checkbox" name="certifications" value="${esc(x)}" ${s.certifications.includes(x) ? "checked" : ""}> ${esc(x)}</label>`).join("")}</div><div class="two"><label>Availability<select name="availability"><option>Available</option><option>Busy</option><option>Unavailable</option></select></label><label>Hourly rate (€)<input name="hourlyRate" type="number" value="${s.hourlyRate}"></label></div><label>Starting project rate (€)<input name="projectRate" type="number" value="${s.projectRate}"></label><button class="btn primary">Save catalog</button></form>`,
-  );
-  document.querySelector("#catf select").value = s.availability;
-  document.getElementById("catf").onsubmit = async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target),
-      b = {
-        availability: fd.get("availability"),
-        hourlyRate: fd.get("hourlyRate"),
-        projectRate: fd.get("projectRate"),
-        services: fd.getAll("services"),
-        certifications: fd.getAll("certifications"),
-      };
-    await api("/profile", { method: "PUT", body: b });
-    closeModal();
-    toast("Service catalog updated");
-    supplierCatalog();
-  };
-}
-async function profilePage(role) {
-  const d = await api("/profile");
-  app.innerHTML = dashboardShell(
-    role,
-    "profile",
-    `<div class="dash-top"><div><h1>Profile & settings</h1><p>Account information and platform preferences.</p></div><button class="btn primary" onclick="editProfile()">Edit</button></div><div class="cc-grid"><div class="cc-card"><span class="cc-label">Name</span><h3>${esc(d.user.name)}</h3><p>${esc(d.user.email)}</p></div><div class="cc-card"><span class="cc-label">Company</span><h3>${esc(d.user.company || "—")}</h3></div>${d.supplier ? `<div class="cc-card"><span class="cc-label">Supplier badge</span><h3>${esc(supplierBadge(d.supplier))}</h3><p>Verified · ${d.supplier.availability}</p></div>` : ""}</div><div class="cc-card" style="margin-top:15px"><h3>Data portability</h3><p>Download a JSON backup of the platform database (admin) or your account data.</p><button class="btn outline" onclick="exportData()">Export JSON</button></div>`,
-  );
-}
-async function editProfile() {
-  const d = await api("/profile"),
-    s = d.supplier;
-  modal(
-    "Edit profile",
-    `<form id="pf" class="modal-form"><label>Name<input name="name" value="${esc(d.user.name)}" required></label><label>Company<input name="company" value="${esc(d.user.company || "")}"></label>${s ? `<label>Location<input name="location" value="${esc(s.location)}"></label><label>Description<textarea name="description">${esc(s.description)}</textarea></label>` : ""}<button class="btn primary">Save</button></form>`,
-  );
-  document.getElementById("pf").onsubmit = async (e) => {
-    e.preventDefault();
-    await api("/profile", { method: "PUT", body: Object.fromEntries(new FormData(e.target)) });
-    closeModal();
-    toast("Profile updated");
-    route();
-  };
-}
-async function exportData() {
-  const d = await api("/backup/export");
-  const blob = new Blob([JSON.stringify(d, null, 2)], { type: "application/json" }),
-    a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "craftcrew-backup.json";
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
 async function route() {
   topActions();
   const h = location.hash.replace(/^#/, "") || "/";
@@ -224,16 +159,6 @@ async function route() {
   }
   try {
     const parts = h.split("/").filter(Boolean);
-    if (parts[0] === "customer") {
-      if (parts[1] === "profile") return profilePage("customer");
-    }
-    if (parts[0] === "supplier") {
-      if (parts[1] === "suppliers") return supplierCatalog();
-      if (parts[1] === "profile") return profilePage("supplier");
-    }
-    if (parts[0] === "admin") {
-      if (parts[1] === "profile") return profilePage("admin");
-    }
   } catch (e) {
     console.error(e);
     toast(e.message, "error");
