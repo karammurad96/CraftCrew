@@ -45,7 +45,7 @@ async function authPage(mode) {
       login
         ? ""
         : `<label>${ak("name")}<input name="name" autocomplete="name" required></label><label>${ak("company")}<input name="company" autocomplete="organization"></label><label>${ak("accountType")}<select name="role" required><option value="customer">${ak("customer")}</option><option value="supplier">${ak("supplier")}</option></select></label>`
-    }<label>${ak("email")}<input name="email" type="email" autocomplete="email" required></label><label class="auth-password">${ak("password")}<input name="password" type="password" autocomplete="${login ? "current-password" : "new-password"}" minlength="${login ? 1 : 12}" required></label><div id="authError" class="form-error" role="alert" aria-live="polite"></div>${consent}<button class="btn primary full" style="margin-top:15px">${ak(login ? "logIn" : "createAccount")}</button></form>${
+    }<label>${ak("email")}<input name="email" type="email" autocomplete="email" required></label><label class="auth-password">${ak("password")}<input name="password" type="password" autocomplete="${login ? "current-password" : "new-password"}" minlength="${login ? 1 : 12}" required></label><div id="authError" class="form-error" data-i18n="dom" role="alert" aria-live="polite"></div>${consent}<button class="btn primary full" style="margin-top:15px">${ak(login ? "logIn" : "createAccount")}</button></form>${
       login
         ? `<p class="auth-switch">${ak("noAccount")} <a href="#/signup">${ak("signUp")}</a></p>`
         : `<p class="auth-switch">${ak("registered")} <a href="#/login">${ak("logIn")}</a></p>`
@@ -139,7 +139,7 @@ function authForgot() {
   authCard(
     ak("forgotTitle"),
     ak("forgotText"),
-    `<form id="authForgot" data-action="auth.forgot"><label>${ak("email")}<input name="email" type="email" autocomplete="email" required></label><div class="form-error" role="alert"></div><button class="btn primary full" style="margin-top:15px">${ak("sendReset")}</button></form><p class="auth-switch"><a href="#/login">${ak("backToSignIn")}</a></p>`,
+    `<form id="authForgot" data-action="auth.forgot"><label>${ak("email")}<input name="email" type="email" autocomplete="email" required></label><div class="form-error" data-i18n="dom" role="alert"></div><button class="btn primary full" style="margin-top:15px">${ak("sendReset")}</button></form><p class="auth-switch"><a href="#/login">${ak("backToSignIn")}</a></p>`,
   );
 }
 actions.on("auth.forgot", async (form) => {
@@ -155,7 +155,7 @@ function authReset(params, query) {
   authCard(
     ak("resetTitle"),
     ak("resetText"),
-    `<form id="authReset" data-action="auth.reset" data-token="${esc(query.get("token") || "")}"><label>${ak("newPassword")}<input name="newPassword" type="password" autocomplete="new-password" minlength="12" required></label><label>${ak("repeatPassword")}<input name="confirm" type="password" autocomplete="new-password" minlength="12" required></label><div class="form-error" role="alert"></div><button class="btn primary full" style="margin-top:15px">${ak("savePassword")}</button></form>`,
+    `<form id="authReset" data-action="auth.reset" data-token="${esc(query.get("token") || "")}"><label>${ak("newPassword")}<input name="newPassword" type="password" autocomplete="new-password" minlength="12" required></label><label>${ak("repeatPassword")}<input name="confirm" type="password" autocomplete="new-password" minlength="12" required></label><div class="form-error" data-i18n="dom" role="alert"></div><button class="btn primary full" style="margin-top:15px">${ak("savePassword")}</button></form>`,
   );
 }
 actions.on("auth.reset", async (form) => {

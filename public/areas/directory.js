@@ -308,7 +308,7 @@ actions.on("dir.requestQuotes", async () => {
       .map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`)
       .join("")}</select></label><label>${r("task")}<select name="task" id="dirTask" data-action="dir.quoteTask"></select></label></div><div class="two" id="dirNewTask" hidden><label>${r("phase")}<select name="phase" id="dirPhase"></select></label><label>${r("taskName")}<input name="taskName" maxlength="160"></label></div><div class="two"><label>${r("service")}<input name="service" list="dirServices" required maxlength="80" value="${esc(services[0] || "")}"><datalist id="dirServices">${services
       .map((x) => `<option value="${esc(x)}"></option>`)
-      .join("")}</datalist></label><label>${r("due")}<input name="dueDate" type="date" required min="${today}" value="${due}"></label></div><label>${r("description")}<textarea name="description" rows="4" maxlength="5000" required placeholder="${r("descriptionHint")}"></textarea></label><label>${r("files")}<input name="files" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx,.csv,.txt,.zip"></label><div id="dirQuoteError" class="form-error" role="alert"></div><button class="btn primary">${r("send", { n: list.length })}</button></form>`,
+      .join("")}</datalist></label><label>${r("due")}<input name="dueDate" type="date" required min="${today}" value="${due}"></label></div><label>${r("description")}<textarea name="description" rows="4" maxlength="5000" required placeholder="${r("descriptionHint")}"></textarea></label><label>${r("files")}<input name="files" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx,.csv,.txt,.zip"></label><div id="dirQuoteError" class="form-error" data-i18n="dom" role="alert"></div><button class="btn primary">${r("send", { n: list.length })}</button></form>`,
   );
   dirFillTasks();
 });
@@ -438,7 +438,7 @@ actions.on("dir.ask", async (el, event) => {
       .map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`)
       .join("")}</select></label><label>${a("task")}<select name="taskRef"><option value="">${a("noTask")}</option>${tasks
       .map(({ p, ph, x }) => `<option value="${esc(`${p.id}|${ph.id}|${x.id}`)}">${esc(p.name)} · ${esc(ph.name)} · ${esc(x.name)}</option>`)
-      .join("")}</select></label><label>${a("details")}<textarea name="message" rows="4" maxlength="5000" required placeholder="${a("detailsHint")}"></textarea></label><div id="reviewSupplierRequestError" class="form-error" role="alert"></div><button class="btn primary">${a("send")}</button></form>`,
+      .join("")}</select></label><label>${a("details")}<textarea name="message" rows="4" maxlength="5000" required placeholder="${a("detailsHint")}"></textarea></label><div id="reviewSupplierRequestError" class="form-error" data-i18n="dom" role="alert"></div><button class="btn primary">${a("send")}</button></form>`,
   );
 });
 actions.on("dir.askSend", async (form) => {
@@ -534,7 +534,7 @@ actions.on("dc.upload", async () => {
       .join("")}</select></label><label>${c("issuer")}${optional}<input name="issuer" placeholder="${c("issuerHint")}"></label></div>
     <div class="two"><label>${c("issued")}${optional}<input name="issuedAt" type="date"></label><label>${c("until")}${optional}<input name="expiresAt" type="date"></label></div>
     <label>${c("who")}<select name="visibility"><option value="public">${c("whoPublic")}</option><option value="partners">${c("whoPartners")}</option></select></label>
-    <label>${c("file")}<input name="file" type="file" accept=".pdf,.png,.jpg,.jpeg" required></label><div id="dcError" class="form-error"></div><button class="btn primary">${c("save")}</button></form>`,
+    <label>${c("file")}<input name="file" type="file" accept=".pdf,.png,.jpg,.jpeg" required></label><div id="dcError" class="form-error" data-i18n="dom"></div><button class="btn primary">${c("save")}</button></form>`,
   );
 });
 actions.on("dc.save", async (form) => {
@@ -633,7 +633,7 @@ async function pvPage() {
     [
       `<div class="dash-top"><div><h1>${v("title")}</h1><p>${v("intro")}</p></div><a class="btn outline" href="#/customer/suppliers">${v("find")}</a></div>`,
       `<div class="pv-grid">${cards || `<div class="empty">${v("empty")}</div>`}</div>`,
-      `<section class="panel"><div class="panel-title"><h2>${v("inviteTitle")}</h2></div><form id="pvInvite" class="modal-form" data-action="pv.invite"><div class="two"><label>${v("company")}<input name="company" required maxlength="160"></label><label>${v("email")}<input name="email" type="email" required maxlength="200"></label></div><div class="two"><label>${v("tags")}<input name="tags" maxlength="200" placeholder="${v("tagsHint")}"></label><label>${v("note")}<input name="note" maxlength="2000"></label></div><div id="pvError" class="form-error" role="alert"></div><button class="btn primary">${v("send")}</button></form>${
+      `<section class="panel"><div class="panel-title"><h2>${v("inviteTitle")}</h2></div><form id="pvInvite" class="modal-form" data-action="pv.invite"><div class="two"><label>${v("company")}<input name="company" required maxlength="160"></label><label>${v("email")}<input name="email" type="email" required maxlength="200"></label></div><div class="two"><label>${v("tags")}<input name="tags" maxlength="200" placeholder="${v("tagsHint")}"></label><label>${v("note")}<input name="note" maxlength="2000"></label></div><div id="pvError" class="form-error" data-i18n="dom" role="alert"></div><button class="btn primary">${v("send")}</button></form>${
         invites
           ? `<div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>${v("colSupplier")}</th><th>${v("colStatus")}</th><th>${v("colInvited")}</th></tr></thead><tbody>${invites}</tbody></table></div>`
           : ""
@@ -656,7 +656,7 @@ function pvEdit(supplierId) {
   const s = pvData.suppliers.find((x) => x.supplierId === supplierId) || { tags: [], note: "" };
   modal(
     t("dir.pv.edit"),
-    `<form id="pvEditForm" class="modal-form" data-i18n="keys" data-action="pv.save" data-supplier="${esc(supplierId)}"><label>${dirk("pv.tags")}<input name="tags" maxlength="400" value="${esc((s.tags || []).join(", "))}"></label><label>${dirk("pv.note")}<textarea name="note" rows="4" maxlength="2000">${esc(s.note || "")}</textarea></label><div id="pvEditError" class="form-error" role="alert"></div><button class="btn primary">${dirk("pv.save")}</button></form>`,
+    `<form id="pvEditForm" class="modal-form" data-i18n="keys" data-action="pv.save" data-supplier="${esc(supplierId)}"><label>${dirk("pv.tags")}<input name="tags" maxlength="400" value="${esc((s.tags || []).join(", "))}"></label><label>${dirk("pv.note")}<textarea name="note" rows="4" maxlength="2000">${esc(s.note || "")}</textarea></label><div id="pvEditError" class="form-error" data-i18n="dom" role="alert"></div><button class="btn primary">${dirk("pv.save")}</button></form>`,
   );
 }
 actions.on("pv.edit", (el) => pvEdit(el.dataset.supplier));
@@ -813,7 +813,7 @@ actions.on("rq.quote", async (el) => {
       "files",
     )}<input name="quoteFiles" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.xlsx,.docx,.csv" data-action="rq.files"><small>${q("filesHint")}</small></label><div id="ffQuoteFileList" class="ff-file-list"></div><div class="ff-quote-total">${q(
       "total",
-    )} <b id="ffQuoteTotal">${esc(fmt.money(0))}</b></div><div id="ffRfqError" class="form-error" role="alert"></div><button class="btn primary">${q("send")}</button></form>`,
+    )} <b id="ffQuoteTotal">${esc(fmt.money(0))}</b></div><div id="ffRfqError" class="form-error" data-i18n="dom" role="alert"></div><button class="btn primary">${q("send")}</button></form>`,
   );
   dirQuoteTotal();
 });

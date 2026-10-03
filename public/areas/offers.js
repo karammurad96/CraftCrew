@@ -141,7 +141,7 @@ async function ccOpenBidOffer(id) {
       mine?.attachment ? `<a href="${esc(mine.attachment)}">${f("current")}</a>` : ""
     }${
       mine ? `<label>${f("changed")} <small class="subtle">${f("changedHint")}</small><textarea name="revisionNote" rows="2" placeholder="${f("changedPlaceholder")}"></textarea></label>` : ""
-    }<div id="srOfferError" class="form-error"></div><button class="btn primary">${f(mine ? "resend" : "send")}</button></form>`,
+    }<div id="srOfferError" class="form-error" data-i18n="dom"></div><button class="btn primary">${f(mine ? "resend" : "send")}</button></form>`,
   );
 }
 actions.on("offers.send", async (form) => {
@@ -230,7 +230,7 @@ async function wfCreateBid(pid, phid, tid) {
       "questionsPlaceholder",
     ).replace(/\n/g, "&#10;")}"></textarea></label><label class="cc-check-label pv-invite"><input type="checkbox" id="pvInviteBox" name="preferredOnly"${preferred.length ? "" : " disabled"}> ${e("preferred", {
       n: preferred.length,
-    })} <small class="subtle">${e("preferredHint")}</small></label><div id="srEventError" class="form-error"></div><button class="btn primary">${e("publish")}</button></form>`,
+    })} <small class="subtle">${e("preferredHint")}</small></label><div id="srEventError" class="form-error" data-i18n="dom"></div><button class="btn primary">${e("publish")}</button></form>`,
   );
 }
 actions.on("offers.publish", async (form) => {
@@ -270,7 +270,7 @@ async function ccEditBid(id) {
       "scope",
     )}<textarea name="description" rows="5">${esc(b.description)}</textarea></label><label>${e("due")}<input name="dueDate" type="date" value="${esc(b.dueDate)}" required></label><p>${e(
       "note",
-    )}</p><div id="ccEditBidError" class="form-error"></div><button class="btn primary">${e("save")}</button></form>`,
+    )}</p><div id="ccEditBidError" class="form-error" data-i18n="dom"></div><button class="btn primary">${e("save")}</button></form>`,
   );
 }
 actions.on("offers.saveEdit", async (form) => {

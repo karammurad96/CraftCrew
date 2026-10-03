@@ -320,5 +320,18 @@
     "action wfInvoiceEmail('inv_demo_submitted')": "action [inv.download]",
     "action wfInvoicePrint('inv_demo_submitted')": "action [inv.download]",
     "action navigate(decodeURIComponent('%2Fsupplier%2Finvoices'))": "link #/supplier/invoices"
+  },
+  "customer /customer/time": {
+    "action ccExportTime('customer','pdf')": "action [time.export]",
+    "action ccExportTime('customer','xlsx')": "action [time.export]",
+    "action ccReviewTime('time_demo_pending','Approved')": "action [time.review]",
+    "action ccReviewTime('time_demo_pending','Changes requested')": "action [time.review]",
+    "action ccReviewTime('time_demo_pending','Rejected')": "action [time.review]"
+  },
+  "supplier /supplier/time": {
+    "action ccEditTime('time_demo_pending')": "action [time.edit]",
+    "action ccExportTime('supplier','pdf')": "action [time.export]",
+    "action ccExportTime('supplier','xlsx')": "action [time.export]",
+    "action ccNewTimeEntry()": "action [time.log]"
   }
 }

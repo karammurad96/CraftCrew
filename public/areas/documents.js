@@ -649,7 +649,7 @@ function xpUpload(files = null, fid = xp.folder) {
     `<form id="xpUpForm" class="modal-form" data-i18n="keys" data-action="docs.uploadSubmit"><label>${xk("folder")}<select name="folder">${xpFolderOptions(fid)}</select></label>
     <label>${xk("filesLabel")}<input name="files" type="file" multiple${files ? "" : " required"}></label>${files ? `<p class="subtle">${xk("ready", { n: files.length, names: files.map((f) => f.name).join(", ") })}</p>` : ""}
     <div class="two"><label>${xk("category")}<select name="category">${XP_CATEGORIES.map((c) => `<option value="${xpEsc(c)}">${xk("categories." + c)}</option>`).join("")}</select></label><label class="choice-row"><input name="approvalRequired" type="checkbox" value="true"> ${xk("askApproval")}</label></div>
-    <label>${xk("description")} <small class="subtle">${xk("optional")}</small><textarea name="description" rows="2" maxlength="2000"></textarea></label><div id="xpUpError" class="form-error"></div><button class="btn primary">${xk("cmd.upload")}</button></form>`,
+    <label>${xk("description")} <small class="subtle">${xk("optional")}</small><textarea name="description" rows="2" maxlength="2000"></textarea></label><div id="xpUpError" class="form-error" data-i18n="dom"></div><button class="btn primary">${xk("cmd.upload")}</button></form>`,
   );
 }
 actions.on("docs.uploadSubmit", async (form) => {

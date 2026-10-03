@@ -417,7 +417,7 @@ async function srContractForm(id) {
       x.autoRenew ? " checked" : ""
     }> ${c("autoRenew")}</label><label>${c("terms")}<textarea name="terms" rows="3">${esc(x.terms || "")}</textarea></label><label>${c("file")}<input name="file" type="file" accept=".pdf"></label>${
       x.documentUrl ? `<a href="${esc(x.documentUrl)}">${c("current")}</a>` : ""
-    }<div id="srContractError" class="form-error"></div><button class="btn primary">${c(id ? "save" : "create")}</button></form>`,
+    }<div id="srContractError" class="form-error" data-i18n="dom"></div><button class="btn primary">${c(id ? "save" : "create")}</button></form>`,
   );
 }
 actions.on("src.contract", (el) => srContractForm(el.dataset.id || ""));
