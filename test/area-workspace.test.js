@@ -195,7 +195,7 @@ describe("project workspace area (T128b)", () => {
   it("removed the old workspace layers", () => {
     assert.doesNotMatch(read("workflows.js"), /function wfTaskCard|function wfPhaseCard|function projectDetail/);
     for (const f of ["app.js", "enhancements.js"]) assert.doesNotMatch(read(f), /function projectDetail|function phaseCard|function timelinePosition/, f);
-    for (const f of ["invitations.js", "acceptance-ui.js", "punchlist-ui.js", "sitereports-ui.js"]) assert.doesNotMatch(read(f), /wfTaskCard|projectDetail = /, f);
+    for (const f of ["invitations.js", "areas/worksite.js"]) assert.doesNotMatch(read(f), /wfTaskCard|projectDetail = /, f);
     assert.doesNotMatch(read("design-screens.js"), /dsEnhanceWorkspace|dsWsUpNext|dsWsUnread/);
     assert.doesNotMatch(read("collaboration.js") + read("feedback-fixes.js"), /ccAddProjectLinks/);
     assert.doesNotMatch(read("insights.js"), /inBoardButton/);

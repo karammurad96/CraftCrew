@@ -212,9 +212,9 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T130 Area: invoices and payments · M
   - [x] T130a invoice lists, the invoice page (paper and review panel), review decisions, fix & resubmit, downloads
   - [x] T130b the supplier's new-invoice form (positions, VAT modes, order cap check)
-- [ ] T131 Area: time, site reports, punch list and acceptance · M
+- [x] T131 Area: time, site reports, punch list and acceptance · M
   - [x] T131a time pages, the Log time sheet with photos, review and export
-  - [ ] T131b site reports, punch list and acceptance dialogs
+  - [x] T131b site reports, punch list and acceptance dialogs
 - [ ] T132 Area: messages and chats · S
 - [ ] T133 Area: sites, compliance and calendar, and the approvals inbox · M
 - [ ] T134 Area: admin (applications, disputes, billing, reports, audit, platform) · M
