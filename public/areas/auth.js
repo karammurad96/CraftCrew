@@ -75,7 +75,7 @@ actions.on("auth.submit", async (form) => {
     authSignedIn(d.user);
     route();
   } catch (err) {
-    if (err.message === "Email already registered") return authError(error, t("auth.emailTaken"), true);
+    if (err.code === "emailAlreadyRegistered") return authError(error, t("auth.emailTaken"), true);
     authError(error, err.message);
     // Two-factor sign-in: the code field appears once the password was right
     if (err.code === "TOTP_REQUIRED" || err.code === "TOTP_INVALID") {

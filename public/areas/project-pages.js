@@ -34,7 +34,7 @@ async function ppItemPage(role, pid, type, id) {
       (task.progressUpdates || [])
         .map(
           (u) =>
-            `<div class="pa-update"><span class="pa-pill ${u.milestone ? "green" : "blue"}">${esc(u.progress)}%</span><div><b>${u.milestone ? "🏁 " + esc(u.milestone) : ppDom(u.status)}</b>${u.note ? `<p>${esc(u.note)}</p>` : ""}<small>${esc(u.byName)} · ${esc(u.company)} · ${esc(new Date(u.at).toLocaleString(fmt.locale(), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }))}</small></div></div>`,
+            `<div class="pa-update"><span class="pa-pill ${u.milestone ? "green" : "blue"}">${esc(u.progress)}%</span><div><b>${u.milestone ? "🏁 " + esc(u.milestone) : statusHtml(u.status)}</b>${u.note ? `<p>${esc(u.note)}</p>` : ""}<small>${esc(u.byName)} · ${esc(u.company)} · ${esc(new Date(u.at).toLocaleString(fmt.locale(), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }))}</small></div></div>`,
         )
         .join("") || `<p class="pa-empty">${item("noUpdates")}</p>`
     }</section>`;
@@ -47,7 +47,7 @@ async function ppItemPage(role, pid, type, id) {
       `<div class="dash-top"><div><div class="eyebrow">${item(type === "phase" ? "phaseEyebrow" : "taskEyebrow")}</div><h1>${type === "phase" ? ppDom(ph.name) : esc(task.name)}</h1><p>${esc(p.name)}${task ? " · " + ppDom(ph.name) : ""}</p></div>${
         role === "supplier" ? `<button class="btn primary" data-action="sub.logTime">${item("logTime")}</button>` : ""
       }</div>`,
-      `<div class="wf-stat-grid">${stat(item("status"), ppDom(type === "phase" ? ph.status : task.status))}${stat(item("order"), esc(fmt.money(cap)))}${stat(item("approved"), item("hours", { n: fmt.number(sum, 1) }))}${stat(
+      `<div class="wf-stat-grid">${stat(item("status"), statusHtml(type === "phase" ? ph.status : task.status))}${stat(item("order"), esc(fmt.money(cap)))}${stat(item("approved"), item("hours", { n: fmt.number(sum, 1) }))}${stat(
         item("estimate"),
         expected ? item("hours", { n: expected }) : item("notSet"),
       )}</div>`,
@@ -57,7 +57,7 @@ async function ppItemPage(role, pid, type, id) {
       `<section class="panel"><div class="panel-title"><h3>${item("tasks")}</h3><span>${tasks.length}</span></div><div class="cc-subpage-task-list">${tasks
         .map(
           (x) =>
-            `<a class="cc-subpage-task" href="#/${role}/projects/${esc(p.id)}/tasks/${esc(x.id)}"><span><b>${esc(x.name)}</b><small>${x.description ? ppDom(x.description) : ""}</small></span><span>${tHtml("sub.item.taskState", { status: ppDom(x.status), n: String(Number(x.progress) || 0) })}</span></a>`,
+            `<a class="cc-subpage-task" href="#/${role}/projects/${esc(p.id)}/tasks/${esc(x.id)}"><span><b>${esc(x.name)}</b><small>${x.description ? ppDom(x.description) : ""}</small></span><span>${tHtml("sub.item.taskState", { status: statusHtml(x.status), n: String(Number(x.progress) || 0) })}</span></a>`,
         )
         .join("")}</div></section>`,
       `<div class="cc-actions"><a class="btn outline" href="#/${role}/projects/${esc(p.id)}/documents?phase=${esc(encodeURIComponent(ph.id))}${task ? `&amp;task=${esc(encodeURIComponent(task.id))}` : ""}">${item("documents")}</a><a class="btn outline" href="#/${role}/invoices?${esc(q)}">${item("invoices")}</a><a class="btn outline" href="#/${role}/messages?${esc(q)}">${item("messages")}</a></div>`,
@@ -141,7 +141,7 @@ async function ppBoardPage(role, pid, query) {
       ? `<aside class="panel in-phase-order"><div class="panel-title"><h3>${b("phaseOrder")}</h3></div><p class="subtle">${b("phaseOrderHint")}</p><ol id="inPhaseList">${phases
           .map(
             (ph, i) =>
-              `<li draggable="true" data-id="${esc(ph.id)}"><span class="in-card-grip">⋮⋮</span><span class="in-phase-num">${i + 1}</span><span><b>${ppDom(ph.name)}</b><small>${esc(fmt.date(ph.startDate))} – ${esc(fmt.date(ph.dueDate))} · ${ppDom(ph.status)}</small></span></li>`,
+              `<li draggable="true" data-id="${esc(ph.id)}"><span class="in-card-grip">⋮⋮</span><span class="in-phase-num">${i + 1}</span><span><b>${ppDom(ph.name)}</b><small>${esc(fmt.date(ph.startDate))} – ${esc(fmt.date(ph.dueDate))} · ${statusHtml(ph.status)}</small></span></li>`,
           )
           .join("")}</ol></aside>`
       : "";
@@ -304,7 +304,7 @@ function ppOpenPanel(card) {
   panel.dataset.i18n = "keys";
   panel.setAttribute("role", "dialog");
   panel.setAttribute("aria-label", x.name);
-  panel.innerHTML = `<div class="ds-panel-head"><div><span>${ppDom(ph.name)}</span><h2>${esc(x.name)}</h2></div><button type="button" class="ds-panel-close" aria-label="${pk2("close")}" data-action="board.close">×</button></div><div class="ds-panel-facts">${fact(pk2("status"), `${ppDom(status)} · ${esc(t("sub.board.percent", { n: Number(x.progress) || 0 }))}`)}${fact(pk2("supplier"), esc(sup || "—"))}${fact(pk2("dates"), esc(fmt.range(x.startDate, x.dueDate)))}${
+  panel.innerHTML = `<div class="ds-panel-head"><div><span>${ppDom(ph.name)}</span><h2>${esc(x.name)}</h2></div><button type="button" class="ds-panel-close" aria-label="${pk2("close")}" data-action="board.close">×</button></div><div class="ds-panel-facts">${fact(pk2("status"), `${statusHtml(status)} · ${esc(t("sub.board.percent", { n: Number(x.progress) || 0 }))}`)}${fact(pk2("supplier"), esc(sup || "—"))}${fact(pk2("dates"), esc(fmt.range(x.startDate, x.dueDate)))}${
     role === "customer" || mineSupplier ? fact(pk2("order"), x.orderAmount ? esc(fmt.money(x.orderAmount)) : "—") : ""
   }</div>${x.description ? `<p class="ds-panel-desc" data-i18n="dom">${esc(x.description)}</p>` : ""}${
     list.length
@@ -314,7 +314,7 @@ function ppOpenPanel(card) {
       : ""
   }${
     upd
-      ? `<h3 class="ds-panel-h">${pk2("latest")}</h3><blockquote class="ds-panel-quote"><p>“${upd.note || upd.milestone ? esc(upd.note || upd.milestone) : `${ppDom(upd.status)} · ${esc(t("sub.board.percent", { n: upd.progress }))}`}”</p><span>${esc([upd.byName, upd.company, fmt.range(String(upd.at).slice(0, 10))].filter(Boolean).join(" · "))}</span></blockquote>`
+      ? `<h3 class="ds-panel-h">${pk2("latest")}</h3><blockquote class="ds-panel-quote"><p>“${upd.note || upd.milestone ? esc(upd.note || upd.milestone) : `${statusHtml(upd.status)} · ${esc(t("sub.board.percent", { n: upd.progress }))}`}”</p><span>${esc([upd.byName, upd.company, fmt.range(String(upd.at).slice(0, 10))].filter(Boolean).join(" · "))}</span></blockquote>`
       : ""
   }<div class="ds-panel-foot"><a class="btn secondary" href="#/${role}/messages?project=${encodeURIComponent(p.id)}&amp;phase=${encodeURIComponent(ph.id)}&amp;task=${encodeURIComponent(x.id)}">${pk2("message")}</a><a class="btn primary" href="#/${role}/projects/${encodeURIComponent(p.id)}/tasks/${encodeURIComponent(x.id)}">${pk2("openTask")}</a></div>`;
   panel.ppItem = { p, ph, x };

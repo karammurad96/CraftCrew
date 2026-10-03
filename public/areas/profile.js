@@ -415,9 +415,9 @@ async function supplierCatalog() {
     c = (key, params) => pfk("cat." + key, params),
     card = (label, value) => `<div class="cc-card"><span class="cc-label">${label}</span><b>${value}</b></div>`;
   const service = (x) =>
-    `<tr><td><b>${pfDom(x.name)}</b><small>${x.category ? pfDom(x.category) : c("service")}</small></td><td>${pfDom(x.description || "")}<small>${pfDom(x.qualifications || "")}</small></td><td>${esc(fmt.money(x.rate || 0))} / ${
+    `<tr><td><b>${pfDom(x.name)}</b><small>${x.category ? statusHtml(x.category) : c("service")}</small></td><td>${pfDom(x.description || "")}<small>${pfDom(x.qualifications || "")}</small></td><td>${esc(fmt.money(x.rate || 0))} / ${
       PF_UNITS.includes(x.unit || "hour") ? pfk("unit." + (x.unit || "hour")) : pfDom(x.unit)
-    }</td><td>${x.capacity ? pfDom(x.capacity) : c("byAgreement")}<small>${x.leadTime ? pfDom(x.leadTime) : c("onRequest")}</small></td><td>${x.status && x.status !== "Published" ? pfDom(x.status) : c("published")}</td></tr>`;
+    }</td><td>${x.capacity ? pfDom(x.capacity) : c("byAgreement")}<small>${x.leadTime ? pfDom(x.leadTime) : c("onRequest")}</small></td><td>${x.status && x.status !== "Published" ? statusHtml(x.status) : c("published")}</td></tr>`;
   const person = (x) => `<tr><td>${esc(x.name)}</td><td>${pfDom(x.role || "")}</td><td>${pfDom(x.experience || "")}</td><td>${pfDom(x.certifications || "")}</td><td>${pfAvailability(x.availability || "Available")}</td></tr>`;
   app.innerHTML = dashboardShell(
     "supplier",

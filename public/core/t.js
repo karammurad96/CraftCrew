@@ -75,6 +75,47 @@ t.list = function (key) {
 function tHtml(key, html = {}) {
   return esc(t(key)).replace(/\{(\w+)\}/g, (m, name) => (name in html ? html[name] : m));
 }
+// Status, priority and category values (T137): the server keeps English values ("Changes Requested"); they are
+// shown through common.status.<camelCase> ("changesRequested"). A value without a key is shown as it is.
+const ccStatusKey = (value) =>
+  "common.status." +
+  String(value ?? "")
+    .replace(/[^A-Za-z0-9 ]/g, " ")
+    .trim()
+    .split(/\s+/)
+    .map((w, i) => (i ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w.toLowerCase()))
+    .join("");
+function tStatus(value) {
+  const key = ccStatusKey(value);
+  return value && typeof ccLookup("en", key) === "string" ? t(key) : String(value ?? "");
+}
+// The same as HTML. A value without a key (free text, e.g. a service category) keeps the old translation.
+function statusHtml(value) {
+  return value && typeof ccLookup("en", ccStatusKey(value)) === "string" ? esc(tStatus(value)) : `<bdi data-i18n="dom">${esc(value ?? "")}</bdi>`;
+}
+// An API error in the user's language (T137): the server sends { error, code, params }. The text comes from
+// errors.api.<code>; an error with its own code (e.g. TOTP_REQUIRED) is found by its English message; an unknown
+// message is shown as sent.
+let ccErrorTexts;
+function apiErrorText(d) {
+  if (!d || !d.error) return t("ui.requestFailed");
+  if (d.code && typeof ccLookup("en", "errors.api." + d.code) === "string") {
+    // Status values inside the message are shown in the user's language too
+    const params = { ...d.params };
+    if (params.status) params.status = tStatus(params.status);
+    if (params.list) params.list = String(params.list).split(", ").map(tStatus).join(", ");
+    return t("errors.api." + d.code, params);
+  }
+  if (!ccErrorTexts) {
+    ccErrorTexts = new Map();
+    (function walk(node, prefix) {
+      for (const [key, text] of Object.entries(node || {}))
+        if (typeof text === "object") walk(text, prefix + key + ".");
+        else ccErrorTexts.has(text) || ccErrorTexts.set(text, prefix + key);
+    })(ccLookup("en", "errors.api"), "");
+  }
+  return ccErrorTexts.has(d.error) ? t("errors.api." + ccErrorTexts.get(d.error)) : d.error;
+}
 // A toast whose text comes from t(): marked so the old DOM translation leaves it alone.
 function tToast(text, type) {
   toast(text, type, { translated: true });

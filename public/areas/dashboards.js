@@ -237,7 +237,7 @@ async function dashCustomer() {
   const grid = `<div class="dashboard-grid" data-lc-section="dashboard-grid" data-lc-grid="dashboard-grid-2"><div class="panel" data-lc-key="active projects"><div class="panel-title"><h3>${dk("grid.activeProjects")}</h3><a href="#/customer/projects">${dk("grid.viewAll")}</a></div>${ps
     .map(
       (p) =>
-        `<a class="project-row project-click" href="#/customer/projects/${esc(p.id)}"><div><b>${esc(p.name)}</b><small>${tHtml("dash.grid.due", { status: dashDom(p.status), date: esc(fmt.date(p.dueDate)) })}</small></div><div><div class="bar"><i style="width:${pct(p.phases)}%"></i></div></div><b>${pct(p.phases)}%</b></a>`,
+        `<a class="project-row project-click" href="#/customer/projects/${esc(p.id)}"><div><b>${esc(p.name)}</b><small>${tHtml("dash.grid.due", { status: statusHtml(p.status), date: esc(fmt.date(p.dueDate)) })}</small></div><div><div class="bar"><i style="width:${pct(p.phases)}%"></i></div></div><b>${pct(p.phases)}%</b></a>`,
     )
     .join("")}</div><div class="panel" data-lc-key="invoices"><div class="panel-title"><h3>${dk("grid.invoices")}</h3><a href="#/customer/invoices">${dk("grid.review")}</a></div>${
     d.invoices
@@ -443,7 +443,7 @@ async function dashSupplier() {
     matches
       .map(
         (i) =>
-          `<tr><td><a href="#${esc(invoiceUrl(i))}">${esc(invNo(i))}</a></td><td>${esc(customerOf(i))}</td><td>${esc(dprojects.find((p) => p.id === i.projectId)?.name || i.projectId)}<small>${esc(i.taskName || "")}</small></td><td>${esc(fmt.date(i.createdAt))}</td><td>${esc(fmt.money(i.amount))}</td><td>${dashDom(i.status)}</td></tr>`,
+          `<tr><td><a href="#${esc(invoiceUrl(i))}">${esc(invNo(i))}</a></td><td>${esc(customerOf(i))}</td><td>${esc(dprojects.find((p) => p.id === i.projectId)?.name || i.projectId)}<small>${esc(i.taskName || "")}</small></td><td>${esc(fmt.date(i.createdAt))}</td><td>${esc(fmt.money(i.amount))}</td><td>${statusHtml(i.status)}</td></tr>`,
       )
       .join("") || `<tr><td colspan="6">${dk("search.none")}</td></tr>`
   }</tbody></table></div></section>`;
@@ -515,10 +515,10 @@ async function dashAdmin() {
       .map((i) => ({ tone: "orange", text: dk("pa.invoiceWaiting", { number: invNo(i) }), sub: esc(`${i.supplierCompany || ""} · ${fmt.money(i.amount)}`), link: "/admin/billing" })),
     ...applications
       .filter((x) => !["Approved", "Rejected"].includes(x.status) && String(x.createdAt).slice(0, 10) < threeDaysAgo)
-      .map((x) => ({ tone: "orange", text: dk("pa.applicationWaiting", { company: x.company }), sub: dashDom(x.stage || "New"), link: "/admin/applications" })),
+      .map((x) => ({ tone: "orange", text: dk("pa.applicationWaiting", { company: x.company }), sub: statusHtml(x.stage || "New"), link: "/admin/applications" })),
     ...disputes
       .filter((x) => x.status !== "Resolved" && x.status !== "Closed")
-      .map((x) => ({ tone: "red", text: tHtml("dash.pa.escalation", { type: dashDom(x.type) }), sub: esc(x.description?.slice(0, 60) || ""), link: "/admin/disputes" })),
+      .map((x) => ({ tone: "red", text: tHtml("dash.pa.escalation", { type: statusHtml(x.type) }), sub: esc(x.description?.slice(0, 60) || ""), link: "/admin/disputes" })),
   ];
   const attention = `<div class="pa-attention" data-lc-section="pa-attention"><div class="pa-grid" data-lc-grid="pa-grid-1">${
     dashPanel(
@@ -559,7 +559,7 @@ async function dashAdmin() {
       .filter((x) => !["Approved", "Rejected"].includes(x.status))
       .map(
         (x) =>
-          `<div class="project-row" style="grid-template-columns:1fr auto"><div><b>${esc(x.company)}</b><small>${esc(x.email)} · ${dashDom(x.stage)}</small></div><button class="btn small outline" data-action="dash.application" data-id="${esc(x.id)}">${dk("grid.review")}</button></div>`,
+          `<div class="project-row" style="grid-template-columns:1fr auto"><div><b>${esc(x.company)}</b><small>${esc(x.email)} · ${statusHtml(x.stage)}</small></div><button class="btn small outline" data-action="dash.application" data-id="${esc(x.id)}">${dk("grid.review")}</button></div>`,
       )
       .join("") || `<div class="empty">${dk("grid.queueClear")}</div>`
   }</div><div class="panel" data-lc-key="quality pipeline"><h3>${dk("grid.pipeline")}</h3><div class="stage-flow" style="flex-wrap:wrap">${stages.map((s, i) => `<span${i ? "" : ' class="on"'}>${esc(s)}</span>`).join("")}</div><p class="subtle">${dk("grid.badgeNote")}</p></div></div>`;

@@ -108,11 +108,11 @@ function wsTaskCard(p, ph, t, sups) {
     buttons +=
       wsLink(scope.documents, "btn small outline", wk("task.documents")) + wsLink(scope.invoices, "btn small outline", wk("task.invoices")) + wsLink(scope.messages, "btn small outline", wk("task.messages"));
   }
-  return `<article class="wf-task ${late ? "wf-late" : ""}"><div class="wf-task-head"><div><div class="eyebrow">${wk("task.eyebrow")}</div><h4>${esc(t.name)}</h4><p>${t.description ? wsDom(t.description) : wk("task.noDescription")}</p></div>${chip}</div><div class="wf-task-meta"><span>${esc(fmt.date(t.startDate))} → ${esc(fmt.date(t.dueDate))}</span><span>${s ? `${esc(s.company)} · ${wsDom(t.acceptanceStatus || "Invited")}` : wk("task.noSupplier")}</span><span>${t.orderAmount ? wk("task.order", { amount: fmt.money(t.orderAmount), n: progress }) : wk("task.orderNotSet", { n: progress })}</span></div>${note}${
+  return `<article class="wf-task ${late ? "wf-late" : ""}"><div class="wf-task-head"><div><div class="eyebrow">${wk("task.eyebrow")}</div><h4>${esc(t.name)}</h4><p>${t.description ? wsDom(t.description) : wk("task.noDescription")}</p></div>${chip}</div><div class="wf-task-meta"><span>${esc(fmt.date(t.startDate))} → ${esc(fmt.date(t.dueDate))}</span><span>${s ? `${esc(s.company)} · ${statusHtml(t.acceptanceStatus || "Invited")}` : wk("task.noSupplier")}</span><span>${t.orderAmount ? wk("task.order", { amount: fmt.money(t.orderAmount), n: progress }) : wk("task.orderNotSet", { n: progress })}</span></div>${note}${
     deps.length ? `<small>${wk("task.depends", { names: deps.map((x) => x.name).join(", ") })}</small>` : ""
   }${late ? `<div class="notice order-warning">${wk("task.overdue")}</div>` : ""}${strip}<div class="wf-task-actions">${buttons}</div>${
     t.assignmentHistory?.length
-      ? `<details><summary>${wk("task.history", { n: t.assignmentHistory.length })}</summary>${t.assignmentHistory.map((x) => `<div class="history-row"><span>${esc(x.company)}</span>${wsDom(x.status)}<small>${esc(fmt.date(x.at))}</small></div>`).join("")}</details>`
+      ? `<details><summary>${wk("task.history", { n: t.assignmentHistory.length })}</summary>${t.assignmentHistory.map((x) => `<div class="history-row"><span>${esc(x.company)}</span>${statusHtml(x.status)}<small>${esc(fmt.date(x.at))}</small></div>`).join("")}</details>`
       : ""
   }</article>`;
 }
@@ -318,7 +318,7 @@ async function wsPage(role, pid, query) {
   const gantt = `<section class="panel project-timeline"><div class="panel-title"><div><h3>${wk("gantt.title")}</h3><small>${wk("gantt.hint")}</small></div><span>${wk("gantt.complete", { n: done })}</span></div><div class="wf-gantt-head"><span>${wk("gantt.item")}</span><span>${wk("gantt.schedule")}</span><span>${wk("gantt.owner")}</span></div>${p.phases
     .map(
       (ph, i) =>
-        `<div class="wf-gantt-phase"><b>${i + 1}. ${wsDom(ph.name)}</b><span>${esc(fmt.date(ph.startDate))} → ${esc(fmt.date(ph.dueDate))}</span><span>${wsDom(ph.status)}${duePhaseIds.has(ph.id) ? ` · ${wk("gantt.risk")}` : ""}</span></div>${(ph.tasks || [])
+        `<div class="wf-gantt-phase"><b>${i + 1}. ${wsDom(ph.name)}</b><span>${esc(fmt.date(ph.startDate))} → ${esc(fmt.date(ph.dueDate))}</span><span>${statusHtml(ph.status)}${duePhaseIds.has(ph.id) ? ` · ${wk("gantt.risk")}` : ""}</span></div>${(ph.tasks || [])
           .map(
             (x) =>
               `<div class="wf-gantt-task"><span>${esc(x.name)}</span><div class="gantt-track"><i class="${x.status === "Completed" ? "done" : x.dueDate < wsUtcToday() ? "late" : ""}" style="${wsBar(p, x)}"></i></div><span>${wk("gantt.due", { date: fmt.date(x.dueDate), n: Number(x.progress) || 0 })}</span></div>`,
@@ -332,7 +332,7 @@ async function wsPage(role, pid, query) {
       const approved = entries.filter((e) => e.taskId === x.id && e.status === "Approved"),
         hours = fmt.number(approved.reduce((n, e) => n + Number(e.hours || 0), 0), 1),
         est = Number(x.estimatedHours || 0);
-      return `<a class="ff-task-time-row" href="#/${role}/projects/${esc(p.id)}/tasks/${esc(x.id)}"><span><b>${esc(x.name)}</b><small>${wsDom(ph.name)} · ${wsDom(x.status || "Not started")}</small></span><span>${est ? wk("time.estimate", { n: hours, est }) : wk("time.hours", { n: hours })}</span><span>${esc(fmt.money(approved.reduce((n, e) => n + Number(e.amount || 0), 0)))}</span></a>`;
+      return `<a class="ff-task-time-row" href="#/${role}/projects/${esc(p.id)}/tasks/${esc(x.id)}"><span><b>${esc(x.name)}</b><small>${wsDom(ph.name)} · ${statusHtml(x.status || "Not started")}</small></span><span>${est ? wk("time.estimate", { n: hours, est }) : wk("time.hours", { n: hours })}</span><span>${esc(fmt.money(approved.reduce((n, e) => n + Number(e.amount || 0), 0)))}</span></a>`;
     })
     .join("");
   const taskTime = `<details class="ff-task-time-details"><summary><span>${wk("time.title")}</span><small>${wk("time.hint", { n: allTasks.length })}</small><span class="ff-details-chevron">⌄</span></summary><div class="ff-task-time-table"><div class="ff-task-time-head"><span>${wk("time.task")}</span><span>${wk("time.approved")}</span><span>${wk("time.value")}</span></div>${timeRows || `<p class="subtle">${wk("time.none")}</p>`}</div></details>`;
@@ -347,7 +347,7 @@ async function wsPage(role, pid, query) {
       .slice(0, 60)
       .map(
         (e) =>
-          `<div class="pa-row"><span><b>${wsDom(e.action)}</b><small>${esc(e.actorName)} · ${esc(new Date(e.at).toLocaleString(fmt.locale(), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }))}${e.status ? " · " + wsDom(e.status) : ""}</small></span></div>`,
+          `<div class="pa-row"><span><b>${wsDom(e.action)}</b><small>${esc(e.actorName)} · ${esc(new Date(e.at).toLocaleString(fmt.locale(), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }))}${e.status ? " · " + statusHtml(e.status) : ""}</small></span></div>`,
       )
       .join("") || `<p class="pa-empty">${wk("activity.empty")}</p>`
   }</details>`;

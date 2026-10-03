@@ -275,7 +275,7 @@ actions.on("dir.compareOpen", async () => {
     ["reliability", (s) => dirReliability(s)],
     ["team", (s) => esc(String(Number(s.employees) || "—"))],
     ["lead", (s) => (lead(s) ? dirDom(lead(s)) : dirk("cmp.onRequest"))],
-    ["availability", (s) => (s.availability ? dirDom(s.availability) : dirk("cmp.onRequest"))],
+    ["availability", (s) => (s.availability ? statusHtml(s.availability) : dirk("cmp.onRequest"))],
   ];
   modal(
     t("dir.cmp.title"),
@@ -394,7 +394,7 @@ async function dirProfile(params) {
     ? catalog
         .map(
           (x) =>
-            `<tr><td><b>${esc(x.name)}</b><small>${x.category ? dirDom(x.category) : p("service")}</small></td><td>${x.description ? dirDom(x.description) : p("scope")}</td><td>${tHtml("dir.p.rate", { rate: esc(fmt.money(x.rate || 0)), unit: DIR_UNITS.includes(x.unit || "hour") ? dirk("p.units." + (x.unit || "hour")) : dirDom(x.unit) })}</td><td>${x.capacity ? dirDom(x.capacity) : p("capacity")}<small>${x.leadTime ? dirDom(x.leadTime) : p("lead")}</small></td><td>${customer ? ask("service", x.name, p("requestService")) : ""}</td></tr>`,
+            `<tr><td><b>${esc(x.name)}</b><small>${x.category ? statusHtml(x.category) : p("service")}</small></td><td>${x.description ? dirDom(x.description) : p("scope")}</td><td>${tHtml("dir.p.rate", { rate: esc(fmt.money(x.rate || 0)), unit: DIR_UNITS.includes(x.unit || "hour") ? dirk("p.units." + (x.unit || "hour")) : dirDom(x.unit) })}</td><td>${x.capacity ? dirDom(x.capacity) : p("capacity")}<small>${x.leadTime ? dirDom(x.leadTime) : p("lead")}</small></td><td>${customer ? ask("service", x.name, p("requestService")) : ""}</td></tr>`,
         )
         .join("")
     : `<tr><td colspan="5"><div class="notice">${p("noServices")}</div>${customer ? ask("service", "", p("contact")) : ""}</td></tr>`;
@@ -410,7 +410,7 @@ async function dirProfile(params) {
     services = `<section class="panel"><div class="panel-title"><div><h2>${p("services")}</h2><small>${p("servicesIntro")}</small></div></div><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>${p("colService")}</th><th>${p("colScope")}</th><th>${p("colRate")}</th><th>${p("colCapacity")}</th><th></th></tr></thead><tbody>${serviceRows}</tbody></table></div></section>`,
     // Certificates follow the reliability panel, or the services when there is none
     documents = docs ? dirDocsPanel(docs, { supplierId: customer ? id : "" }) : "";
-  const html = `<div class="cc-page"><a class="btn small outline review-back" href="#${dirBase()}">${p("back")}</a><div class="supplier-profile-head"><div class="supplier-avatar large">${esc(s.avatar || "CC")}</div><div><div class="eyebrow">${p("eyebrow")}</div><h1>${esc(s.company)}</h1><p>${s.location ? dirDom(s.location) : p("noLocation")} · ${s.availability ? dirDom(s.availability) : p("availability")}</p></div><span class="badge ${esc((s.badge || "none").toLowerCase())}">${esc(ccBadge(s))}</span>${preferred}</div><div class="health"><div class="cc-card"><span class="cc-label">${p("team")}</span><b>${p("teamValue", { n: Number(s.employees) || 0, people: (s.teamMembers || []).length })}</b></div><div class="cc-card"><span class="cc-label">${p("experience")}</span><b>${p("experienceValue", { years: Number(s.experience) || 0, projects: Number(s.projectsCompleted) || 0 })}</b></div><div class="cc-card"><span class="cc-label">${p("rates")}</span><b>${p("ratesValue", { hourly: fmt.money(s.hourlyRate || 0), project: fmt.money(s.projectRate || 0) })}</b></div></div>${
+  const html = `<div class="cc-page"><a class="btn small outline review-back" href="#${dirBase()}">${p("back")}</a><div class="supplier-profile-head"><div class="supplier-avatar large">${esc(s.avatar || "CC")}</div><div><div class="eyebrow">${p("eyebrow")}</div><h1>${esc(s.company)}</h1><p>${s.location ? dirDom(s.location) : p("noLocation")} · ${s.availability ? statusHtml(s.availability) : p("availability")}</p></div><span class="badge ${esc((s.badge || "none").toLowerCase())}">${esc(ccBadge(s))}</span>${preferred}</div><div class="health"><div class="cc-card"><span class="cc-label">${p("team")}</span><b>${p("teamValue", { n: Number(s.employees) || 0, people: (s.teamMembers || []).length })}</b></div><div class="cc-card"><span class="cc-label">${p("experience")}</span><b>${p("experienceValue", { years: Number(s.experience) || 0, projects: Number(s.projectsCompleted) || 0 })}</b></div><div class="cc-card"><span class="cc-label">${p("rates")}</span><b>${p("ratesValue", { hourly: fmt.money(s.hourlyRate || 0), project: fmt.money(s.projectRate || 0) })}</b></div></div>${
     reliability ? reliability + documents + services : services + documents
   }<div class="supplier-profile-grid"><section class="cc-card"><h2>${p("about")}</h2><p>${s.description ? dirDom(s.description) : p("aboutFallback")}</p><h3>${p("certs")}</h3><div>${
     certs.map((x) => `<span class="chip" data-i18n="dom">${esc(x)}</span>${customer ? " " + ask("evidence", x, p("requestProof"), "btn small outline") : ""}`).join("") ||
@@ -476,7 +476,7 @@ function dirDocRow(d, manage) {
       ? `<button class="btn small outline" data-action="dc.visibility" data-id="${esc(d.id)}" data-to="${d.visibility === "public" ? "partners" : "public"}">${c(d.visibility === "public" ? "makePartner" : "makePublic")}</button><button class="btn small outline danger-text" data-action="dc.delete" data-id="${esc(d.id)}">${c("delete")}</button>`
       : "";
   const where = own ? ` · ${c(d.visibility === "public" ? "visPublic" : "visPartners")}` : manage && d.source === "compliance" ? ` · ${c("compliance")}` : "";
-  return `<div class="dc-row"><span class="dc-icon" aria-hidden="true">${uiIcon(d.source === "compliance" ? "vetting" : "file")}</span><div class="dc-main"><b>${dirDom(d.title)}</b><small>${dirDom(d.category)}${d.issuer ? " · " + esc(d.issuer) : ""}${where}</small></div><div class="dc-side">${state_}<div class="cc-actions">${open}${tools}</div></div></div>`;
+  return `<div class="dc-row"><span class="dc-icon" aria-hidden="true">${uiIcon(d.source === "compliance" ? "vetting" : "file")}</span><div class="dc-main"><b>${dirDom(d.title)}</b><small>${statusHtml(d.category)}${d.issuer ? " · " + esc(d.issuer) : ""}${where}</small></div><div class="dc-side">${state_}<div class="cc-actions">${open}${tools}</div></div></div>`;
 }
 function dirVetting(v, own) {
   if (!v) return "";
@@ -486,13 +486,13 @@ function dirVetting(v, own) {
     status =
       v.status === "Approved"
         ? c("verified") + (v.badge && v.badge !== "None" ? " · " + c("badge", { badge: t("common.badge." + v.badge) }) : "")
-        : dirDom(v.status);
+        : statusHtml(v.status);
   const files =
     own && v.files.length
       ? `<details class="dc-files"><summary>${c("ownFiles", { n: v.files.length })}</summary>${v.files
           .map(
             (f) =>
-              `<div class="dc-row"><span class="dc-icon">${uiIcon("paperclip")}</span><div class="dc-main"><b>${esc(f.filename)}</b><small>${dirDom(f.category)} · ${esc(fmt.date(f.uploadedAt))}</small></div><div class="dc-side"><a class="btn small outline" href="${esc(f.url)}" target="_blank" rel="noopener">${c("open")}</a></div></div>`,
+              `<div class="dc-row"><span class="dc-icon">${uiIcon("paperclip")}</span><div class="dc-main"><b>${esc(f.filename)}</b><small>${statusHtml(f.category)} · ${esc(fmt.date(f.uploadedAt))}</small></div><div class="dc-side"><a class="btn small outline" href="${esc(f.url)}" target="_blank" rel="noopener">${c("open")}</a></div></div>`,
           )
           .join("")}</details>`
       : !own && v.fileCount
@@ -615,7 +615,7 @@ async function pvPage() {
     .map(
       (s) =>
         `<article class="cc-card pv-card"><div class="pv-head"><div><h3><a href="#/customer/suppliers/${esc(s.supplierId)}">${esc(s.company)}</a></h3><small>${dirDom(s.location || "")}${
-          s.badge ? ` · ${["Gold", "Silver", "Bronze"].includes(s.badge) ? esc(t("common.badge." + s.badge)) : dirDom(s.badge)}` : ""
+          s.badge ? ` · ${["Gold", "Silver", "Bronze"].includes(s.badge) ? esc(t("common.badge." + s.badge)) : statusHtml(s.badge)}` : ""
         }</small></div>${s.invited ? `<span class="tag">${v("invited")}</span>` : ""}</div><div class="pv-tags">${(s.tags || []).map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</div>${
           s.note ? `<p class="pv-note">${esc(s.note)}</p>` : `<p class="subtle">${v("noNote")}</p>`
         }<div class="cc-actions"><button class="btn small outline" data-action="pv.edit" data-supplier="${esc(s.supplierId)}">${v("edit")}</button><button class="btn small outline" data-action="pv.remove" data-supplier="${esc(s.supplierId)}">${v("remove")}</button></div></article>`,
@@ -713,7 +713,7 @@ async function dirRequests() {
       btn = (action, cls, label) => `<button class="btn small ${cls}" data-action="${action}" data-id="${esc(x.id)}">${r(label)}</button>`;
     return `<article class="panel review-work-card"><div class="project-card-head"><div><span class="eyebrow">${
       ["Service request", "Evidence request"].includes(kind) ? r("kinds." + kind) : dirDom(kind)
-    }</span><h3>${esc(x.service)}</h3></div><span class="status ${x.status === "New" ? "submitted" : "active"}">${DIR_RFQ_STATUSES.includes(x.status) ? r("statuses." + x.status) : dirDom(x.status)}</span></div><p><b>${esc(
+    }</span><h3>${esc(x.service)}</h3></div><span class="status ${x.status === "New" ? "submitted" : "active"}">${DIR_RFQ_STATUSES.includes(x.status) ? r("statuses." + x.status) : statusHtml(x.status)}</span></div><p><b>${esc(
       x.customerCompany || x.customerName,
     )}</b> · ${x.projectName ? esc(x.projectName) : r("general")}</p>${
       x.taskName ? `<div class="notice">${tHtml("dir.req.linked", { phase: esc(x.phaseName), task: esc(x.taskName) })}</div>` : ""

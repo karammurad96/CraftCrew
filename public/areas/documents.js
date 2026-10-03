@@ -262,7 +262,7 @@ function xpRenderStatus() {
     one = sel.length === 1 ? sel[0] : null;
   document.getElementById("xpStatus").innerHTML = `<span>${xk("items", { n: folders.length + files.length })}</span>${sel.length ? `<span>${xk("selected", { n: sel.length })}${size ? " · " + xpSize(size) : ""}</span>` : ""}${
     one
-      ? `<span class="xp-status-detail">${one.category ? xpDom(one.category) : ""}${one.description ? " · " + xpEsc(one.description) : ""}${one.reviewNote ? " · " + xk("review", { note: one.reviewNote }) : ""}</span>`
+      ? `<span class="xp-status-detail">${one.category ? statusHtml(one.category) : ""}${one.description ? " · " + xpEsc(one.description) : ""}${one.reviewNote ? " · " + xk("review", { note: one.reviewNote }) : ""}</span>`
       : ""
   }<span class="xp-status-hint">${xk("hint")}</span>`;
 }

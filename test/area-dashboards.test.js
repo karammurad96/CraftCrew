@@ -212,7 +212,7 @@ describe("dashboards area", () => {
     assert.ok(html.includes('<a class="ds-dec-title" href="#/admin/applications"><span data-i18n="dom">Vet application: NordWerk</span></a>'));
     assert.ok(html.includes('<span class="ds-dec-sub"><span data-i18n="dom">Due 2026-10-04</span> · €32,000</span>'));
     assert.ok(html.includes('<span class="ds-ui">Live suppliers</span><b>25</b>'));
-    assert.ok(html.includes("Open escalation: <span data-i18n=\"dom\">Quality</span>"));
+    assert.ok(html.includes("Open escalation: Quality"), "the type comes from common.status (T137)");
     assert.ok(html.includes("Application waiting &gt; 3 days: NordWerk"));
     assert.ok(html.includes('<b><span data-i18n="dom">Signed in</span></b>'));
     assert.match(html, /<span class="on">New<\/span><span>Verified<\/span>/);
