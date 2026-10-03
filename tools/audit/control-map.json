@@ -445,5 +445,11 @@
     "action gdExport(this)": "action [prof.export]",
     "action paSignOutOthers()": "action [prof.signOutOthers]",
     "action tfSetup()": "action [prof.tfSetup]"
+  },
+  "customer /customer/team": {
+    "action tmInvite()": "action [team.invite]"
+  },
+  "supplier /supplier/team": {
+    "action tmInvite()": "action [team.invite]"
   }
 }

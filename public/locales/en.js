@@ -3551,4 +3551,105 @@ LOCALES.en = {
       "saved": "Company profile updated"
     }
   },
+  team: {
+    "eyebrow": "ACCOUNT",
+    "title": "Team",
+    "lead": "Invite colleagues and decide for each area whether they have no access, can only view, or can work fully. Only you can manage the team.",
+    "invite": "+ Invite team member",
+    "kpi": {
+      "members": "Team members",
+      "membersSub": "with access to this account",
+      "open": "Invitations open",
+      "openSub": "not signed in yet",
+      "full": "Full access",
+      "fullSub": "to every area",
+      "removed": "Removed",
+      "removedSub": "no longer have access"
+    },
+    "members": "Members and access",
+    "member": "Member",
+    "actions": "Actions",
+    "invited": "Invited",
+    "lastSignIn": "Last sign-in {when}",
+    "levelFor": "{area} for {name}",
+    "level": {
+      "none": "No access",
+      "view": "View only",
+      "full": "Full access"
+    },
+    "levelText": {
+      "none": "The area is hidden and its data cannot be opened.",
+      "view": "Can see everything in the area but cannot create, change, approve or send.",
+      "full": "Can work in the area like you, for example approve offers or pay invoices."
+    },
+    "edit": "Edit",
+    "remove": "Remove",
+    "emptyTitle": "Work together as a team",
+    "emptyText": "Invite buyers, project managers, accounting or site staff. Each person signs in with their own login, and every action is recorded under their name.",
+    "legendTitle": "What the access levels mean",
+    "removed": "Removed members ({n})",
+    "restore": "Restore access",
+    "area": {
+      "projects": "Projects",
+      "sourcing": "Sourcing",
+      "invoices": "Invoices",
+      "time": "Time",
+      "compliance": "Compliance",
+      "messages": "Messages",
+      "analytics": "Analytics",
+      "catalog": "Catalog",
+      "settings": "Settings"
+    },
+    "about": {
+      "customer": {
+        "projects": "Projects, phases, tasks and documents",
+        "sourcing": "Sourcing, offers and contracts",
+        "invoices": "Invoices and payments",
+        "time": "Time approvals",
+        "compliance": "Sites and contractor safety",
+        "messages": "Messages",
+        "analytics": "Analytics and reports",
+        "settings": "Company profile and settings"
+      },
+      "supplier": {
+        "projects": "Assigned work, progress and documents",
+        "sourcing": "Bids, quote requests and contracts",
+        "invoices": "Invoices",
+        "time": "Time logging",
+        "compliance": "Compliance: workers, certificates, site access",
+        "messages": "Messages",
+        "catalog": "Service catalog and public profile",
+        "settings": "Company settings and payouts"
+      }
+    },
+    "form": {
+      "inviteTitle": "Invite team member",
+      "editTitle": "Edit {name}",
+      "name": "Name",
+      "email": "Email",
+      "jobTitle": "Job title",
+      "optional": "optional",
+      "jobHint": "e.g. Buyer, Project manager, Accounting",
+      "access": "Access",
+      "setAll": "Set all to",
+      "save": "Save changes",
+      "send": "Send invitation"
+    },
+    "cred": {
+      "title": "Team member added",
+      "lead": "{name} can now sign in. Share these sign-in details personally — the temporary password is shown only once and must be changed at the first sign-in.",
+      "email": "Email",
+      "password": "Temporary password",
+      "copy": "Copy password",
+      "copied": "Copied",
+      "done": "Done"
+    },
+    "sent": "Invitation sent to {email}",
+    "updated": "Access updated",
+    "removeConfirm": "Remove this team member? They are signed out immediately and can no longer open this account. You can restore access later.",
+    "removedToast": "Team member removed",
+    "restored": "Access restored",
+    "viewOnly": "You have view-only access to this area. Ask your account owner if you need to make changes.",
+    "noAccess": "Your team role has no access to this area"
+  },
 };

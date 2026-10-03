@@ -103,7 +103,6 @@ describe("app shell", () => {
       ["insights.js", /function inNav|inNav\(/],
       ["sourcing-ui.js", /function srNav|srNav\(/],
       ["planner.js", /function plNav|plNav\(/],
-      ["team-ui.js", /function tmNav|tmCompleteNav/],
       ["platform-additions.js", /function paNav|paNav\(/],
       ["feedback-fixes.js", /ffFixSidebarState/],
       ["design-screens.js", /NG_GROUPS|DS_SIDE_LABELS|dsEnhanceSidebar|MNAV_BOTTOM/],

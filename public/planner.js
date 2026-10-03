@@ -26,7 +26,6 @@ Object.assign(UI_ICON_PATHS, {
   calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
 });
 UI_NAV_ICONS.planning = "calendar";
-if (typeof TM_NAV !== "undefined") TM_NAV.supplier.planning = "projects";
 
 async function plPage() {
   const days = PL_SPANS[pl.span],
