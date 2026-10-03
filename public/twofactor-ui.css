@@ -30,9 +30,4 @@
 }
 .tf-require {
   margin-top: 12px;
-  /* Longer languages wrap instead of widening the page */
-  white-space: normal;
-  height: auto !important;
-  min-height: 38px;
-  gap: 8px;
 }

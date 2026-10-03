@@ -944,10 +944,6 @@ html body > footer .legal-footer-links a {
   html body > .topbar .top-actions {
     gap: 10px;
   }
-  /* Five languages fit beside "Sign in" and the menu */
-  html body > .topbar .i18n-switch button {
-    padding-inline: 4px;
-  }
 }
 
 /* ---------- Dashboards (T95–T97, board Dashboard) ---------- */

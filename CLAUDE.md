@@ -68,7 +68,7 @@ when signing in to get the token in the response body, then use `Authorization: 
    so right-to-left languages mirror the layout (T138, `test/rtl.test.js`); `fmt` values and `ltr()` keep their order.
 8. **Stay inside the task.** Don't reformat, rename or "improve" code the task doesn't mention.
 9. Keep API error messages short, friendly and actionable. They are shown to users, translated: every new
-   message needs an entry in `errors.api` of `public/locales/en.js` and every other locale file (T137; `test/error-codes.test.js`
+   message needs an entry in `errors.api` of `public/locales/en.js` and `de.js` (T137; `test/error-codes.test.js`
    checks it). Status values shown to users need a `common.status` key. Notifications, emails and PDF labels
    go in the `server` group of the locale files, never as plain English strings (`test/server-texts.test.js`).
 

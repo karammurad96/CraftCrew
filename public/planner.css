@@ -293,7 +293,7 @@
 /* Jobs to staff: fixed columns so status badges and buttons line up */
 .pa-row.pl-job {
   display: grid !important;
-  grid-template-columns: minmax(0, 1fr) 170px minmax(120px, max-content);
+  grid-template-columns: minmax(0, 1fr) 170px 120px;
   align-items: center;
   gap: 16px;
 }
