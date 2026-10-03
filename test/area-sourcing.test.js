@@ -75,7 +75,7 @@ function area(lang, hash = "#/customer/sourcing/b1") {
   };
   ctx.window = ctx;
   vm.createContext(ctx);
-  for (const f of ["locales/en.js", "locales/de.js", "core/t.js", "core/actions.js", "core/router.js", "areas/offers.js", "areas/sourcing.js"]) vm.runInContext(read(f), ctx, { filename: f });
+  for (const f of ["core/languages.js", "locales/en.js", "locales/de.js", "core/t.js", "core/actions.js", "core/router.js", "areas/offers.js", "areas/sourcing.js"]) vm.runInContext(read(f), ctx, { filename: f });
   Object.assign(ctx, { warnings, calls, toasts, shown, els });
   ctx.run = (name, target) => vm.runInContext("actions", ctx).run(name, target, { type: "click", preventDefault() {} });
   ctx.render = async (to) => {

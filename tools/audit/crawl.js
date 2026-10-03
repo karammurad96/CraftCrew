@@ -1,5 +1,8 @@
 // Crawls every reachable CraftCrew page per role and records problems.
-// Usage: node tools/audit/crawl.js <base-url> <out.json> [en|de] [desktop|mobile]   (AXE=0 skips accessibility checks)
+// Usage: node tools/audit/crawl.js <base-url> <out.json> [en|de|…] [desktop|mobile]   (AXE=0 skips accessibility checks)
+// PSEUDO=1 with a language code that is not registered (e.g. "zz") adds it the way a new language is added — one
+// line in core/languages.js and one locale file — served by request interception, with every English text marked
+// ⟦…⟧ (and the "rtl" direction when PSEUDO_DIR=rtl). Missing translation keys are recorded per page.
 const { chromium } = require(process.env.PW || "playwright");
 const fs = require("fs");
 const AXE = process.env.AXE === "0" ? "" : fs.readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
@@ -30,6 +33,24 @@ const START = {
   admin: ["/admin/dashboard"],
 };
 const MAX = Number(process.env.MAX || 70);
+
+// A made-up language: English with every text wrapped in ⟦…⟧ (placeholders kept), registered like a real one.
+async function pseudoLanguage(ctx, code) {
+  const path = require("path"),
+    root = path.join(__dirname, "..", "..", "public"),
+    vm = require("vm"),
+    box = { window: {} };
+  box.window = box;
+  vm.createContext(box);
+  vm.runInContext(fs.readFileSync(path.join(root, "locales/en.js"), "utf8"), box);
+  const mark = (v) => (typeof v === "string" ? `⟦${v}⟧` : Array.isArray(v) ? v.map(mark) : Object.fromEntries(Object.entries(v).map(([k, x]) => [k, mark(x)])));
+  const locale = `var LOCALES = window.LOCALES || (window.LOCALES = {});\nLOCALES.${code} = ${JSON.stringify(mark(box.LOCALES.en))};\n`,
+    registry = fs
+      .readFileSync(path.join(root, "core/languages.js"), "utf8")
+      .replace("var LANGUAGES = [", `var LANGUAGES = [\n  { code: "${code}", name: "Pseudo", locale: "en-GB", dir: "${process.env.PSEUDO_DIR || "ltr"}" },`);
+  await ctx.route(/\/core\/languages\.js(\?.*)?$/, (r) => r.fulfill({ contentType: "text/javascript", body: registry }));
+  await ctx.route(new RegExp(`/locales/${code}\\.js(\\?.*)?$`), (r) => r.fulfill({ contentType: "text/javascript", body: locale }));
+}
 
 async function login(email, password) {
   const r = await fetch(BASE + "/api/auth/login", {
@@ -64,6 +85,7 @@ async function login(email, password) {
       },
       [session, LANG],
     );
+    if (process.env.PSEUDO) await pseudoLanguage(ctx, LANG);
     const page = await ctx.newPage();
     let current = null;
     const log = (k, v) => {
@@ -71,6 +93,7 @@ async function login(email, password) {
     };
     page.on("console", (m) => {
       if (m.type() === "error") log("consoleErrors", m.text().slice(0, 300));
+      if (m.type() === "warning" && /^Missing translation (key|list)/.test(m.text())) log("missingKeys", m.text().slice(0, 200));
     });
     page.on("pageerror", (e) => log("pageErrors", String(e.message).slice(0, 300)));
     page.on("response", (r) => {

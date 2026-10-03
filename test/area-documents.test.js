@@ -61,7 +61,7 @@ function area(lang) {
   ctx.window = ctx;
   ctx.addEventListener = () => {};
   vm.createContext(ctx);
-  for (const f of ["locales/en.js", "locales/de.js", "core/t.js", "core/actions.js", "core/router.js", "areas/documents.js"]) vm.runInContext(read(f), ctx, { filename: f });
+  for (const f of ["core/languages.js", "locales/en.js", "locales/de.js", "core/t.js", "core/actions.js", "core/router.js", "areas/documents.js"]) vm.runInContext(read(f), ctx, { filename: f });
   Object.assign(ctx, { warnings, calls, shown, els });
   ctx.render = async () => (await ctx.route(), [ctx.app.innerHTML, ...["xpTree", "xpAddress", "xpCommands", "xpContent", "xpStatus"].map((id) => el(id).innerHTML)].join("\n"));
   return ctx;

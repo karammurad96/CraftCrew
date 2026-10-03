@@ -91,7 +91,7 @@ function area(lang, { role = "customer", hash = "#/customer/suppliers" } = {}) {
   vm.createContext(ctx);
   // pvData/pvLoad come from preferred-ui.js as top-level bindings
   vm.runInContext("var pvData = window.pvData; var pvLoad = window.pvLoad;", ctx);
-  for (const f of ["locales/en.js", "locales/de.js", "core/t.js", "core/actions.js", "core/router.js", "areas/directory.js"]) vm.runInContext(read(f), ctx, { filename: f });
+  for (const f of ["core/languages.js", "locales/en.js", "locales/de.js", "core/t.js", "core/actions.js", "core/router.js", "areas/directory.js"]) vm.runInContext(read(f), ctx, { filename: f });
   Object.assign(ctx, { warnings, calls, toasts, shown });
   ctx.run = (name, el) => vm.runInContext("actions", ctx).run(name, el, { type: "click", preventDefault() {} });
   ctx.render = async (to) => {

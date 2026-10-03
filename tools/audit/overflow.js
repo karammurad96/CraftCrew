@@ -1,6 +1,6 @@
 // Opens every sidebar page per role and reports: the page scrolling sideways, chips or buttons whose text is
 // cut off, controls pushed off screen, and script errors.
-// Usage: node tools/audit/overflow.js <base-url>     (W=390 for the phone, LANG=de for German)
+// Usage: node tools/audit/overflow.js <base-url>     (W=390 for the phone; --lang=<code> or CC_LANG=<code> for another language, LANG=de still works)
 const { chromium } = require(process.env.PW || "playwright");
 
 const BASE = process.argv[2] || "http://localhost:3100";
@@ -53,7 +53,7 @@ function check() {
     page.on("pageerror", (e) => problems.push(`${role}: script error: ${e.message}`));
     await page.addInitScript(
       (l) => localStorage.setItem("cc_lang", l),
-      process.env.LANG === "de" ? "de" : "en",
+      (process.argv.find((a) => a.startsWith("--lang="))?.slice(7) || process.env.CC_LANG || (process.env.LANG === "de" ? "de" : "en")),
     );
     let routes = PUBLIC;
     if (role !== "public") {

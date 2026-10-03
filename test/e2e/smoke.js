@@ -261,6 +261,18 @@ async function main() {
             });
         }
     }
+    // A made-up language added the way a new one is (one registry line, one locale file): every page renders
+    // without a missing translation key or a script error (T137).
+    execFileSync(process.execPath, [path.join(ROOT, "tools/audit/crawl.js"), base, out, "zz", "desktop"], {
+      cwd: ROOT,
+      env: { ...process.env, AXE: "0", PSEUDO: "1" },
+      stdio: "inherit",
+    });
+    for (const [role, pages] of Object.entries(JSON.parse(readFileSync(out, "utf8"))))
+      for (const p of pages) {
+        const problems = [...(p.missingKeys || []), ...(p.pageErrors || []).map((e) => "page error: " + e)];
+        if (problems.length) failures.push({ view: "pseudo language", role, route: p.route, problem: problems.join(" | ").slice(0, 160) });
+      }
     failures.push(...(await notFoundChecks(base)));
     failures.push(...(await supplierStatusChecks(base)));
     failures.push(...(await safeActionChecks(base)));
@@ -269,7 +281,7 @@ async function main() {
       console.table(failures);
       console.error(`${failures.length} of ${total} page views have problems.`);
       process.exitCode = 1;
-    } else console.log(`All ${total} page views (desktop and phone) loaded without errors.`);
+    } else console.log(`All ${total} page views (desktop and phone) loaded without errors; a new language renders every page.`);
   } finally {
     server.kill();
     await new Promise((r) => server.once("exit", r));

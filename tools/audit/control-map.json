@@ -574,5 +574,7 @@
   },
   "admin /admin/profile-changes": {
     "action logout()": "action [ui.signOut]"
-  }
+  },
+  "action i18nSet('de')": "action [shell.lang]",
+  "action i18nSet('en')": "action [shell.lang]"
 }

@@ -1,15 +1,38 @@
 /* Translations by key (T125): t("invoice.due", { date }) looks the key up in LOCALES[language] at render time,
    so a page is drawn in the right language from the start. Pages built this way set data-i18n="keys" on their
    root; the old DOM translation in i18n.js leaves them alone. */
+// The language: the saved choice, else the browser's, else English. LANGUAGES comes from core/languages.js.
+const ccLanguages = typeof LANGUAGES !== "undefined" ? LANGUAGES : [{ code: "en", name: "English", locale: "en-GB", dir: "ltr" }];
 const ccLang = (() => {
+  const known = (code) => ccLanguages.some((l) => l.code === code);
   try {
     const saved = localStorage.getItem("cc_lang");
-    if (saved === "de" || saved === "en") return saved;
-    return (navigator.language || "").toLowerCase().startsWith("de") ? "de" : "en";
+    if (known(saved)) return saved;
+    const browser = (navigator.language || "").toLowerCase().split("-")[0];
+    return known(browser) ? browser : "en";
   } catch {
     return "en";
   }
 })();
+const ccLanguage = ccLanguages.find((l) => l.code === ccLang) || ccLanguages[0];
+if (typeof document !== "undefined" && document.documentElement) {
+  document.documentElement.lang = ccLang;
+  document.documentElement.dir = ccLanguage.dir || "ltr";
+}
+// The language buttons (one per registered language), for the sidebar and the public top bar
+function langSwitch(label, action) {
+  return `<div class="i18n-switch" role="group" aria-label="${esc(label)}">${ccLanguages
+    .map((l) => `<button type="button" class="${l.code === ccLang ? "on" : ""}" data-action="${action}" data-lang="${l.code}" lang="${l.code}" title="${esc(l.name)}">${l.code.toUpperCase()}</button>`)
+    .join("")}</div>`;
+}
+// Switch the language: saved in this browser and, when signed in, on the account (emails use it), then reload.
+async function langSet(code) {
+  try {
+    localStorage.setItem("cc_lang", code);
+  } catch {}
+  if (typeof state !== "undefined" && state.user) await api("/account/preferences", { method: "PUT", body: { language: code } }).catch(() => {});
+  location.reload();
+}
 const ccMissingKeys = new Set();
 function ccLookup(lang, key) {
   return key.split(".").reduce((node, part) => (node && typeof node === "object" ? node[part] : undefined), (window.LOCALES || {})[lang]);
@@ -34,7 +57,7 @@ function t(key, params) {
 t.plural = function (key, n, params) {
   const forms = ccLookup(ccLang, key) || ccLookup("en", key);
   if (!forms || typeof forms !== "object") return t(key, params);
-  const form = new Intl.PluralRules(ccLang === "de" ? "de-DE" : "en-GB").select(Number(n));
+  const form = new Intl.PluralRules(ccLanguage.locale).select(Number(n));
   return ccFill(forms[form] ?? forms.other, { n, ...params });
 };
 // t.list("public.pricing.customer.items") → the array stored under the key (empty when missing).
@@ -59,7 +82,7 @@ function tToast(text, type) {
 }
 // Dates, amounts and numbers in the user's language.
 const fmt = {
-  locale: () => (ccLang === "de" ? "de-DE" : "en-GB"),
+  locale: () => ccLanguage.locale,
   date: (d, opts = { day: "2-digit", month: "short", year: "numeric" }) =>
     d ? new Date(String(d).length === 10 ? d + "T12:00:00" : d).toLocaleDateString(fmt.locale(), opts) : "—",
   money: (n, digits = 0) =>

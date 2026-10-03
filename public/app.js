@@ -120,7 +120,7 @@ function topActions() {
   if (el) {
     el.dataset.i18n = "keys";
     const u = state.user;
-    if (!u) el.innerHTML = `<a class="ds-top-signin" href="#/login">${k("signIn")}</a><a class="btn small primary ds-top-start" href="#/signup">${k("start")}</a>`;
+    if (!u) el.innerHTML = `${langSwitch(t("shell.language"), "shell.lang")}<a class="ds-top-signin" href="#/login">${k("signIn")}</a><a class="btn small primary ds-top-start" href="#/signup">${k("start")}</a>`;
     else {
       const initials = String(u.name || "U")
         .split(" ")
@@ -130,7 +130,7 @@ function topActions() {
         .toUpperCase();
       el.innerHTML = `<a class="pa-account" href="#/${esc(u.role)}/profile" title="${k("profile")}"><span class="avatar">${esc(initials)}</span><span class="pa-account-text"><b>${esc(u.name)}</b><small>${esc(
         t("ui.role." + u.role),
-      )}</small></span></a><a class="btn primary" href="#/${esc(u.role)}/dashboard">${k("dashboard")}</a><button type="button" class="btn outline" data-action="ui.signOut">${k("logout")}</button>`;
+      )}</small></span></a>${langSwitch(t("shell.language"), "shell.lang")}<a class="btn primary" href="#/${esc(u.role)}/dashboard">${k("dashboard")}</a><button type="button" class="btn outline" data-action="ui.signOut">${k("logout")}</button>`;
     }
   }
   uiStaticTexts();
