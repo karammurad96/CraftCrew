@@ -5,6 +5,9 @@
 var LANGUAGES = [
   { code: "en", name: "English", locale: "en-GB", dir: "ltr" },
   { code: "de", name: "Deutsch", locale: "de-DE", dir: "ltr" },
+  { code: "fr", name: "Français", locale: "fr-FR", dir: "ltr" },
+  { code: "es", name: "Español", locale: "es-ES", dir: "ltr" },
+  { code: "ar", name: "العربية", locale: "ar-u-nu-latn", dir: "rtl" },
 ];
 // In the browser the locale files load in order right after this script, before core/t.js.
 if (typeof document !== "undefined" && typeof document.write === "function")
