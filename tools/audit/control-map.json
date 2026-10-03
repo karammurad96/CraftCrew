@@ -451,5 +451,53 @@
   },
   "supplier /supplier/team": {
     "action tmInvite()": "action [team.invite]"
+  },
+  "supplier /supplier/planning": {
+    "action plNew('usr:u_showcase_supplier','2026-09-28')": "action [pl.new]",
+    "action plNew('usr:u_showcase_supplier','2026-09-29')": "action [pl.new]",
+    "action plNew('usr:u_showcase_supplier','2026-09-30')": "action [pl.new]",
+    "action plNew('usr:u_showcase_supplier','2026-10-01')": "action [pl.new]",
+    "action plNew('usr:u_showcase_supplier','2026-10-02')": "action [pl.new]",
+    "action plNew('usr:u_showcase_supplier','2026-10-03')": "action [pl.new]",
+    "action plNew('usr:u_showcase_supplier','2026-10-04')": "action [pl.new]",
+    "action plNew('usr:u_showcase_supplier','2026-10-05')": "action [pl.new]",
+    "action plNew('usr:u_showcase_supplier','2026-10-06')": "action [pl.new]",
+    "action plNew('usr:u_showcase_supplier','2026-10-07')": "action [pl.new]",
+    "action plNew('usr:u_showcase_supplier','2026-10-08')": "action [pl.new]",
+    "action plNew('usr:u_showcase_supplier','2026-10-09')": "action [pl.new]",
+    "action plNew('usr:u_showcase_supplier','2026-10-10')": "action [pl.new]",
+    "action plNew('usr:u_showcase_supplier','2026-10-11')": "action [pl.new]",
+    "action plNew('wrk:wrk_demo_weber','2026-09-28')": "action [pl.new]",
+    "action plNew('wrk:wrk_demo_weber','2026-09-29')": "action [pl.new]",
+    "action plNew('wrk:wrk_demo_weber','2026-09-30')": "action [pl.new]",
+    "action plNew('wrk:wrk_demo_weber','2026-10-01')": "action [pl.new]",
+    "action plNew('wrk:wrk_demo_weber','2026-10-02')": "action [pl.new]",
+    "action plNew('wrk:wrk_demo_weber','2026-10-03')": "action [pl.new]",
+    "action plNew('wrk:wrk_demo_weber','2026-10-04')": "action [pl.new]",
+    "action plNew('wrk:wrk_demo_weber','2026-10-05')": "action [pl.new]",
+    "action plNew('wrk:wrk_demo_weber','2026-10-06')": "action [pl.new]",
+    "action plNew('wrk:wrk_demo_weber','2026-10-07')": "action [pl.new]",
+    "action plNew('wrk:wrk_demo_weber','2026-10-08')": "action [pl.new]",
+    "action plNew('wrk:wrk_demo_weber','2026-10-09')": "action [pl.new]",
+    "action plNew('wrk:wrk_demo_weber','2026-10-10')": "action [pl.new]",
+    "action plNew('wrk:wrk_demo_weber','2026-10-11')": "action [pl.new]",
+    "action plNew()": "action [pl.new]",
+    "action plPlanJob('tsk_demo_fabrication')": "action [pl.planJob]",
+    "action plPlanJob('tsk_demo_scope')": "action [pl.planJob]",
+    "action plPlanJob('tsk_demo_training')": "action [pl.planJob]",
+    "action plPlanJob()": "action [pl.planJob]",
+    "action plShift(-1)": "action [pl.shift]",
+    "action plShift(1)": "action [pl.shift]",
+    "action plSpan('month')": "action [pl.span]",
+    "action plSpan('twoweeks')": "action [pl.span]",
+    "action plSpan('week')": "action [pl.span]",
+    "action plToday()": "action [pl.today]",
+    "action event.stopPropagation();toast('Site visits are managed under Compliance')": "action [pl.visit]"
+  },
+  "supplier /supplier/analytics": {
+    "action inExportSupplier()": "action [an.exportSupplier]"
+  },
+  "customer /customer/analytics": {
+    "action inExportCustomer()": "action [an.exportCustomer]"
   }
 }

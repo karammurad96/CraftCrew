@@ -1,4 +1,4 @@
-/* Strategic sourcing: shared constants and icons, and the scorecard panel on the supplier's analytics. The sourcing
+/* Strategic sourcing: shared constants and icons. The sourcing
    dashboard, the offer comparison and contracts are in areas/sourcing.js (T129c), the approvals inbox in
    areas/sites.js (T133), the scorecards on admin reports in areas/admin.js (T134b). */
 const SR_WEIGHTS = { price: 50, delivery: 20, quality: 20, experience: 10 };
@@ -13,18 +13,3 @@ Object.assign(UI_ICON_PATHS, {
   approvals: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
 });
 Object.assign(UI_NAV_ICONS, { sourcing: "sourcing", contracts: "contracts", approvals: "approvals" });
-
-/* ---------- Navigation and routing ---------- */
-const srBaseRoute = window.route;
-window.route = async function () {
-  const path = location.hash.replace(/^#/, "").split("?")[0],
-    parts = path.split("/").filter(Boolean);
-  const result = await srBaseRoute();
-  try {
-    if (parts[0] === "supplier" && parts[1] === "analytics" && state.user?.supplierId)
-      await srScorecardPanel(state.user.supplierId, document.querySelector(".dashboard-content"));
-  } catch (e) {
-    console.error(e);
-  }
-  return result;
-};

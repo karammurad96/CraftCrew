@@ -223,7 +223,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T135 Area: profile, settings, team and two-factor · M
   - [x] T135a profile and settings of every role (security, notifications, payouts, two-factor, calendar feed, your data), the service catalog page
   - [x] T135b team page and member access
-  - [ ] T135c the supplier's team planner and the analytics pages
+  - [x] T135c the supplier's team planner and the analytics pages
   - [ ] T135d what is left of the old layer: search, onboarding checklist, layout customizer, not-found and forced password pages, footer, status and offline notices
 - [ ] T137 Multi-language groundwork: language registry, status keys, server texts by language, per-language emails and PDFs · M (do before T136)
 - [ ] T136 Strict CSP without `'unsafe-inline'` scripts; remove the DOM translation layer and the old files · S

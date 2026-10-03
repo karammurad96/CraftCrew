@@ -59,7 +59,6 @@ const I18N_DE = {
   Reset: "Zurücksetzen",
   Done: "Fertig",
   Hide: "Ausblenden",
-  "Export CSV": "CSV exportieren",
   Grid: "Raster",
   List: "Liste",
   Map: "Karte",
@@ -98,10 +97,7 @@ const I18N_DE = {
   "Admin dashboard": "Admin-Übersicht",
   "Coordinate active projects, phases and payments.": "Aktive Projekte, Phasen und Zahlungen koordinieren.",
   Completed: "Abgeschlossen",
-  "Invoices to review": "Zu prüfende Rechnungen",
-  "Nothing is overdue.": "Nichts ist überfällig.",
   "Vetting queue": "Prüfwarteschlange",
-  "Invoice status": "Rechnungsstatus",
   "Getting started": "Erste Schritte",
   // Onboarding
   "GETTING STARTED": "ERSTE SCHRITTE",
@@ -177,7 +173,6 @@ const I18N_DE = {
   Project: "Projekt",
   Phase: "Phase",
   Task: "Aufgabe",
-  "Work status": "Arbeitsstatus",
   Communication: "Kommunikation",
   Comment: "Kommentar",
   "Project root": "Projektebene",
@@ -202,36 +197,12 @@ const I18N_DE = {
   End: "Ende",
   All: "Alle",
   // Analytics
-  "Project analytics": "Projektanalysen",
-  "Business analytics": "Geschäftsanalysen",
-  "All projects": "Alle Projekte",
   "Last 3 months": "Letzte 3 Monate",
   "Last 6 months": "Letzte 6 Monate",
   "Last 12 months": "Letzte 12 Monate",
-  "Total budget": "Gesamtbudget",
-  "Committed to suppliers": "An Lieferanten vergeben",
-  Invoiced: "Abgerechnet",
-  "Budget remaining": "Restbudget",
-  "Schedule health": "Terminlage",
-  "Budget vs. spend by project": "Budget vs. Ausgaben je Projekt",
-  "Monthly spend": "Monatliche Ausgaben",
-  "Spend by supplier": "Ausgaben je Lieferant",
-  "Work status": "Arbeitsstatus",
-  "Overdue work": "Überfällige Arbeiten",
-  "Revenue paid": "Bezahlter Umsatz",
-  Pipeline: "Pipeline",
-  "Bid win rate": "Zuschlagsquote",
-  "Invoice approval rate": "Rechnungsfreigabequote",
-  "On-time delivery": "Liefertermintreue",
-  "Approved hours this month": "Freigegebene Stunden diesen Monat",
-  "Monthly revenue": "Monatlicher Umsatz",
-  "Revenue by customer": "Umsatz je Kunde",
-  "Approved hours by team member": "Freigegebene Stunden je Mitarbeiter",
   Offers: "Angebote",
   Paid: "Bezahlt",
-  "Committed (order caps)": "Vergeben (Auftragsobergrenzen)",
   "Reports & analytics": "Berichte & Analysen",
-  "Customer analytics": "Kundenanalysen",
   // Invoices, time, messages, settings
   Find: "Suchen",
   From: "Von",
@@ -325,8 +296,6 @@ Object.assign(I18N_DE, {
   "Verify evidence and references, then approve with a badge.":
     "Nachweise und Referenzen prüfen, dann mit Badge freigeben.",
   // Page intros and panels
-  "Budget, spend, schedule health and supplier spend across your projects.":
-    "Budget, Ausgaben, Terminlage und Lieferantenausgaben über alle Projekte.",
   "No insurance evidence on file": "Kein Versicherungsnachweis hinterlegt",
   "No certifications listed": "Keine Zertifikate angegeben",
   "Currently marked as busy": "Derzeit als ausgelastet markiert",
@@ -337,8 +306,6 @@ Object.assign(I18N_DE, {
   You: "Sie",
   "At least 10 characters with letters and numbers. Other signed-in devices are signed out.":
     "Mindestens 10 Zeichen mit Buchstaben und Zahlen. Andere angemeldete Geräte werden abgemeldet.",
-  "Revenue, pipeline, bid success, delivery performance and team utilisation.":
-    "Umsatz, Pipeline, Angebotserfolg, Lieferleistung und Teamauslastung.",
   "Task invitations, supplier commitments, documentation and progress.":
     "Aufgabeneinladungen, Zusagen, Dokumentation und Fortschritt.",
   "Marketplace quality, vetting and financial operations.":
@@ -451,7 +418,6 @@ Object.assign(I18N_DE, {
 Object.assign(I18N_DE, {
   // Team members
   Team: "Team",
-  "Invite team member": "Teammitglied einladen",
   "Team members": "Teammitglieder",
   Removed: "Entfernt",
   "no longer have access": "haben keinen Zugriff mehr",
@@ -525,18 +491,7 @@ Object.assign(I18N_DE, {
   Refresh: "Aktualisieren",
   Details: "Details",
   // Team planner
-  "Team planner": "Teamplaner",
-  "TEAM PLANNER": "TEAMPLANER",
-  "Plan who works on which job, see vacations and site visits, and spot double bookings.":
-    "Planen Sie, wer an welchem Auftrag arbeitet, sehen Sie Urlaube und Einsätze vor Ort und erkennen Sie Doppelbuchungen.",
-  "Plan a job": "Auftrag planen",
-  "+ New entry": "+ Neuer Eintrag",
   Today: "Heute",
-  "Working today": "Heute im Einsatz",
-  "on jobs or site visits": "bei Aufträgen oder vor Ort",
-  "Absent today": "Heute abwesend",
-  "vacation, sick or training": "Urlaub, krank oder Schulung",
-  "Jobs without people": "Aufträge ohne Personal",
   Job: "Auftrag",
   "Site visit": "Einsatz vor Ort",
   "Enter the start time as HH:MM, for example 07:30": "Geben Sie die Startzeit als HH:MM ein, zum Beispiel 07:30",
@@ -547,30 +502,15 @@ Object.assign(I18N_DE, {
   Week: "Woche",
   "2 weeks": "2 Wochen",
   "4 weeks": "4 Wochen",
-  "Jobs to staff": "Zu besetzende Aufträge",
-  "Plan people": "Personal planen",
-  "Nobody planned": "Niemand eingeplant",
   "Job assignment": "Auftragseinsatz",
   "Sick leave": "Krankmeldung",
   Person: "Person",
   From: "Von",
   To: "Bis",
   Note: "Notiz",
-  "New planner entry": "Neuer Planungseintrag",
-  "Edit planner entry": "Planungseintrag bearbeiten",
-  "Plan people on a job": "Personal für einen Auftrag planen",
   People: "Personen",
-  "Plan selected people": "Ausgewählte Personen planen",
-  "Planner updated": "Planung aktualisiert",
-  "Entry deleted": "Eintrag gelöscht",
-  Moved: "Verschoben",
   "Account owner": "Kontoinhaber",
   "Field worker": "Monteur",
-  "Add your team first": "Legen Sie zuerst Ihr Team an",
-  "Register workers": "Mitarbeitende erfassen",
-  "Invite team members": "Teammitglieder einladen",
-  "No open jobs assigned to your company.": "Ihrem Unternehmen sind keine offenen Aufträge zugewiesen.",
-  "Site visits are managed under Compliance": "Einsätze vor Ort werden unter Compliance verwaltet",
   // Public top bar & onboarding
   Customer: "Kunde",
   Supplier: "Lieferant",
@@ -735,7 +675,6 @@ Object.assign(I18N_DE, {
     "Geben Sie die Mindestdeckung in Euro ein oder lassen Sie das Feld leer",
   // German interface gaps (T58)
   "Create invoice": "Rechnung erstellen",
-  "Approved hours": "Freigegebene Stunden",
   "Approved order cap": "Freigegebene Auftragsobergrenze",
   // Accessibility labels (T57)
   Table: "Tabelle",
@@ -834,12 +773,10 @@ Object.assign(I18N_DE, {
   // Project workspace (T98)
   Phases: "Phasen",
   Progress: "Fortschritt",
-  Working: "In Arbeit",
   Late: "Verspätet",
   "1 document to approve": "1 Dokument freizugeben",
   "1 invoice": "1 Rechnung",
   // Task board (T99)
-  Board: "Board",
   Order: "Auftrag",
   // Offer comparison (T100)
   Includes: "Enthält",
@@ -856,7 +793,6 @@ Object.assign(I18N_DE, {
   PDF: "PDF",
   XRechnung: "XRechnung",
   // Phone Today (T102)
-  Jobs: "Aufträge",
   Photo: "Foto",
   // GDPR self-service (T120)
   "Your data": "Ihre Daten",
