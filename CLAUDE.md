@@ -13,6 +13,7 @@ The work backlog is in `docs/TASKS.md`. Do **one task at a time**, exactly as wr
 | `server.js` | HTTP server and most API routes. Routes are one long `if` chain on `parts` (`/api/<parts[1]>/<parts[2]>…`) inside `async function api(req, res, url)`. |
 | `sourcing.js`, `compliance.js`, `team.js`, `documents.js`, `planning.js` | Extra API modules. Each exports `handle(req, res, url, parts, user)` and gets helpers through a `ctx` object. |
 | `mailer.js` | Dependency-free SMTP client. Emails are queued in `db.outbox` by `queueEmail()`. |
+| `locales.js` | The server's languages and texts (T137): reads `public/core/languages.js` and the locale files. Notifications (`notify(id, { key, params })`), emails (`sendMail()`) and PDFs take their texts from the `server` group there, in the recipient's language. |
 | `public/index.html` | Page shell. Loads `app.js` and then about 19 add-on scripts **in order**. |
 | `public/*.js` | Frontend. Later files override functions of earlier ones and wrap `window.route`. The **last** definition of a function wins. |
 | `public/i18n.js` | German translation: an English→German phrase map (`I18N_DE`) applied to the rendered DOM. |
@@ -62,7 +63,8 @@ when signing in to get the token in the response body, then use `Authorization: 
 8. **Stay inside the task.** Don't reformat, rename or "improve" code the task doesn't mention.
 9. Keep API error messages short, friendly and actionable. They are shown to users, translated: every new
    message needs an entry in `errors.api` of `public/locales/en.js` and `de.js` (T137; `test/error-codes.test.js`
-   checks it). Status values shown to users need a `common.status` key.
+   checks it). Status values shown to users need a `common.status` key. Notifications, emails and PDF labels
+   go in the `server` group of the locale files, never as plain English strings (`test/server-texts.test.js`).
 
 ## Git workflow
 

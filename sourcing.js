@@ -187,7 +187,10 @@ module.exports = function createSourcing(ctx) {
       if (v.state === "Expiring" && !c.renewalAlertSentAt) {
         notify(
           c.customerId,
-          `Contract "${c.title}" with ${v.supplierCompany} ends on ${c.endDate}${v.noticeBy ? ` — notice deadline ${v.noticeBy}` : ""}`,
+          {
+            key: v.noticeBy ? "contractEndingNotice" : "contractEnding",
+            params: { title: c.title, company: v.supplierCompany, date: c.endDate, notice: v.noticeBy },
+          },
           "/customer/contracts",
         );
         c.renewalAlertSentAt = now();
@@ -235,7 +238,7 @@ module.exports = function createSourcing(ctx) {
       if (c.status === "Active")
         notify(
           db.users.find((u) => u.supplierId === c.supplierId)?.id,
-          `New contract with ${user.company || user.name}: ${c.title}`,
+          { key: "contractNew", params: { company: user.company || user.name, title: c.title } },
           "/supplier/contracts",
         );
       return (send(res, 201, { contract: contractView(c) }), true);
@@ -254,7 +257,7 @@ module.exports = function createSourcing(ctx) {
       if (!wasActive && c.status === "Active")
         notify(
           db.users.find((u) => u.supplierId === c.supplierId)?.id,
-          `Contract activated: ${c.title}`,
+          { key: "contractActivated", params: { title: c.title } },
           "/supplier/contracts",
         );
       return (send(res, 200, { contract: contractView(c) }), true);

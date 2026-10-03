@@ -12,64 +12,9 @@ const ACCEPTED = ["accepted", "accepted_with_defects"];
 const HANDOVER = ["Under Review", "Completed"];
 const MAX_SIGNATURE = 200 * 1024;
 
-const LABELS = {
-  en: {
-    title: "Acceptance report",
-    project: "Project",
-    task: "Task",
-    phase: "Phase",
-    customer: "Customer",
-    supplier: "Supplier",
-    date: "Date",
-    place: "Place",
-    result: "Result",
-    checklist: "Deliverables and documents checked",
-    defects: "Defects",
-    none: "None",
-    note: "Note",
-    signedBy: "Signed by",
-    signature: "Signature",
-    accepted: "Accepted",
-    accepted_with_defects: "Accepted with defects",
-    rejected: "Rejected",
-    footer: "Created with CraftCrew. The drawn signature was captured on screen.",
-    minor: "minor",
-    major: "major",
-    critical: "critical",
-    open: "open",
-    fixed: "fixed, not yet verified",
-    page: "Page",
-    locale: "en-GB",
-  },
-  de: {
-    title: "Abnahmeprotokoll",
-    project: "Projekt",
-    task: "Aufgabe",
-    phase: "Phase",
-    customer: "Auftraggeber",
-    supplier: "Auftragnehmer",
-    date: "Datum",
-    place: "Ort",
-    result: "Ergebnis",
-    checklist: "Geprüfte Leistungen und Unterlagen",
-    defects: "Mängel",
-    none: "Keine",
-    note: "Bemerkung",
-    signedBy: "Unterzeichnet von",
-    signature: "Unterschrift",
-    accepted: "Abgenommen",
-    accepted_with_defects: "Abgenommen mit Mängeln",
-    rejected: "Abnahme verweigert",
-    footer: "Erstellt mit CraftCrew. Die Unterschrift wurde auf dem Bildschirm gezeichnet.",
-    minor: "geringfügig",
-    major: "erheblich",
-    critical: "kritisch",
-    open: "offen",
-    fixed: "behoben, noch nicht geprüft",
-    page: "Seite",
-    locale: "de-DE",
-  },
-};
+const locales = require("./locales");
+// The report's labels are in server.pdf.acceptance of the locale files (T137).
+const labelsFor = (lang) => ({ ...locales.group(lang, "server.pdf.acceptance"), locale: locales.localeOf(lang) });
 
 module.exports = function createAcceptance(ctx) {
   const { getDb, save, send, body, id, now, notify, projectFor, activity, uploadDir } = ctx;
@@ -99,7 +44,7 @@ module.exports = function createAcceptance(ctx) {
   }
 
   function reportPdf(record, { project, phase, task, customer, supplier }, lang) {
-    const L = LABELS[lang] || LABELS.en,
+    const L = labelsFor(lang),
       pages = [],
       signature = pngImage(Buffer.from(record.signature.split(",")[1] || "", "base64"));
     let commands, y;
@@ -309,8 +254,8 @@ module.exports = function createAcceptance(ctx) {
         createdBy: user.id,
         createdAt: now(),
       };
-    const lang = (customer?.language || user.language) === "de" ? "de" : "en",
-      filename = `${lang === "de" ? "Abnahmeprotokoll" : "Acceptance-report"}-${task.name.replace(/[^\w-]+/g, "-").slice(0, 60)}-${date}.pdf`,
+    const lang = locales.pdfLang(customer?.language || user.language),
+      filename = `${labelsFor(lang).filename}-${task.name.replace(/[^\w-]+/g, "-").slice(0, 60)}-${date}.pdf`,
       stored = `${record.id}_${filename}`;
     fs.writeFileSync(
       path.join(uploadDir(), stored),
@@ -328,7 +273,7 @@ module.exports = function createAcceptance(ctx) {
       filename,
       url: "/uploads/" + stored,
       category: "Acceptance report",
-      description: LABELS[lang][record.result],
+      description: labelsFor(lang)[record.result],
       approvalRequired: false,
       status: "Shared",
       version: 1,
@@ -353,7 +298,7 @@ module.exports = function createAcceptance(ctx) {
           : { key: "workAccepted", params: { task: task.name } },
         `/supplier/projects/${project.id}`,
       );
-    activity(user, `Signed the acceptance report for ${task.name}: ${LABELS.en[record.result]}`);
+    activity(user, `Signed the acceptance report for ${task.name}: ${labelsFor("en")[record.result]}`);
     save();
     return (send(res, 201, { acceptance: task.acceptance, document: doc, task }), true);
   }

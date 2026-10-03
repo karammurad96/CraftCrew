@@ -225,10 +225,10 @@ Every task depends on **T00** and **T01** unless it says otherwise.
   - [x] T135b team page and member access
   - [x] T135c the supplier's team planner and the analytics pages
   - [x] T135d what is left of the old layer: search, onboarding checklist, layout customizer, not-found and forced password pages, footer, status and offline notices
-- [ ] T137 Multi-language groundwork: language registry, status keys, server texts by language, per-language emails and PDFs · M (do before T136)
+- [x] T137 Multi-language groundwork: language registry, status keys, server texts by language, per-language emails and PDFs · M (do before T136)
   - [x] T137a language registry, `Intl` plurals, the language switcher, missing-key check per locale, `--lang` for overflow and screenshots, pseudo-language crawl in the smoke test
   - [x] T137b statuses as keys, API error codes shown through `errors.*` keys
-  - [ ] T137c emails, notifications and PDFs in the recipient's language
+  - [x] T137c emails, notifications and PDFs in the recipient's language
 - [ ] T136 Strict CSP without `'unsafe-inline'` scripts; remove the DOM translation layer and the old files · S
 - [ ] T138 Right-to-left layout for Arabic · M (after T136)
 
