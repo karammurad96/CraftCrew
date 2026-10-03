@@ -1,9 +1,6 @@
 /* CraftCrew frontend. Business data is server-persisted. The session lives in an HttpOnly cookie that scripts
    can't read (T124); localStorage keeps only the signed-in user's profile and UI preferences. */
 const API = "/api";
-// A supplier's badge for display: the tier, "Verified" without a tier, or "Not yet verified" — never "None".
-const supplierBadge = (s) =>
-  s?.badge && s.badge !== "None" ? s.badge : s?.verified || s?.live ? "Verified" : "Not yet verified";
 let apiBusy = 0;
 // Invoices show their sequential number to people; the id stays for links and the API.
 const invNo = (i) => i?.number || i?.id || "";
@@ -81,7 +78,7 @@ async function api(path, opts = {}) {
       d = await r.json();
     } catch {}
     if (!r.ok)
-      throw Object.assign(new Error(d.error || "Request failed"), { status: r.status, code: d.code });
+      throw Object.assign(new Error(d.error || t("ui.requestFailed")), { status: r.status, code: d.code });
     return d;
   } finally {
     if (busy) {
@@ -115,19 +112,45 @@ function modal(title, body) {
 function closeModal() {
   modalRoot.innerHTML = "";
 }
-function formFields(fields) {
-  return fields
-    .map(
-      (f) =>
-        `<label>${esc(f.label)}${f.required ? " *" : ""}<${f.type === "textarea" ? "textarea" : "input"} name="${f.name}" ${f.type === "number" ? 'type="number"' : f.type === "date" ? 'type="date"' : f.type === "email" ? 'type="email"' : f.type === "password" ? 'type="password"' : ""} ${f.required ? "required" : ""} placeholder="${esc(f.placeholder || "")}">${f.type === "textarea" ? "" : ""}</${f.type === "textarea" ? "textarea" : "input"}></label>`,
-    )
-    .join("");
-}
+// The top bar: for visitors "Sign in" and a small "Start a project" pill (board Landing); signed in, an account
+// chip, the way back to the workspace and sign-out. The header links and the footer take their words from keys.
 function topActions() {
-  const el = document.getElementById("topActions");
-  if (state.user)
-    el.innerHTML = `<span class="subtle">${esc(state.user.name)}</span><button class="btn outline" onclick="navigate('/${state.user.role}/dashboard')">Dashboard</button><button class="btn ghost" onclick="logout()">Log out</button>`;
-  else el.innerHTML = `<button class="btn ghost login-btn" onclick="navigate('/login')">Log in</button>`;
+  const el = document.getElementById("topActions"),
+    k = (key) => esc(t("ui.top." + key));
+  if (el) {
+    el.dataset.i18n = "keys";
+    const u = state.user;
+    if (!u) el.innerHTML = `<a class="ds-top-signin" href="#/login">${k("signIn")}</a><a class="btn small primary ds-top-start" href="#/signup">${k("start")}</a>`;
+    else {
+      const initials = String(u.name || "U")
+        .split(" ")
+        .map((x) => x[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase();
+      el.innerHTML = `<a class="pa-account" href="#/${esc(u.role)}/profile" title="${k("profile")}"><span class="avatar">${esc(initials)}</span><span class="pa-account-text"><b>${esc(u.name)}</b><small>${esc(
+        t("ui.role." + u.role),
+      )}</small></span></a><a class="btn primary" href="#/${esc(u.role)}/dashboard">${k("dashboard")}</a><button type="button" class="btn outline" data-action="ui.signOut">${k("logout")}</button>`;
+    }
+  }
+  uiStaticTexts();
+  updateCraftCrewShell();
+}
+function uiStaticTexts() {
+  const nav = document.querySelector("body > .topbar .main-nav");
+  if (nav && !nav.dataset.i18n) {
+    nav.dataset.i18n = "keys";
+    for (const a of nav.querySelectorAll("a")) {
+      const key = { "#/how-it-works": "how", "#/suppliers": "suppliers", "#/pricing": "pricing", "#/faq": "support" }[a.getAttribute("href")];
+      if (key) a.textContent = t("ui.nav." + key);
+    }
+  }
+  const footer = document.querySelector("body > footer");
+  if (footer && !footer.dataset.i18n) {
+    footer.dataset.i18n = "keys";
+    const p = footer.querySelector(":scope > p");
+    if (p) p.textContent = t("ui.footer.claim");
+  }
 }
 async function logout() {
   const token = state.token;
@@ -147,9 +170,6 @@ async function logout() {
 function publicLayout(content) {
   return `<div class="cc-shell">${content}</div>`;
 }
-function publicHero() {
-  return `<section class="hero-lite"><div><div class="eyebrow">INDUSTRIAL SERVICES, COORDINATED</div><h1>Build complex projects with <span>trusted crews.</span></h1><p>CraftCrew connects SMEs with vetted mechanical, electrical, automation and industrial service specialists — managed through one transparent waterfall workflow.</p><div class="hero-actions"><button class="btn primary lg" onclick="navigate('/signup')">Start a project</button><button class="btn outline lg" onclick="navigate('/suppliers')">Explore suppliers</button></div><div class="trust-row"><div><b>20+</b><small>vetted suppliers</small></div><div><b>5-stage</b><small>waterfall delivery</small></div><div><b>1 place</b><small>projects & payments</small></div></div></div><div class="hero-box"><div class="small-label">LIVE PROJECT CONTROL</div><h3 style="font-size:20px;margin:10px 0">Line 15 Integration</h3><div class="progress"><i style="width:68%"></i></div><div style="font-size:11px;color:#9eabc0">68% complete · 12 days remaining</div><div class="mini"><div><div class="small-label">ACTIVE PHASE</div><b>Programming</b><p style="color:#9eabc0">SPS Experts GmbH</p></div><div><div class="small-label">NEXT MILESTONE</div><b>Installation</b><p style="color:#9eabc0">18 Sep 2026</p></div></div></div></section>`;
-}
 async function route() {
   topActions();
   const h = location.hash.replace(/^#/, "") || "/";
@@ -163,7 +183,7 @@ async function route() {
     console.error(e);
     toast(e.message, "error");
     app.innerHTML = publicLayout(
-      `<div class="cc-page"><div class="empty"><h2>Something went wrong</h2><p>${esc(e.message)}</p><button class="btn primary" onclick="route()">Retry</button></div></div>`,
+      `<div class="cc-page" data-i18n="keys"><div class="empty"><h2>${esc(t("errors.pageFailed"))}</h2><p data-i18n="dom">${esc(e.message)}</p><a class="btn primary" href="#/">${esc(t("ui.home"))}</a></div></div>`,
     );
   }
 }
@@ -184,12 +204,6 @@ function updateCraftCrewShell() {
   if (marketingHeader) marketingHeader.style.display = loggedIn && inWorkspace ? "none" : "";
   if (footer) footer.style.display = loggedIn && inWorkspace ? "none" : "";
 }
-
-const _originalTopActions = topActions;
-topActions = function () {
-  _originalTopActions();
-  updateCraftCrewShell();
-};
 
 document.addEventListener("DOMContentLoaded", updateCraftCrewShell);
 window.addEventListener("hashchange", updateCraftCrewShell);

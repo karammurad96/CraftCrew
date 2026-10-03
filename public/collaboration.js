@@ -18,7 +18,7 @@ window.route = async function () {
     app.innerHTML = dashboardShell(
       role || "supplier",
       "dashboard",
-      `<div class="panel"><h2>Could not load this page</h2><p>${ccEsc(e.message)}</p></div>`,
+      `<div class="panel" data-i18n="keys"><h2>${esc(t("errors.pageFailed"))}</h2><p data-i18n="dom">${ccEsc(e.message)}</p></div>`,
     );
   }
 };

@@ -15,17 +15,6 @@ function dsText(el) {
   return parts.join("").replace(/\s+/g, " ").trim();
 }
 
-/* "5 days late" for a date in the past (YYYY-MM-DD); "Overdue" when the date is unknown. */
-function dsDaysLate(isoDate) {
-  const due = String(isoDate || "").slice(0, 10);
-  if (!Date.parse(due)) return "Overdue";
-  // Calendar days in the user's time zone, not 24-hour periods since midnight UTC
-  const now = new Date(),
-    today = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10),
-    days = Math.max(1, Math.round((Date.parse(today) - Date.parse(due)) / 86400000));
-  return days === 1 ? "1 day late" : `${days} days late`;
-}
-
 /* ---------- Status chips (T92, board StatusSystem): tint and icon by meaning ---------- */
 const DS_TONE_TEXT = [
   ["red", /^(rejected|changes|changes requested|overdue|late|\d+ days? late|\d+d late|expired.*|missing|incomplete|action needed|not selected|declined|failed|suspended|blocked)$/],
@@ -108,21 +97,6 @@ document.addEventListener(
   true,
 );
 
-/* Top bar for visitors: "Sign in" as a text link and a small "Start a project" pill (board Landing) */
-const dsBaseTopActions = topActions;
-topActions = function () {
-  dsBaseTopActions();
-  const el = document.getElementById("topActions");
-  if (!el || state.user) return;
-  el.innerHTML = `<a class="ds-top-signin" href="#/login">Sign in</a><a class="btn small primary ds-top-start" href="#/signup">Start a project</a>`;
-};
-// The header links follow the board's wording; the routes stay the same.
-(function dsHeaderLinks() {
-  const nav = document.querySelector("body > .topbar .main-nav");
-  if (!nav) return;
-  const rename = { "#/suppliers": "Suppliers", "#/faq": "Support" };
-  for (const a of nav.querySelectorAll("a")) if (rename[a.getAttribute("href")]) a.textContent = rename[a.getAttribute("href")];
-})();
 topActions();
 
 /* ---------- Dates shared by the screens below ---------- */

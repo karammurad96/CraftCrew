@@ -12,37 +12,24 @@ const I18N_DE = {
   Projects: "Projekte",
   Sourcing: "Beschaffung",
   Contracts: "Verträge",
-  "Offers overview": "Angebotsübersicht",
-  "Find suppliers": "Lieferanten finden",
   Invoices: "Rechnungen",
   Inbox: "Posteingang",
   "Time approvals": "Zeitfreigaben",
   Messages: "Nachrichten",
-  "Profile / Settings": "Profil / Einstellungen",
   "Bid opportunities": "Ausschreibungen",
   "Assigned work": "Zugewiesene Arbeit",
-  "Time & approvals": "Zeiten & Freigaben",
   "Admin Dashboard": "Admin-Übersicht",
   "Vetting Queue": "Prüfwarteschlange",
   Users: "Benutzer",
   "Payments & Billing": "Zahlungen & Abrechnung",
   "Reports & Analytics": "Berichte & Analysen",
-  "Audit log": "Audit-Protokoll",
   Escalations: "Eskalationen",
   Settings: "Einstellungen",
   Search: "Suche",
-  "Log out": "Abmelden",
-  "Log in": "Anmelden",
-  "How it works": "So funktioniert es",
-  Pricing: "Preise",
   FAQ: "FAQ",
   "Industrial services, coordinated end-to-end.": "Industrielle Dienstleistungen, durchgängig koordiniert.",
   Notifications: "Benachrichtigungen",
-  "Building industry together.": "Gemeinsam Industrie gestalten.",
   Impressum: "Impressum",
-  "Privacy policy": "Datenschutzerklärung",
-  "Terms of use": "Nutzungsbedingungen",
-  "Impressum / Legal notice": "Impressum",
   "Signed in as": "Angemeldet als",
   // Common actions
   Save: "Speichern",
@@ -72,59 +59,30 @@ const I18N_DE = {
   "Request a quote": "Angebot anfragen",
   Documents: "Dokumente",
   "+ Upload document": "+ Dokument hochladen",
-  "Open project": "Projekt öffnen",
   "Project documents": "Projektdokumente",
   "Project messages": "Projektnachrichten",
   Suspend: "Sperren",
   Reactivate: "Reaktivieren",
   "Reset password": "Passwort zurücksetzen",
-  "Change password": "Passwort ändern",
   "Start a project": "Projekt starten",
   "Explore suppliers": "Lieferanten entdecken",
   "Start as a customer": "Als Kunde starten",
   "Apply as a supplier": "Als Lieferant bewerben",
   "Browse the full directory →": "Zum vollständigen Verzeichnis →",
   "Sign in": "Anmelden",
-  "Try again": "Erneut versuchen",
   Retry: "Erneut versuchen",
   "Get started": "Loslegen",
   "Write a message...": "Nachricht schreiben …",
   browse: "durchsuchen",
-  "Open project": "Projekt öffnen",
   // Dashboards & panels
   "Customer dashboard": "Kunden-Übersicht",
   "Supplier dashboard": "Lieferanten-Übersicht",
-  "Admin dashboard": "Admin-Übersicht",
   "Coordinate active projects, phases and payments.": "Aktive Projekte, Phasen und Zahlungen koordinieren.",
   Completed: "Abgeschlossen",
-  "Vetting queue": "Prüfwarteschlange",
   "Getting started": "Erste Schritte",
   // Onboarding
-  "GETTING STARTED": "ERSTE SCHRITTE",
-  "Complete your company profile": "Unternehmensprofil vervollständigen",
-  "Create your first project": "Erstes Projekt anlegen",
-  "Source a supplier for a task": "Lieferanten für eine Aufgabe finden",
-  "Choose email notifications": "E-Mail-Benachrichtigungen wählen",
-  "Get verified": "Verifizieren lassen",
-  "Publish your service catalog": "Leistungskatalog veröffentlichen",
-  "Add payout details": "Auszahlungsdaten hinterlegen",
-  "Answer your first sourcing event": "Erste Ausschreibung beantworten",
-  "Change the bootstrap password": "Startpasswort ändern",
-  "Publish Impressum and privacy policy": "Impressum und Datenschutzerklärung veröffentlichen",
-  "Review platform settings": "Plattformeinstellungen prüfen",
-  "Confirm email delivery": "E-Mail-Versand bestätigen",
-  "Decide your first supplier application": "Erste Lieferantenbewerbung entscheiden",
-  "Edit profile": "Profil bearbeiten",
-  "New project": "Neues Projekt",
-  "Find suppliers": "Lieferanten finden",
-  "Apply now": "Jetzt bewerben",
-  "Apply again": "Erneut bewerben",
   "Service catalog": "Leistungskatalog",
-  "Add IBAN": "IBAN hinterlegen",
-  Opportunities: "Ausschreibungen",
   Security: "Sicherheit",
-  "Legal pages": "Rechtstexte",
-  "Email outbox": "E-Mail-Ausgang",
   // Landing page
   "INDUSTRIAL SERVICES, COORDINATED": "INDUSTRIELLE DIENSTLEISTUNGEN, KOORDINIERT",
   "Build complex projects with trusted crews.": "Komplexe Projekte mit verlässlichen Teams umsetzen.",
@@ -156,7 +114,6 @@ const I18N_DE = {
   Email: "E-Mail",
   Password: "Passwort",
   "Choose a new password": "Neues Passwort wählen",
-  "Password changed": "Passwort geändert",
   // Projects & work
   Budget: "Budget",
   Schedule: "Zeitplan",
@@ -200,9 +157,7 @@ const I18N_DE = {
   "Last 3 months": "Letzte 3 Monate",
   "Last 6 months": "Letzte 6 Monate",
   "Last 12 months": "Letzte 12 Monate",
-  Offers: "Angebote",
   Paid: "Bezahlt",
-  "Reports & analytics": "Berichte & Analysen",
   // Invoices, time, messages, settings
   Find: "Suchen",
   From: "Von",
@@ -213,18 +168,12 @@ const I18N_DE = {
   "Invoice positions": "Rechnungspositionen",
   "← Back to invoices": "← Zurück zu den Rechnungen",
   Chats: "Chats",
-  "Legal name": "Firmenname",
   Industry: "Branche",
   Address: "Adresse",
   Phone: "Telefon",
-  "Current password": "Aktuelles Passwort",
-  "New password": "Neues Passwort",
-  "Repeat new password": "Neues Passwort wiederholen",
   "Invoices & payments ": "Rechnungen & Zahlungen",
   "Time entries": "Zeiteinträge",
   "Account holder *": "Kontoinhaber *",
-  "Account settings": "Kontoeinstellungen",
-  "Platform management": "Plattformverwaltung",
   Administrator: "Administrator",
   Role: "Rolle",
   // Statuses
@@ -266,35 +215,6 @@ const I18N_DE = {
 };
 Object.assign(I18N_DE, {
   // Onboarding descriptions
-  "Legal name, address and procurement contact appear on invoices and supplier requests.":
-    "Firmenname, Adresse und Einkaufskontakt erscheinen auf Rechnungen und Lieferantenanfragen.",
-  "Pick a template to generate phases and tasks, set budget and dates.":
-    "Vorlage wählen, um Phasen und Aufgaben zu erzeugen; Budget und Termine festlegen.",
-  "Invite a vetted supplier directly or run a sourcing event to compare offers.":
-    "Einen geprüften Lieferanten direkt einladen oder eine Ausschreibung zum Angebotsvergleich starten.",
-  "Decide which events should also reach you by email.":
-    "Legen Sie fest, welche Ereignisse Sie zusätzlich per E-Mail erhalten.",
-  "Legal name, address and tax ID are printed on your invoices.":
-    "Firmenname, Adresse und Steuer-ID werden auf Ihre Rechnungen gedruckt.",
-  "Your company is verified and visible in the directory.":
-    "Ihr Unternehmen ist geprüft und im Verzeichnis sichtbar.",
-  "Submit your company, insurance and certification evidence to be listed.":
-    "Reichen Sie Unternehmens-, Versicherungs- und Zertifikatsnachweise ein, um gelistet zu werden.",
-  "Services, rates, capacity and key people help customers choose you.":
-    "Leistungen, Sätze, Kapazität und Schlüsselpersonen helfen Kunden bei der Auswahl.",
-  "Your bank account is printed on invoices so customers can pay you.":
-    "Ihre Bankverbindung wird auf Rechnungen gedruckt, damit Kunden zahlen können.",
-  "Open bid opportunities and send an offer.": "Ausschreibungen öffnen und ein Angebot senden.",
-  "Replace the initial administrator password with your own.":
-    "Ersetzen Sie das Start-Passwort des Administrators durch Ihr eigenes.",
-  "Required in Germany before inviting users.": "In Deutschland Pflicht, bevor Nutzer eingeladen werden.",
-  "Service categories, badge criteria, platform fee and payment terms.":
-    "Leistungskategorien, Badge-Kriterien, Plattformgebühr und Zahlungsbedingungen.",
-  "Configure SMTP on the server (see DEPLOY.md), then send a test email.":
-    "SMTP auf dem Server konfigurieren (siehe DEPLOY.md), dann eine Test-E-Mail senden.",
-  "Send a test email from the email outbox.": "Eine Test-E-Mail aus dem E-Mail-Ausgang senden.",
-  "Verify evidence and references, then approve with a badge.":
-    "Nachweise und Referenzen prüfen, dann mit Badge freigeben.",
   // Page intros and panels
   "No insurance evidence on file": "Kein Versicherungsnachweis hinterlegt",
   "No certifications listed": "Keine Zertifikate angegeben",
@@ -304,15 +224,12 @@ Object.assign(I18N_DE, {
   "Depends on phases": "Abhängig von Phasen",
   "Depends on": "Abhängig von",
   You: "Sie",
-  "At least 10 characters with letters and numbers. Other signed-in devices are signed out.":
-    "Mindestens 10 Zeichen mit Buchstaben und Zahlen. Andere angemeldete Geräte werden abgemeldet.",
   "Task invitations, supplier commitments, documentation and progress.":
     "Aufgabeneinladungen, Zusagen, Dokumentation und Fortschritt.",
   "Marketplace quality, vetting and financial operations.":
     "Marktplatzqualität, Lieferantenprüfung und Finanzen.",
   "Signed in": "Angemeldet",
   Accounts: "Konten",
-  "Service categories": "Leistungskategorien",
   Received: "Eingegangen",
   "Import JSON": "JSON importieren",
   "Export the full JSON database. Admin import is available through the API and can be wired to a file picker for production deployment.":
@@ -349,7 +266,6 @@ Object.assign(I18N_DE, {
   "Reference contact email *": "E-Mail des Referenzkontakts *",
   "Policy number": "Policennummer",
   Define: "Definieren",
-  Source: "Beschaffen",
   Agree: "Vereinbaren",
   Deliver: "Liefern",
   "Close out": "Abschließen",
@@ -420,7 +336,6 @@ Object.assign(I18N_DE, {
   Team: "Team",
   "Team members": "Teammitglieder",
   Removed: "Entfernt",
-  "no longer have access": "haben keinen Zugriff mehr",
   Member: "Mitglied",
   Invited: "Eingeladen",
   Remove: "Entfernen",
@@ -444,11 +359,8 @@ Object.assign(I18N_DE, {
   Settings: "Einstellungen",
   optional: "optional",
   Access: "Zugriff",
-  "Temporary password": "Temporäres Passwort",
   Done: "Fertig",
   "Team member": "Teammitglied",
-  "Welcome to the team. Please replace your temporary password with your own to continue.":
-    "Willkommen im Team. Bitte ersetzen Sie Ihr temporäres Passwort durch ein eigenes, um fortzufahren.",
   "Only the main account can manage the team": "Nur das Hauptkonto kann das Team verwalten",
   "This email already has a CraftCrew account":
     "Für diese E-Mail-Adresse gibt es bereits ein CraftCrew-Konto",
@@ -515,8 +427,6 @@ Object.assign(I18N_DE, {
   Customer: "Kunde",
   Supplier: "Lieferant",
   Admin: "Admin",
-  "Checklist hidden — reopen it any time from the sidebar":
-    "Checkliste ausgeblendet – jederzeit über die Seitenleiste wieder öffnen",
 });
 Object.assign(I18N_DE, {
   "Please confirm": "Bitte bestätigen",
@@ -679,12 +589,7 @@ Object.assign(I18N_DE, {
   // Accessibility labels (T57)
   Table: "Tabelle",
   // Suppliers not yet verified (T55)
-  "Not yet verified": "Noch nicht verifiziert",
   Verified: "Verifiziert",
-  "Your company is not verified yet. Complete your application to receive bid invitations.":
-    "Ihr Unternehmen ist noch nicht verifiziert. Schließen Sie Ihre Bewerbung ab, um Angebotsanfragen zu erhalten.",
-  "Complete your application": "Bewerbung abschließen",
-  "View application status": "Bewerbungsstatus ansehen",
   // Safer destructive actions (T56)
   "Delete phase?": "Phase löschen?",
   "Delete phase": "Phase löschen",
@@ -700,32 +605,16 @@ Object.assign(I18N_DE, {
   Fix: "Korrigieren",
   Renew: "Erneuern",
   Handle: "Bearbeiten",
-  "Show all steps": "Alle Schritte anzeigen",
-  "Show fewer": "Weniger anzeigen",
   "Next:": "Als Nächstes:",
   // Not found and expired sessions (T54)
   "Page not found": "Seite nicht gefunden",
-  "The page you opened does not exist. Check the link or go back.":
-    "Die aufgerufene Seite gibt es nicht. Prüfen Sie den Link oder gehen Sie zurück.",
-  "Go to dashboard": "Zur Übersicht",
-  "Go to the home page": "Zur Startseite",
   "Project not found": "Projekt nicht gefunden",
-  "This project does not exist or you no longer have access to it.":
-    "Dieses Projekt gibt es nicht oder Sie haben keinen Zugriff mehr darauf.",
-  "Back to projects": "Zurück zu den Projekten",
   "Invoice not found": "Rechnung nicht gefunden",
-  "This invoice does not exist or you no longer have access to it.":
-    "Diese Rechnung gibt es nicht oder Sie haben keinen Zugriff mehr darauf.",
-  "Back to invoices": "Zurück zu den Rechnungen",
   "Supplier not found": "Lieferant nicht gefunden",
-  "This supplier profile does not exist or is no longer listed.":
-    "Dieses Lieferantenprofil gibt es nicht oder es ist nicht mehr gelistet.",
-  "Back to suppliers": "Zurück zu den Lieferanten",
   Back: "Zurück",
   // Phone navigation (T51)
   More: "Mehr",
   Vetting: "Prüfung",
-  Payments: "Zahlungen",
   // Sidebar groups (T52)
   Work: "Arbeit",
   Buying: "Einkauf",
@@ -906,9 +795,6 @@ Object.assign(I18N_DE, {
   project: "Projekt",
   unit: "Einheit",
   fixed: "Pauschal",
-  "Your password was reset by an administrator. Please choose a new password to continue.":
-    "Ihr Passwort wurde von einem Administrator zurückgesetzt. Bitte wählen Sie ein neues Passwort, um fortzufahren.",
-  "The new passwords do not match": "Die neuen Passwörter stimmen nicht überein",
   "Send phaseIds as a list of this project's phase ids, each once.":
     "Senden Sie phaseIds als Liste der Phasen-IDs dieses Projekts, jede nur einmal.",
   "Phase deleted": "Phase gelöscht",
@@ -949,13 +835,6 @@ Object.assign(I18N_DE, {
   "Task invitation": "Aufgabeneinladung",
   "Phase invitation": "Phaseneinladung",
   Invited: "Eingeladen",
-  "Decline task": "Aufgabe ablehnen",
-  "Decline this task? You can tell the customer why (optional).":
-    "Diese Aufgabe ablehnen? Sie können dem Kunden den Grund nennen (optional).",
-  "Decline this phase invitation?": "Diese Phaseneinladung ablehnen?",
-  "Task accepted — it is now in your assigned work": "Aufgabe angenommen – sie steht jetzt bei Ihren Aufträgen",
-  "Phase accepted": "Phase angenommen",
-  "Invitation declined": "Einladung abgelehnt",
   Withdraw: "Zurückziehen",
   "The supplier has not accepted this task yet. Wait for the answer or withdraw the invitation.":
     "Der Lieferant hat diese Aufgabe noch nicht angenommen. Warten Sie die Antwort ab oder ziehen Sie die Einladung zurück.",

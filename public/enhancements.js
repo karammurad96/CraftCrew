@@ -16,7 +16,7 @@ async function route() {
   } catch (e) {
     console.error(e);
     toast(e.message, "error");
-    const content = `<div class="empty"><h2>Something went wrong</h2><p>${esc(e.message)}</p><button class="btn primary" onclick="route()">Retry</button></div>`,
+    const content = `<div class="empty" data-i18n="keys"><h2>${esc(t("errors.pageFailed"))}</h2><p data-i18n="dom">${esc(e.message)}</p><button class="btn primary" data-action="ui.retry">${esc(t("ui.retry"))}</button></div>`,
       active =
         parts[0] === state.user?.role
           ? parts[1] === "invoices"

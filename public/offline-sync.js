@@ -80,6 +80,7 @@ function oflLabel(path) {
     .split("/")
     .filter((s) => s && !/^[a-z]{2,6}_[a-f0-9]{4,}$/i.test(s) && !/^\d+$/.test(s));
   const last = segs[segs.length - 1] || "change";
+  if (typeof ccLookup("en", "ui.ofl.path." + last) === "string") return t("ui.ofl.path." + last);
   return last.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
@@ -98,7 +99,7 @@ api = async function (path, opts = {}) {
       if (id) {
         oflRender();
         throw Object.assign(
-          new Error("Saved offline — it will be sent automatically once you're back online."),
+          new Error(t("ui.ofl.saved")),
           { offline: true, queuedId: id },
         );
       }
@@ -125,7 +126,7 @@ async function oflPostWithPhotos(path, body, files) {
       if (id) {
         oflRender();
         throw Object.assign(
-          new Error("Saved offline — it will be sent automatically once you're back online."),
+          new Error(t("ui.ofl.saved")),
           { offline: true, queuedId: id },
         );
       }
@@ -155,10 +156,10 @@ async function oflSync() {
       } catch (e) {
         if (e.status === undefined) break; // still offline (or just went offline again): try the rest later
         // A real rejection (400/403/409/…): keep it so the user can see and discard it, but stop retrying it.
-        await oflSetError(item.id, e.message || "The server rejected this change.");
+        await oflSetError(item.id, e.message || t("ui.ofl.rejected"));
       }
     }
-    if (synced) toast(synced === 1 ? "1 offline change was sent" : `${synced} offline changes were sent`);
+    if (synced) tToast(t.plural("ui.ofl.sent", synced));
   } finally {
     oflSyncing = false;
     oflRender();
@@ -177,12 +178,14 @@ async function oflRender() {
   const needsAttention = items.some((i) => i.error);
   const text = !navigator.onLine
     ? items.length
-      ? `You're offline — ${items.length} change(s) waiting to sync`
-      : "You're offline. Changes you make now will be sent once you're back online."
+      ? t.plural("ui.ofl.offlineWaiting", items.length)
+      : t("ui.ofl.offline")
     : needsAttention
-      ? `${items.length} offline change(s), some need attention`
-      : `Sending ${items.length} offline change(s)…`;
-  const html = `<div id="oflBar" class="ofl-bar ${needsAttention ? "ofl-warn" : ""}" role="status"><span>${esc(text)}</span>${items.length ? '<button type="button" class="btn small outline" onclick="oflPanel()">Review</button>' : ""}</div>`;
+      ? t.plural("ui.ofl.attention", items.length)
+      : t.plural("ui.ofl.sending", items.length);
+  const html = `<div id="oflBar" class="ofl-bar ${needsAttention ? "ofl-warn" : ""}" role="status" data-i18n="keys"><span>${esc(text)}</span>${
+    items.length ? `<button type="button" class="btn small outline" data-action="ofl.panel">${esc(t("ui.ofl.review"))}</button>` : ""
+  }</div>`;
   if (existing) existing.outerHTML = html;
   else document.body.insertAdjacentHTML("afterbegin", html);
 }
@@ -191,30 +194,38 @@ window.addEventListener("offline", oflRender);
 
 /* ---------- Panel: lists every queued change, lets the user retry or discard ---------- */
 async function oflPanel() {
-  const items = (await oflAll()).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const items = (await oflAll()).sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
+    o = (key) => esc(t("ui.ofl." + key));
   modal(
-    "Offline changes",
-    `<p class="subtle">${navigator.onLine ? "These will be sent automatically." : "These will be sent once you're back online."}</p><ul class="ofl-list">${
+    t("ui.ofl.title"),
+    `<div data-i18n="keys"><p class="subtle">${o(navigator.onLine ? "auto" : "later")}</p><ul class="ofl-list">${
       items
         .map(
           (i) =>
-            `<li class="ofl-item ${i.error ? "ofl-item-error" : ""}"><div><b>${esc(oflLabel(i.path))}</b><small>${esc(new Date(i.createdAt).toLocaleString())}</small>${i.error ? `<small class="ofl-error">${esc(i.error)}</small>` : ""}</div><button type="button" class="btn small outline" onclick="oflDiscard('${esc(i.id)}')">Discard</button></li>`,
+            `<li class="ofl-item ${i.error ? "ofl-item-error" : ""}"><div><b>${esc(oflLabel(i.path))}</b><small>${esc(new Date(i.createdAt).toLocaleString(fmt.locale()))}</small>${
+              i.error ? `<small class="ofl-error" data-i18n="dom">${esc(i.error)}</small>` : ""
+            }</div><button type="button" class="btn small outline" data-action="ofl.discard" data-id="${esc(i.id)}">${o("discard")}</button></li>`,
         )
-        .join("") || '<li class="pa-empty">Nothing queued.</li>'
-    }</ul><div class="cc-actions">${navigator.onLine ? '<button type="button" class="btn small primary" onclick="oflSync()">Sync now</button>' : ""}${items.length ? '<button type="button" class="btn small danger" onclick="oflDiscardAll()">Discard all</button>' : ""}</div>`,
+        .join("") || `<li class="pa-empty">${o("nothing")}</li>`
+    }</ul><div class="cc-actions">${navigator.onLine ? `<button type="button" class="btn small primary" data-action="ofl.sync">${o("syncNow")}</button>` : ""}${
+      items.length ? `<button type="button" class="btn small danger" data-action="ofl.discardAll">${o("discardAll")}</button>` : ""
+    }</div></div>`,
   );
 }
+actions.on("ofl.panel", () => oflPanel());
+actions.on("ofl.sync", () => oflSync());
 async function oflDiscard(id) {
   await oflRemove(id);
-  oflPanel();
+  if (document.querySelector(".ofl-list")) oflPanel();
   oflRender();
 }
-async function oflDiscardAll() {
-  if (!(await uiConfirm("Discard every queued offline change? This cannot be undone."))) return;
+actions.on("ofl.discard", (el) => oflDiscard(el.dataset.id));
+actions.on("ofl.discardAll", async () => {
+  if (!(await uiConfirm(t("ui.ofl.discardConfirm")))) return;
   for (const i of await oflAll()) await oflRemove(i.id);
   closeModal();
   oflRender();
-  toast("Offline queue cleared");
-}
+  tToast(t("ui.ofl.cleared"));
+});
 
 oflRender();

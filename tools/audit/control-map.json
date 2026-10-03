@@ -3,22 +3,31 @@
   "action uiSearchIndex=null;uiOpenSearch()": "action [shell.search]",
   "action obShow()": "action [shell.checklist]",
   "customer /customer/dashboard": {
-    "action dsApproveInvoice('inv_demo_submitted', this)": "action [dash.approve]"
+    "action dsApproveInvoice('inv_demo_submitted', this)": "action [dash.approve]",
+    "action logout()": "action [ui.signOut]",
+    "action obHide()": "action [ob.hide]",
+    "action obToggleSteps(this)": "action [ob.toggle]"
   },
   "supplier /supplier/dashboard": {
     "action ccNewTimeEntry()": "action [dash.quick]",
     "action dsQuickJob('defect')": "action [dash.quick]",
     "action dsQuickJob('photo')": "action [dash.quick]",
     "action dsQuickJob('report')": "action [dash.quick]",
-    "action reviewApplySupplierDashFilters()": "action [dash.filter]"
+    "action reviewApplySupplierDashFilters()": "action [dash.filter]",
+    "action logout()": "action [ui.signOut]",
+    "action obHide()": "action [ob.hide]",
+    "action obToggleSteps(this)": "action [ob.toggle]"
   },
   "admin /admin/dashboard": {
     "action reviewApplication('app_demo_nordwerk')": "action [dash.application]",
-    "action reviewApplication('app_demo_mechacore')": "action [dash.application]"
+    "action reviewApplication('app_demo_mechacore')": "action [dash.application]",
+    "action logout()": "action [ui.signOut]",
+    "action obHide()": "action [ob.hide]"
   },
   "customer /customer/projects": {
     "action openCustomerProject('prj_demo_line4')": "link #/customer/projects/prj_demo_line4",
-    "action openCustomerProject('prj_demo_vision')": "link #/customer/projects/prj_demo_vision"
+    "action openCustomerProject('prj_demo_vision')": "link #/customer/projects/prj_demo_vision",
+    "action logout()": "action [ui.signOut]"
   },
   "supplier /supplier/projects": {
     "action wfUpdateProgress('prj_demo_line4','ph_demo_build','tsk_demo_fabrication',55)": "action [projects.progress]",
@@ -26,7 +35,8 @@
     "action wfUpdateProgress('prj_demo_vision','ph_demo_visionplan','tsk_demo_scope',55)": "action [projects.progress]",
     "action wfUpdateProgress('prj_hist_press2','ph_hist_0','tsk_hist_0_0',100)": "action [projects.progress]",
     "action wfUpdateProgress('prj_hist_press2','ph_hist_0','tsk_hist_0_1',100)": "action [projects.progress]",
-    "action wfUpdateProgress('prj_hist_press2','ph_hist_0','tsk_hist_0_2',100)": "action [projects.progress]"
+    "action wfUpdateProgress('prj_hist_press2','ph_hist_0','tsk_hist_0_2',100)": "action [projects.progress]",
+    "action logout()": "action [ui.signOut]"
   },
   "customer /customer/projects/prj_demo_line4": {
     "action acOpen('prj_demo_line4','tsk_demo_layout')": "action [ws.acceptWork]",
@@ -72,7 +82,8 @@
     "action wfEditTask('prj_demo_line4','ph_demo_eng','tsk_demo_layout')": "action [ws.editTask]",
     "action wfEditTask('prj_demo_line4','ph_demo_eng','tsk_demo_safety')": "action [ws.editTask]",
     "action wfEditTask('prj_demo_line4','ph_demo_handover','tsk_demo_install')": "action [ws.editTask]",
-    "action wfEditTask('prj_demo_line4','ph_demo_handover','tsk_demo_training')": "action [ws.editTask]"
+    "action wfEditTask('prj_demo_line4','ph_demo_handover','tsk_demo_training')": "action [ws.editTask]",
+    "action logout()": "action [ui.signOut]"
   },
   "supplier /supplier/projects/prj_demo_line4": {
     "action completeProject('prj_demo_line4')": "action [ws.complete]",
@@ -91,11 +102,13 @@
     "action wfSupplierBid('prj_demo_line4','ph_demo_build','tsk_demo_fabrication')": "action [ws.offer]",
     "action wfSupplierBid('prj_demo_line4','ph_demo_handover','tsk_demo_training')": "action [ws.offer]",
     "action wfUpdateProgress('prj_demo_line4','ph_demo_build','tsk_demo_fabrication',55)": "action [ws.progress]",
-    "action wfUpdateProgress('prj_demo_line4','ph_demo_handover','tsk_demo_training',0)": "action [ws.progress]"
+    "action wfUpdateProgress('prj_demo_line4','ph_demo_handover','tsk_demo_training',0)": "action [ws.progress]",
+    "action logout()": "action [ui.signOut]"
   },
   "supplier /supplier/projects/prj_demo_line4/tasks/tsk_demo_fabrication": {
     "action ccNewTimeEntry()": "action [sub.logTime]",
-    "action wfUpdateProgress('prj_demo_line4','ph_demo_build','tsk_demo_fabrication',55)": "action [sub.progress]"
+    "action wfUpdateProgress('prj_demo_line4','ph_demo_build','tsk_demo_fabrication',55)": "action [sub.progress]",
+    "action logout()": "action [ui.signOut]"
   },
   "customer /customer/projects/prj_demo_line4/documents": {
     "action event.stopPropagation();xpToggleNode('phase:ph_demo_build')": "action [docs.toggle]",
@@ -120,7 +133,8 @@
     "action xpSortBy('type')": "action [docs.sortBy]",
     "action xpToggleMax()": "action [docs.max]",
     "action xpUp()": "action [docs.up]",
-    "action xpUpload()": "action [docs.upload]"
+    "action xpUpload()": "action [docs.upload]",
+    "action logout()": "action [ui.signOut]"
   },
   "supplier /supplier/projects/prj_demo_line4/documents": {
     "action event.stopPropagation();xpToggleNode('phase:ph_demo_build')": "action [docs.toggle]",
@@ -144,7 +158,8 @@
     "action xpSortBy('type')": "action [docs.sortBy]",
     "action xpToggleMax()": "action [docs.max]",
     "action xpUp()": "action [docs.up]",
-    "action xpUpload()": "action [docs.upload]"
+    "action xpUpload()": "action [docs.upload]",
+    "action logout()": "action [ui.signOut]"
   },
   "public /suppliers": {
     "action ccSupplierView('grid')": "action [dir.view]",
@@ -234,19 +249,22 @@
     "action supplierDetail('sup_022')": "link #/customer/suppliers/sup_022",
     "action supplierDetail('sup_023')": "link #/customer/suppliers/sup_023",
     "action supplierDetail('sup_024')": "link #/customer/suppliers/sup_024",
-    "action supplierDetail('sup_showcase')": "link #/customer/suppliers/sup_showcase"
+    "action supplierDetail('sup_showcase')": "link #/customer/suppliers/sup_showcase",
+    "action logout()": "action [ui.signOut]"
   },
   "supplier /supplier/requests": {
     "action ccApplyRfq()": "action [rq.apply]",
     "action ccRespondRfq('rfq_demo_vision','Declined')": "action [rq.decline]",
     "action ccRespondRfq('rfq_demo_vision','Quoted')": "action [rq.quote]",
     "action ccRespondRfq('rfq_demo_vision','Reviewing')": "action [rq.reviewing]",
-    "action window.__ccRfqFilters={q:'',status:'All',sort:'newest'};supplierRequests()": "action [rq.reset]"
+    "action window.__ccRfqFilters={q:'',status:'All',sort:'newest'};supplierRequests()": "action [rq.reset]",
+    "action logout()": "action [ui.signOut]"
   },
   "supplier /supplier/suppliers": {
     "action dcUpload()": "action [dc.upload]",
     "action editProfile()": "action [prof.editDetails]",
-    "action wfEditCatalog()": "action [prof.editCatalog]"
+    "action wfEditCatalog()": "action [prof.editCatalog]",
+    "action logout()": "action [ui.signOut]"
   },
   "customer /customer/offers": {
     "action ccEditBid('bid_demo_vision')": "action [offers.edit]",
@@ -260,7 +278,8 @@
     "action wfCreateBidFromPage()": "action [offers.create]",
     "action reviewConfirmBid('bid_demo_vision','','Close bid')": "action [offers.close]",
     "action reviewConfirmBid('bid_demo_vision','offer_demo_a','Accept offer')": "action [offers.award]",
-    "action reviewConfirmBid('bid_demo_vision','offer_demo_b','Accept offer')": "action [offers.award]"
+    "action reviewConfirmBid('bid_demo_vision','offer_demo_b','Accept offer')": "action [offers.award]",
+    "action logout()": "action [ui.signOut]"
   },
   "supplier /supplier/bids": {
     "action ccOpenBidOffer('bid_demo_vision')": "action [offers.offer]",
@@ -270,10 +289,12 @@
     "action reviewOfferTalk('bid_demo_vision','offer_demo_a')": "action [offers.talk]",
     "action reviewOfferTalk('bid_hist_0','offer_hist_0_0')": "action [offers.talk]",
     "action reviewOfferTalk('bid_hist_1','offer_hist_1_0')": "action [offers.talk]",
-    "action reviewOfferTalk('bid_hist_2','offer_hist_2_0')": "action [offers.talk]"
+    "action reviewOfferTalk('bid_hist_2','offer_hist_2_0')": "action [offers.talk]",
+    "action logout()": "action [ui.signOut]"
   },
   "customer /customer/contracts": {
-    "action srContractForm()": "action [src.contract]"
+    "action srContractForm()": "action [src.contract]",
+    "action logout()": "action [ui.signOut]"
   },
   "customer /customer/sourcing/bid_demo_vision": {
     "action reviewInviteBid('bid_demo_vision')": "action [src.invite]",
@@ -285,7 +306,8 @@
     "action srAward('bid_demo_vision','offer_demo_b')": "action [src.award]",
     "action srCloseEvent('bid_demo_vision')": "action [src.close]",
     "action wfBidDecision('bid_demo_vision','offer_demo_a','Decline offer')": "action [src.eliminate]",
-    "action wfBidDecision('bid_demo_vision','offer_demo_b','Decline offer')": "action [src.eliminate]"
+    "action wfBidDecision('bid_demo_vision','offer_demo_b','Decline offer')": "action [src.eliminate]",
+    "action logout()": "action [ui.signOut]"
   },
   "customer /customer/invoices": {
     "action reviewInvoice('inv_demo_submitted')": "action [inv.review]",
@@ -294,7 +316,8 @@
     "action wfInvoicePrint('inv_demo_approved')": "action [inv.download]",
     "action wfInvoicePrint('inv_demo_submitted')": "action [inv.download]",
     "action navigate('/customer/invoices');customerInvoices()": "link #/customer/invoices",
-    "action reviewInvoiceCsv(<data>)": "action [inv.csv]"
+    "action reviewInvoiceCsv(<data>)": "action [inv.csv]",
+    "action logout()": "action [ui.signOut]"
   },
   "customer /customer/invoice/inv_demo_submitted": {
     "action invoiceReject('inv_demo_submitted')": "action [inv.reject]",
@@ -303,7 +326,8 @@
     "action wfInvoicePrint('inv_demo_submitted')": "action [inv.download]",
     "action invoiceAction('inv_demo_submitted','Approve')": "action [inv.approve]",
     "action invoiceAction('inv_demo_submitted','Request Changes')": "action [inv.changes]",
-    "action navigate(decodeURIComponent('%2Fcustomer%2Finvoices'))": "link #/customer/invoices"
+    "action navigate(decodeURIComponent('%2Fcustomer%2Finvoices'))": "link #/customer/invoices",
+    "action logout()": "action [ui.signOut]"
   },
   "supplier /supplier/invoices": {
     "action wfInvoiceEmail('inv_demo_submitted')": "action [inv.download]",
@@ -315,40 +339,48 @@
     "action wfInvoicePrint('inv_hist_0_1')": "action [inv.download]",
     "action wfInvoicePrint('inv_hist_0_2')": "action [inv.download]",
     "action navigate('/supplier/invoices');supplierInvoices()": "link #/supplier/invoices",
-    "action reviewInvoiceCsv(<data>)": "action [inv.csv]"
+    "action reviewInvoiceCsv(<data>)": "action [inv.csv]",
+    "action logout()": "action [ui.signOut]"
   },
   "supplier /supplier/invoice/inv_demo_submitted": {
     "action wfDownloadInvoice('inv_demo_submitted','xrechnung')": "action [inv.download]",
     "action wfInvoiceEmail('inv_demo_submitted')": "action [inv.download]",
     "action wfInvoicePrint('inv_demo_submitted')": "action [inv.download]",
-    "action navigate(decodeURIComponent('%2Fsupplier%2Finvoices'))": "link #/supplier/invoices"
+    "action navigate(decodeURIComponent('%2Fsupplier%2Finvoices'))": "link #/supplier/invoices",
+    "action logout()": "action [ui.signOut]"
   },
   "customer /customer/time": {
     "action ccExportTime('customer','pdf')": "action [time.export]",
     "action ccExportTime('customer','xlsx')": "action [time.export]",
     "action ccReviewTime('time_demo_pending','Approved')": "action [time.review]",
     "action ccReviewTime('time_demo_pending','Changes requested')": "action [time.review]",
-    "action ccReviewTime('time_demo_pending','Rejected')": "action [time.review]"
+    "action ccReviewTime('time_demo_pending','Rejected')": "action [time.review]",
+    "action logout()": "action [ui.signOut]"
   },
   "supplier /supplier/time": {
     "action ccEditTime('time_demo_pending')": "action [time.edit]",
     "action ccExportTime('supplier','pdf')": "action [time.export]",
     "action ccExportTime('supplier','xlsx')": "action [time.export]",
-    "action ccNewTimeEntry()": "action [time.log]"
+    "action ccNewTimeEntry()": "action [time.log]",
+    "action logout()": "action [ui.signOut]"
   },
   "customer /customer/messages": {
-    "action reviewNewChat()": "action [msg.new]"
+    "action reviewNewChat()": "action [msg.new]",
+    "action logout()": "action [ui.signOut]"
   },
   "customer /customer/inbox": {
-    "action ccReadAll()": "action [inbox.readAll]"
+    "action ccReadAll()": "action [inbox.readAll]",
+    "action logout()": "action [ui.signOut]"
   },
   "supplier /supplier/inbox": {
     "action ccMarkRead('not_<id>')": "action [inbox.read]",
     "action ccOpenNotification('not_<id>','/supplier/compliance')": "action [inbox.open]",
-    "action ccReadAll()": "action [inbox.readAll]"
+    "action ccReadAll()": "action [inbox.readAll]",
+    "action logout()": "action [ui.signOut]"
   },
   "supplier /supplier/messages": {
-    "action reviewNewChat()": "action [msg.new]"
+    "action reviewNewChat()": "action [msg.new]",
+    "action logout()": "action [ui.signOut]"
   },
   "customer /customer/approvals": {
     "action cmDecideVisit('visit_demo_1','approve',false)": "action [cm.visit]",
@@ -357,14 +389,16 @@
     "action dsApprovalDo(() => invoiceAction('inv_demo_submitted','Approve'))": "action [appr.invoice]",
     "action dsApprovalDo(() => invoiceAction('inv_demo_submitted','Request Changes'))": "action [appr.invoice]",
     "action cmReviewDoc('cdoc_<id>','Accepted')": "action [cm.reviewDoc]",
-    "action cmReviewDoc('cdoc_<id>','Rejected')": "action [cm.reviewDoc]"
+    "action cmReviewDoc('cdoc_<id>','Rejected')": "action [cm.reviewDoc]",
+    "action logout()": "action [ui.signOut]"
   },
   "customer /customer/sites": {
     "action cmDecideVisit('visit_demo_1','approve',false)": "action [cm.visit]",
     "action cmDecideVisit('visit_demo_1','reject')": "action [cm.visit]",
     "action cmSiteForm()": "action [cm.siteForm]",
     "action cmReviewDoc('cdoc_<id>','Accepted')": "action [cm.reviewDoc]",
-    "action cmReviewDoc('cdoc_<id>','Rejected')": "action [cm.reviewDoc]"
+    "action cmReviewDoc('cdoc_<id>','Rejected')": "action [cm.reviewDoc]",
+    "action logout()": "action [ui.signOut]"
   },
   "supplier /supplier/compliance": {
     "action cmAccessForm('site_demo_regensburg')": "action [cm.access]",
@@ -386,11 +420,13 @@
     "action cmUploadDoc('tax48b')": "action [cm.upload]",
     "action cmWorkerForm('wrk_demo_keller')": "action [cm.worker]",
     "action cmWorkerForm('wrk_demo_weber')": "action [cm.worker]",
-    "action cmWorkerForm()": "action [cm.worker]"
+    "action cmWorkerForm()": "action [cm.worker]",
+    "action logout()": "action [ui.signOut]"
   },
   "admin /admin/applications": {
     "action reviewApplication('app_demo_mechacore')": "action [adm.review]",
-    "action reviewApplication('app_demo_nordwerk')": "action [adm.review]"
+    "action reviewApplication('app_demo_nordwerk')": "action [adm.review]",
+    "action logout()": "action [ui.signOut]"
   },
   "admin /admin/users": {
     "action ccSetAccountStatus('u_customer','Suspended')": "action [adm.access]",
@@ -402,7 +438,8 @@
     "action legalResetPassword('u_showcase_supplier', this)": "action [adm.reset]",
     "action legalResetPassword('u_supplier', this)": "action [adm.reset]",
     "action ccSetAccountStatus('usr_<id>','Suspended')": "action [adm.access]",
-    "action legalResetPassword('usr_<id>', this)": "action [adm.reset]"
+    "action legalResetPassword('usr_<id>', this)": "action [adm.reset]",
+    "action logout()": "action [ui.signOut]"
   },
   "admin /admin/billing": {
     "action ccRefundInvoice('inv_001')": "action [adm.refund]",
@@ -416,41 +453,49 @@
     "action ccRefundInvoice('inv_hist_2_1')": "action [adm.refund]",
     "action ccRefundInvoice('inv_hist_2_2')": "action [adm.refund]",
     "action markPaid('inv_002')": "action [adm.paid]",
-    "action markPaid('inv_demo_approved')": "action [adm.paid]"
+    "action markPaid('inv_demo_approved')": "action [adm.paid]",
+    "action logout()": "action [ui.signOut]"
   },
   "admin /admin/reports": {
     "action exportData()": "action [adm.backup]",
     "action paExportReport('customers')": "action [adm.export]",
     "action paExportReport('months')": "action [adm.export]",
-    "action paExportReport('suppliers')": "action [adm.export]"
+    "action paExportReport('suppliers')": "action [adm.export]",
+    "action logout()": "action [ui.signOut]"
   },
   "admin /admin/platform": {
-    "action adminTestEmail()": "action [adm.testEmail]"
+    "action adminTestEmail()": "action [adm.testEmail]",
+    "action logout()": "action [ui.signOut]"
   },
   "customer /customer/profile": {
     "action cfCreate()": "action [prof.calCreate]",
     "action gdExport(this)": "action [prof.export]",
     "action paSignOutOthers()": "action [prof.signOutOthers]",
     "action tfSetup()": "action [prof.tfSetup]",
-    "action wfEditCompanyProfile()": "action [prof.edit]"
+    "action wfEditCompanyProfile()": "action [prof.edit]",
+    "action logout()": "action [ui.signOut]"
   },
   "supplier /supplier/profile": {
     "action cfCreate()": "action [prof.calCreate]",
     "action gdExport(this)": "action [prof.export]",
     "action paSignOutOthers()": "action [prof.signOutOthers]",
     "action tfSetup()": "action [prof.tfSetup]",
-    "action wfEditCompanyProfile()": "action [prof.edit]"
+    "action wfEditCompanyProfile()": "action [prof.edit]",
+    "action logout()": "action [ui.signOut]"
   },
   "admin /admin/profile": {
     "action gdExport(this)": "action [prof.export]",
     "action paSignOutOthers()": "action [prof.signOutOthers]",
-    "action tfSetup()": "action [prof.tfSetup]"
+    "action tfSetup()": "action [prof.tfSetup]",
+    "action logout()": "action [ui.signOut]"
   },
   "customer /customer/team": {
-    "action tmInvite()": "action [team.invite]"
+    "action tmInvite()": "action [team.invite]",
+    "action logout()": "action [ui.signOut]"
   },
   "supplier /supplier/team": {
-    "action tmInvite()": "action [team.invite]"
+    "action tmInvite()": "action [team.invite]",
+    "action logout()": "action [ui.signOut]"
   },
   "supplier /supplier/planning": {
     "action plNew('usr:u_showcase_supplier','2026-09-28')": "action [pl.new]",
@@ -492,12 +537,42 @@
     "action plSpan('twoweeks')": "action [pl.span]",
     "action plSpan('week')": "action [pl.span]",
     "action plToday()": "action [pl.today]",
-    "action event.stopPropagation();toast('Site visits are managed under Compliance')": "action [pl.visit]"
+    "action event.stopPropagation();toast('Site visits are managed under Compliance')": "action [pl.visit]",
+    "action logout()": "action [ui.signOut]"
   },
   "supplier /supplier/analytics": {
-    "action inExportSupplier()": "action [an.exportSupplier]"
+    "action inExportSupplier()": "action [an.exportSupplier]",
+    "action logout()": "action [ui.signOut]"
   },
   "customer /customer/analytics": {
-    "action inExportCustomer()": "action [an.exportCustomer]"
+    "action inExportCustomer()": "action [an.exportCustomer]",
+    "action logout()": "action [ui.signOut]"
+  },
+  "customer /customer/sourcing": {
+    "action logout()": "action [ui.signOut]"
+  },
+  "customer /customer/preferred": {
+    "action logout()": "action [ui.signOut]"
+  },
+  "customer /customer/projects/prj_demo_line4/board": {
+    "action logout()": "action [ui.signOut]"
+  },
+  "customer /customer/projects/prj_demo_line4/tasks/tsk_demo_fabrication": {
+    "action logout()": "action [ui.signOut]"
+  },
+  "supplier /supplier/contracts": {
+    "action logout()": "action [ui.signOut]"
+  },
+  "supplier /supplier/projects/prj_demo_line4/board": {
+    "action logout()": "action [ui.signOut]"
+  },
+  "admin /admin/disputes": {
+    "action logout()": "action [ui.signOut]"
+  },
+  "admin /admin/audit": {
+    "action logout()": "action [ui.signOut]"
+  },
+  "admin /admin/profile-changes": {
+    "action logout()": "action [ui.signOut]"
   }
 }
