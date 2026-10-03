@@ -64,6 +64,8 @@ when signing in to get the token in the response body, then use `Authorization: 
 7. **Every UI text is a translation key**: `t("area.key")` with the English text in `public/locales/en.js` and the
    same key in every other locale file (`test/locales.test.js` checks it). Handlers use `data-action`, never
    `onclick=` and the like: the CSP allows no inline scripts (T136, `test/csp.test.js`).
+   CSS uses logical properties (`margin-inline-start`, `inset-inline-end`, `text-align: start` …), never left/right,
+   so right-to-left languages mirror the layout (T138, `test/rtl.test.js`); `fmt` values and `ltr()` keep their order.
 8. **Stay inside the task.** Don't reformat, rename or "improve" code the task doesn't mention.
 9. Keep API error messages short, friendly and actionable. They are shown to users, translated: every new
    message needs an entry in `errors.api` of `public/locales/en.js` and `de.js` (T137; `test/error-codes.test.js`

@@ -7,7 +7,7 @@
 }
 .in-toolbar select {
   height: 38px;
-  padding: 0 32px 0 12px;
+  padding-block: 0 0; padding-inline: 12px 32px;
   border: 1px solid #d8e0eb;
   border-radius: 9px;
   background: #fff;
@@ -26,19 +26,19 @@
   padding: 16px 18px;
   background: #fff;
   border: 1px solid var(--ui-line, #e6ebf2);
-  border-left: 3px solid #2563eb;
+  border-inline-start: 3px solid #2563eb;
   border-radius: 12px;
   box-shadow: 0 1px 2px rgba(13, 27, 50, 0.04);
   min-width: 0;
 }
 .in-kpi.good {
-  border-left-color: #16a34a;
+  border-inline-start-color: #16a34a;
 }
 .in-kpi.warn {
-  border-left-color: #f59e0b;
+  border-inline-start-color: #f59e0b;
 }
 .in-kpi.bad {
-  border-left-color: #dc2626;
+  border-inline-start-color: #dc2626;
 }
 .in-kpi strong {
   display: block;
@@ -100,8 +100,8 @@
 .in-bar-group small {
   position: absolute;
   bottom: 0;
-  left: 0;
-  right: 0;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
   text-align: center;
   font-size: 13px;
   color: var(--text-muted);
@@ -118,7 +118,7 @@
   display: inline-block;
   width: 10px;
   height: 10px;
-  margin-right: 6px;
+  margin-inline-end: 6px;
   border-radius: 3px;
   vertical-align: -1px;
 }
@@ -175,7 +175,7 @@
   color: #0d1b32;
 }
 .in-donut li small {
-  text-align: right;
+  text-align: end;
   color: var(--text-muted);
 }
 /* Horizontal bars */
@@ -260,7 +260,7 @@
   color: #0d1b32;
 }
 .in-col header .ui-count {
-  margin-left: auto;
+  margin-inline-start: auto;
   background: #fff;
 }
 .in-dot {
@@ -305,7 +305,7 @@
   opacity: 0.85;
 }
 .in-card.late {
-  border-left: 3px solid #dc2626;
+  border-inline-start: 3px solid #dc2626;
 }
 .in-card-top {
   display: flex;

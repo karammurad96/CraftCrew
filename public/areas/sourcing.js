@@ -368,7 +368,7 @@ async function srContracts(role, query) {
   const row = (x) =>
     `<tr><td><b>${esc(x.title)}</b><small>${[x.category ? statusHtml(x.category) : "", x.bidId ? c("fromEvent") : "", x.autoRenew ? c("autoRenews") : ""].filter(Boolean).join(" · ")}</small></td><td>${esc(
       customer ? x.supplierCompany : x.projectName || "—",
-    )}</td><td><b>${esc(fmt.money(x.value))}</b></td><td>${x.startDate ? esc(fmt.date(x.startDate)) : "—"} → ${x.endDate ? esc(fmt.date(x.endDate)) : `<span class="subtle">${c("openEnd")}</span>`}${
+    )}</td><td><b>${esc(fmt.money(x.value))}</b></td><td>${x.startDate ? esc(fmt.date(x.startDate)) : "—"} <span class="dir-flip" aria-hidden="true">→</span> ${x.endDate ? esc(fmt.date(x.endDate)) : `<span class="subtle">${c("openEnd")}</span>`}${
       x.daysToEnd !== null && x.daysToEnd >= 0 && x.state !== "Draft" ? `<small>${c("daysLeft", { n: x.daysToEnd })}</small>` : ""
     }</td><td>${x.noticeBy ? esc(fmt.date(x.noticeBy)) : "—"}</td><td><span class="status ${tone[x.state] || ""}">${srState(x.state)}</span></td>${
       customer ? `<td><button class="btn small outline" data-action="src.contract" data-id="${esc(x.id)}">${c("edit")}</button></td>` : ""

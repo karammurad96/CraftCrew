@@ -142,25 +142,32 @@ function tToast(text, type) {
   toast(text, type);
 }
 // Dates, amounts and numbers in the user's language.
+// In a right-to-left language each value is isolated (U+2068 … U+2069, like <bdi>), so dates, amounts and numbers
+// keep their own order inside the text around them (T138). Left-to-right languages get the plain value.
+const ccIsolate = (s) => (ccLanguage.dir === "rtl" ? "\u2068" + s + "\u2069" : s);
+// Phone numbers, ids, IBANs, emails and web addresses read left to right in every language (T138)
+const ltr = (value) => `<bdi dir="ltr">${esc(value ?? "")}</bdi>`;
 const fmt = {
   locale: () => ccLanguage.locale,
   date: (d, opts = { day: "2-digit", month: "short", year: "numeric" }) =>
-    d ? new Date(String(d).length === 10 ? d + "T12:00:00" : d).toLocaleDateString(fmt.locale(), opts) : "—",
+    d ? ccIsolate(new Date(String(d).length === 10 ? d + "T12:00:00" : d).toLocaleDateString(fmt.locale(), opts)) : "—",
   money: (n, digits = 0) =>
-    new Intl.NumberFormat(fmt.locale(), {
-      style: "currency",
-      currency: "EUR",
-      minimumFractionDigits: digits,
-      maximumFractionDigits: digits,
-    }).format(Number(n) || 0),
+    ccIsolate(
+      new Intl.NumberFormat(fmt.locale(), {
+        style: "currency",
+        currency: "EUR",
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+      }).format(Number(n) || 0),
+    ),
   number: (n, digits = 0) =>
-    new Intl.NumberFormat(fmt.locale(), { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(Number(n) || 0),
+    ccIsolate(new Intl.NumberFormat(fmt.locale(), { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(Number(n) || 0)),
   // "24 Sep – 11 Oct" for two YYYY-MM-DD dates (the year only when it is not this year); one date alone also works
   range: (a, b) => {
     const year = String(new Date().getFullYear()),
-      f = (d) => (d ? new Date(d + "T12:00:00").toLocaleDateString(fmt.locale(), { day: "numeric", month: "short", ...(d.startsWith(year) ? {} : { year: "numeric" }) }) : "");
+      f = (d) => (d ? ccIsolate(new Date(d + "T12:00:00").toLocaleDateString(fmt.locale(), { day: "numeric", month: "short", ...(d.startsWith(year) ? {} : { year: "numeric" }) })) : "");
     return a && b && a !== b ? `${f(a)} – ${f(b)}` : f(a || b) || "—";
   },
   // "€16.6K" for amounts in small cards
-  compact: (n) => new Intl.NumberFormat(fmt.locale(), { style: "currency", currency: "EUR", notation: "compact", maximumFractionDigits: 1 }).format(Number(n) || 0),
+  compact: (n) => ccIsolate(new Intl.NumberFormat(fmt.locale(), { style: "currency", currency: "EUR", notation: "compact", maximumFractionDigits: 1 }).format(Number(n) || 0)),
 };

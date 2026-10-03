@@ -84,7 +84,7 @@
   }
   body .app-shell > .sidebar.mnav-open {
     position: fixed !important;
-    inset: 0 auto 0 0 !important;
+    inset-block: 0 0 !important; inset-inline: 0 auto !important;
     z-index: 1001;
     display: flex !important;
     flex-direction: column !important;
@@ -111,12 +111,12 @@
   body .app-shell > .sidebar.mnav-open .mnav-menu-btn {
     position: absolute;
     top: 10px;
-    right: 12px;
+    inset-inline-end: 12px;
     display: grid !important;
   }
   body .app-shell > .sidebar.mnav-open > .ui-side-top {
     min-height: 48px;
-    padding-right: 56px !important;
+    padding-inline-end: 56px !important;
   }
   body .app-shell > .sidebar.mnav-open .ui-search-btn {
     display: flex !important;
@@ -128,7 +128,7 @@
     display: flex !important;
     align-items: center;
     gap: 10px;
-    text-align: left;
+    text-align: start;
   }
   body .app-shell > .sidebar.mnav-open nav {
     display: flex !important;
@@ -155,9 +155,9 @@
   /* Bottom bar with the most used pages and "More". */
   .mnav-bottom {
     position: fixed;
-    right: 0;
+    inset-inline-end: 0;
     bottom: 0;
-    left: 0;
+    inset-inline-start: 0;
     z-index: 50;
     display: grid;
     grid-auto-columns: 1fr;
@@ -203,6 +203,15 @@
     transform: translateX(-100%);
   }
 }
+/* Right-to-left (T138): the drawer comes in from the right */
+@keyframes mnav-in-rtl {
+  from {
+    transform: translateX(100%);
+  }
+}
+[dir="rtl"] body .app-shell > .sidebar.mnav-open {
+  animation-name: mnav-in-rtl;
+}
 @media (prefers-reduced-motion: reduce) {
   body .app-shell > .sidebar.mnav-open {
     animation: none;
@@ -237,16 +246,16 @@
   table.mnav-cards td {
     position: relative;
     min-height: 30px;
-    padding: 6px 0 6px 38% !important;
+    padding-block: 6px 6px !important; padding-inline: 38% 0 !important;
     border: 0 !important;
-    text-align: left !important;
+    text-align: start !important;
     overflow-wrap: anywhere;
   }
   table.mnav-cards td::before {
     content: attr(data-label);
     position: absolute;
     top: 6px;
-    left: 0;
+    inset-inline-start: 0;
     width: calc(38% - 10px);
     color: var(--text-muted);
     font-size: 12px;
@@ -255,7 +264,7 @@
     white-space: normal;
   }
   table.mnav-cards td[data-label=""] {
-    padding-left: 0 !important;
+    padding-inline-start: 0 !important;
   }
   table.mnav-cards td[data-label=""]::before {
     content: none;

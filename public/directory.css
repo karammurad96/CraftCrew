@@ -48,7 +48,7 @@
 }
 .dir-compare-table th[scope="row"] {
   width: 140px;
-  text-align: left;
+  text-align: start;
   white-space: nowrap;
 }
 .dir-compare-table td {

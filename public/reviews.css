@@ -154,7 +154,7 @@
 }
 .review-map-controls {
   position: absolute;
-  right: 12px;
+  inset-inline-end: 12px;
   top: 12px;
   display: flex;
   gap: 5px;
@@ -217,7 +217,7 @@
   display: grid;
   align-content: start;
   gap: 7px;
-  text-align: right;
+  text-align: end;
 }
 .invoice-paper-no span {
   font-size: 13px;
@@ -242,7 +242,7 @@
   display: grid;
   gap: 9px;
   max-width: 400px;
-  margin: 22px 0 22px auto;
+  margin-block: 22px 22px; margin-inline: auto 0;
 }
 .invoice-totals > div {
   display: flex;
@@ -384,7 +384,7 @@
   box-shadow: 0 8px 28px #12233a0a;
 }
 .review-chat-list {
-  border-right: 1px solid #e9eef4;
+  border-inline-end: 1px solid #e9eef4;
   overflow: auto;
   background: #fbfcfe;
 }
@@ -463,12 +463,12 @@
   margin: 0 0 12px;
   padding: 11px 13px;
   background: #f0f3f8;
-  border-radius: 12px 12px 12px 3px;
+  border-start-start-radius: 12px; border-start-end-radius: 12px; border-end-end-radius: 12px; border-end-start-radius: 3px;
 }
 .review-chat-message.mine {
-  margin-left: auto;
+  margin-inline-start: auto;
   background: #e6efff;
-  border-radius: 12px 12px 3px 12px;
+  border-start-start-radius: 12px; border-start-end-radius: 12px; border-end-end-radius: 3px; border-end-start-radius: 12px;
 }
 .review-chat-message b {
   font-size: 13px;
@@ -624,7 +624,7 @@
   }
   .review-chat-list {
     max-height: 220px;
-    border-right: 0;
+    border-inline-end: 0;
     border-bottom: 1px solid #e9eef4;
   }
   .review-chat-main {
@@ -656,7 +656,7 @@
     grid-template-columns: 1fr;
   }
   .invoice-paper-no {
-    text-align: left;
+    text-align: start;
   }
   .review-invoice-filters label {
     min-width: 43%;

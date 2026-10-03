@@ -1,5 +1,5 @@
 /* Task and phase invitations */
-.inv-panel { border-left: 4px solid #f59e0b; }
+.inv-panel { border-inline-start: 4px solid #f59e0b; }
 .inv-hint { margin: -4px 0 12px; }
 .inv-list { display: grid; gap: 12px; }
 .inv-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 16px; border: 1px solid var(--line, #e5e7eb); border-radius: 10px; background: var(--card, #fff); }

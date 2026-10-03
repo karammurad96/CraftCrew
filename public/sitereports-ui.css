@@ -52,7 +52,7 @@
 }
 .dr-comments {
   margin: 8px 0 0;
-  padding-left: 18px;
+  padding-inline-start: 18px;
   font-size: var(--fs-sm);
 }
 .dr-actions {

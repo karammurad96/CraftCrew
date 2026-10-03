@@ -96,7 +96,7 @@
 }
 .team-row span {
   color: #59677a;
-  text-align: right;
+  text-align: end;
 }
 .team-row small {
   grid-column: 1/-1;
@@ -234,7 +234,7 @@
   border-bottom: 1px solid #edf0f4;
 }
 .history-row small {
-  text-align: right;
+  text-align: end;
   color: var(--text-muted);
 }
 .deliverable-list {
@@ -445,7 +445,7 @@
 }
 .wf-gantt-task {
   grid-template-columns: minmax(180px, 1.2fr) minmax(180px, 2fr) minmax(130px, 1fr);
-  padding-left: 20px;
+  padding-inline-start: 20px;
   color: #536176;
 }
 .wf-gantt-task .gantt-track {
@@ -526,7 +526,7 @@
 }
 .wf-remove {
   position: absolute;
-  right: 10px;
+  inset-inline-end: 10px;
   top: 7px;
 }
 .wf-service-row .three,
@@ -538,7 +538,7 @@
 .wf-user-link {
   width: 100%;
   border: 0;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
   background: transparent;
 }
@@ -587,7 +587,7 @@
   background: #f2f6ff;
 }
 .wf-message.mine {
-  margin-left: auto;
+  margin-inline-start: auto;
   background: #e3edff;
 }
 .wf-message p {
@@ -667,7 +667,7 @@
   }
   .history-row small {
     grid-column: 1/-1;
-    text-align: left;
+    text-align: start;
   }
   .invoice-line {
     grid-template-columns: 1fr 1fr;

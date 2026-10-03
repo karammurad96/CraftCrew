@@ -142,7 +142,7 @@ label.btn {
 }
 .btn.ui-btn-gap,
 label.btn.ui-btn-gap {
-  margin-left: 10px !important;
+  margin-inline-start: 10px !important;
 }
 .cc-actions,
 .action-row,
@@ -220,7 +220,7 @@ label.btn.ui-btn-gap {
 }
 .sidebar .help .btn.ghost {
   order: 2;
-  margin-left: auto !important;
+  margin-inline-start: auto !important;
   min-height: 32px !important;
   padding: 0 10px !important;
   font-size: 12.5px !important;
@@ -237,7 +237,7 @@ label.btn.ui-btn-gap {
   flex-basis: 100%;
   margin: 2px 0 0 !important;
   padding: 4px 2px !important;
-  text-align: left;
+  text-align: start;
   font-size: 12.5px !important;
   font-weight: 600;
   color: var(--ui-blue);
@@ -267,7 +267,7 @@ label.btn.ui-btn-gap {
 .cc-table tr > td:last-child:has(.cc-actions),
 .cc-table tr > td:last-child:has(> .btn) {
   position: sticky;
-  right: 0;
+  inset-inline-end: 0;
   z-index: 1;
   background: #fff;
   box-shadow: -10px 0 12px -12px rgba(13, 27, 50, 0.35);
@@ -277,7 +277,7 @@ label.btn.ui-btn-gap {
 }
 .cc-table thead th:last-child {
   position: sticky;
-  right: 0;
+  inset-inline-end: 0;
   z-index: 3;
 }
 
@@ -383,7 +383,7 @@ label.btn.ui-btn-gap {
 .lc-section-tools {
   position: absolute;
   top: -15px;
-  left: 12px;
+  inset-inline-start: 12px;
   z-index: 5;
   display: flex;
   gap: 4px;
@@ -400,7 +400,7 @@ label.btn.ui-btn-gap {
 .lc-card-tools {
   position: absolute;
   top: 6px;
-  right: 6px;
+  inset-inline-end: 6px;
   z-index: 4;
   display: flex;
   align-items: center;
@@ -604,8 +604,8 @@ label.btn.ui-btn-gap {
 .ff-documents-content > * {
   max-width: none !important;
   width: 100%;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
+  margin-inline-start: 0 !important;
+  margin-inline-end: 0 !important;
   box-sizing: border-box;
 }
 .ff-documents-content > .cc-explorer {
@@ -670,7 +670,7 @@ label.btn.ui-btn-gap {
 }
 .cc-file-toolbar select {
   height: 38px;
-  padding: 0 30px 0 12px;
+  padding-block: 0 0; padding-inline: 12px 30px;
   border: 1px solid #d8e0eb;
   border-radius: 9px;
   font-size: 13px;
@@ -708,7 +708,7 @@ label.btn.ui-btn-gap {
   flex-shrink: 0;
   justify-content: flex-end;
   flex-wrap: wrap;
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 
 /* Public pages, signed in: account chip + Dashboard + Log out */
@@ -721,7 +721,7 @@ label.btn.ui-btn-gap {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 10px 4px 4px;
+  padding-block: 4px 4px; padding-inline: 4px 10px;
   border: 1px solid var(--line, #e5e7eb);
   border-radius: 999px;
   background: var(--card, #fff);
@@ -749,7 +749,7 @@ label.btn.ui-btn-gap {
 .pa-account-text {
   display: grid;
   line-height: 1.15;
-  text-align: left;
+  text-align: start;
   min-width: 0;
 }
 .pa-account-text b {
@@ -787,7 +787,7 @@ label.btn.ui-btn-gap {
 }
 
 /* Sidebar top: logo, wordmark and bell fit side by side without overlapping */
-.ui-side-top { gap: 6px; margin-right: 0; }
+.ui-side-top { gap: 6px; margin-inline-end: 0; }
 .ui-side-top .side-brand { gap: 6px; flex: 1 1 auto; overflow: hidden; }
 .ui-side-top .brand-mark { width: 30px !important; height: 30px !important; flex: 0 0 30px; }
 .ui-side-top .brand-word { font-size: 17px !important; white-space: nowrap; letter-spacing: -0.01em; }

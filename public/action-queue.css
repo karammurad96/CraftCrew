@@ -26,7 +26,7 @@
   gap: 14px;
   padding: 10px 12px;
   border: 1px solid #e6eaf0;
-  border-left: 4px solid #1d4ed8;
+  border-inline-start: 4px solid #1d4ed8;
   border-radius: 10px;
   background: #fff;
 }
@@ -44,13 +44,13 @@
 .aq-overdue,
 .aq-dispute,
 .aq-compliance {
-  border-left-color: #b91c1c;
+  border-inline-start-color: #b91c1c;
 }
 .aq-invoice,
 .aq-payment,
 .aq-time,
 .aq-document {
-  border-left-color: #b45309;
+  border-inline-start-color: #b45309;
 }
 .aq-more,
 .aq-calm {
