@@ -2819,4 +2819,232 @@ LOCALES.en = {
     "approve": "Approve",
     "hours": "{n} h · {name}"
   },
+  adm: {
+    "stage": {
+      "New": "New",
+      "Verified": "Verified",
+      "References": "References",
+      "Manual Review": "Manual Review",
+      "Decision & Badge": "Decision & Badge",
+      "Approved": "Approved",
+      "Rejected": "Rejected"
+    },
+    "status": {
+      "New": "New",
+      "Approved": "Approved",
+      "Rejected": "Rejected",
+      "On Hold": "On Hold",
+      "Submitted": "Submitted"
+    },
+    "checkState": {
+      "Not checked": "Not checked",
+      "Passed": "Passed",
+      "Needs follow-up": "Needs follow-up",
+      "Failed": "Failed",
+      "Not applicable": "Not applicable"
+    },
+    "risk": {
+      "Not assessed": "Not assessed",
+      "Low": "Low",
+      "Medium": "Medium",
+      "High": "High"
+    },
+    "reference": {
+      "Not started": "Not started",
+      "Reached - positive": "Reached - positive",
+      "Reached - concerns": "Reached - concerns",
+      "No response": "No response",
+      "Not applicable": "Not applicable"
+    },
+    "pre": {
+      "Provided": "Provided",
+      "Missing": "Missing",
+      "Format looks valid": "Format looks valid",
+      "Check format": "Check format",
+      "Not supplied": "Not supplied",
+      "Current": "Current",
+      "Expired or missing": "Expired or missing",
+      "None uploaded": "None uploaded"
+    },
+    "preKey": {
+      "registrationNumber": "Registration number",
+      "vatFormat": "VAT format",
+      "insuranceExpiry": "Insurance expiry",
+      "insuranceCoverage": "Insurance coverage",
+      "referenceEmail": "Reference email",
+      "evidenceFiles": "Evidence files"
+    },
+    "role": {
+      "customer": "customer",
+      "supplier": "supplier",
+      "admin": "admin"
+    },
+    "access": {
+      "Active": "Active",
+      "Suspended": "Suspended",
+      "Deleted": "Deleted"
+    },
+    "apps": {
+      "title": "Supplier verification pipeline",
+      "lead": "Check evidence, record references and risk, then approve, hold or reject each application.",
+      "company": "Company / contact",
+      "stage": "Vetting stage",
+      "decision": "Decision",
+      "submitted": "Submitted",
+      "review": "Review file",
+      "none": "No applications received."
+    },
+    "file": {
+      "title": "Supplier verification file",
+      "flow": {
+        "application": "Application",
+        "verification": "Verification",
+        "references": "References",
+        "manual": "Manual review",
+        "decision": "Decision & badge"
+      },
+      "capability": "Company & capability",
+      "fact": {
+        "company": "Company",
+        "contact": "Contact",
+        "emailPhone": "Email / phone",
+        "registration": "Registration / VAT",
+        "address": "Legal address",
+        "insurance": "Insurance",
+        "coverage": "Coverage / expiry",
+        "website": "Website",
+        "experience": "Experience",
+        "services": "Services",
+        "certifications": "Certifications",
+        "portfolio": "Portfolio"
+      },
+      "years": "{n} years",
+      "evidence": "Evidence files",
+      "noEvidence": "No supporting documents uploaded.",
+      "view": "View",
+      "uploaded": "{n} uploaded",
+      "showEvidence": "Show evidence files",
+      "references": "References",
+      "noReference2": "No second reference supplied",
+      "intake": "Automatic intake checks",
+      "intakeLead": "These checks validate submitted fields and files. The VAT ID is also checked with the EU VIES service; credit and sanctions databases are not queried.",
+      "checks": "Verification checks",
+      "check": {
+        "registration": "Company registration",
+        "vat": "VAT / tax check",
+        "insurance": "Insurance evidence",
+        "certifications": "Certificates",
+        "references": "Reference calls",
+        "sanctions": "Sanctions / KYC"
+      },
+      "stage": "Vetting stage",
+      "risk": "Risk level",
+      "referenceOutcome": "Reference call outcome",
+      "badge": "Badge decision",
+      "riskNotes": "Risk assessment / verification notes",
+      "decisionNote": "Decision note to applicant",
+      "requeue": "Return to review queue",
+      "save": "Save review",
+      "hold": "Put on hold",
+      "reject": "Reject",
+      "approve": "Approve & assign badge",
+      "done": {
+        "saved": "Verification review saved",
+        "New": "Application returned to the review queue",
+        "OnHold": "Application on hold",
+        "Rejected": "Application rejected",
+        "Approved": "Application approved"
+      },
+      "loading": "Loading document…",
+      "openFailed": "This document could not be opened.",
+      "openTab": "Open in new tab",
+      "download": "Download",
+      "close": "Close"
+    },
+    "vies": {
+      "notChecked": "Not checked with VIES yet",
+      "unreachable": "VIES not reachable – check manually",
+      "valid": "VIES: VAT ID valid",
+      "invalid": "VIES: VAT ID not valid",
+      "check": "Check now",
+      "done": "VIES check finished"
+    },
+    "changes": {
+      "title": "Profile changes awaiting re-verification",
+      "lead": "Changes to a company name, legal invoicing details or claimed certifications wait here until approved.",
+      "submitted": "Submitted {date}",
+      "field": "Field",
+      "current": "Current",
+      "proposed": "Proposed",
+      "f": {
+        "company": "Company name",
+        "legalName": "Legal name",
+        "address": "Address",
+        "taxId": "Tax ID",
+        "certifications": "Certifications"
+      },
+      "approve": "Approve",
+      "reject": "Reject",
+      "none": "Nothing is waiting for re-verification.",
+      "rejectPrompt": "Explain to the supplier why this change was not approved",
+      "approveConfirm": "Approve this change? It goes live right away.",
+      "approved": "Change approved",
+      "rejected": "Change rejected"
+    },
+    "users": {
+      "title": "Users & supplier badges",
+      "lead": "Manage account access and supplier verification badges.",
+      "badges": "Supplier directory badges",
+      "suppliers": {
+        "one": "{n} supplier",
+        "other": "{n} suppliers"
+      },
+      "supplier": "Supplier",
+      "location": "Location",
+      "account": "Account",
+      "currentBadge": "Current badge",
+      "changeBadge": "Change badge",
+      "live": "Live in directory",
+      "notLive": "Not live",
+      "noAccount": "No linked account",
+      "badgeFor": "Badge for {company}",
+      "noBadge": "None",
+      "noSuppliers": "No supplier companies yet.",
+      "badgeSet": "Supplier badge set to {badge}",
+      "accounts": "Accounts",
+      "count": {
+        "one": "{n} user",
+        "other": "{n} users"
+      },
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "company": "Company",
+      "access": "Access",
+      "currentAdmin": "Current admin",
+      "suspend": "Suspend",
+      "reactivate": "Reactivate",
+      "reset": "Reset password",
+      "suspendNote": "Suspending revokes active sessions and blocks future sign-ins. The last active admin account is protected.",
+      "suspendConfirm": "Suspend this account?",
+      "reactivateConfirm": "Reactivate this account?",
+      "suspended": "Account suspended",
+      "reactivated": "Account reactivated",
+      "deletions": "Pending account deletions",
+      "viaOwner": "With the main account",
+      "requested": "Requested",
+      "deletedOn": "Deleted on",
+      "noDeletions": "No account is waiting to be deleted.",
+      "deletionsNote": "People cancel a deletion themselves by signing in before the date. After it, the account is anonymised automatically; invoices are kept with their legal details."
+    },
+    "reset": {
+      "confirm": "Reset the password for {email}? They will be signed out everywhere and must choose a new password after signing in.",
+      "title": "Temporary password",
+      "give": "Give this temporary password to {email} through a secure channel (e.g. by phone). It is shown only once.",
+      "copy": "Copy",
+      "copied": "Copied",
+      "next": "They will be asked to set a new password right after signing in.",
+      "done": "Done"
+    }
+  },
 };

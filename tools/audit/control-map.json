@@ -385,5 +385,21 @@
     "action cmWorkerForm('wrk_demo_keller')": "action [cm.worker]",
     "action cmWorkerForm('wrk_demo_weber')": "action [cm.worker]",
     "action cmWorkerForm()": "action [cm.worker]"
+  },
+  "admin /admin/applications": {
+    "action reviewApplication('app_demo_mechacore')": "action [adm.review]",
+    "action reviewApplication('app_demo_nordwerk')": "action [adm.review]"
+  },
+  "admin /admin/users": {
+    "action ccSetAccountStatus('u_customer','Suspended')": "action [adm.access]",
+    "action ccSetAccountStatus('u_showcase_customer','Suspended')": "action [adm.access]",
+    "action ccSetAccountStatus('u_showcase_supplier','Suspended')": "action [adm.access]",
+    "action ccSetAccountStatus('u_supplier','Suspended')": "action [adm.access]",
+    "action legalResetPassword('u_customer', this)": "action [adm.reset]",
+    "action legalResetPassword('u_showcase_customer', this)": "action [adm.reset]",
+    "action legalResetPassword('u_showcase_supplier', this)": "action [adm.reset]",
+    "action legalResetPassword('u_supplier', this)": "action [adm.reset]",
+    "action ccSetAccountStatus('usr_<id>','Suspended')": "action [adm.access]",
+    "action legalResetPassword('usr_<id>', this)": "action [adm.reset]"
   }
 }

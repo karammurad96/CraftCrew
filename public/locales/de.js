@@ -2818,4 +2818,232 @@ LOCALES.de = {
     "approve": "Freigeben",
     "hours": "{n} h · {name}"
   },
+  adm: {
+    "stage": {
+      "New": "Neu",
+      "Verified": "Verifiziert",
+      "References": "Referenzen",
+      "Manual Review": "Manuelle Prüfung",
+      "Decision & Badge": "Entscheidung & Badge",
+      "Approved": "Freigegeben",
+      "Rejected": "Abgelehnt"
+    },
+    "status": {
+      "New": "Neu",
+      "Approved": "Freigegeben",
+      "Rejected": "Abgelehnt",
+      "On Hold": "Zurückgestellt",
+      "Submitted": "Eingereicht"
+    },
+    "checkState": {
+      "Not checked": "Nicht geprüft",
+      "Passed": "Bestanden",
+      "Needs follow-up": "Nachfassen nötig",
+      "Failed": "Fehlgeschlagen",
+      "Not applicable": "Nicht zutreffend"
+    },
+    "risk": {
+      "Not assessed": "Nicht bewertet",
+      "Low": "Niedrig",
+      "Medium": "Mittel",
+      "High": "Hoch"
+    },
+    "reference": {
+      "Not started": "Nicht begonnen",
+      "Reached - positive": "Erreicht – positiv",
+      "Reached - concerns": "Erreicht – Bedenken",
+      "No response": "Keine Antwort",
+      "Not applicable": "Nicht zutreffend"
+    },
+    "pre": {
+      "Provided": "Angegeben",
+      "Missing": "Fehlt",
+      "Format looks valid": "Format sieht gültig aus",
+      "Check format": "Format prüfen",
+      "Not supplied": "Nicht angegeben",
+      "Current": "Aktuell",
+      "Expired or missing": "Abgelaufen or missing",
+      "None uploaded": "Keine hochgeladen"
+    },
+    "preKey": {
+      "registrationNumber": "Registernummer",
+      "vatFormat": "USt-IdNr.-Format",
+      "insuranceExpiry": "Ablauf der Versicherung",
+      "insuranceCoverage": "Versicherungssumme",
+      "referenceEmail": "E-Mail der Referenz",
+      "evidenceFiles": "Nachweisdateien"
+    },
+    "role": {
+      "customer": "Kunde",
+      "supplier": "Lieferant",
+      "admin": "Admin"
+    },
+    "access": {
+      "Active": "Aktiv",
+      "Suspended": "Gesperrt",
+      "Deleted": "Gelöscht"
+    },
+    "apps": {
+      "title": "Lieferantenprüfung",
+      "lead": "Nachweise prüfen, Referenzen und Risiko erfassen, dann freigeben, zurückstellen oder ablehnen.",
+      "company": "Unternehmen / Kontakt",
+      "stage": "Prüfstufe",
+      "decision": "Entscheidung",
+      "submitted": "Eingereicht",
+      "review": "Akte prüfen",
+      "none": "Keine Bewerbungen eingegangen."
+    },
+    "file": {
+      "title": "Prüfakte des Lieferanten",
+      "flow": {
+        "application": "Bewerbung",
+        "verification": "Prüfung",
+        "references": "Referenzen",
+        "manual": "Manuelle Prüfung",
+        "decision": "Entscheidung & Badge"
+      },
+      "capability": "Unternehmen & Leistungsfähigkeit",
+      "fact": {
+        "company": "Unternehmen",
+        "contact": "Kontakt",
+        "emailPhone": "E-Mail / Telefon",
+        "registration": "Register / USt-IdNr.",
+        "address": "Rechtliche Anschrift",
+        "insurance": "Versicherung",
+        "coverage": "Deckung / Ablauf",
+        "website": "Website",
+        "experience": "Erfahrung",
+        "services": "Leistungen",
+        "certifications": "Zertifizierungen",
+        "portfolio": "Referenzprojekte"
+      },
+      "years": "{n} Jahre",
+      "evidence": "Nachweisdateien",
+      "noEvidence": "Keine Nachweise hochgeladen.",
+      "view": "Ansehen",
+      "uploaded": "{n} hochgeladen",
+      "showEvidence": "Nachweisdateien anzeigen",
+      "references": "Referenzen",
+      "noReference2": "Keine zweite Referenz angegeben",
+      "intake": "Automatische Eingangsprüfung",
+      "intakeLead": "Diese Prüfungen kontrollieren die eingereichten Angaben und Dateien. Die USt-IdNr. wird zusätzlich über den EU-Dienst VIES geprüft; Auskunfteien und Sanktionslisten werden nicht abgefragt.",
+      "checks": "Prüfpunkte",
+      "check": {
+        "registration": "Handelsregister",
+        "vat": "USt-/Steuerprüfung",
+        "insurance": "Versicherungsnachweis",
+        "certifications": "Zertifikate",
+        "references": "Referenzanrufe",
+        "sanctions": "Sanktionen / KYC"
+      },
+      "stage": "Prüfstufe",
+      "risk": "Risikostufe",
+      "referenceOutcome": "Ergebnis der Referenzanrufe",
+      "badge": "Badge-Entscheidung",
+      "riskNotes": "Risikobewertung / Prüfnotizen",
+      "decisionNote": "Hinweis an den Bewerber",
+      "requeue": "Zurück in die Prüfung",
+      "save": "Prüfung speichern",
+      "hold": "Zurückstellen",
+      "reject": "Ablehnen",
+      "approve": "Freigeben & Badge vergeben",
+      "done": {
+        "saved": "Prüfung gespeichert",
+        "New": "Bewerbung zurück in der Prüfschlange",
+        "OnHold": "Bewerbung zurückgestellt",
+        "Rejected": "Bewerbung abgelehnt",
+        "Approved": "Bewerbung freigegeben"
+      },
+      "loading": "Dokument wird geladen…",
+      "openFailed": "Dieses Dokument konnte nicht geöffnet werden.",
+      "openTab": "In neuem Tab öffnen",
+      "download": "Herunterladen",
+      "close": "Schließen"
+    },
+    "vies": {
+      "notChecked": "Noch nicht mit VIES geprüft",
+      "unreachable": "VIES nicht erreichbar – bitte manuell prüfen",
+      "valid": "VIES: USt-IdNr. gültig",
+      "invalid": "VIES: USt-IdNr. ungültig",
+      "check": "Jetzt prüfen",
+      "done": "VIES-Prüfung abgeschlossen"
+    },
+    "changes": {
+      "title": "Profiländerungen, die auf erneute Prüfung warten",
+      "lead": "Änderungen am Firmennamen, an rechtlichen Rechnungsdaten oder an angegebenen Zertifizierungen warten hier auf Freigabe.",
+      "submitted": "Eingereicht {date}",
+      "field": "Feld",
+      "current": "Aktuell",
+      "proposed": "Vorgeschlagen",
+      "f": {
+        "company": "Firmenname",
+        "legalName": "Rechtlicher Name",
+        "address": "Adresse",
+        "taxId": "Steuernummer",
+        "certifications": "Zertifizierungen"
+      },
+      "approve": "Freigeben",
+      "reject": "Ablehnen",
+      "none": "Nichts wartet derzeit auf erneute Prüfung.",
+      "rejectPrompt": "Erklären Sie dem Anbieter, warum diese Änderung nicht freigegeben wurde",
+      "approveConfirm": "Diese Änderung freigeben? Sie wird sofort wirksam.",
+      "approved": "Änderung freigegeben",
+      "rejected": "Änderung abgelehnt"
+    },
+    "users": {
+      "title": "Benutzer & Lieferanten-Badges",
+      "lead": "Kontozugänge und Lieferanten-Badges verwalten.",
+      "badges": "Badges im Lieferantenverzeichnis",
+      "suppliers": {
+        "one": "{n} Lieferant",
+        "other": "{n} Lieferanten"
+      },
+      "supplier": "Lieferant",
+      "location": "Standort",
+      "account": "Konto",
+      "currentBadge": "Aktuelles Badge",
+      "changeBadge": "Badge ändern",
+      "live": "Im Verzeichnis",
+      "notLive": "Nicht gelistet",
+      "noAccount": "Kein verknüpftes Konto",
+      "badgeFor": "Badge für {company}",
+      "noBadge": "Kein Badge",
+      "noSuppliers": "Noch keine Lieferantenunternehmen.",
+      "badgeSet": "Lieferanten-Badge auf {badge} gesetzt",
+      "accounts": "Konten",
+      "count": {
+        "one": "{n} Benutzer",
+        "other": "{n} Benutzer"
+      },
+      "name": "Name",
+      "email": "E-Mail",
+      "role": "Rolle",
+      "company": "Unternehmen",
+      "access": "Zugriff",
+      "currentAdmin": "Aktueller Admin",
+      "suspend": "Sperren",
+      "reactivate": "Reaktivieren",
+      "reset": "Passwort zurücksetzen",
+      "suspendNote": "Sperren beendet aktive Sitzungen und blockiert künftige Anmeldungen. Das letzte aktive Admin-Konto ist geschützt.",
+      "suspendConfirm": "Dieses Konto sperren?",
+      "reactivateConfirm": "Dieses Konto wieder freischalten?",
+      "suspended": "Konto gesperrt",
+      "reactivated": "Konto wieder freigeschaltet",
+      "deletions": "Anstehende Kontolöschungen",
+      "viaOwner": "Mit dem Hauptkonto",
+      "requested": "Angefragt",
+      "deletedOn": "Gelöscht am",
+      "noDeletions": "Kein Konto wartet auf die Löschung.",
+      "deletionsNote": "Personen heben eine Löschung selbst auf, indem sie sich vor dem Datum anmelden. Danach wird das Konto automatisch anonymisiert; Rechnungen bleiben mit ihren rechtlichen Angaben erhalten."
+    },
+    "reset": {
+      "confirm": "Passwort für {email} zurücksetzen? Die Person wird überall abgemeldet und muss nach dem Anmelden ein neues Passwort wählen.",
+      "title": "Temporäres Passwort",
+      "give": "Geben Sie dieses temporäre Passwort über einen sicheren Weg (z. B. telefonisch) an {email} weiter. Es wird nur einmal angezeigt.",
+      "copy": "Kopieren",
+      "copied": "Kopiert",
+      "next": "Beim nächsten Anmelden muss ein neues Passwort gewählt werden.",
+      "done": "Fertig"
+    }
+  },
 };
