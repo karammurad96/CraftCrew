@@ -1,6 +1,7 @@
-/* Area: admin (T134). Supplier applications with the vetting file, profile changes awaiting re-verification, and
-   users with badges, account access, password resets and pending deletions. Drawn with translation keys; company
-   names, people, addresses, notes and file names are data. reviewApplication stays: the admin dashboard opens it. */
+/* Area: admin (T134). Supplier applications with the vetting file, profile changes awaiting re-verification, users
+   with badges, account access, password resets and pending deletions (T134a); billing, escalations, reports, the
+   audit log and platform management (T134b). Drawn with translation keys; company names, people, addresses, notes,
+   file names, emails and audit entries are data. reviewApplication stays: the admin dashboard opens it. */
 const adk = (key, params) => esc(t("adm." + key, params));
 const adKeys = (html) => html.replace(/^<(\w+)/, '<$1 data-i18n="keys"');
 const adDom = (text) => `<bdi data-i18n="dom">${esc(text)}</bdi>`;
@@ -329,3 +330,418 @@ actions.on("adm.done", () => closeModal());
 routes.add("/admin/applications", adminApplications);
 routes.add("/admin/profile-changes", adminProfileChanges);
 routes.add("/admin/users", adminUsers);
+
+/* ---------- Billing: payments, fees and supplier payouts (T134b) ---------- */
+const AD_INVOICE_TONE = { Paid: "completed", Refunded: "rejected", Rejected: "rejected" };
+async function adminBilling() {
+  const [{ invoices = [] }, { settings }] = await Promise.all([api("/invoices"), api("/admin/settings")]),
+    f = (key, params) => adk("billing." + key, params),
+    rate = Number(settings.platformFeePercent) || 0,
+    sum = (list, value = (i) => i.amount) => list.reduce((n, i) => n + Number(value(i) || 0), 0),
+    paid = invoices.filter((i) => i.status === "Paid"),
+    refunded = invoices.filter((i) => i.status === "Refunded"),
+    scheduled = invoices.filter((i) => i.status === "Approved"),
+    money = (n) => esc(fmt.money(n)),
+    card = (label, value) => `<div class="cc-card"><span class="cc-label">${label}</span><b>${value}</b></div>`;
+  const row = (i) => {
+    const fee = Number(i.payment?.platformFee ?? (i.amount * rate) / 100),
+      payout = Number(i.payment?.supplierPayout ?? i.amount - fee);
+    return `<tr><td><b>${esc(invNo(i))}</b><small>${esc(fmt.date(i.createdAt))}</small></td><td>${esc(i.projectName || i.projectId)}<small>${i.supplierCompany ? esc(i.supplierCompany) : f("supplier")}</small></td><td>${money(
+      i.amount,
+    )}</td><td>${money(fee)} · ${money(payout)}<small>${f("rate", { n: rate })}</small></td><td><span class="status ${AD_INVOICE_TONE[i.status] || "submitted"}">${adValue("invStatus", i.status)}</span>${
+      i.status === "Approved" && i.overdue ? ` <span class="status overdue">${inDaysLate(i.scheduledPayment)}</span>` : ""
+    }<small>${i.payment?.status ? adValue("payStatus", i.payment.status) : f("noPayout")}</small></td><td>${
+      i.status === "Approved" ? `<button class="btn small success" data-action="adm.paid" data-id="${esc(i.id)}">${f("recordPaid")}</button>` : ""
+    }${i.status === "Paid" ? `<button class="btn small danger" data-action="adm.refund" data-id="${esc(i.id)}">${f("recordRefund")}</button>` : ""}</td></tr>`;
+  };
+  app.innerHTML = dashboardShell(
+    "admin",
+    "billing",
+    [
+      `<div class="dash-top"><div><h1>${f("title")}</h1><p>${f("lead")}</p></div></div>`,
+      `<div class="wf-stat-grid">${card(f("volume"), money(sum(invoices)))}${card(f("awaiting"), money(sum(scheduled)))}${card(
+        f("paidOut"),
+        money(sum(paid, (i) => i.payment?.supplierPayout ?? i.amount * (1 - rate / 100))),
+      )}${card(f("fee", { n: rate }), money(sum(invoices.filter((i) => ["Approved", "Paid", "Refunded"].includes(i.status)), (i) => i.payment?.platformFee ?? (i.amount * rate) / 100)))}</div>`,
+      `<section class="panel"><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>${f("invoice")}</th><th>${f("projectSupplier")}</th><th>${f("gross")}</th><th>${f("feePayout")}</th><th>${f("status")}</th><th>${f(
+        "actions",
+      )}</th></tr></thead><tbody>${invoices.map(row).join("") || `<tr><td colspan="6">${f("none")}</td></tr>`}</tbody></table></div></section>`,
+      `<section class="panel"><h3>${f("refunds")}</h3><p>${f("refundsLead")}</p><a class="btn outline" href="#/admin/disputes">${f("openDisputes")}</a>${
+        refunded.length ? `<p>${esc(t.plural("adm.billing.refunded", refunded.length, { amount: fmt.money(sum(refunded)) }))}</p>` : ""
+      }</section>`,
+    ]
+      .map(adKeys)
+      .join(""),
+  );
+}
+actions.on("adm.paid", async (el) => {
+  try {
+    await api(`/admin/invoices/${encodeURIComponent(el.dataset.id)}`, { method: "PATCH", body: { action: "Mark Paid" } });
+    tToast(t("adm.billing.paid"));
+    adminBilling();
+  } catch (e) {
+    toast(e.message, "error");
+  }
+});
+actions.on("adm.refund", async (el) => {
+  const reason = await uiPrompt(t("adm.billing.refundPrompt"));
+  if (!reason?.trim()) return;
+  try {
+    await api(`/admin/invoices/${encodeURIComponent(el.dataset.id)}`, { method: "PATCH", body: { action: "Refund", reason } });
+    tToast(t("adm.billing.refundDone"));
+    adminBilling();
+  } catch (e) {
+    toast(e.message, "error");
+  }
+});
+
+/* ---------- Escalations and support ---------- */
+async function adminDisputes() {
+  const { disputes = [] } = await api("/disputes"),
+    f = (key) => adk("disputes." + key);
+  const card = (x) =>
+    `<article class="cc-card"><div style="display:flex;justify-content:space-between"><b>${
+      typeof ccLookup("en", "dlg.support.types." + x.type) === "string" ? esc(t("dlg.support.types." + x.type)) : adDom(x.type)
+    }</b><span class="tag ${x.status === "Open" ? "orange" : "green"}">${adValue("disputeStatus", x.status)}</span></div><p>${esc(x.description)}</p><small>${esc(x.projectId)} · ${esc(fmt.date(x.createdAt))}</small>${
+      x.status === "Open" ? `<div class="cc-actions" style="margin-top:12px"><button class="btn small success" data-action="adm.resolve" data-id="${esc(x.id)}">${f("resolve")}</button></div>` : ""
+    }</article>`;
+  app.innerHTML = dashboardShell(
+    "admin",
+    "disputes",
+    [`<div class="dash-top"><div><h1>${f("title")}</h1><p>${f("lead")}</p></div></div>`, `<div class="cc-grid">${disputes.map(card).join("") || `<div class="empty">${f("none")}</div>`}</div>`].map(adKeys).join(""),
+  );
+}
+actions.on("adm.resolve", async (el) => {
+  const resolution = await uiPrompt(t("adm.disputes.prompt"));
+  if (!resolution) return;
+  try {
+    await api(`/admin/disputes/${encodeURIComponent(el.dataset.id)}`, { method: "PATCH", body: { status: "Resolved", resolution } });
+    tToast(t("adm.disputes.resolved"));
+    adminDisputes();
+  } catch (e) {
+    toast(e.message, "error");
+  }
+});
+
+/* ---------- Reports and analytics: metrics, trend charts, performance tables, backups, scorecards ---------- */
+let adReportData = {};
+async function adminReports() {
+  const [{ metrics: m }, { projects = [] }, { invoices = [] }, { users = [] }, { suppliers = [] }, { applications = [] }, { scorecards = [] }] = await Promise.all([
+    api("/admin/metrics"),
+    api("/projects"),
+    api("/invoices"),
+    api("/admin/users"),
+    api("/admin/suppliers"),
+    api("/admin/applications"),
+    api("/scorecards").catch(() => ({})),
+  ]);
+  const f = (key, params) => adk("reports." + key, params),
+    money = (n) => esc(fmt.money(n)),
+    sum = (list) => list.reduce((a, i) => a + Number(i.amount || 0), 0),
+    today = paToday(),
+    approvedInv = invoices.filter((i) => ["Approved", "Paid"].includes(i.status));
+  const items = paWorkItems(projects).concat(
+    projects.filter((p) => p.status === "Completed").flatMap((p) => (p.phases || []).flatMap((ph) => (ph.tasks || []).map((t) => ({ p, ph, t, status: t.status, dueDate: t.dueDate })))),
+  );
+  const completed = items.filter((x) => x.status === "Completed").length,
+    overdue = items.filter((x) => x.status !== "Completed" && x.dueDate && x.dueDate < today).length,
+    onTime = completed + overdue ? Math.round((completed / (completed + overdue)) * 100) : 100;
+  const supplierRows = suppliers
+    .filter((s) => s.live)
+    .map((s) => {
+      const mine = items.filter((x) => x.t?.assignedSupplierId === s.id || (!x.t && x.ph.supplierId === s.id)),
+        inv = invoices.filter((i) => i.supplierId === s.id);
+      return {
+        s,
+        assigned: mine.length,
+        done: mine.filter((x) => x.status === "Completed").length,
+        late: mine.filter((x) => x.status !== "Completed" && x.dueDate < today).length,
+        invoiced: sum(inv),
+        approved: sum(inv.filter((i) => ["Approved", "Paid"].includes(i.status))),
+      };
+    })
+    .filter((r) => r.assigned || r.invoiced)
+    .sort((a, b) => b.invoiced - a.invoiced)
+    .slice(0, 12);
+  const customerRows = users
+    .filter((u) => u.role === "customer")
+    .map((u) => {
+      const ps = projects.filter((p) => p.customerId === u.id),
+        inv = invoices.filter((i) => i.customerId === u.id);
+      return { u, projects: ps.length, active: ps.filter((p) => p.status === "In Progress").length, budget: ps.reduce((a, p) => a + Number(p.budget || 0), 0), invoiced: sum(inv), approved: sum(inv.filter((i) => ["Approved", "Paid"].includes(i.status))) };
+    })
+    .filter((r) => r.projects)
+    .sort((a, b) => b.budget - a.budget);
+  const months = paMonths(6).map((mo) => {
+    const inMonth = invoices.filter((i) => String(i.createdAt).slice(0, 7) === mo);
+    return { m: mo, invoiced: sum(inMonth), approved: sum(inMonth.filter((i) => ["Approved", "Paid"].includes(i.status))), paid: sum(inMonth.filter((i) => i.status === "Paid")), count: inMonth.length };
+  });
+  adReportData = { supplierRows, customerRows, months };
+  // Trend charts over 12 months and the vetting funnel
+  const months12 = inMonths(12),
+    inMonth = (d, mo) => String(d).slice(0, 7) === mo,
+    funnel = [
+      ["received", applications.length],
+      ["verifying", applications.filter((a) => ["Verified", "References", "Manual Review", "Decision & Badge"].includes(a.stage) || a.status === "Approved").length],
+      ["approved", applications.filter((a) => a.status === "Approved").length],
+    ];
+  const charts = `<div class="in-grid in-admin-charts"><section class="panel in-wide"><div class="panel-title"><h3>${f("volumeChart")}</h3></div>${inBars(months12, [
+    { label: t("adm.reports.invoiced"), color: "#93c5fd", values: months12.map((mo) => inSum(invoices.filter((i) => inMonth(i.createdAt, mo)))) },
+    { label: t("adm.reports.paid"), color: "#2563eb", values: months12.map((mo) => inSum(invoices.filter((i) => i.status === "Paid" && inMonth(i.paymentDate || i.updatedAt, mo)))) },
+  ], (v) => fmt.money(v))}</section><section class="panel"><div class="panel-title"><h3>${f("accountsChart")}</h3></div>${inBars(
+    months12,
+    ["customer", "supplier"].map((role, n) => ({ label: t("adm.reports." + role + "s"), color: n ? "#8b5cf6" : "#14b8a6", values: months12.map((mo) => users.filter((u) => u.role === role && inMonth(u.createdAt, mo)).length) })),
+    (v) => v,
+  )}</section><section class="panel"><div class="panel-title"><h3>${f("funnel")}</h3></div>${inHBars(
+    funnel.map(([key, value], i) => ({ label: t("adm.reports.funnelStep." + key), values: [{ label: t("adm.reports.funnelStep." + key), value, color: IN_COLORS[i] }] })),
+    (v) => v,
+  )}<p class="pa-note">${f("funnelNote", {
+    pct: inPct(funnel[2][1], funnel[0][1]),
+    rejected: applications.filter((a) => a.status === "Rejected").length,
+    hold: applications.filter((a) => a.status === "On Hold").length,
+  })}</p></section></div>`;
+  const kpi = (label, value, sub) => `<div class="cc-card"><span class="cc-label">${label}</span><div class="cc-kpi">${value}</div>${sub === undefined ? "" : `<small>${sub}</small>`}</div>`,
+    exportBtn = (kind) => `<button class="btn small outline" data-action="adm.export" data-kind="${kind}">${f("export")}</button>`,
+    table = (title, kind, heads, rows, empty) =>
+      `<section class="panel"><div class="panel-title"><h3>${f(title)}</h3>${exportBtn(kind)}</div><div class="cc-table-wrap"><table class="cc-table pa-table"><thead><tr>${heads.map((h) => `<th>${f("col." + h)}</th>`).join("")}</tr></thead><tbody>${
+        rows || `<tr><td colspan="${heads.length}">${f(empty)}</td></tr>`
+      }</tbody></table></div></section>`;
+  const statusCounts = ["In Progress", "On Hold", "Completed"].map((s) => f("projectState." + s.replace(" ", ""), { n: projects.filter((p) => p.status === s).length })).join(" · ");
+  const performance = `<section class="pa-reports"><div class="cc-grid4 pa-kpis">${kpi(f("onTime"), `${onTime}%`, f("onTimeSub", { done: completed, late: overdue }))}${kpi(
+    f("budget"),
+    money(projects.reduce((a, p) => a + Number(p.budget || 0), 0)),
+    statusCounts,
+  )}${kpi(f("approvedValue"), money(sum(approvedInv)), f("paidSub", { amount: fmt.money(sum(invoices.filter((i) => i.status === "Paid"))) }))}${kpi(
+    f("approvalRate"),
+    `${invoices.length ? Math.round((approvedInv.length / invoices.length) * 100) : 0}%`,
+    f("returnedSub", { n: invoices.filter((i) => ["Rejected", "Changes Requested"].includes(i.status)).length }),
+  )}</div>${table(
+    "financial",
+    "months",
+    ["month", "invoices", "invoiced", "approved", "paid"],
+    months.map((x) => `<tr><td>${esc(new Date(x.m + "-01").toLocaleDateString(fmt.locale(), { month: "long", year: "numeric" }))}</td><td>${x.count}</td><td>${money(x.invoiced)}</td><td>${money(x.approved)}</td><td>${money(x.paid)}</td></tr>`).join(""),
+  )}${table(
+    "suppliersTitle",
+    "suppliers",
+    ["supplier", "badge", "rating", "items", "completed", "overdue", "invoiced", "approved"],
+    supplierRows
+      .map(
+        (r) =>
+          `<tr><td><b>${esc(r.s.company)}</b></td><td>${esc(ccBadge(r.s))}</td><td>★ ${esc(fmt.number(r.s.rating || 0, 1))}</td><td>${r.assigned}</td><td>${r.done}</td><td class="${r.late ? "danger-text" : ""}">${r.late}</td><td>${money(r.invoiced)}</td><td>${money(r.approved)}</td></tr>`,
+      )
+      .join(""),
+    "noSuppliers",
+  )}${table(
+    "customersTitle",
+    "customers",
+    ["customer", "projects", "active", "budget", "invoiced", "approved"],
+    customerRows
+      .map((r) => `<tr><td><b>${esc(r.u.company || r.u.name)}</b><small>${esc(r.u.email)}</small></td><td>${r.projects}</td><td>${r.active}</td><td>${money(r.budget)}</td><td>${money(r.invoiced)}</td><td>${money(r.approved)}</td></tr>`)
+      .join(""),
+    "noCustomers",
+  )}</section>`;
+  app.innerHTML = dashboardShell(
+    "admin",
+    "reports",
+    [
+      `<div class="dash-top"><div><h1>${f("title")}</h1><p>${f("lead")}</p></div></div>`,
+      `<div class="cc-grid4">${kpi(f("users"), m.users)}${kpi(f("liveSuppliers"), m.suppliers)}${kpi(f("projects"), m.projects)}${kpi(f("gross"), money(m.grossVolume))}</div>`,
+      charts,
+      performance,
+      `<div class="cc-card" style="margin-top:15px"><h3>${f("backup")}</h3><p>${f("backupLead")}</p><button class="btn outline" data-action="adm.backup">${f("exportJson")}</button><label class="btn outline">${f(
+        "importJson",
+      )}<input type="file" hidden accept="application/json" data-action="adm.import"></label></div>`,
+      `<section class="panel sr-admin-cards"><div class="panel-title"><h3>${f("scorecards")}</h3><span class="ui-count">${scorecards.length}</span></div>${srScorecardTable(scorecards)}</section>`,
+    ]
+      .map(adKeys)
+      .join(""),
+  );
+}
+// CSV with a BOM and ";" so Excel opens it with umlauts and columns; the headers in the user's language
+actions.on("adm.export", (el) => {
+  const kind = el.dataset.kind,
+    d = adReportData,
+    h = (keys) => keys.map((k) => t("adm.reports.col." + k)),
+    quote = (v) => `"${String(v ?? "").replaceAll('"', '""')}"`;
+  const rows =
+    kind === "months"
+      ? [h(["month", "invoices", "invoiced", "approved", "paid"]), ...(d.months || []).map((x) => [x.m, x.count, x.invoiced, x.approved, x.paid])]
+      : kind === "suppliers"
+        ? [h(["supplier", "badge", "rating", "items", "completed", "overdue", "invoiced", "approved"]), ...(d.supplierRows || []).map((r) => [r.s.company, r.s.badge, r.s.rating, r.assigned, r.done, r.late, r.invoiced, r.approved])]
+        : [h(["customer", "email", "projects", "active", "budget", "invoiced", "approved"]), ...(d.customerRows || []).map((r) => [r.u.company || r.u.name, r.u.email, r.projects, r.active, r.budget, r.invoiced, r.approved])];
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + rows.map((r) => r.map(quote).join(";")).join("\r\n")], { type: "text/csv;charset=utf-8" }));
+  a.download = `craftcrew-${kind}-report.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+});
+actions.on("adm.backup", async () => {
+  const d = await api("/backup/export"),
+    a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 2)], { type: "application/json" }));
+  a.download = "craftcrew-backup.json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+});
+actions.on("adm.import", async (input) => {
+  const file = input.files[0];
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text()),
+      backup = data.data || data,
+      n = (k) => (Array.isArray(backup[k]) ? backup[k].length : 0);
+    const ok = await uiDialog({
+      title: t("adm.reports.importTitle"),
+      message: t("adm.reports.importText", { users: n("users"), projects: n("projects"), invoices: n("invoices"), suppliers: n("suppliers") }),
+      confirmLabel: t("adm.reports.importConfirm"),
+      danger: true,
+    });
+    input.value = "";
+    if (!ok) return;
+    await api("/backup/import", { method: "POST", body: { data: backup } });
+    tToast(t("adm.reports.imported"));
+    adminReports();
+  } catch (e) {
+    toast(e.message, "error");
+  }
+});
+
+/* ---------- Audit log ---------- */
+async function adminAudit() {
+  const q = new URLSearchParams(location.hash.split("?")[1] || ""),
+    params = new URLSearchParams(),
+    f = (key, params) => adk("audit." + key, params);
+  for (const k of ["q", "role", "projectId"]) if (q.get(k)) params.set(k, q.get(k));
+  const [{ entries = [], total = 0 }, { projects = [] }] = await Promise.all([api("/audit?" + params), api("/projects")]);
+  const opt = (value, label, on) => `<option value="${esc(value)}" ${on ? "selected" : ""}>${label}</option>`,
+    row = (e) =>
+      `<tr><td>${esc(paTime(e.at))}</td><td><b>${esc(e.actorName)}</b><small>${e.actorRole ? adValue("role", e.actorRole) : ""} · ${esc(e.actorEmail)}</small></td><td>${adDom(e.action)}${e.status ? `<small>${adDom(e.status)}</small>` : ""}</td><td>${e.projectName ? adDom(e.projectName) : "—"}</td><td><small>${esc(e.entityId)}</small></td></tr>`;
+  app.innerHTML = dashboardShell(
+    "admin",
+    "audit",
+    [
+      `<div class="dash-top"><div><div class="eyebrow">${f("eyebrow")}</div><h1>${f("title")}</h1><p>${f("lead")}</p></div></div>`,
+      `<form class="panel pa-filters" id="paAuditFilters" data-action="adm.auditFilter"><label>${f("search")}<input name="q" value="${esc(q.get("q") || "")}" placeholder="${f("searchHint")}"></label><label>${f("role")}<select name="role">${opt(
+        "",
+        f("allRoles"),
+      )}${["customer", "supplier", "admin", "public"].map((r) => opt(r, f("roles." + r), q.get("role") === r)).join("")}</select></label><label>${f("project")}<select name="projectId">${opt("", f("allProjects"))}${projects
+        .map((p) => opt(p.id, esc(p.name), q.get("projectId") === p.id))
+        .join("")}</select></label><div class="pa-filter-actions"><button class="btn primary">${f("apply")}</button><a class="btn outline" href="#/admin/audit">${f("reset")}</a></div></form>`,
+      `<section class="panel"><div class="panel-title"><h3>${esc(t.plural("adm.audit.count", total))}</h3><small class="subtle">${f("latest", { n: Math.min(500, total) })}</small></div><div class="cc-table-wrap"><table class="cc-table pa-table"><thead><tr><th>${f(
+        "when",
+      )}</th><th>${f("who")}</th><th>${f("action")}</th><th>${f("project")}</th><th>${f("record")}</th></tr></thead><tbody>${entries.map(row).join("") || `<tr><td colspan="5">${f("none")}</td></tr>`}</tbody></table></div></section>`,
+    ]
+      .map(adKeys)
+      .join(""),
+  );
+}
+actions.on("adm.auditFilter", (form) => {
+  const f = new URLSearchParams();
+  for (const [k, v] of new FormData(form)) if (v) f.set(k, v);
+  navigate("/admin/audit?" + f);
+});
+
+/* ---------- Platform management: settings, email outbox and test email, legal pages ---------- */
+async function adminPlatform() {
+  const [{ settings: s }, { emails = [] }, legal] = await Promise.all([api("/admin/settings"), api("/admin/outbox").catch(() => ({})), legalContent()]),
+    f = (key, params) => adk("platform." + key, params),
+    num = (v, fallback = 0) => Number(v) || fallback;
+  const tier = (k) =>
+    `<fieldset><legend>${esc(t("common.badge." + k[0].toUpperCase() + k.slice(1)))}</legend><label>${f("projectsDone")}<input type="number" min="0" name="${k}Projects" value="${num(s.badgeCriteria?.[k]?.projects)}"></label><label>${f(
+      "minRating",
+    )}<input type="number" min="0" max="5" step="0.1" name="${k}Rating" value="${num(s.badgeCriteria?.[k]?.rating)}"></label></fieldset>`;
+  const templateLabel = (k) => (typeof ccLookup("en", "adm.platform.templates." + k) === "string" ? f("templates." + k) : esc(k.replaceAll(/([A-Z])/g, " $1")));
+  const settings = `<form id="ccPlatformSettings" class="cc-platform-settings" data-action="adm.saveSettings"><section class="panel"><div class="panel-title"><h3>${f("categories")}</h3><small>${f(
+    "categoriesHint",
+  )}</small></div><textarea name="serviceCategories" rows="7" required aria-label="${f("categoriesLabel")}">${esc(s.serviceCategories.join("\n"))}</textarea></section><section class="panel"><div class="panel-title"><h3>${f(
+    "badges",
+  )}</h3><small>${f("badgesHint")}</small></div><div class="cc-badge-criteria">${["bronze", "silver", "gold"].map(tier).join("")}</div></section><section class="panel"><div class="panel-title"><h3>${f(
+    "system",
+  )}</h3></div><div class="cc-platform-grid"><label>${f("supportEmail")}<input type="email" name="supportEmail" value="${esc(s.supportEmail)}" required></label><label>${f(
+    "feePercent",
+  )}<input type="number" name="platformFeePercent" min="0" max="25" step="0.1" value="${num(s.platformFeePercent)}" required></label><label>${f("paymentDays")}<input type="number" name="defaultPaymentTermsDays" min="0" max="180" value="${num(
+    s.defaultPaymentTermsDays,
+  )}" required></label><label>${f("uploadLimit")}<input type="number" name="uploadLimitMb" min="1" max="5" value="${num(s.uploadLimitMb, 5)}" required></label></div></section><section class="panel"><div class="panel-title"><h3>${f(
+    "faq",
+  )}</h3><small>${f("faqHint")}</small></div><textarea name="faqContent" rows="6" maxlength="10000" placeholder="${f("faqPlaceholder")}">${esc(s.faqContent || "")}</textarea></section><section class="panel"><div class="panel-title"><h3>${f(
+    "emailSubjects",
+  )}</h3><small>${f("emailSubjectsHint")}</small></div><div class="cc-platform-grid">${Object.entries(s.emailTemplates || {})
+    .map(([k, v]) => `<label>${templateLabel(k)}<input name="email_${esc(k)}" value="${esc(v)}" maxlength="300"></label>`)
+    .join("")}</div></section><section class="panel"><div class="panel-title"><h3>${f("integrations")}</h3><small>${f("integrationsHint")}</small></div><div class="cc-integration-list">${Object.entries(s.integrations || {})
+    .map(([k, v]) => `<div><b>${typeof ccLookup("en", "adm.platform.integration." + k) === "string" ? f("integration." + k) : esc(k)}</b><span>${adDom(v)}</span><em>${f("configOnly")}</em></div>`)
+    .join("")}</div><p class="subtle">${f("integrationsNote")}</p></section><div class="cc-actions"><button class="btn primary">${f("save")}</button><span id="ccPlatformSaved" class="subtle"></span></div></form>`;
+  const mailStatus = (m) => `<span class="status ${m.status === "Sent" ? "completed" : m.status === "Failed" ? "rejected" : "submitted"}">${adValue("mailStatus", m.status)}</span>`;
+  const outbox = `<details class="panel pa-outbox"><summary><h3>${f("outbox")}</h3><small>${f("outboxCount", {
+    messages: t.plural("adm.platform.messages", emails.length),
+    sent: emails.filter((m) => m.status === "Sent").length,
+  })}</small></summary><div class="cc-actions mail-test-row"><button type="button" class="btn small outline mail-test" data-action="adm.testEmail">${f("testEmail")}</button></div><div class="cc-table-wrap"><table class="cc-table pa-table"><thead><tr><th>${f(
+    "queued",
+  )}</th><th>${f("to")}</th><th>${f("subject")}</th><th>${f("status")}</th></tr></thead><tbody>${
+    emails
+      .slice(0, 100)
+      .map(
+        (m) =>
+          `<tr title="${esc(m.body)}"><td>${esc(paTime(m.createdAt))}</td><td>${esc(m.to)}</td><td><b>${esc(m.subject)}</b><small>${esc(m.body.slice(0, 120))}</small></td><td>${mailStatus(m)}${m.lastError ? `<small>${adDom(m.lastError)}</small>` : ""}</td></tr>`,
+      )
+      .join("") || `<tr><td colspan="4">${f("noEmails")}</td></tr>`
+  }</tbody></table></div></details>`;
+  const legalPanel = `<section class="panel legal-admin"><div class="panel-title"><h3>${f("legal")}</h3><small class="subtle">${f("legalWhere")}</small></div><p class="subtle">${f(
+    "legalLead",
+  )}</p><form id="legalForm" class="modal-form" data-action="adm.saveLegal">${["imprint", "privacy", "terms"]
+    .map((k) => `<label>${f("legalPage." + k)}<textarea name="${k}" rows="8" placeholder="${f("legalHint." + k)}">${esc(legal[k] || "")}</textarea></label>`)
+    .join("")}<div class="cc-actions"><button class="btn primary">${f("saveLegal")}</button><a class="btn outline" href="#/imprint" target="_blank">${f("preview")}</a></div></form></section>`;
+  app.innerHTML = dashboardShell(
+    "admin",
+    "platform",
+    [`<div class="dash-top"><div><div class="eyebrow">${f("eyebrow")}</div><h1>${f("title")}</h1><p>${f("lead")}</p></div></div>`, settings, outbox, legalPanel].map(adKeys).join(""),
+  );
+}
+actions.on("adm.saveSettings", async (form) => {
+  const f = new FormData(form),
+    { settings: s } = await api("/admin/settings"),
+    emailTemplates = Object.fromEntries(Object.keys(s.emailTemplates || {}).map((k) => [k, f.get("email_" + k) || ""])),
+    badgeCriteria = Object.fromEntries(["bronze", "silver", "gold"].map((k) => [k, { projects: Number(f.get(k + "Projects")), rating: Number(f.get(k + "Rating")) }]));
+  const body = {
+    serviceCategories: String(f.get("serviceCategories"))
+      .split(/\r?\n/)
+      .map((x) => x.trim())
+      .filter(Boolean),
+    badgeCriteria,
+    supportEmail: f.get("supportEmail"),
+    platformFeePercent: f.get("platformFeePercent"),
+    defaultPaymentTermsDays: f.get("defaultPaymentTermsDays"),
+    uploadLimitMb: f.get("uploadLimitMb"),
+    faqContent: f.get("faqContent"),
+    emailTemplates,
+  };
+  try {
+    await api("/admin/settings", { method: "PUT", body });
+    document.getElementById("ccPlatformSaved").textContent = t("adm.platform.saved");
+    tToast(t("adm.platform.savedToast"));
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
+actions.on("adm.testEmail", async () => {
+  try {
+    const r = await api("/admin/test-email", { method: "POST", body: {} });
+    tToast(t("adm.platform.testSent", { to: r.to }));
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
+actions.on("adm.saveLegal", async (form) => {
+  try {
+    await api("/admin/legal", { method: "PUT", body: Object.fromEntries(new FormData(form)) });
+    legalCache = null;
+    tToast(t("adm.platform.legalSaved"));
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
+
+routes.add("/admin/billing", adminBilling);
+routes.add("/admin/disputes", adminDisputes);
+routes.add("/admin/reports", adminReports);
+routes.add("/admin/audit", adminAudit);
+routes.add("/admin/platform", adminPlatform);

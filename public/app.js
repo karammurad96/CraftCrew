@@ -215,67 +215,6 @@ async function exportData() {
   a.click();
   URL.revokeObjectURL(a.href);
 }
-async function importData(input) {
-  const f = input.files[0];
-  if (!f) return;
-  try {
-    const data = JSON.parse(await f.text()),
-      backup = data.data || data,
-      n = (k) => (Array.isArray(backup[k]) ? backup[k].length : 0),
-      de = typeof i18nLang !== "undefined" && i18nLang === "de";
-    const ok = await uiDialog({
-      title: "Import backup?",
-      message: de
-        ? `Alle aktuellen Daten werden durch die Sicherung ersetzt: ${n("users")} Benutzer, ${n("projects")} Projekte, ${n("invoices")} Rechnungen, ${n("suppliers")} Lieferanten. Eine Kopie der aktuellen Daten wird vorher gespeichert.`
-        : `All current data will be replaced by the backup: ${n("users")} users, ${n("projects")} projects, ${n("invoices")} invoices, ${n("suppliers")} suppliers. A copy of the current data is saved first.`,
-      confirmLabel: "Import backup",
-      danger: true,
-    });
-    input.value = "";
-    if (!ok) return;
-    await api("/backup/import", { method: "POST", body: { data: backup } });
-    toast("Backup imported");
-    adminReports();
-  } catch (e) {
-    toast(e.message, "error");
-  }
-}
-async function adminBilling() {
-  const d = await api("/invoices");
-  app.innerHTML = dashboardShell(
-    "admin",
-    "billing",
-    `<div class="dash-top"><div><h1>Payments & billing</h1><p>Platform-wide invoice state and scheduled payments.</p></div></div><div class="panel"><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Invoice</th><th>Customer</th><th>Supplier</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody>${d.invoices.map((i) => `<tr><td>${esc(invNo(i))}</td><td>${i.customerId}</td><td>${i.supplierId}</td><td>${money(i.amount)}</td><td><span class="status ${i.status.toLowerCase().replaceAll(" ", "-")}">${i.status}</span></td><td>${i.status === "Approved" ? `<button class="btn small success" onclick="markPaid('${i.id}')">Mark paid</button>` : ""}</td></tr>`).join("")}</tbody></table></div></div>`,
-  );
-}
-async function adminDisputes() {
-  const d = await api("/disputes");
-  app.innerHTML = dashboardShell(
-    "admin",
-    "disputes",
-    `<div class="dash-top"><div><h1>Escalations & support</h1><p>Resolve delivery, quality, timeline and invoice disputes.</p></div></div><div class="cc-grid">${d.disputes.map((x) => `<article class="cc-card"><div style="display:flex;justify-content:space-between"><b>${esc(x.type)}</b><span class="tag ${x.status === "Open" ? "orange" : "green"}">${esc(x.status)}</span></div><p>${esc(x.description)}</p><small>${esc(x.projectId)} · ${date(x.createdAt)}</small>${x.status === "Open" ? `<div class="cc-actions" style="margin-top:12px"><button class="btn small success" onclick="resolveDispute('${x.id}')">Resolve</button></div>` : ""}</article>`).join("") || '<div class="empty">No escalations.</div>'}</div>`,
-  );
-}
-async function resolveDispute(id) {
-  const resolution = await uiPrompt("Resolution / outcome");
-  if (!resolution) return;
-  await api("/admin/disputes/" + id, { method: "PATCH", body: { status: "Resolved", resolution } });
-  toast("Escalation resolved");
-  adminDisputes();
-}
-async function markPaid(id) {
-  await api("/admin/invoices/" + id, { method: "PATCH", body: { action: "Mark Paid" } });
-  toast("Payment marked paid");
-  adminBilling();
-}
-async function adminReports() {
-  const m = await api("/admin/metrics");
-  app.innerHTML = dashboardShell(
-    "admin",
-    "reports",
-    `<div class="dash-top"><div><h1>Reports & analytics</h1><p>Simple operational metrics for the MVP.</p></div></div><div class="cc-grid4"><div class="cc-card"><span class="cc-label">Users</span><div class="cc-kpi">${m.metrics.users}</div></div><div class="cc-card"><span class="cc-label">Live suppliers</span><div class="cc-kpi">${m.metrics.suppliers}</div></div><div class="cc-card"><span class="cc-label">Projects</span><div class="cc-kpi">${m.metrics.projects}</div></div><div class="cc-card"><span class="cc-label">Gross invoice volume</span><div class="cc-kpi">${money(m.metrics.grossVolume)}</div></div></div><div class="cc-card" style="margin-top:15px"><h3>Backup / restore</h3><p>Export the full JSON database. Admin import is available through the API and can be wired to a file picker for production deployment.</p><button class="btn outline" onclick="exportData()">Export full JSON</button><label class="btn outline">Import JSON<input type="file" hidden accept="application/json" onchange="importData(this)"></label></div>`,
-  );
-}
 async function route() {
   topActions();
   const h = location.hash.replace(/^#/, "") || "/";
@@ -293,9 +232,6 @@ async function route() {
       if (parts[1] === "profile") return profilePage("supplier");
     }
     if (parts[0] === "admin") {
-      if (parts[1] === "billing") return adminBilling();
-      if (parts[1] === "reports") return adminReports();
-      if (parts[1] === "disputes") return adminDisputes();
       if (parts[1] === "profile") return profilePage("admin");
     }
   } catch (e) {

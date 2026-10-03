@@ -1,5 +1,6 @@
-/* Strategic sourcing: shared constants and icons, and the scorecards on admin reports. The sourcing dashboard, the
-   offer comparison and contracts are in areas/sourcing.js (T129c), the approvals inbox in areas/sites.js (T133). */
+/* Strategic sourcing: shared constants and icons, and the scorecard panel on the supplier's analytics. The sourcing
+   dashboard, the offer comparison and contracts are in areas/sourcing.js (T129c), the approvals inbox in
+   areas/sites.js (T133), the scorecards on admin reports in areas/admin.js (T134b). */
 const SR_WEIGHTS = { price: 50, delivery: 20, quality: 20, experience: 10 };
 const SR_ACTIVE = ["Open", "Shortlist", "Second round", "Final round"];
 const srDays = (a, b) => Math.max(0, Math.round((Date.parse(b) - Date.parse(a)) / 86400000));
@@ -13,17 +14,6 @@ Object.assign(UI_ICON_PATHS, {
 });
 Object.assign(UI_NAV_ICONS, { sourcing: "sourcing", contracts: "contracts", approvals: "approvals" });
 
-/* ---------- Scorecards on admin reports (the supplier scorecard panel is in areas/directory.js) ---------- */
-async function srAdminScorecards() {
-  const content = document.querySelector(".dashboard-content");
-  if (!content || content.querySelector(".sr-admin-cards")) return;
-  const { scorecards = [] } = await api("/scorecards").catch(() => ({}));
-  content.insertAdjacentHTML(
-    "beforeend",
-    `<section class="panel sr-admin-cards"><div class="panel-title"><h3>Supplier scorecards & risk</h3><span class="ui-count">${scorecards.length}</span></div>${srScorecardTable(scorecards)}</section>`,
-  );
-}
-
 /* ---------- Navigation and routing ---------- */
 const srBaseRoute = window.route;
 window.route = async function () {
@@ -33,7 +23,6 @@ window.route = async function () {
   try {
     if (parts[0] === "supplier" && parts[1] === "analytics" && state.user?.supplierId)
       await srScorecardPanel(state.user.supplierId, document.querySelector(".dashboard-content"));
-    if (parts[0] === "admin" && parts[1] === "reports") await srAdminScorecards();
   } catch (e) {
     console.error(e);
   }

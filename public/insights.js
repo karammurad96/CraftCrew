@@ -14,7 +14,7 @@ const inMonths = (n) => {
   }
   return out;
 };
-const inMonthLabel = (m) => new Date(m + "-01").toLocaleDateString("en-GB", { month: "short" });
+const inMonthLabel = (m) => new Date(m + "-01").toLocaleDateString(fmt.locale(), { month: "short" });
 const IN_COLORS = ["#2563eb", "#0ea5e9", "#14b8a6", "#f59e0b", "#8b5cf6", "#94a3b8"];
 const IN_STATUS_COLORS = {
   Completed: "#16a34a",
@@ -33,13 +33,13 @@ const IN_STATUS_COLORS = {
 /* ---------- Tiny SVG charts (no external libraries) ---------- */
 function inBars(months, series, fmt = money) {
   if (!series.some((s) => s.values.some((v) => v > 0)))
-    return '<p class="pa-empty in-empty-chart">No activity in this period yet.</p>';
+    return `<p class="pa-empty in-empty-chart">${esc(t("common.chart.noActivity"))}</p>`;
   const max = Math.max(1, ...months.flatMap((_, i) => series.map((s) => s.values[i] || 0)));
   return `<div class="in-chart"><div class="in-bars">${months.map((m, i) => `<div class="in-bar-group" title="${series.map((s) => `${s.label}: ${fmt(s.values[i] || 0)}`).join("\n")}">${series.map((s) => `<i style="height:${Math.max(2, ((s.values[i] || 0) / max) * 100)}%;background:${s.color}"></i>`).join("")}<small>${inMonthLabel(m)}</small></div>`).join("")}</div><div class="in-legend">${series.map((s) => `<span><i style="background:${s.color}"></i>${inEsc(s.label)} · ${fmt(s.values.reduce((a, b) => a + b, 0))}</span>`).join("")}</div></div>`;
 }
 function inDonut(segments, centerLabel, fmt = money) {
   const total = segments.reduce((a, s) => a + s.value, 0);
-  if (!total) return '<p class="pa-empty">No data yet.</p>';
+  if (!total) return `<p class="pa-empty">${esc(t("common.chart.noData"))}</p>`;
   let acc = 0;
   const r = 15.9155,
     arcs = segments
@@ -55,7 +55,7 @@ function inDonut(segments, centerLabel, fmt = money) {
 }
 function inHBars(rows, fmt = money) {
   const max = Math.max(1, ...rows.flatMap((r) => r.values.map((v) => v.value)));
-  return `<div class="in-hbars" tabindex="0" role="region" aria-label="Bar chart">${rows.map((r) => `<div class="in-hbar"><span title="${inEsc(r.label)}">${inEsc(r.label)}</span><div>${r.values.map((v) => `<div class="in-hbar-track" title="${inEsc(v.label)}: ${fmt(v.value)}"><i style="width:${Math.max(0.5, (v.value / max) * 100)}%;background:${v.color}"></i><em>${fmt(v.value)}</em></div>`).join("")}</div></div>`).join("")}</div>`;
+  return `<div class="in-hbars" tabindex="0" role="region" aria-label="${esc(t("common.chart.bars"))}">${rows.map((r) => `<div class="in-hbar"><span title="${inEsc(r.label)}">${inEsc(r.label)}</span><div>${r.values.map((v) => `<div class="in-hbar-track" title="${inEsc(v.label)}: ${fmt(v.value)}"><i style="width:${Math.max(0.5, (v.value / max) * 100)}%;background:${v.color}"></i><em>${fmt(v.value)}</em></div>`).join("")}</div></div>`).join("")}</div>`;
 }
 function inKpi(label, value, sub, tone = "") {
   return `<div class="in-kpi ${tone}"><span class="cc-label">${label}</span><strong>${value}</strong><small>${sub}</small></div>`;
@@ -358,79 +358,6 @@ function inBindToolbar(base) {
   document.getElementById("inProject")?.addEventListener("change", go);
   document.getElementById("inPeriod")?.addEventListener("change", go);
 }
-
-/* ---------- Admin reports: trend charts ---------- */
-const inBaseAdminReports = adminReports;
-adminReports = async function () {
-  await inBaseAdminReports();
-  const [{ invoices = [] }, { users = [] }, { applications = [] }] = await Promise.all([
-    api("/invoices"),
-    api("/admin/users"),
-    api("/admin/applications"),
-  ]);
-  const months = inMonths(12),
-    funnel = [
-      ["Received", applications.length],
-      [
-        "In verification",
-        applications.filter(
-          (a) =>
-            ["Verified", "References", "Manual Review", "Decision & Badge"].includes(a.stage) ||
-            a.status === "Approved",
-        ).length,
-      ],
-      ["Approved", applications.filter((a) => a.status === "Approved").length],
-    ];
-  const html = `<div class="in-grid in-admin-charts"><section class="panel in-wide"><div class="panel-title"><h3>Gross marketplace volume · 12 months</h3></div>${inBars(
-    months,
-    [
-      {
-        label: "Invoiced",
-        color: "#93c5fd",
-        values: months.map((m) => inSum(invoices.filter((i) => String(i.createdAt).slice(0, 7) === m))),
-      },
-      {
-        label: "Paid",
-        color: "#2563eb",
-        values: months.map((m) =>
-          inSum(
-            invoices.filter(
-              (i) => i.status === "Paid" && String(i.paymentDate || i.updatedAt).slice(0, 7) === m,
-            ),
-          ),
-        ),
-      },
-    ],
-  )}</section>
-    <section class="panel"><div class="panel-title"><h3>New accounts · 12 months</h3></div>${inBars(
-      months,
-      [
-        {
-          label: "Customers",
-          color: "#14b8a6",
-          values: months.map(
-            (m) => users.filter((u) => u.role === "customer" && String(u.createdAt).slice(0, 7) === m).length,
-          ),
-        },
-        {
-          label: "Suppliers",
-          color: "#8b5cf6",
-          values: months.map(
-            (m) => users.filter((u) => u.role === "supplier" && String(u.createdAt).slice(0, 7) === m).length,
-          ),
-        },
-      ],
-      (v) => v,
-    )}</section>
-    <section class="panel"><div class="panel-title"><h3>Vetting funnel</h3></div>${inHBars(
-      funnel.map(([label, value], i) => ({ label, values: [{ label, value, color: IN_COLORS[i] }] })),
-      (v) => v,
-    )}<p class="pa-note">${inPct(funnel[2][1], funnel[0][1])}% of applications approved · ${applications.filter((a) => a.status === "Rejected").length} rejected · ${applications.filter((a) => a.status === "On Hold").length} on hold</p></section></div>`;
-  (
-    document.querySelector(".dashboard-content .pa-reports") ||
-    document.querySelector(".dashboard-content .cc-grid4")
-  )?.insertAdjacentHTML("beforebegin", html);
-};
 
 /* ---------- Navigation: Analytics link, Board button on project pages ---------- */
 const inBaseRoute = window.route;

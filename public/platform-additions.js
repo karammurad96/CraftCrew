@@ -58,167 +58,6 @@ function paMonths(n) {
   return out;
 }
 
-/* ---------- Admin reports & analytics ---------- */
-const paBaseAdminReports = adminReports;
-adminReports = async function () {
-  await paBaseAdminReports();
-  const [{ projects = [] }, { invoices = [] }, { users = [] }, { suppliers = [] }] = await Promise.all([
-    api("/projects"),
-    api("/invoices"),
-    api("/admin/users"),
-    api("/admin/suppliers"),
-  ]);
-  const items = paWorkItems(projects).concat(
-    projects
-      .filter((p) => p.status === "Completed")
-      .flatMap((p) =>
-        (p.phases || []).flatMap((ph) =>
-          (ph.tasks || []).map((t) => ({ p, ph, t, status: t.status, dueDate: t.dueDate })),
-        ),
-      ),
-  );
-  const today = paToday(),
-    completed = items.filter((x) => x.status === "Completed").length,
-    overdue = items.filter((x) => x.status !== "Completed" && x.dueDate && x.dueDate < today).length;
-  const onTime = completed + overdue ? Math.round((completed / (completed + overdue)) * 100) : 100;
-  const statusCounts = ["In Progress", "On Hold", "Completed"].map((s) => [
-    s,
-    projects.filter((p) => p.status === s).length,
-  ]);
-  const sum = (list) => list.reduce((a, i) => a + Number(i.amount || 0), 0);
-  const supplierRows = suppliers
-    .filter((s) => s.live)
-    .map((s) => {
-      const mine = items.filter(
-          (x) => x.t?.assignedSupplierId === s.id || (!x.t && x.ph.supplierId === s.id),
-        ),
-        inv = invoices.filter((i) => i.supplierId === s.id);
-      return {
-        s,
-        assigned: mine.length,
-        done: mine.filter((x) => x.status === "Completed").length,
-        late: mine.filter((x) => x.status !== "Completed" && x.dueDate < today).length,
-        invoiced: sum(inv),
-        approved: sum(inv.filter((i) => ["Approved", "Paid"].includes(i.status))),
-      };
-    })
-    .filter((r) => r.assigned || r.invoiced)
-    .sort((a, b) => b.invoiced - a.invoiced)
-    .slice(0, 12);
-  const customerRows = users
-    .filter((u) => u.role === "customer")
-    .map((u) => {
-      const ps = projects.filter((p) => p.customerId === u.id),
-        inv = invoices.filter((i) => i.customerId === u.id);
-      return {
-        u,
-        projects: ps.length,
-        active: ps.filter((p) => p.status === "In Progress").length,
-        budget: ps.reduce((a, p) => a + Number(p.budget || 0), 0),
-        invoiced: sum(inv),
-        approved: sum(inv.filter((i) => ["Approved", "Paid"].includes(i.status))),
-      };
-    })
-    .filter((r) => r.projects)
-    .sort((a, b) => b.budget - a.budget);
-  const months = paMonths(6).map((m) => {
-    const inMonth = invoices.filter((i) => String(i.createdAt).slice(0, 7) === m);
-    return {
-      m,
-      invoiced: sum(inMonth),
-      approved: sum(inMonth.filter((i) => ["Approved", "Paid"].includes(i.status))),
-      paid: sum(inMonth.filter((i) => i.status === "Paid")),
-      count: inMonth.length,
-    };
-  });
-  window.paReportData = { supplierRows, customerRows, months };
-  const html = `<section class="pa-reports">
-    <div class="cc-grid4 pa-kpis">
-      <div class="cc-card"><span class="cc-label">On-time delivery</span><div class="cc-kpi">${onTime}%</div><small>${completed} completed · ${overdue} overdue work items</small></div>
-      <div class="cc-card"><span class="cc-label">Total project budget</span><div class="cc-kpi">${money(projects.reduce((a, p) => a + Number(p.budget || 0), 0))}</div><small>${statusCounts.map(([s, n]) => `${n} ${s.toLowerCase()}`).join(" · ")}</small></div>
-      <div class="cc-card"><span class="cc-label">Approved invoice value</span><div class="cc-kpi">${money(sum(invoices.filter((i) => ["Approved", "Paid"].includes(i.status))))}</div><small>${money(sum(invoices.filter((i) => i.status === "Paid")))} paid</small></div>
-      <div class="cc-card"><span class="cc-label">Invoice approval rate</span><div class="cc-kpi">${invoices.length ? Math.round((invoices.filter((i) => ["Approved", "Paid"].includes(i.status)).length / invoices.length) * 100) : 0}%</div><small>${invoices.filter((i) => ["Rejected", "Changes Requested"].includes(i.status)).length} rejected or returned</small></div>
-    </div>
-    <section class="panel"><div class="panel-title"><h3>Financial report · last 6 months</h3><button class="btn small outline" onclick="paExportReport('months')">Export CSV</button></div><div class="cc-table-wrap"><table class="cc-table pa-table"><thead><tr><th>Month</th><th>Invoices</th><th>Invoiced</th><th>Approved</th><th>Paid</th></tr></thead><tbody>${months.map((x) => `<tr><td>${new Date(x.m + "-01").toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</td><td>${x.count}</td><td>${money(x.invoiced)}</td><td>${money(x.approved)}</td><td>${money(x.paid)}</td></tr>`).join("")}</tbody></table></div></section>
-    <section class="panel"><div class="panel-title"><h3>Supplier performance</h3><button class="btn small outline" onclick="paExportReport('suppliers')">Export CSV</button></div><div class="cc-table-wrap"><table class="cc-table pa-table"><thead><tr><th>Supplier</th><th>Badge</th><th>Rating</th><th>Work items</th><th>Completed</th><th>Overdue</th><th>Invoiced</th><th>Approved</th></tr></thead><tbody>${supplierRows.map((r) => `<tr><td><b>${paEsc(r.s.company)}</b></td><td>${paEsc(supplierBadge(r.s))}</td><td>★ ${Number(r.s.rating || 0).toFixed(1)}</td><td>${r.assigned}</td><td>${r.done}</td><td class="${r.late ? "danger-text" : ""}">${r.late}</td><td>${money(r.invoiced)}</td><td>${money(r.approved)}</td></tr>`).join("") || '<tr><td colspan="8">No supplier activity yet.</td></tr>'}</tbody></table></div></section>
-    <section class="panel"><div class="panel-title"><h3>Customer analytics</h3><button class="btn small outline" onclick="paExportReport('customers')">Export CSV</button></div><div class="cc-table-wrap"><table class="cc-table pa-table"><thead><tr><th>Customer</th><th>Projects</th><th>Active</th><th>Budget</th><th>Invoiced</th><th>Approved</th></tr></thead><tbody>${customerRows.map((r) => `<tr><td><b>${paEsc(r.u.company || r.u.name)}</b><small>${paEsc(r.u.email)}</small></td><td>${r.projects}</td><td>${r.active}</td><td>${money(r.budget)}</td><td>${money(r.invoiced)}</td><td>${money(r.approved)}</td></tr>`).join("") || '<tr><td colspan="6">No customer projects yet.</td></tr>'}</tbody></table></div></section>
-  </section>`;
-  const top = document.querySelector(".dashboard-content .dash-top");
-  top?.querySelector("p") &&
-    (top.querySelector("p").textContent =
-      "Project, supplier, customer and financial performance across the marketplace.");
-  document.querySelector(".dashboard-content .cc-grid4")?.insertAdjacentHTML("afterend", html);
-};
-function paExportReport(kind) {
-  const d = window.paReportData || {},
-    quote = (v) => `"${String(v ?? "").replaceAll('"', '""')}"`;
-  const rows =
-    kind === "months"
-      ? [
-          ["Month", "Invoices", "Invoiced", "Approved", "Paid"],
-          ...(d.months || []).map((x) => [x.m, x.count, x.invoiced, x.approved, x.paid]),
-        ]
-      : kind === "suppliers"
-        ? [
-            ["Supplier", "Badge", "Rating", "Work items", "Completed", "Overdue", "Invoiced", "Approved"],
-            ...(d.supplierRows || []).map((r) => [
-              r.s.company,
-              r.s.badge,
-              r.s.rating,
-              r.assigned,
-              r.done,
-              r.late,
-              r.invoiced,
-              r.approved,
-            ]),
-          ]
-        : [
-            ["Customer", "Email", "Projects", "Active", "Budget", "Invoiced", "Approved"],
-            ...(d.customerRows || []).map((r) => [
-              r.u.company || r.u.name,
-              r.u.email,
-              r.projects,
-              r.active,
-              r.budget,
-              r.invoiced,
-              r.approved,
-            ]),
-          ];
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(
-    new Blob(["﻿" + rows.map((r) => r.map(quote).join(";")).join("\r\n")], {
-      type: "text/csv;charset=utf-8",
-    }),
-  );
-  a.download = `craftcrew-${kind}-report.csv`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-}
-
-/* ---------- Audit log (admin) ---------- */
-async function paAuditPage() {
-  const q = new URLSearchParams(location.hash.split("?")[1] || ""),
-    params = new URLSearchParams();
-  for (const k of ["q", "role", "projectId"]) if (q.get(k)) params.set(k, q.get(k));
-  const [{ entries = [], total = 0 }, { projects = [] }] = await Promise.all([
-    api("/audit?" + params),
-    api("/projects"),
-  ]);
-  app.innerHTML = dashboardShell(
-    "admin",
-    "audit",
-    `<div class="dash-top"><div><div class="eyebrow">COMPLIANCE</div><h1>Audit log</h1><p>Every change made through CraftCrew is recorded with who did it, when, and on which project.</p></div></div>
-    <form class="panel pa-filters" id="paAuditFilters"><label>Search<input name="q" value="${paEsc(q.get("q") || "")}" placeholder="Action, person or record"></label><label>Role<select name="role"><option value="">All roles</option>${["customer", "supplier", "admin", "public"].map((r) => `<option ${q.get("role") === r ? "selected" : ""} value="${r}">${r[0].toUpperCase() + r.slice(1)}</option>`).join("")}</select></label><label>Project<select name="projectId"><option value="">All projects</option>${projects.map((p) => `<option value="${p.id}" ${q.get("projectId") === p.id ? "selected" : ""}>${paEsc(p.name)}</option>`).join("")}</select></label><div class="pa-filter-actions"><button class="btn primary">Apply</button><button type="button" class="btn outline" onclick="navigate('/admin/audit')">Reset</button></div></form>
-    <section class="panel"><div class="panel-title"><h3>${total} recorded action(s)</h3><small class="subtle">Showing the latest ${Math.min(500, total)}</small></div><div class="cc-table-wrap"><table class="cc-table pa-table"><thead><tr><th>When</th><th>Who</th><th>Action</th><th>Project</th><th>Record</th></tr></thead><tbody>${entries.map((e) => `<tr><td>${paTime(e.at)}</td><td><b>${paEsc(e.actorName)}</b><small>${paEsc(e.actorRole)} · ${paEsc(e.actorEmail)}</small></td><td>${paEsc(e.action)}${e.status ? `<small>${paEsc(e.status)}</small>` : ""}</td><td>${paEsc(e.projectName || "—")}</td><td><small>${paEsc(e.entityId)}</small></td></tr>`).join("") || '<tr><td colspan="5">No actions recorded yet. New changes appear here automatically.</td></tr>'}</tbody></table></div></section>`,
-  );
-  document.getElementById("paAuditFilters").onsubmit = (e) => {
-    e.preventDefault();
-    const f = new URLSearchParams();
-    for (const [k, v] of new FormData(e.target)) if (v) f.set(k, v);
-    navigate("/admin/audit?" + f);
-  };
-}
-
 /* ---------- Profile & settings per role ---------- */
 const paBaseProfilePage = profilePage;
 profilePage = async function (role) {
@@ -324,25 +163,6 @@ async function paSignOutOthers() {
   }
 }
 
-/* ---------- Admin: email outbox on the platform page, audit link in navigation ---------- */
-async function paOutboxPanel() {
-  const content = document.querySelector(".dashboard-content");
-  if (!content || content.querySelector(".pa-outbox")) return;
-  const { emails = [] } = await api("/admin/outbox").catch(() => ({}));
-  content.insertAdjacentHTML(
-    "beforeend",
-    `<details class="panel pa-outbox"><summary><h3>Email outbox</h3><small>${emails.length} message(s) · ${emails.filter((m) => m.status === "Sent").length} sent</small></summary><div class="cc-table-wrap"><table class="cc-table pa-table"><thead><tr><th>Queued</th><th>To</th><th>Subject</th><th>Status</th></tr></thead><tbody>${
-      emails
-        .slice(0, 100)
-        .map(
-          (m) =>
-            `<tr title="${paEsc(m.body)}"><td>${paTime(m.createdAt)}</td><td>${paEsc(m.to)}</td><td><b>${paEsc(m.subject)}</b><small>${paEsc(m.body.slice(0, 120))}</small></td><td><span class="status ${m.status === "Sent" ? "completed" : m.status === "Failed" ? "rejected" : "submitted"}">${paEsc(m.status)}</span>${m.lastError ? `<small>${paEsc(m.lastError)}</small>` : ""}</td></tr>`,
-        )
-        .join("") || '<tr><td colspan="4">No emails yet.</td></tr>'
-    }</tbody></table></div></details>`,
-  );
-}
-
 /* ---------- Session integrity ----------
    The stored user record is only a display cache. On load the session token is
    confirmed with the server, and the identity shown always comes from the server.
@@ -417,27 +237,10 @@ const paBaseRoute = window.route;
 let paRouteSeq = 0,
   paRouteDone = 0;
 window.route = async function () {
-  const path = location.hash.replace(/^#/, "").split("?")[0],
-    parts = path.split("/").filter(Boolean),
-    seq = ++paRouteSeq;
-  if (parts[0] === "admin" && parts[1] === "audit" && state.user?.role === "admin") {
-    try {
-      await paAuditPage();
-    } catch (e) {
-      toast(e.message, "error");
-    }
-    paRouteDone = Math.max(paRouteDone, seq);
-    return;
-  }
+  const seq = ++paRouteSeq;
   const result = await paBaseRoute();
   // A slower, older navigation must not leave its page on screen after a newer one rendered.
   if (seq < paRouteDone) return window.route();
   paRouteDone = Math.max(paRouteDone, seq);
-  if (seq !== paRouteSeq) return result;
-  try {
-    if (parts[0] === "admin" && parts[1] === "platform") await paOutboxPanel();
-  } catch (e) {
-    console.error(e);
-  }
   return result;
 };

@@ -3,6 +3,7 @@
 var LOCALES = window.LOCALES || (window.LOCALES = {});
 LOCALES.en = {
   common: {
+    chart: {"noActivity":"No activity in this period yet.","noData":"No data yet.","bars":"Bar chart"},
     save: "Save",
     cancel: "Cancel",
     close: "Close",
@@ -2820,6 +2821,231 @@ LOCALES.en = {
     "hours": "{n} h · {name}"
   },
   adm: {
+    "invStatus": {
+      "Submitted": "Submitted",
+      "Approved": "Approved",
+      "Changes Requested": "Changes Requested",
+      "Rejected": "Rejected",
+      "Paid": "Paid",
+      "Refunded": "Refunded"
+    },
+    "payStatus": {
+      "Scheduled": "Scheduled",
+      "Paid": "Paid",
+      "Refunded": "Refunded"
+    },
+    "disputeStatus": {
+      "Open": "Open",
+      "In progress": "In progress",
+      "Resolved": "Resolved",
+      "Closed": "Closed"
+    },
+    "mailStatus": {
+      "Queued": "Queued",
+      "Sent": "Sent",
+      "Failed": "Failed"
+    },
+    "billing": {
+      "title": "Payments, fees & supplier payouts",
+      "lead": "Track invoice decisions and payout records. Actual bank transfers and refunds still require a connected payment provider.",
+      "volume": "Invoice volume",
+      "awaiting": "Awaiting payment",
+      "paidOut": "Paid / payout recorded",
+      "fee": "Platform fee estimate · {n}%",
+      "invoice": "Invoice",
+      "projectSupplier": "Project / supplier",
+      "gross": "Gross",
+      "feePayout": "Fee · payout",
+      "status": "Payment / payout status",
+      "actions": "Actions",
+      "supplier": "Supplier",
+      "rate": "{n}% configured rate",
+      "noPayout": "No payout record",
+      "recordPaid": "Record paid",
+      "recordRefund": "Record refund",
+      "none": "No invoices recorded.",
+      "refunds": "Refunds & disputes",
+      "refundsLead": "Refunds change the CraftCrew ledger and notify the supplier. Complete the matching refund with your payment provider separately.",
+      "openDisputes": "Open dispute resolution",
+      "refunded": {
+        "one": "{n} refund recorded · {amount}",
+        "other": "{n} refunds recorded · {amount}"
+      },
+      "paid": "Payment marked paid",
+      "refundPrompt": "Reason for recording this refund",
+      "refundDone": "Refund recorded in the invoice ledger"
+    },
+    "disputes": {
+      "title": "Escalations & support",
+      "lead": "Resolve delivery, quality, timeline and invoice disputes.",
+      "resolve": "Resolve",
+      "none": "No escalations.",
+      "prompt": "Resolution / outcome",
+      "resolved": "Escalation resolved"
+    },
+    "reports": {
+      "title": "Reports & analytics",
+      "lead": "Project, supplier, customer and financial performance across the marketplace.",
+      "users": "Users",
+      "liveSuppliers": "Live suppliers",
+      "projects": "Projects",
+      "gross": "Gross invoice volume",
+      "volumeChart": "Gross marketplace volume · 12 months",
+      "invoiced": "Invoiced",
+      "paid": "Paid",
+      "accountsChart": "New accounts · 12 months",
+      "customers": "Customers",
+      "suppliers": "Suppliers",
+      "funnel": "Vetting funnel",
+      "funnelStep": {
+        "received": "Received",
+        "verifying": "In verification",
+        "approved": "Approved"
+      },
+      "funnelNote": "{pct}% of applications approved · {rejected} rejected · {hold} on hold",
+      "onTime": "On-time delivery",
+      "onTimeSub": "{done} completed · {late} overdue work items",
+      "budget": "Total project budget",
+      "projectState": {
+        "InProgress": "{n} in progress",
+        "OnHold": "{n} on hold",
+        "Completed": "{n} completed"
+      },
+      "approvedValue": "Approved invoice value",
+      "paidSub": "{amount} paid",
+      "approvalRate": "Invoice approval rate",
+      "returnedSub": "{n} rejected or returned",
+      "financial": "Financial report · last 6 months",
+      "export": "Export CSV",
+      "col": {
+        "month": "Month",
+        "invoices": "Invoices",
+        "invoiced": "Invoiced",
+        "approved": "Approved",
+        "paid": "Paid",
+        "supplier": "Supplier",
+        "badge": "Badge",
+        "rating": "Rating",
+        "items": "Work items",
+        "completed": "Completed",
+        "overdue": "Overdue",
+        "customer": "Customer",
+        "email": "Email",
+        "projects": "Projects",
+        "active": "Active",
+        "budget": "Budget"
+      },
+      "noSuppliers": "No supplier activity yet.",
+      "customersTitle": "Customer analytics",
+      "noCustomers": "No customer projects yet.",
+      "backup": "Backup / restore",
+      "backupLead": "Export the full JSON database, or import a backup to replace all data.",
+      "exportJson": "Export full JSON",
+      "importJson": "Import JSON",
+      "importTitle": "Import backup?",
+      "importText": "All current data will be replaced by the backup: {users} users, {projects} projects, {invoices} invoices, {suppliers} suppliers. A copy of the current data is saved first.",
+      "importConfirm": "Import backup",
+      "imported": "Backup imported",
+      "scorecards": "Supplier scorecards & risk",
+      "suppliersTitle": "Supplier performance"
+    },
+    "audit": {
+      "eyebrow": "COMPLIANCE",
+      "title": "Audit log",
+      "lead": "Every change made through CraftCrew is recorded with who did it, when, and on which project.",
+      "search": "Search",
+      "searchHint": "Action, person or record",
+      "role": "Role",
+      "allRoles": "All roles",
+      "roles": {
+        "customer": "Customer",
+        "supplier": "Supplier",
+        "admin": "Admin",
+        "public": "Public"
+      },
+      "project": "Project",
+      "allProjects": "All projects",
+      "apply": "Apply",
+      "reset": "Reset",
+      "count": {
+        "one": "{n} recorded action",
+        "other": "{n} recorded actions"
+      },
+      "latest": "Showing the latest {n}",
+      "when": "When",
+      "who": "Who",
+      "action": "Action",
+      "record": "Record",
+      "none": "No actions recorded yet. New changes appear here automatically."
+    },
+    "platform": {
+      "eyebrow": "OPERATIONS CONFIGURATION",
+      "title": "Platform management",
+      "lead": "Maintain marketplace rules and help content. Payment, map and email connectors are shown as configuration notes; live credentials are not stored here.",
+      "categories": "Service categories",
+      "categoriesHint": "One category per line",
+      "categoriesLabel": "Service categories, one per line",
+      "badges": "Supplier badge criteria",
+      "badgesHint": "Thresholds used by admins when assigning Bronze, Silver or Gold",
+      "projectsDone": "Completed projects",
+      "minRating": "Minimum rating",
+      "system": "System settings",
+      "supportEmail": "Support email",
+      "feePercent": "Platform fee estimate (%)",
+      "paymentDays": "Default payment terms (days)",
+      "uploadLimit": "Upload limit (MB)",
+      "faq": "FAQ & help content",
+      "faqHint": "Shared public help text",
+      "faqPlaceholder": "Add support articles or updated FAQ content",
+      "emailSubjects": "Email template subjects",
+      "emailSubjectsHint": "Editable labels for future outbound mail integration",
+      "templates": {
+        "applicationReceived": "Application received",
+        "applicationApproved": "Application approved",
+        "invoiceSubmitted": "Invoice submitted"
+      },
+      "integrations": "Integrations",
+      "integrationsHint": "Current MVP connector status",
+      "integration": {
+        "payments": "Payments",
+        "maps": "Maps",
+        "email": "Email"
+      },
+      "configOnly": "Configuration only",
+      "integrationsNote": "Live payment processing, email delivery and external map credentials require provider setup before activation.",
+      "save": "Save platform settings",
+      "saved": "Saved",
+      "savedToast": "Platform settings saved",
+      "outbox": "Email outbox",
+      "messages": {
+        "one": "{n} message",
+        "other": "{n} messages"
+      },
+      "outboxCount": "{messages} · {sent} sent",
+      "testEmail": "Send test email",
+      "testSent": "Test email sent to {to}",
+      "queued": "Queued",
+      "to": "To",
+      "subject": "Subject",
+      "status": "Status",
+      "noEmails": "No emails yet.",
+      "legal": "Legal pages",
+      "legalWhere": "Public at /#/imprint, /#/privacy and /#/terms",
+      "legalLead": "Required before going live in Germany (§ 5 DDG Impressum, Art. 13 GDPR privacy notice). Plain text: blank line = new paragraph, a line starting with \"# \" = heading. Have the final texts checked by a lawyer or a trusted generator.",
+      "legalPage": {
+        "imprint": "Impressum / Legal notice",
+        "privacy": "Privacy policy",
+        "terms": "Terms of use"
+      },
+      "legalHint": {
+        "imprint": "Company name, legal form, address, managing director, contact email/phone, register court and number, VAT ID",
+        "privacy": "Controller, data collected, purposes, legal bases, processors (hosting, email), storage periods, rights of data subjects, supervisory authority",
+        "terms": "Scope, account rules, supplier vetting, invoicing and payment tracking, liability, governing law"
+      },
+      "saveLegal": "Save legal pages",
+      "preview": "Preview",
+      "legalSaved": "Legal pages published"
+    },
     "stage": {
       "New": "New",
       "Verified": "Verified",
