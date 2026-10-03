@@ -597,7 +597,7 @@ LOCALES.de = {
       "title": "Jedes Team. Ein Projekt. Null Chaos.",
       "sub": "Finden Sie geprüfte Industriespezialisten, vergleichen Sie ihre Angebote direkt nebeneinander und steuern Sie den ganzen Auftrag – von der Arbeitssicherheit bis zur Schlussrechnung – an einem Ort.",
       "start": "Projekt starten",
-      "explore": "Lieferanten entdecken ›",
+      "explore": "So funktioniert es ›",
       "window": {
         "bar": "craftcrew · Regensburg Linie 4",
         "project": "Projekt",
@@ -635,8 +635,6 @@ LOCALES.de = {
       "fieldApp": "Feld-App",
       "fieldAppTitle": "Zeiten und Fotos mit zwei Fingertipps.",
       "fieldAppText": "Funktioniert ohne Empfang in der Werkhalle und synchronisiert später.",
-      "partnersTitle": "Geprüfte Partner für Ihr nächstes Projekt.",
-      "partnersAll": "Alle {n} Lieferanten ansehen ›",
       "strategicKicker": "Strategische Beschaffung",
       "strategicTitle": "Von der Ausschreibung zum unterschriebenen Vertrag",
       "strategicText": "Wettbewerbliche Beschaffung wie in großen Einkaufsabteilungen – zugeschnitten auf industrielle KMU.",
@@ -891,7 +889,7 @@ LOCALES.de = {
     "submittedTitle": "Bewerbung eingereicht",
     "submittedText": "Ihr Prüfpaket ist erfasst. CraftCrew prüft Firmendaten, Nachweise und Referenzen vor der Entscheidung über das Abzeichen.",
     "reference": "Referenz:",
-    "browse": "Lieferanten ansehen"
+    "browse": "Zur Startseite"
   },
   // App shell: sidebar, phone bar, notifications (T127a)
   shell: {
@@ -4592,7 +4590,6 @@ LOCALES.de = {
     },
     "nav": {
       "how": "So funktioniert es",
-      "suppliers": "Lieferanten",
       "pricing": "Preise",
       "support": "Unterstützung"
     },

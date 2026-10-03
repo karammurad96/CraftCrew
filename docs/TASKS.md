@@ -257,6 +257,20 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T109 Unread count on the project "Messages" tab (Workspace "Messages · 3") · S
 - [x] T110 "Share" on the project workspace (Workspace board) · M · needs a human decision
 
+**Wave 8 — feedback from Karam (3 October 2026; details under "Wave 8 — feedback")**
+- [x] T140 Supplier directory only for signed-in customers: remove the public directory pages · S
+- [ ] T141 "Blocked for your security" when creating a project: CSRF origin check behind proxies, fresh scripts after a deploy · S
+- [ ] T142 Confirmation before approving an invoice · S
+- [ ] T143 Project tabs stay on the page: Files, Messages and Invoices open under the tab bar · M
+- [ ] T144 Scrolling: the page scrolls over cards; long cards scroll inside · S
+- [ ] T145 Team planner: no dark cells, week steps, bigger calendar, double-click to edit · M
+- [ ] T146 Supplier search: main and sub categories, more filters and sorting · M
+- [ ] T147 Project plan view for suppliers (their own tasks only) · M
+- [ ] T148 Analytics: add your own charts from any data, resizable · M
+- [ ] T149 Offer comparison: the weights next to the ranking · S
+- [ ] T150 Sidebar: projects as a drop-down under "Projects" · S
+- [ ] T151 Settings: "Your data" and "Delete account" easy to find · S
+
 ---
 
 ## Wave 0 — preparation
@@ -2764,6 +2778,108 @@ owner invites by name and email: an existing customer account is added to the pr
 new email gets its own customer account (invite email or temporary password, like team invites) that sees
 only the projects shared with it. The owner can remove access again. API:
 `GET/POST /api/projects/:id/participants`, `DELETE /api/projects/:id/participants/:userId`.
+
+---
+
+## Wave 8 — feedback
+
+Karam's review of 3 October 2026. One PR per task, in this order.
+
+#### T140 · Supplier directory only for signed-in customers
+`P0 · S`
+
+**Problem.** `/suppliers` and `/suppliers/:id` are public pages, and `GET /api/suppliers` and
+`GET /api/suppliers/:id` answer without a session. Anyone can list every registered supplier.
+
+**Do.** Remove the public directory pages and their links (top bar, footer, landing page). The API answers 401
+without a session. Customers keep `/customer/suppliers`. Old public links go to the sign-in page.
+
+**Done when.**
+- [x] A signed-out `GET /api/suppliers` and `GET /api/suppliers/:id` return 401 (test).
+- [x] No public page links to the directory; `/suppliers` opens the sign-in page.
+
+#### T141 · "Blocked for your security" when creating a project
+`P0 · S`
+
+**Problem.** A customer could not create a project: the request was blocked by the CSRF check. It does not
+happen on a plain local server. Two causes fit: behind a proxy that changes `Host` (port forwarding, a load
+balancer) the `Origin` check rejects every change after sign-in; and after a deploy the service worker serves
+the old scripts first, so a page can run old code against the new server.
+
+**Do.** Accept the `Origin` when it matches `Host`, `X-Forwarded-Host` (with `TRUST_PROXY=1`) or `APP_URL`.
+The service worker loads scripts, styles and pages from the network first and uses the cache only offline.
+
+**Done when.**
+- [ ] A cookie request with `Origin: https://app.example` passes with `X-Forwarded-Host: app.example` and
+  `TRUST_PROXY=1`, and with `APP_URL=https://app.example`; another origin is still blocked (tests).
+
+#### T142 · Confirmation before approving an invoice
+`P1 · S`
+
+**Do.** Every "Approve" of an invoice (invoice page, dashboard, approvals inbox, phone) asks first:
+"Approve invoice 2026-0004 for €7,400? Payment is then scheduled." Cancel changes nothing.
+
+#### T143 · Project tabs stay on the page
+`P1 · M`
+
+**Problem.** On a project page, Files, Messages and Invoices are links to other pages.
+
+**Do.** They become tabs like Overview and Tasks: a compact list opens under the tab bar (files with status,
+the project chat with a reply box, invoices with amount and status), with a link to the full page.
+
+#### T144 · Scrolling over cards
+`P1 · S`
+
+**Problem.** Scrollable cards use `overscroll-behavior: contain`, so the page stops scrolling while the mouse
+is over them. Some cards grow without limit when items are added.
+
+**Do.** Let scrolling pass on to the page. Lists in dashboard and workspace cards get a maximum height and
+scroll inside.
+
+#### T145 · Team planner
+`P1 · M`
+
+**Do.** No near-black cells (the planner had dark-mode colours, the app has no dark mode). Previous / Next move
+by a week. The calendar has a taller minimum height. Double-click an entry to edit it, double-click an empty
+cell to add one for that person and day.
+
+#### T146 · Supplier search with categories
+`P1 · M`
+
+**Do.** Main categories as buttons, with sub categories under the selected one; every supplier service maps to
+a sub category. More filters: availability, badge, rating, rate range; sorting by best match, rating, rate and
+experience. Counts per category.
+
+#### T147 · Project plan view for suppliers
+`P1 · M`
+
+**Do.** The supplier's project page shows the schedule (phases and tasks with dates and progress) like the
+customer's, with only the tasks assigned to this supplier and no customer budget.
+
+#### T148 · Analytics: your own charts
+`P2 · M`
+
+**Do.** On the analytics pages "Add chart": choose the data (for example spend per month, invoices by status,
+budget per project, hours per person), the chart type (bar, line, donut) and a title. Charts can be resized
+(small, wide, tall) and removed; the layout is saved on the account.
+
+#### T149 · Offer comparison weights
+`P2 · S`
+
+**Do.** The weights (price, delivery, record, experience) sit right above the ranked offers they change, not
+in a separate panel.
+
+#### T150 · Projects drop-down in the sidebar
+`P2 · S`
+
+**Do.** "Projects" has a chevron that opens and closes the list of projects under it; the choice is remembered.
+Suppliers get the same list of their projects.
+
+#### T151 · "Your data" and "Delete account" easy to find
+`P2 · S`
+
+**Do.** The settings page gets a section menu at the top (Company, Security, Notifications, Calendar,
+Two-factor, Your data). The user menu in the sidebar links to "Your data & account".
 
 ---
 

@@ -16,7 +16,7 @@ describe("shared test helpers", () => {
     const s = await vettedSupplier(app, admin, "crew@test.local", "Crew Automation GmbH");
     assert.ok(s.token && s.supplierId);
     assert.equal(s.user.email, "crew@test.local");
-    const { suppliers } = await app.call("GET", "/suppliers");
+    const { suppliers } = await app.call("GET", "/suppliers", undefined, customer);
     assert.ok(
       suppliers.some((x) => x.id === s.supplierId),
       "the vetted supplier is listed",

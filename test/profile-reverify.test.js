@@ -86,11 +86,11 @@ describe("re-verify profile changes", () => {
   });
 
   it("never shows the pending change publicly, and nothing else can see it", async () => {
-    const pub = await app.call("GET", `/suppliers/${supplier.supplierId}`);
+    const pub = await app.call("GET", `/suppliers/${supplier.supplierId}`, undefined, customer);
     assert.equal(pub.supplier.company, "Crew Automation GmbH");
     assert.equal(pub.supplier.pendingVerification, undefined);
     assert.ok(!JSON.stringify(pub).includes("pendingVerification"));
-    const list = await app.call("GET", "/suppliers");
+    const list = await app.call("GET", "/suppliers", undefined, customer);
     assert.ok(!JSON.stringify(list).includes("pendingVerification"));
     const other = (await vettedSupplier(app, admin, "other@test.local", "Other GmbH")).token;
     assert.equal((await app.call("GET", "/admin/profile-changes", undefined, other)).status, 403);
@@ -165,7 +165,7 @@ describe("re-verify profile changes", () => {
       admin,
     );
     assert.equal(r.status, 200, r.error);
-    const pub = await app.call("GET", `/suppliers/${supplier.supplierId}`);
+    const pub = await app.call("GET", `/suppliers/${supplier.supplierId}`, undefined, customer);
     assert.equal(pub.supplier.company, "Crew Robotics GmbH");
     const own = await app.call("GET", "/profile", undefined, supplier.token);
     assert.equal(own.companyProfile.legalName, "Crew Robotics GmbH");

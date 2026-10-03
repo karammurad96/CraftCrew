@@ -86,9 +86,10 @@ describe("directory search with bad stored data", () => {
     writeFileSync(file, JSON.stringify(db));
     app = await startApp({ dataDir: dir });
     try {
-      const r = await app.call("GET", "/suppliers?q=zzzz");
+      const viewer = await app.login(...ADMIN);
+      const r = await app.call("GET", "/suppliers?q=zzzz", undefined, viewer);
       assert.equal(r.status, 200);
-      const hit = await app.call("GET", "/suppliers?q=commissioning");
+      const hit = await app.call("GET", "/suppliers?q=commissioning", undefined, viewer);
       assert.ok(hit.suppliers.some((s) => s.id === supplierId));
       assert.ok(hit.suppliers.find((s) => s.id === supplierId).services.every((x) => typeof x === "string"));
     } finally {

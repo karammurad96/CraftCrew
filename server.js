@@ -4045,7 +4045,9 @@ async function api(req, res, url) {
       return (send(res, 200, { ok: true }, { "Set-Cookie": sessionCookie(req, token) }), true);
     }
 
-    // Public supplier directory
+    // Supplier directory: only for signed-in accounts (T140), so nobody can list the suppliers from outside
+    if (parts[1] === "suppliers" && (parts.length === 2 || (parts[2] && !parts[3])) && method === "GET" && !auth(req))
+      return (send(res, 401, { error: "Authentication required" }), true);
     if (parts[1] === "suppliers" && parts.length === 2 && method === "GET") {
       const q = (url.searchParams.get("q") || "").toLowerCase(),
         service = url.searchParams.get("service") || "",

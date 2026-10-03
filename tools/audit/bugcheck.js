@@ -138,7 +138,7 @@ const out = (name, ok, detail) =>
   {
     const prof = await call(S, "GET", "/profile");
     await call(S, "PUT", "/profile", { services: [123, ...(prof.supplier.services || [])] });
-    const r = await call(null, "GET", "/suppliers?q=zzzz");
+    const r = await call(C, "GET", "/suppliers?q=zzzz");
     out(
       "Supplier profile with a non-text service crashes public directory search",
       r.status >= 500,

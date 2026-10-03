@@ -25,7 +25,7 @@ async function pubHome() {
     <span class="ds-hero-kicker">${k("kicker")}</span>
     <h1>${k("title")}</h1>
     <p class="ds-hero-sub">${k("sub")}</p>
-    <div class="ds-hero-cta"><a class="btn primary lg" href="#/signup">${k("start")}</a><a class="ds-text-link" href="#/suppliers">${k("explore")}</a></div>
+    <div class="ds-hero-cta"><a class="btn primary lg" href="#/signup">${k("start")}</a><a class="ds-text-link" href="#/how-it-works">${k("explore")}</a></div>
     <div class="ds-window-frame" aria-hidden="true"><div class="ds-window">
       <div class="ds-window-bar"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i><span>${k("window.bar")}</span></div>
       <div class="ds-window-body">
@@ -44,7 +44,6 @@ async function pubHome() {
     <div class="ds-bento-plain"><span class="ds-bento-label">${k("invoices")}</span><h3>${k("invoicesTitle")}</h3><p>${k("invoicesText")}</p></div>
     <div class="ds-bento-plain"><span class="ds-bento-label">${k("fieldApp")}</span><h3>${k("fieldAppTitle")}</h3><p>${k("fieldAppText")}</p></div>
   </div></section>
-  <section class="ds-partners-band" id="dsPartners" hidden><div class="ds-wrap"></div></section>
   <section class="ds-tiles-band"><div class="ds-wrap">
     <div class="ds-band-head"><span class="ds-hero-kicker">${k("strategicKicker")}</span><h2>${k("strategicTitle")}</h2><p>${k("strategicText")}</p></div>
     <div class="ds-tiles">${["events", "weighted", "contracts", "scorecards", "approvals", "audit"].map(tile).join("")}</div>
@@ -58,21 +57,6 @@ async function pubHome() {
   </section>
 </div>`),
   );
-  // Featured suppliers from the real directory
-  const { suppliers = [] } = await api("/suppliers").catch(() => ({}));
-  const band = document.getElementById("dsPartners");
-  if (!band || !suppliers.length) return;
-  const rank = { Gold: 3, Silver: 2, Bronze: 1 };
-  const featured = [...suppliers]
-    .sort((a, b) => (b.rating || 0) - (a.rating || 0) || (rank[b.badge] || 0) - (rank[a.badge] || 0))
-    .slice(0, 6);
-  band.querySelector(".ds-wrap").innerHTML = `<div class="ds-partners-head"><h2>${k("partnersTitle")}</h2><a class="ds-text-link" href="#/suppliers">${k("partnersAll", { n: suppliers.length })}</a></div><div class="ds-partners">${featured
-    .map(
-      (s) =>
-        `<a class="ds-partner" href="#/suppliers?q=${encodeURIComponent(s.company)}"><span class="ds-partner-avatar">${esc(s.avatar || s.company.slice(0, 2))}</span><span class="ds-partner-text"><b>${esc(s.company)}</b><small>${esc([s.location, ...(s.services || []).slice(0, 2)].filter(Boolean).join(" · "))}</small></span><span class="badge ${esc(String(s.badge || "").toLowerCase())}">${esc(ccBadge(s))}</span></a>`,
-    )
-    .join("")}</div>`;
-  band.hidden = false;
 }
 
 /* ---------- Pricing ---------- */

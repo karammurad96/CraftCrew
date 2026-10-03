@@ -17,7 +17,7 @@ describe("region lookup", () => {
 describe("supplier directory", () => {
   let app, admin, customer, other, a, b, c;
   const ids = async (query) =>
-    (await app.call("GET", "/suppliers?" + new URLSearchParams(query))).suppliers.map((s) => s.id).sort();
+    (await app.call("GET", "/suppliers?" + new URLSearchParams(query), undefined, customer)).suppliers.map((s) => s.id).sort();
   before(async () => {
     app = await startApp();
     admin = await app.login("admin@test.local", "Admin-Password-2026!");
@@ -53,15 +53,15 @@ describe("supplier directory", () => {
     assert.deepEqual(await ids({ near: "80331", radius: 100, certs: "TÜV" }), [a.supplierId]);
     assert.deepEqual(await ids({ near: "Munich", radius: 100, available: "1" }), [a.supplierId]);
     assert.deepEqual(await ids({ certs: "ISO 9001", badge: "Gold" }), []);
-    const unknown = await app.call("GET", "/suppliers?near=Atlantis");
+    const unknown = await app.call("GET", "/suppliers?near=Atlantis", undefined, customer);
     assert.deepEqual(unknown.suppliers, []);
     assert.equal(unknown.region.found, false);
   });
 
   it("does not publish the private company profile", async () => {
-    const { supplier } = await app.call("GET", `/suppliers/${a.supplierId}`);
+    const { supplier } = await app.call("GET", `/suppliers/${a.supplierId}`, undefined, customer);
     assert.equal(supplier.companyProfile, undefined);
-    assert.ok(!JSON.stringify(await app.call("GET", "/suppliers")).includes("DE123456789"));
+    assert.ok(!JSON.stringify(await app.call("GET", "/suppliers", undefined, customer)).includes("DE123456789"));
   });
 
   it("keeps a private shortlist per customer", async () => {

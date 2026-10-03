@@ -7,7 +7,7 @@ const PRIVATE = /"(risks|riskLevel|riskNotes|verification|score|decisionNote)"/;
 
 describe("public reliability metrics", () => {
   let app, admin, customer, veteran, newcomer;
-  const profile = async (id) => (await app.call("GET", `/suppliers/${id}`)).supplier;
+  const profile = async (id) => (await app.call("GET", `/suppliers/${id}`, undefined, customer)).supplier;
   before(async () => {
     app = await startApp();
     admin = await app.login("admin@test.local", "Admin-Password-2026!");
@@ -81,8 +81,8 @@ describe("public reliability metrics", () => {
   });
 
   it("keeps risk fields and vetting notes out of the public endpoints", async () => {
-    const one = await app.call("GET", `/suppliers/${veteran.supplierId}`);
-    const list = await app.call("GET", "/suppliers");
+    const one = await app.call("GET", `/suppliers/${veteran.supplierId}`, undefined, customer);
+    const list = await app.call("GET", "/suppliers", undefined, customer);
     assert.equal(one.status, 200);
     assert.ok(list.suppliers.every((s) => s.reliability));
     for (const body of [one, list]) assert.doesNotMatch(JSON.stringify(body), PRIVATE);

@@ -598,7 +598,7 @@ LOCALES.en = {
       "title": "Every crew. One project. Zero chaos.",
       "sub": "Find vetted industrial specialists, compare their offers side by side and run the whole job — from site safety to the final invoice — in one place.",
       "start": "Start a project",
-      "explore": "Explore suppliers ›",
+      "explore": "See how it works ›",
       "window": {
         "bar": "craftcrew · Regensburg Line 4",
         "project": "Project",
@@ -636,8 +636,6 @@ LOCALES.en = {
       "fieldApp": "Field app",
       "fieldAppTitle": "Time and photos in two taps.",
       "fieldAppText": "Works without signal on the shop floor and syncs later.",
-      "partnersTitle": "Vetted partners for your next project.",
-      "partnersAll": "See all {n} suppliers ›",
       "strategicKicker": "Strategic sourcing",
       "strategicTitle": "From sourcing event to signed contract",
       "strategicText": "Run competitive sourcing the way large procurement teams do — sized for industrial SMEs.",
@@ -892,7 +890,7 @@ LOCALES.en = {
     "submittedTitle": "Application submitted",
     "submittedText": "Your verification package is recorded. CraftCrew will check the company details, evidence and references before a badge decision.",
     "reference": "Reference:",
-    "browse": "Browse suppliers"
+    "browse": "Back to the home page"
   },
   // App shell: sidebar, phone bar, notifications (T127a)
   shell: {
@@ -4593,7 +4591,6 @@ LOCALES.en = {
     },
     "nav": {
       "how": "How it works",
-      "suppliers": "Suppliers",
       "pricing": "Pricing",
       "support": "Support"
     },

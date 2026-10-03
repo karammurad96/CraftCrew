@@ -137,7 +137,7 @@ function uiStaticTexts() {
   const nav = document.querySelector("body > .topbar .main-nav");
   if (nav) {
     for (const a of nav.querySelectorAll("a")) {
-      const key = { "#/how-it-works": "how", "#/suppliers": "suppliers", "#/pricing": "pricing", "#/faq": "support" }[a.getAttribute("href")];
+      const key = { "#/how-it-works": "how", "#/pricing": "pricing", "#/faq": "support" }[a.getAttribute("href")];
       if (key) a.textContent = t("ui.nav." + key);
     }
   }
