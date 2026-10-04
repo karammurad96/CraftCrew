@@ -1,10 +1,10 @@
 // Email addresses are trimmed and lower-cased for every lookup, so one address means one account.
 const { describe, it, before, after } = require("node:test");
 const assert = require("node:assert/strict");
-const { mkdtempSync, writeFileSync, rmSync } = require("node:fs");
+const { mkdtempSync, rmSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const path = require("node:path");
-const { startApp, fakeSmtp } = require("./helpers");
+const { startApp, fakeSmtp, writeDb } = require("./helpers");
 
 describe("email normalisation", () => {
   let app, smtp;
@@ -60,8 +60,8 @@ describe("email normalisation of stored accounts at start-up", () => {
     data.users.find((u) => u.email === "twin@test.local").email = "Twin@test.local";
     data.users.push({ ...data.users.find((u) => u.email === "Twin@test.local"), id: "usr_twin2" });
     dir = mkdtempSync(path.join(tmpdir(), "craftcrew-emails-"));
-    writeFileSync(path.join(dir, "db.json"), JSON.stringify(data));
-    app = await startApp({ env: { DATA_DIR: dir } });
+    await writeDb(dir, data);
+    app = await startApp({ dataDir: dir });
   });
   after(async () => {
     await app.stop();

@@ -276,7 +276,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T153 Wide screens: breadcrumb, project tabs and filter bars line up with the page content · S · cheap model OK
 
 **Wave 9 — PostgreSQL (T81 split; decided with Karam on 4 October 2026: build it now at no cost, the JSON file stays the default until launch; details under "Wave 9 — PostgreSQL")**
-- [ ] T160 Store layer: one module loads and saves the data; tests stop reading `db.json` directly · M · no new dependency
+- [x] T160 Store layer: one module loads and saves the data; tests stop reading `db.json` directly · M · no new dependency
 - [ ] T161 PostgreSQL foundation: `pg`, `DATABASE_URL`, migrations, a database for local tests and CI · S · **needs Karam's OK for the `pg` dependency**
 - [ ] T162 PostgreSQL store: every collection in PostgreSQL, only changed records written, the reply waits for the commit · M
 - [ ] T163 Move the data across and back: import, export, checksums, runbook · S
@@ -3027,9 +3027,22 @@ Ten tests also read or write `data/db.json` directly to plant or check data: `em
 4. Add `readDb(app)` and `writeDb(app, data)` to `test/helpers.js`. Both go through `store.js`. Writing
    needs a stopped app, as the tests do today with `dataDir`. Change the ten tests to use them.
 
+**As built (4 October 2026).** Step 3 was not done as written. Start-up stays synchronous: about 7,000 lines
+of `server.js` read `db` while the module loads, and moving them into `async function main()` would touch
+most of the file for no visible gain. Instead:
+- the store interface is `loadSync()`, `save(data)`, `flush()` and an optional `close()` (see the header
+  of `store.js`); the backup import uses `save()` too, so there is no separate `replaceAll()`;
+- the PostgreSQL store (T162) loads synchronously by running a small loader script in a child process
+  (`execFileSync`) that prints the data, and writes in the background; `flush()` waits for the commit;
+- on SIGTERM the server waits for `store.flush()` before it exits;
+- a data file that exists but cannot be read now stops the start-up. Before, the server silently started
+  with demo or empty data and overwrote the file on its first save;
+- the test helpers take the data folder instead of the app (`readDb(dir)`, `writeDb(dir, data)` and
+  `editDb(dir, change)`), because the app is stopped while the data is changed.
+
 **Done when.**
-- [ ] `grep -rn "db.json" test/` finds only `test/persistence.test.js` (which tests the file format itself) and the helpers.
-- [ ] `npm test` and the e2e smoke test pass; nothing visible changes.
+- [x] `grep -rn "db.json" test/` finds only `test/persistence.test.js` (which tests the file format itself) and the helpers.
+- [x] `npm test` and the e2e smoke test pass; nothing visible changes.
 
 ### T161 · PostgreSQL foundation
 `P1 · S · needs Karam's OK for the first runtime dependency (CLAUDE.md rule 3)`

@@ -1,7 +1,8 @@
-// Batched database writes: data survives a SIGTERM restart, parallel writes all persist, reads don't write.
+// Batched database writes: data survives a SIGTERM restart, parallel writes all persist, reads don't write,
+// and a damaged data file stops the start-up.
 const { describe, it, before, after } = require("node:test");
 const assert = require("node:assert/strict");
-const { mkdtempSync, rmSync, statSync } = require("node:fs");
+const { mkdtempSync, rmSync, statSync, writeFileSync, readFileSync } = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { startApp, projectWithTasks } = require("./helpers");
@@ -60,6 +61,17 @@ describe("persistence", () => {
       assert.equal(statSync(path.join(dir, "db.json")).mtimeMs, before);
     } finally {
       await app.stop();
+    }
+  });
+
+  it("refuses to start on a damaged data file instead of replacing it (T160)", async () => {
+    const broken = mkdtempSync(path.join(os.tmpdir(), "craftcrew-broken-"));
+    try {
+      writeFileSync(path.join(broken, "db.json"), '{"users": [');
+      await assert.rejects(startApp({ dataDir: broken }), /cannot be read/);
+      assert.equal(readFileSync(path.join(broken, "db.json"), "utf8"), '{"users": [');
+    } finally {
+      rmSync(broken, { recursive: true, force: true });
     }
   });
 });

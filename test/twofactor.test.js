@@ -134,10 +134,9 @@ describe("required two-factor sign-in for admins", () => {
   it("sends an admin without it to the setup first", async () => {
     // An admin whose second factor was reset by the operator signs in with the password only.
     await app.stop();
-    const file = path.join(dataDir, "db.json"),
-      db = JSON.parse(fs.readFileSync(file, "utf8"));
-    delete db.users.find((u) => u.email === "admin@test.local").totp;
-    fs.writeFileSync(file, JSON.stringify(db));
+    await require("./helpers").editDb(dataDir, (db) => {
+      delete db.users.find((u) => u.email === "admin@test.local").totp;
+    });
     app = await require("./helpers").startApp({ dataDir });
     const r = await adminLogin();
     assert.equal(r.status, 200, r.error);

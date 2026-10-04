@@ -1,10 +1,10 @@
 // Supplier profile validation and a directory search that bad old data cannot crash.
 const { describe, it, before, after } = require("node:test");
 const assert = require("node:assert/strict");
-const { readFileSync, writeFileSync, mkdtempSync, rmSync } = require("node:fs");
+const { mkdtempSync, rmSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const path = require("node:path");
-const { startApp, vettedSupplier } = require("./helpers");
+const { startApp, vettedSupplier, editDb } = require("./helpers");
 
 const ADMIN = ["admin@test.local", "Admin-Password-2026!"];
 
@@ -80,10 +80,7 @@ describe("directory search with bad stored data", () => {
     const admin = await app.login(...ADMIN);
     const { supplierId } = await vettedSupplier(app, admin, "old@test.local", "Old Data GmbH");
     await app.stop();
-    const file = path.join(dir, "db.json"),
-      db = JSON.parse(readFileSync(file, "utf8"));
-    db.suppliers.find((s) => s.id === supplierId).services.push(123);
-    writeFileSync(file, JSON.stringify(db));
+    await editDb(dir, (db) => db.suppliers.find((s) => s.id === supplierId).services.push(123));
     app = await startApp({ dataDir: dir });
     try {
       const viewer = await app.login(...ADMIN);
