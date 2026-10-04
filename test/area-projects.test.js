@@ -133,8 +133,14 @@ describe("projects area (T128a)", () => {
     assert.match(html, /data-action="dash\.answer" data-project="p1" data-task="t2" data-accept="true">Accept task</);
     assert.match(html, /data-action="dash\.answer" data-project="p1" data-phase="ph1" data-accept="false">Decline</);
     assert.ok(html.includes("Phase invitation · Line 4"));
-    assert.ok(html.includes('href="#/supplier/projects/p1/documents?phase=ph1&amp;task=t1"'));
-    assert.ok(html.includes('href="#/supplier/invoices?project=p1&amp;phase=ph1&amp;task=t1&amp;back=%2Fsupplier%2Fprojects%2Fp1"'));
+    // T147: the project plan first: one card per project with this supplier's tasks on a timeline
+    assert.match(html, /<section class="panel pr-plan">.*<h3><a href="#\/supplier\/projects\/p1">Line 4<\/a><\/h3>/s);
+    assert.ok(html.includes('<a class="on" aria-current="true" href="#/supplier/projects">Project plan</a>'));
+    assert.match(html, /<div class="pr-plan-row"><a href="#\/supplier\/projects\/p1\?tab=tasks">/);
+    assert.ok(!html.includes('href="#/supplier/projects/p1/documents?phase=ph1&amp;task=t1"'), "the task cards are the other view");
+    const cards = await area("en", "supplier", "#/supplier/projects?view=tasks").render();
+    assert.ok(cards.includes('href="#/supplier/projects/p1/documents?phase=ph1&amp;task=t1"'));
+    assert.ok(cards.includes('href="#/supplier/invoices?project=p1&amp;phase=ph1&amp;task=t1&amp;back=%2Fsupplier%2Fprojects%2Fp1"'));
     ctx.run("projects.progress", { dataset: { project: "p1", phase: "ph1", task: "t1", progress: "40" } });
     assert.deepEqual(ctx.calls.at(-1), ["progress", "p1", "ph1", "t1", 40]);
   });

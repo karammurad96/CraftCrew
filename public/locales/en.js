@@ -1288,6 +1288,20 @@ LOCALES.en = {
       "created": "Project created"
     },
     "work": {
+      "view": {
+        "label": "Show work as",
+        "plan": "Project plan",
+        "tasks": "Task cards"
+      },
+      "plan": {
+        "summary": "{done} of {n} of your tasks done · {progress}% overall",
+        "open": "Open project",
+        "today": "Today",
+        "late": {
+          "one": "{n} task late",
+          "other": "{n} tasks late"
+        }
+      },
       "title": "Assigned work",
       "intro": "Answer new invitations, then report progress, documents and invoices on the work you accepted.",
       "findMore": "Find more work",
