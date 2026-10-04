@@ -267,7 +267,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T146 Supplier search: main and sub categories, more filters and sorting · M
 - [x] T147 Project plan view for suppliers (their own tasks only) · M
 - [x] T148 Analytics: add your own charts from any data, resizable · M
-- [ ] T149 Offer comparison: the weights next to the ranking · S
+- [x] T149 Offer comparison: the weights next to the ranking · S
 - [ ] T150 Sidebar: projects as a drop-down under "Projects" · S
 - [ ] T151 Settings: "Your data" and "Delete account" easy to find · S
 - [x] T152 Language: a globe button with a drop-down of all languages instead of one button per language · S

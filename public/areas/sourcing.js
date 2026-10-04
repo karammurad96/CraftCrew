@@ -177,16 +177,16 @@ async function srEvent(bidId) {
       `<div class="breadcrumb"><a href="#/customer/sourcing">${e("back")}</a></div>`,
       `<div class="dash-top"><div class="ds-compare-head"><span class="ds-compare-kicker">${kicker.map((x) => `<span>${x}</span>`).join("")}</span><h1 class="ds-ui">${e(
         "question",
-      )}</h1><p><span class="ds-weights-line"></span> <button type="button" class="ds-text-link ds-weights-toggle" aria-expanded="false" aria-controls="dsWeights" data-action="src.toggleWeights">${e(
-        "changeWeights",
-      )}</button></p><span class="ds-compare-title">${esc(bid.title)}${bid.taskName ? ` · ${esc(bid.taskName)}` : ""}</span></div>${
+      )}</h1><span class="ds-compare-title">${esc(bid.title)}${bid.taskName ? ` · ${esc(bid.taskName)}` : ""}</span></div>${
         active
           ? `<div class="in-toolbar"><button class="btn outline" data-action="src.invite" ${ids}>${e("invite")}</button><button class="btn outline" data-action="src.close" ${ids}>${e("closeNoAward")}</button></div>`
           : ""
       }</div>`,
-      `<div class="ds-offers-wrap" id="srCards"></div>`,
-      bid.description ? `<section class="panel"><h3>${e("scope")}</h3><p>${srDom(bid.description)}</p></section>` : "",
-      `<section class="panel ds-hidden" id="dsWeights"><div class="panel-title"><h3>${e("weights")}</h3><div class="cc-actions"><button class="btn small outline" id="srReset" data-action="src.reset">${e(
+      // T149: the weights sit right above the offers they rank: the current split, and the sliders one click away
+      `<div class="sr-weights-bar"><span class="ds-weights-line"></span><button type="button" class="ds-text-link ds-weights-toggle" aria-expanded="false" aria-controls="dsWeights" data-action="src.toggleWeights">${e(
+        "changeWeights",
+      )}</button></div>`,
+      `<section class="panel ds-hidden sr-weights-panel" id="dsWeights"><div class="panel-title"><h3>${e("weights")}</h3><div class="cc-actions"><button class="btn small outline" id="srReset" data-action="src.reset">${e(
         "reset",
       )}</button><button class="btn small primary" id="srSaveWeights" data-action="src.saveWeights" ${ids}>${e("saveWeights")}</button></div></div><div class="sr-weights">${Object.keys(srCur.weights)
         .map(
@@ -194,6 +194,8 @@ async function srEvent(bidId) {
             `<label>${e("w." + k)}<input type="range" min="0" max="100" step="5" name="${k}" value="${srCur.weights[k]}" data-input="src.weight"><output>${srCur.weights[k]}</output></label>`,
         )
         .join("")}</div><p class="subtle">${e("weightsNote")}</p></section>`,
+      `<div class="ds-offers-wrap" id="srCards"></div>`,
+      bid.description ? `<section class="panel"><h3>${e("scope")}</h3><p>${srDom(bid.description)}</p></section>` : "",
       `<section class="panel"><div class="panel-title"><h3>${e("ranked")}</h3><span class="ui-count">${(bid.offers || []).length}</span></div><div id="srResults"></div></section>`,
     ]
       .filter(Boolean)
