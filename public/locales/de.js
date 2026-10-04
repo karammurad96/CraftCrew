@@ -974,6 +974,8 @@ LOCALES.de = {
     "quickNav": "Schnellnavigation",
     "language": "Sprache",
     "bellLabel": "Benachrichtigungen, {n} ungelesen",
+    "projectsList": "Ihre Projekte ein- oder ausblenden",
+    "noProjects": "Noch keine Projekte",
     "countLabel": "{n} offen",
     "lockTip": "Verfügbar, sobald Ihr Unternehmen verifiziert ist.",
     "notifications": "Benachrichtigungen",

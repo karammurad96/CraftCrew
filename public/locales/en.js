@@ -975,6 +975,8 @@ LOCALES.en = {
     "quickNav": "Quick navigation",
     "language": "Language",
     "bellLabel": "Notifications, {n} unread",
+    "projectsList": "Show or hide your projects",
+    "noProjects": "No projects yet",
     "countLabel": "{n} open",
     "lockTip": "Available once your company is verified.",
     "notifications": "Notifications",

@@ -45,6 +45,27 @@ const navLabels = (html) =>
   [...html.split("<nav data-ds-role")[1].split("</nav>")[0].matchAll(/<a[^>]*>(?:<svg[^>]*><\/svg>)?([^<]+)<\/a>|data-title="More"[^>]*>([^<]+)</g)].map((m) => m[1] || `[${m[2]}]`);
 
 describe("app shell", () => {
+  it("opens and closes the project list under Projects and remembers it (T150)", async () => {
+    const ctx = shell("en", { role: "customer", id: "u1" }),
+      stored = {},
+      sub = { hidden: true, dataset: { lazy: "1" }, innerHTML: "" },
+      chevron = { attrs: {}, setAttribute(k, v) { this.attrs[k] = v; } };
+    ctx.localStorage.setItem = (k, v) => (stored[k] = v);
+    ctx.document.getElementById = (id) => (id === "dsSideProjects" ? sub : {});
+    ctx.api = async (p) => (p === "/projects" ? { projects: [{ id: "p1", name: "Line 4" }] } : {});
+    let prevented = false;
+    vm.runInContext("actions", ctx).run("shell.projects", chevron, { type: "click", preventDefault: () => (prevented = true), stopPropagation() {} });
+    await new Promise((r) => setTimeout(r, 0));
+    assert.ok(prevented, "the chevron does not follow the Projects link");
+    assert.equal(sub.hidden, false);
+    assert.equal(chevron.attrs["aria-expanded"], "true");
+    assert.equal(stored.cc_side_projects, "1");
+    assert.ok(sub.innerHTML.includes('<a href="#/customer/projects/p1">Line 4</a>'), "the list loads when it first opens");
+    vm.runInContext("actions", ctx).run("shell.projects", chevron, { type: "click", preventDefault() {}, stopPropagation() {} });
+    assert.equal(sub.hidden, true);
+    assert.equal(stored.cc_side_projects, "0");
+  });
+
   it("shows the daily pages first and the rest under More, for each role (T93)", () => {
     const owner = (role) => ({ role, name: "Ann Example", company: "Example GmbH" });
     assert.deepEqual(navLabels(shell("en", owner("customer")).render("customer", "dashboard")), [
