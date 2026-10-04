@@ -4450,6 +4450,53 @@ LOCALES.de = {
     }
   },
   an: {
+    "my": {
+      "items": "Einträge",
+      "title": "Ihre Diagramme",
+      "lead": "Fügen Sie ein Diagramm mit den Daten hinzu, die Sie brauchen. Größe ändern oder entfernen geht jederzeit; Ihre Diagramme werden in Ihrem Konto gespeichert.",
+      "add": "+ Diagramm hinzufügen",
+      "empty": "Noch keine Diagramme. Wählen Sie „Diagramm hinzufügen“, um Ihr erstes zu erstellen.",
+      "addTitle": "Diagramm hinzufügen",
+      "editTitle": "Diagramm bearbeiten",
+      "data": "Daten",
+      "type": "Diagrammtyp",
+      "chartTitle": "Titel (optional)",
+      "titleHint": "z. B. Ausgaben pro Monat",
+      "sizeLabel": "Größe",
+      "save": "Diagramm speichern",
+      "edit": "Bearbeiten",
+      "remove": "Entfernen",
+      "removeConfirm": "Dieses Diagramm aus Ihren Auswertungen entfernen?",
+      "resize": "Breite ändern",
+      "height": "Höhe ändern",
+      "taller": "Höher",
+      "lower": "Niedriger",
+      "size": {
+        "small": "Klein",
+        "wide": "Breit",
+        "full": "Volle Breite"
+      },
+      "types": {
+        "bar": "Balken",
+        "line": "Linie",
+        "donut": "Ring"
+      },
+      "src": {
+        "spendMonth": "Abgerechnet pro Monat",
+        "paidMonth": "Bezahlt pro Monat",
+        "invoicesStatus": "Rechnungen nach Status",
+        "budgetProject": "Budget pro Projekt",
+        "invoicedProject": "Abgerechnet pro Projekt",
+        "spendSupplier": "Ausgaben pro Lieferant",
+        "workStatus": "Arbeitspakete nach Status",
+        "revenueMonth": "Bezahlter Umsatz pro Monat",
+        "invoicedMonth": "Abgerechnet pro Monat",
+        "revenueCustomer": "Umsatz pro Kunde",
+        "hoursPerson": "Freigegebene Stunden pro Person",
+        "hoursMonth": "Freigegebene Stunden pro Monat",
+        "offersStatus": "Angebote nach Status"
+      }
+    },
     "eyebrow": "ANALYSEN",
     "export": "CSV exportieren",
     "period": "Zeitraum",
