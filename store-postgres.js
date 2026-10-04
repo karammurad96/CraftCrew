@@ -5,6 +5,8 @@
  *   records(collection, key, pos, data)  one row per entry of the lists without a table of their own (001)
  *   kv(name, data)                       the values that are not lists (meta, settings, counters …) and SHAPE
  *   users, sessions, auth_tokens         accounts and sign-ins in real tables with constraints (T164, TABLES)
+ *   invoices, payments                   with the legal protections in triggers (T165); payments only grow:
+ *                                        a changed payment is a new row (`version`), the newest one counts
  *
  * - Loading runs db/load.js in a child process, so the server's start-up stays synchronous (T160). It applies
  *   the migrations first.
@@ -95,6 +97,42 @@ const TABLES = [
       ["expiresAt", "expires_at", "timestamptz"],
     ],
   },
+  {
+    collection: "invoices",
+    table: "invoices",
+    key: ["id", "id"],
+    columns: [
+      ["number", "number", "text"],
+      ["supplierId", "supplier_id", "text"],
+      ["customerId", "customer_id", "text"],
+      ["projectId", "project_id", "text"],
+      ["status", "status", "text"],
+      ["amount", "amount", "numeric"],
+      ["netAmount", "net_amount", "numeric"],
+      ["vatAmount", "vat_amount", "numeric"],
+      ["grossAmount", "gross_amount", "numeric"],
+      ["vatMode", "vat_mode", "text"],
+      ["vatRate", "vat_rate", "numeric"],
+      ["serviceDateFrom", "service_date_from", "date"],
+      ["serviceDateTo", "service_date_to", "date"],
+      ["lineItems", "line_items", "jsonb"],
+      ["revisions", "revisions", "jsonb"],
+      ["createdAt", "created_at", "timestamptz"],
+    ],
+  },
+  {
+    collection: "payments",
+    table: "payments",
+    key: ["id", "id"],
+    // Never updated or deleted: every change is a new row with the next version.
+    append: true,
+    columns: [
+      ["invoiceId", "invoice_id", "text"],
+      ["status", "status", "text"],
+      ["amount", "amount", "numeric"],
+      ["createdAt", "created_at", "timestamptz"],
+    ],
+  },
 ];
 // The kv row with the top-level order and the names of the lists, so empty lists come back as [].
 const SHAPE = "$shape";
@@ -124,7 +162,7 @@ function jsonbSafe(text) {
 }
 
 /* ---------- Columns: a value goes into its column only when it comes back exactly the same ---------- */
-const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+const ISO = /^[1-9]\d{3}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 function fits(type, v) {
   switch (type) {
     case "text":
@@ -132,7 +170,11 @@ function fits(type, v) {
     case "timestamptz":
       return typeof v === "string" && ISO.test(v) && new Date(v).toISOString() === v;
     case "date":
-      return typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && !isNaN(Date.parse(v + "T00:00:00Z"));
+      return (
+        typeof v === "string" &&
+        /^[1-9]\d{3}-\d{2}-\d{2}$/.test(v) &&
+        new Date(v + "T00:00:00Z").toISOString().slice(0, 10) === v
+      );
     case "numeric":
       return typeof v === "number" && Math.abs(v) < 1e10 && Math.round(v * 100) / 100 === v;
     case "integer":
@@ -269,7 +311,10 @@ function changes(data, saved) {
     for (const r of listRows(specOf(name), value, (id) => saved.records.get(id)?.pos)) {
       seen.add(r.id);
       const before = saved.records.get(r.id);
-      if (!before || before.text !== r.text || before.pos !== r.pos) upserts.push(r);
+      if (!before || before.text !== r.text || before.pos !== r.pos) {
+        if (r.spec.append) r.version = (before?.version || 0) + 1;
+        upserts.push(r);
+      }
     }
   }
   values.push([
@@ -318,8 +363,31 @@ const synthetic = (spec, r) => r.record[spec.key[0]] !== r.key;
 
 async function upsertTable(client, spec, rows) {
   const keyColumn = spec.key[1],
-    columns = [keyColumn, "pos", ...spec.columns.map((c) => c[1]), "extra"],
+    columns = [
+      keyColumn,
+      ...(spec.append ? ["version"] : []),
+      "pos",
+      ...spec.columns.map((c) => c[1]),
+      "extra",
+    ],
     list = columns.join(", ");
+  if (spec.append) {
+    for (const part of chunks(rows))
+      await client.query(
+        `insert into ${spec.table} (${list}) select ${list} from jsonb_populate_recordset(null::${spec.table}, $1::jsonb)`,
+        [
+          jsonbSafe(
+            JSON.stringify(
+              part.map((r) => ({
+                ...toRow(spec, r.key, r.pos, r.record, synthetic(spec, r)),
+                version: r.version,
+              })),
+            ),
+          ),
+        ],
+      );
+    return;
+  }
   for (const part of chunks(rows))
     await client.query(
       `insert into ${spec.table} (${list})
@@ -399,11 +467,12 @@ async function readAll(client) {
       (await client.query("select name, data from kv")).rows.map((r) => [r.name, r.data]),
     ),
     lists = {},
-    add = (collection, key, pos, row) => {
-      const list = (lists[collection] ||= { keys: [], pos: [], rows: [] });
+    add = (collection, key, pos, row, version) => {
+      const list = (lists[collection] ||= { keys: [], pos: [], rows: [], versions: [] });
       list.keys.push(key);
       list.pos.push(pos);
       list.rows.push(row);
+      list.versions.push(version);
     };
   for (const r of (
     await client.query("select collection, key, pos, data from records order by collection, pos")
@@ -418,8 +487,15 @@ async function readAll(client) {
   );
   for (const spec of TABLES)
     if (exists.has(spec.table))
-      for (const r of (await client.query(`select * from ${spec.table} order by pos`)).rows)
-        add(spec.collection, r[spec.key[1]], r.pos, fromRow(spec, r));
+      for (const r of (
+        await client.query(
+          spec.append
+            ? `select * from (select distinct on (${spec.key[1]}) * from ${spec.table}
+               order by ${spec.key[1]}, version desc) newest order by pos`
+            : `select * from ${spec.table} order by pos`,
+        )
+      ).rows)
+        add(spec.collection, r[spec.key[1]], r.pos, fromRow(spec, r), r.version);
   if (!Object.keys(lists).length && !Object.keys(values).length) return null;
   return { lists, values };
 }
@@ -437,18 +513,21 @@ function assemble(loaded) {
     if (list) {
       data[name] = list.rows;
       // The keys as this store computes them; a stored key it would not compute is deleted on the next save.
+      // Payments also carry the version their newest row has.
       const spec = specOf(name),
-        stored = new Map(list.keys.map((k, i) => [rowId(spec, k), list.pos[i]]));
-      for (const r of listRows(spec, list.rows, (id) => stored.get(id))) {
-        if (stored.has(r.id)) saved.records.set(r.id, { ...r, pos: stored.get(r.id) });
+        stored = new Map(
+          list.keys.map((k, i) => [rowId(spec, k), { pos: list.pos[i], version: list.versions?.[i] }]),
+        );
+      for (const r of listRows(spec, list.rows, (id) => stored.get(id)?.pos)) {
+        if (stored.has(r.id)) saved.records.set(r.id, { ...r, ...stored.get(r.id) });
         stored.delete(r.id);
       }
-      for (const [id, pos] of stored)
+      for (const [id, s] of stored)
         saved.records.set(id, {
           spec,
           collection: name,
           key: id.slice(id.indexOf("\t") + 1),
-          pos,
+          ...s,
           text: null,
         });
     } else if (name in values) {

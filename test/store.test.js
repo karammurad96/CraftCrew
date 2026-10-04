@@ -230,16 +230,15 @@ describe("PostgreSQL store", { skip: !DB_URL && "needs DATABASE_URL" }, () => {
     const store = open();
     try {
       const data = store.loadSync();
-      await admin.query(`alter table ${schema}.records rename to records_away`);
-      data.invoices[1].status = "Paid";
+      // kv keeps the values that are not lists, whatever moves to tables of its own later
+      await admin.query(`alter table ${schema}.kv rename to kv_away`);
+      data.meta.note = "saved after the outage";
       store.save(data);
-      await assert.rejects(store.flush(), /records/);
-      await admin.query(`alter table ${schema}.records_away rename to records`);
+      await assert.rejects(store.flush(), /kv/);
+      await admin.query(`alter table ${schema}.kv_away rename to kv`);
       await store.flush();
-      const { rows } = await admin.query(
-        `select data from ${schema}.records where collection = 'invoices' and key = 'i2'`,
-      );
-      assert.equal(rows[0].data.status, "Paid");
+      const { rows } = await admin.query(`select data from ${schema}.kv where name = 'meta'`);
+      assert.equal(rows[0].data.note, "saved after the outage");
       await store.ping();
     } finally {
       await store.close();

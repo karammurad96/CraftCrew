@@ -14,7 +14,7 @@
 const fs = require("fs");
 const { createPool } = require("../../db/pg");
 const { migrate } = require("../../db/migrate");
-const { changes, write, readAll, assemble } = require("../../store-postgres");
+const { changes, write, readAll, assemble, TABLES } = require("../../store-postgres");
 const { checksums, compare } = require("../../db/checksums");
 
 async function main() {
@@ -38,15 +38,21 @@ async function main() {
   try {
     await migrate(client);
     await client.query("begin");
-    const { rows } = await client.query(
-        "select (select count(*) from records) + (select count(*) from kv) as n",
+    const tables = ["records", "kv", ...TABLES.map((t) => t.table)],
+      { rows } = await client.query(
+        `select ${tables.map((t) => `(select count(*) from ${t})`).join(" + ")} as n`,
       ),
       existing = Number(rows[0].n);
     if (existing && !replace)
       throw new Error(
         `The database already holds data (${existing} rows). Back it up, then use --replace to overwrite it.`,
       );
-    if (existing) await client.query("delete from records; delete from kv;");
+    if (existing) {
+      // The only way past the invoice and payment protections (T165): replacing everything, on request.
+      await client.query("set local craftcrew.replace_all = 'on'");
+      for (const t of [...tables].reverse()) await client.query(`delete from ${t}`);
+      await client.query("delete from invoice_counters");
+    }
     await write(client, changes(data, { records: new Map(), values: new Map() }));
     const back = assemble(await readAll(client)).data,
       { lines, different } = compare(checksums(data), checksums(back));

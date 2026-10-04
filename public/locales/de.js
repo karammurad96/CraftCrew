@@ -182,6 +182,9 @@ LOCALES.de = {
     // API error messages by code (T137): the server sends { error, code, params }; see errorCode() in server.js
     api: {
       couldNotSavePleaseTry: "Die Änderung konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
+      thisInvoiceIsApprovedAnd: "Diese Rechnung ist freigegeben und kann nicht mehr geändert werden.",
+      invoicesAreKeptFor10: "Rechnungen werden 10 Jahre aufbewahrt und können nicht gelöscht werden.",
+      paymentsAreNeverChangedOr: "Zahlungen werden nie geändert oder gelöscht: Eine Korrektur ist ein neuer Eintrag.",
       taskNotFound: "Aufgabe nicht gefunden",
       onlyTheCustomerAcceptsWork: "Nur der Auftraggeber nimmt Leistungen ab",
       thisProjectIsArchivedAnd: "Dieses Projekt ist archiviert und kann nicht mehr geändert werden.",
