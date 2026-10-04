@@ -8054,7 +8054,14 @@ function mime(file) {
   );
 }
 // With a database store (T162) the reply to a change goes out only after the change is committed. If the
-// commit fails, the client gets 503 instead of a success that a crash could still lose.
+// commit fails, the client gets 503 instead of a success that a crash could still lose. If the database refused
+// the change (a constraint or trigger, T164–T166), the store has undone it in memory and the reply is 409.
+function refusalMessage(error) {
+  const refused = error?.refused?.[0];
+  if (!refused) return null;
+  if (refused.constraint === "users_email_unique") return "Email already registered";
+  return ERROR_CODES.exact.has(refused.message) ? refused.message : null;
+}
 function replyAfterCommit(res) {
   const writeHead = res.writeHead,
     write = res.write,
@@ -8074,10 +8081,11 @@ function replyAfterCommit(res) {
         for (const c of chunks) write.apply(res, c);
         end.apply(res, args);
       },
-      () => {
+      (e) => {
+        const refused = refusalMessage(e);
         res.removeHeader("Set-Cookie");
         Object.assign(res, { writeHead, write, end });
-        send(res, 503, { error: "Could not save. Please try again." });
+        send(res, refused ? 409 : 503, { error: refused || "Could not save. Please try again." });
       },
     );
     return res;

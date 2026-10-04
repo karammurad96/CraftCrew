@@ -280,7 +280,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T161 PostgreSQL foundation: `pg`, `DATABASE_URL`, migrations, a database for local tests and CI · S · **needs Karam's OK for the `pg` dependency**
 - [x] T162 PostgreSQL store: every collection in PostgreSQL, only changed records written, the reply waits for the commit · M
 - [x] T163 Move the data across and back: import, export, checksums, runbook · S
-- [ ] T164 Real tables: accounts, sessions and sign-in tokens · M
+- [x] T164 Real tables: accounts, sessions and sign-in tokens · M
 - [ ] T165 Real tables: invoices and payments with the legal protections · M
 - [ ] T166 Real tables: projects, phases and tasks · L
 - [x] T167 Backup and restore scripts with a restore drill in CI · S
@@ -3186,9 +3186,25 @@ lookups go through a list.
 3. A database error for a duplicate email becomes the existing 409 "Email already registered".
 4. Move the existing rows across in the migration itself.
 
+**As built (4 October 2026).**
+- `TABLES` in `store-postgres.js` lists each real table's columns. A field goes into its column only when it
+  comes back exactly the same: text, ISO timestamps with milliseconds, money with at most two decimals.
+  Anything else of the record stays in `extra`, so every record loads back exactly as it was saved.
+- Sign-in tokens are keyed by their field `hash` (sessions by `tokenHash`); the column is `token_hash` in both.
+- **Refused changes:** when the database refuses a change (constraint or trigger), the store writes the other
+  changes one row at a time behind savepoints. It puts the refused record back in memory as it was saved, or
+  removes it if it is new. `flush()` then rejects with `refused`, and the reply is 409 for a known refusal
+  (here `users_email_unique` → "Email already registered") or 503 for anything else. Without this, one refused
+  row would block every later save.
+- **Step 4 is a JavaScript migration** (`003_accounts_rows.js`; the runner now accepts `.js` files), so the
+  rows move with exactly the store's rules. Two accounts with one address stop it with a clear message.
+  Sessions and tokens of accounts that no longer exist are not moved.
+- `test/emails.test.js`: in PostgreSQL the planted shared address is refused at the start, so the warning
+  about shared addresses is only checked with the JSON store.
+
 **Done when.**
-- [ ] A test shows that the database rejects a second account with the same email even when the code check is bypassed.
-- [ ] Both CI jobs pass.
+- [x] A test shows that the database rejects a second account with the same email even when the code check is bypassed.
+- [x] Both CI jobs pass.
 
 ### T165 · Real tables: invoices and payments with the legal protections
 `P1 · M · depends on T164 · needed before T80`

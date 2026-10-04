@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const { mkdtempSync, rmSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const path = require("node:path");
-const { startApp, fakeSmtp, writeDb } = require("./helpers");
+const { startApp, fakeSmtp, writeDb, POSTGRES } = require("./helpers");
 
 describe("email normalisation", () => {
   let app, smtp;
@@ -60,7 +60,11 @@ describe("email normalisation of stored accounts at start-up", () => {
     data.users.find((u) => u.email === "twin@test.local").email = "Twin@test.local";
     data.users.push({ ...data.users.find((u) => u.email === "Twin@test.local"), id: "usr_twin2" });
     dir = mkdtempSync(path.join(tmpdir(), "craftcrew-emails-"));
-    await writeDb(dir, data);
+    if (POSTGRES) {
+      // PostgreSQL refuses the second account with the address (T164); the rest is saved.
+      const failed = await writeDb(dir, data).catch((e) => e);
+      assert.equal(failed?.refused?.[0]?.constraint, "users_email_unique");
+    } else await writeDb(dir, data);
     app = await startApp({ dataDir: dir });
   });
   after(async () => {
@@ -70,6 +74,7 @@ describe("email normalisation of stored accounts at start-up", () => {
 
   it("lower-cases stored emails and tells admins about shared addresses", async () => {
     assert.ok(await app.login("old@test.local", "Test-Password-2026"));
+    if (POSTGRES) return; // no shared address can be stored there
     const admin = await app.login("admin@test.local", "Admin-Password-2026!");
     const notes = (await app.call("GET", "/notifications", undefined, admin)).notifications.map(
       (n) => n.text,
