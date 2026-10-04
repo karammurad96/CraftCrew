@@ -408,5 +408,6 @@ module.exports = {
   writeDb,
   editDb,
   savedAt,
+  schemaOf,
   POSTGRES,
 };

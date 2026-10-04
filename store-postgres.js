@@ -1,18 +1,24 @@
 /*
  * PostgreSQL store (T162), used with STORE=postgres. The interface is described in store.js.
  *
- * Tables (migrations/001_records.sql):
- *   records(collection, key, pos, data)  one row per entry of the lists (users, projects, invoices …)
+ * Tables:
+ *   records(collection, key, pos, data)  one row per entry of the lists without a table of their own (001)
  *   kv(name, data)                       the values that are not lists (meta, settings, counters …) and SHAPE
+ *   users, sessions, auth_tokens         accounts and sign-ins in real tables with constraints (T164, TABLES)
  *
  * - Loading runs db/load.js in a child process, so the server's start-up stays synchronous (T160). It applies
  *   the migrations first.
  * - Saving compares every record with the text it was last saved as and writes only the new, changed and
  *   removed ones, in one transaction. The code that changes `db` stays as it is.
- * - A record's key is its id (tokenHash for sessions and sign-in tokens); a repeated key gets "#2", "#3" …,
- *   and a record without one is keyed by its content.
+ * - A record's key is its id (tokenHash for sessions, hash for sign-in tokens); a repeated key gets "#2",
+ *   "#3" …, and a record without one is keyed by its content.
  * - The list order is kept in `pos`. Records that keep their order keep their position, so adding to the
  *   front of a list (the audit log, notifications) writes one row.
+ * - Real tables: a field listed in TABLES goes into its column when it fits the column type exactly; anything
+ *   else of the record stays in the `extra` column, so a record always loads back exactly as it was saved.
+ * - When the database refuses a change (a constraint or trigger, T164–T166), the other changes are still
+ *   saved, the refused record is put back in memory as it was saved (or removed, if it is new), and flush()
+ *   rejects with `refused`, which server.js turns into a 409 or 503 reply.
  */
 const crypto = require("crypto");
 const path = require("path");
@@ -52,17 +58,58 @@ const COLLECTIONS = [
   "supplierInvites",
 ];
 const VALUES = ["meta", "settings", "counters", "uploadOwners"];
-const KEY_FIELD = { sessions: "tokenHash", authTokens: "tokenHash" };
+// The lists with a table of their own, in the order they are written (a table before the tables that refer to
+// it). Columns are [field, column, type]; the migrations create the same columns.
+const TABLES = [
+  {
+    collection: "users",
+    table: "users",
+    key: ["id", "id"],
+    columns: [
+      ["email", "email", "text"],
+      ["role", "role", "text"],
+      ["status", "status", "text"],
+      ["passwordHash", "password_hash", "text"],
+      ["salt", "salt", "text"],
+      ["createdAt", "created_at", "timestamptz"],
+    ],
+  },
+  {
+    collection: "sessions",
+    table: "sessions",
+    key: ["tokenHash", "token_hash"],
+    columns: [
+      ["userId", "user_id", "text"],
+      ["createdAt", "created_at", "timestamptz"],
+      ["lastSeenAt", "last_seen_at", "timestamptz"],
+      ["expiresAt", "expires_at", "timestamptz"],
+    ],
+  },
+  {
+    collection: "authTokens",
+    table: "auth_tokens",
+    key: ["hash", "token_hash"],
+    columns: [
+      ["userId", "user_id", "text"],
+      ["type", "type", "text"],
+      ["expiresAt", "expires_at", "timestamptz"],
+    ],
+  },
+];
 // The kv row with the top-level order and the names of the lists, so empty lists come back as [].
 const SHAPE = "$shape";
 const ROWS_PER_STATEMENT = 2000;
 
 const isRecord = (r) => r !== null && typeof r === "object" && !Array.isArray(r);
 const isList = (v) => Array.isArray(v) && v.every(isRecord);
-const rowId = (collection, key) => collection + "\t" + key;
+const tableOf = Object.fromEntries(TABLES.map((t) => [t.collection, t]));
+// Where a list's rows live: its own table, or `records` for the others
+const specOf = (collection) =>
+  tableOf[collection] || { collection, table: "records", key: ["id", "key"], generic: true };
+const rowId = (spec, key) => (spec.generic ? spec.collection : spec.table) + "\t" + key;
 
-function recordKey(collection, record, text) {
-  const k = record[KEY_FIELD[collection] || "id"];
+function recordKey(spec, record, text) {
+  const k = record[spec.key[0]];
   if ((typeof k === "string" && k) || typeof k === "number") return String(k);
   return "@" + crypto.createHash("sha256").update(text).digest("hex").slice(0, 24);
 }
@@ -76,6 +123,59 @@ function jsonbSafe(text) {
     : text;
 }
 
+/* ---------- Columns: a value goes into its column only when it comes back exactly the same ---------- */
+const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+function fits(type, v) {
+  switch (type) {
+    case "text":
+      return typeof v === "string" && !v.includes("\u0000");
+    case "timestamptz":
+      return typeof v === "string" && ISO.test(v) && new Date(v).toISOString() === v;
+    case "date":
+      return typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && !isNaN(Date.parse(v + "T00:00:00Z"));
+    case "numeric":
+      return typeof v === "number" && Math.abs(v) < 1e10 && Math.round(v * 100) / 100 === v;
+    case "integer":
+      return Number.isInteger(v) && Math.abs(v) < 2 ** 31;
+    case "boolean":
+      return typeof v === "boolean";
+    case "jsonb":
+      return v !== null && v !== undefined;
+  }
+  return false;
+}
+function fromColumn(type, v) {
+  if (type === "timestamptz") return new Date(v).toISOString();
+  if (type === "numeric" || type === "integer") return Number(v);
+  return v;
+}
+// The row of a real table for `record`. `synthetic`: the key is not the record's own (repeated or missing id).
+function toRow(spec, key, pos, record, synthetic) {
+  const [keyField, keyColumn] = spec.key,
+    row = { [keyColumn]: key, pos },
+    extra = {};
+  for (const [field, value] of Object.entries(record)) {
+    const col = spec.columns.find((c) => c[0] === field);
+    if (field === keyField && !synthetic) continue;
+    if (col && fits(col[2], value)) row[col[1]] = value;
+    else extra[field] = value;
+  }
+  if (synthetic) extra.$synthetic = true;
+  row.extra = extra;
+  return row;
+}
+// The record of a row of a real table, as it was saved
+function fromRow(spec, row) {
+  const [keyField, keyColumn] = spec.key,
+    { $synthetic, ...extra } = row.extra || {},
+    record = $synthetic ? {} : { [keyField]: row[keyColumn] };
+  Object.assign(record, extra);
+  for (const [field, column, type] of spec.columns)
+    if (row[column] !== null && row[column] !== undefined) record[field] = fromColumn(type, row[column]);
+  return record;
+}
+
+/* ---------- List order ---------- */
 // The positions of the longest run of rows whose saved positions are already in order (they stay as they are).
 function keptInOrder(saved) {
   const tails = [],
@@ -131,7 +231,24 @@ function positions(saved) {
   return pos;
 }
 
+/* ---------- What to write ---------- */
 const warned = new Set();
+// The rows of one list, with positions that keep the saved ones where the order allows
+function listRows(spec, list, savedPos) {
+  const counts = new Map(),
+    rows = list.map((record) => {
+      const text = JSON.stringify(record);
+      let key = recordKey(spec, record, text);
+      const n = (counts.get(key) || 0) + 1;
+      counts.set(key, n);
+      if (n > 1) key += "#" + n;
+      return { spec, collection: spec.collection, key, text, id: rowId(spec, key), record, list };
+    });
+  const pos = positions(rows.map((r) => savedPos(r.id)));
+  rows.forEach((r, i) => (r.pos = pos[i]));
+  return rows;
+}
+
 // The rows `data` should have now, compared with `saved`: what to write and what to delete.
 function changes(data, saved) {
   const upserts = [],
@@ -149,22 +266,11 @@ function changes(data, saved) {
       continue;
     }
     lists.push(name);
-    const counts = new Map(),
-      rows = value.map((record) => {
-        const text = JSON.stringify(record);
-        let key = recordKey(name, record, text);
-        const n = (counts.get(key) || 0) + 1;
-        counts.set(key, n);
-        if (n > 1) key += "#" + n;
-        return { collection: name, key, text, id: rowId(name, key) };
-      });
-    const pos = positions(rows.map((r) => saved.records.get(r.id)?.pos));
-    rows.forEach((r, i) => {
-      r.pos = pos[i];
+    for (const r of listRows(specOf(name), value, (id) => saved.records.get(id)?.pos)) {
       seen.add(r.id);
       const before = saved.records.get(r.id);
       if (!before || before.text !== r.text || before.pos !== r.pos) upserts.push(r);
-    });
+    }
   }
   values.push([
     SHAPE,
@@ -180,9 +286,14 @@ function changes(data, saved) {
   };
 }
 
-async function write(client, c) {
-  for (let i = 0; i < c.upserts.length; i += ROWS_PER_STATEMENT) {
-    const part = c.upserts.slice(i, i + ROWS_PER_STATEMENT);
+const empty = (c) => !c.upserts.length && !c.deletes.length && !c.values.length && !c.valueDeletes.length;
+const chunks = (list) =>
+  Array.from({ length: Math.ceil(list.length / ROWS_PER_STATEMENT) }, (_, i) =>
+    list.slice(i * ROWS_PER_STATEMENT, (i + 1) * ROWS_PER_STATEMENT),
+  );
+
+async function writeGeneric(client, upserts, deletes) {
+  for (const part of chunks(upserts))
     await client.query(
       `insert into records (collection, key, pos, data)
        select * from unnest($1::text[], $2::text[], $3::float8[], $4::jsonb[])
@@ -194,14 +305,51 @@ async function write(client, c) {
         part.map((r) => jsonbSafe(r.text)),
       ],
     );
-  }
-  for (let i = 0; i < c.deletes.length; i += ROWS_PER_STATEMENT) {
-    const part = c.deletes.slice(i, i + ROWS_PER_STATEMENT);
+  for (const part of chunks(deletes))
     await client.query(
       `delete from records r using unnest($1::text[], $2::text[]) as d (collection, key)
        where r.collection = d.collection and r.key = d.key`,
       [part.map((r) => r.collection), part.map((r) => r.key)],
     );
+}
+
+// The key is not the record's own text key (a repeated, missing or numeric id): the field stays in `extra`.
+const synthetic = (spec, r) => r.record[spec.key[0]] !== r.key;
+
+async function upsertTable(client, spec, rows) {
+  const keyColumn = spec.key[1],
+    columns = [keyColumn, "pos", ...spec.columns.map((c) => c[1]), "extra"],
+    list = columns.join(", ");
+  for (const part of chunks(rows))
+    await client.query(
+      `insert into ${spec.table} (${list})
+       select ${list} from jsonb_populate_recordset(null::${spec.table}, $1::jsonb)
+       on conflict (${keyColumn}) do update set
+       ${columns
+         .slice(1)
+         .map((c) => `${c} = excluded.${c}`)
+         .join(", ")}, updated_at = now()`,
+      [jsonbSafe(JSON.stringify(part.map((r) => toRow(spec, r.key, r.pos, r.record, synthetic(spec, r)))))],
+    );
+}
+
+async function write(client, c) {
+  const of = (list, spec) => list.filter((r) => r.spec.table === spec.table && !r.spec.generic);
+  await writeGeneric(
+    client,
+    c.upserts.filter((r) => r.spec.generic),
+    c.deletes.filter((r) => r.spec.generic),
+  );
+  for (const spec of TABLES) {
+    const rows = of(c.upserts, spec);
+    if (rows.length) await upsertTable(client, spec, rows);
+  }
+  for (const spec of [...TABLES].reverse()) {
+    const rows = of(c.deletes, spec);
+    for (const part of chunks(rows))
+      await client.query(`delete from ${spec.table} where ${spec.key[1]} = any($1::text[])`, [
+        part.map((r) => r.key),
+      ]);
   }
   if (c.values.length)
     await client.query(
@@ -213,22 +361,66 @@ async function write(client, c) {
     await client.query("delete from kv where name = any($1::text[])", [c.valueDeletes]);
 }
 
+// A change the database may refuse on purpose: a constraint (class 23) or a trigger (raise exception).
+const refusable = (e) => /^23/.test(e?.code || "") || e?.code === "P0001";
+
+// Writes the changes one row at a time, each behind a savepoint, and returns the ones the database refused.
+// Used only after the whole batch failed with a refusal.
+async function writeEach(client, c) {
+  await client.query("set constraints all immediate");
+  const refused = [],
+    one = (part) => ({ upserts: [], deletes: [], values: [], valueDeletes: [], ...part }),
+    order = (r) => (r.spec.generic ? -1 : TABLES.indexOf(r.spec));
+  const steps = [
+    ...[...c.upserts].sort((a, b) => order(a) - order(b)).map((r) => [r, one({ upserts: [r] })]),
+    ...[...c.deletes].sort((a, b) => order(b) - order(a)).map((r) => [r, one({ deletes: [r] }), true]),
+    [null, one({ values: c.values, valueDeletes: c.valueDeletes })],
+  ];
+  for (const [row, part, removed] of steps) {
+    if (empty(part)) continue;
+    await client.query("savepoint each_row");
+    try {
+      await write(client, part);
+      await client.query("release savepoint each_row");
+    } catch (e) {
+      await client.query("rollback to savepoint each_row");
+      if (!row || !refusable(e)) throw e;
+      refused.push({ row, removed: !!removed, code: e.code, constraint: e.constraint, message: e.message });
+    }
+  }
+  return refused;
+}
+
+/* ---------- Reading ---------- */
 // Everything in the database as { lists: { name: { keys, pos, rows } }, values: { name: value } }, or null when
-// nothing has been saved yet. Used by db/load.js (and the export tool).
+// nothing has been saved yet. Used by db/load.js and the tools.
 async function readAll(client) {
   const values = Object.fromEntries(
       (await client.query("select name, data from kv")).rows.map((r) => [r.name, r.data]),
     ),
-    records = (await client.query("select collection, key, pos, data from records order by collection, pos"))
-      .rows;
-  if (!records.length && !Object.keys(values).length) return null;
-  const lists = {};
-  for (const r of records) {
-    const list = (lists[r.collection] ||= { keys: [], pos: [], rows: [] });
-    list.keys.push(r.key);
-    list.pos.push(r.pos);
-    list.rows.push(r.data);
-  }
+    lists = {},
+    add = (collection, key, pos, row) => {
+      const list = (lists[collection] ||= { keys: [], pos: [], rows: [] });
+      list.keys.push(key);
+      list.pos.push(pos);
+      list.rows.push(row);
+    };
+  for (const r of (
+    await client.query("select collection, key, pos, data from records order by collection, pos")
+  ).rows)
+    add(r.collection, r.key, r.pos, r.data);
+  const exists = new Set(
+    (
+      await client.query(
+        "select table_name from information_schema.tables where table_schema = current_schema()",
+      )
+    ).rows.map((r) => r.table_name),
+  );
+  for (const spec of TABLES)
+    if (exists.has(spec.table))
+      for (const r of (await client.query(`select * from ${spec.table} order by pos`)).rows)
+        add(spec.collection, r[spec.key[1]], r.pos, fromRow(spec, r));
+  if (!Object.keys(lists).length && !Object.keys(values).length) return null;
   return { lists, values };
 }
 
@@ -244,14 +436,21 @@ function assemble(loaded) {
     const list = lists[name];
     if (list) {
       data[name] = list.rows;
-      list.rows.forEach((row, i) =>
-        saved.records.set(rowId(name, list.keys[i]), {
+      // The keys as this store computes them; a stored key it would not compute is deleted on the next save.
+      const spec = specOf(name),
+        stored = new Map(list.keys.map((k, i) => [rowId(spec, k), list.pos[i]]));
+      for (const r of listRows(spec, list.rows, (id) => stored.get(id))) {
+        if (stored.has(r.id)) saved.records.set(r.id, { ...r, pos: stored.get(r.id) });
+        stored.delete(r.id);
+      }
+      for (const [id, pos] of stored)
+        saved.records.set(id, {
+          spec,
           collection: name,
-          key: list.keys[i],
-          text: JSON.stringify(row),
-          pos: list.pos[i],
-        }),
-      );
+          key: id.slice(id.indexOf("\t") + 1),
+          pos,
+          text: null,
+        });
     } else if (name in values) {
       data[name] = values[name];
       saved.values.set(name, JSON.stringify(values[name]));
@@ -259,6 +458,33 @@ function assemble(loaded) {
   }
   if (values[SHAPE]) saved.values.set(SHAPE, JSON.stringify(values[SHAPE]));
   return { data, saved };
+}
+
+/* ---------- Putting refused changes back in memory ---------- */
+function restore(data, saved, refusal) {
+  const { row, removed } = refusal,
+    before = saved.records.get(row.id),
+    old = before?.text ? JSON.parse(before.text) : null;
+  if (removed) {
+    // A refused delete: the record comes back, in front of the first record saved after it.
+    if (!old) return;
+    const list = Array.isArray(data[row.collection]) ? data[row.collection] : (data[row.collection] = []),
+      at = list.findIndex((r) => {
+        const s = saved.records.get(rowId(row.spec, recordKey(row.spec, r, JSON.stringify(r))));
+        return s && s.pos > before.pos;
+      });
+    list.splice(at < 0 ? list.length : at, 0, old);
+  } else if (old) {
+    // A refused change: the same object gets its saved content back, so references to it stay valid.
+    for (const k of Object.keys(row.record)) delete row.record[k];
+    Object.assign(row.record, old);
+  } else {
+    // A refused new record is removed (from the list as it is now, if the code replaced the list meanwhile).
+    for (const list of [data[row.collection], row.list]) {
+      const i = Array.isArray(list) ? list.indexOf(row.record) : -1;
+      if (i >= 0) return void list.splice(i, 1);
+    }
+  }
 }
 
 function postgresStore({ url = process.env.DATABASE_URL } = {}) {
@@ -275,15 +501,32 @@ function postgresStore({ url = process.env.DATABASE_URL } = {}) {
     retry = null,
     waiters = [];
   const getPool = () => (pool ||= require("./db/pg").createPool(url));
-  const stats = { writes: 0, rowsWritten: 0, rowsDeleted: 0, last: null };
+  const stats = { writes: 0, rowsWritten: 0, rowsDeleted: 0, last: null, refused: 0 };
 
-  function settle(error) {
+  // Waiters up to `upTo` are settled: rejected with `error` when given, else resolved.
+  function settle(error, upTo = committed) {
     const open = [];
     for (const w of waiters)
-      if (committed >= w.target) w.resolve();
-      else if (error) w.reject(error);
+      if (w.target <= upTo) error ? w.reject(error) : w.resolve();
+      else if (error && !error.refused) w.reject(error);
       else open.push(w);
     waiters = open;
+  }
+
+  function remember(c, refused = []) {
+    const skip = new Set(refused.map((r) => r.row));
+    for (const r of c.upserts) if (!skip.has(r)) saved.records.set(r.id, r);
+    for (const r of c.deletes) if (!skip.has(r)) saved.records.delete(r.id);
+    for (const [name, text] of c.values) saved.values.set(name, text);
+    for (const name of c.valueDeletes) saved.values.delete(name);
+    const rows = c.upserts.length + c.values.length - refused.filter((r) => !r.removed).length,
+      gone = c.deletes.length + c.valueDeletes.length - refused.filter((r) => r.removed).length;
+    if (rows || gone) {
+      stats.writes++;
+      stats.rowsWritten += rows;
+      stats.rowsDeleted += gone;
+      stats.last = { upserts: c.upserts.length, deletes: c.deletes.length, values: c.values.length };
+    }
   }
 
   async function run() {
@@ -291,13 +534,20 @@ function postgresStore({ url = process.env.DATABASE_URL } = {}) {
     running = true;
     clearTimeout(retry);
     retry = null;
+    const { tx } = require("./db/pg");
     try {
       while (committed < requested) {
         const covers = requested,
           c = changes(data, saved);
+        let refused = [];
         try {
-          if (c.upserts.length || c.deletes.length || c.values.length || c.valueDeletes.length)
-            await require("./db/pg").tx((client) => write(client, c), getPool());
+          if (!empty(c))
+            try {
+              await tx((client) => write(client, c), getPool());
+            } catch (e) {
+              if (!refusable(e)) throw e;
+              refused = await tx((client) => writeEach(client, c), getPool());
+            }
         } catch (e) {
           // The changes stay in memory and are written with the next save, or by the retry below.
           console.error("Could not save to PostgreSQL:", e.code || e.message);
@@ -305,20 +555,25 @@ function postgresStore({ url = process.env.DATABASE_URL } = {}) {
           retry = setTimeout(() => run(), 5000);
           return;
         }
-        for (const r of c.upserts) saved.records.set(r.id, r);
-        for (const r of c.deletes) saved.records.delete(r.id);
-        for (const [name, text] of c.values) saved.values.set(name, text);
-        for (const name of c.valueDeletes) saved.values.delete(name);
-        const rows = c.upserts.length + c.values.length,
-          gone = c.deletes.length + c.valueDeletes.length;
-        if (rows || gone) {
-          stats.writes++;
-          stats.rowsWritten += rows;
-          stats.rowsDeleted += gone;
-          stats.last = { upserts: c.upserts.length, deletes: c.deletes.length, values: c.values.length };
-        }
+        for (const r of refused) restore(data, saved, r);
+        remember(c, refused);
         committed = covers;
-        settle();
+        if (refused.length) {
+          stats.refused += refused.length;
+          for (const r of refused)
+            console.error(
+              `PostgreSQL refused a change to ${r.row.collection} (${r.constraint || r.code}); it was undone.`,
+            );
+          const error = new Error("The database refused a change: " + refused[0].message);
+          error.refused = refused.map(({ row, removed, code, constraint, message }) => ({
+            collection: row.collection,
+            removed,
+            code,
+            constraint,
+            message,
+          }));
+          settle(error, covers);
+        } else settle();
       }
     } finally {
       running = false;
@@ -383,7 +638,11 @@ module.exports = {
   write,
   positions,
   jsonbSafe,
+  toRow,
+  fromRow,
+  fits,
   COLLECTIONS,
   VALUES,
+  TABLES,
   SHAPE,
 };
