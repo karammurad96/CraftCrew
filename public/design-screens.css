@@ -2610,9 +2610,10 @@ html body .ds-today {
     width: 24px;
     height: 24px;
   }
+  /* The darker blue keeps the 11 px label readable over the translucent bar (4.5:1, T173) */
   html body .mnav-bottom a.active {
     background: none;
-    color: var(--cc-blue);
+    color: var(--cc-blue-pressed);
   }
   /* Supplier "Today" */
   html body .ds-today {
