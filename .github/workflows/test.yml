@@ -31,7 +31,7 @@ jobs:
           for i in $(seq 1 30); do curl -fs http://localhost:3999/api/health && exit 0; sleep 1; done
           docker logs craftcrew-test; exit 1
 
-  # PostgreSQL (Wave 9): the migrations against a real database. From T162 on, the whole suite with STORE=postgres.
+  # PostgreSQL (Wave 9): the whole suite with STORE=postgres (T162), each test data folder in its own schema.
   test-postgres:
     runs-on: ubuntu-latest
     services:
@@ -50,13 +50,14 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgres://craftcrew:craftcrew@localhost:5432/craftcrew_test
+      STORE: postgres
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - run: npm ci
-      - run: node --test test/migrations.test.js
+      - run: npm test
       - run: node tools/db/migrate.js && node tools/db/migrate.js --status
 
   browser-smoke:

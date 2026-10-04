@@ -2,7 +2,7 @@
  * The data store (T160): one place that loads and saves the in-memory `db` object.
  *
  *   STORE=json      (default) DATA_DIR/db.json, written whole with a temp file, fsync and rename.
- *   STORE=postgres  PostgreSQL, from T162.
+ *   STORE=postgres  PostgreSQL at DATABASE_URL (T162), see store-postgres.js.
  *
  * Every store has the same interface:
  *   loadSync()   the saved data, or null when nothing has been saved yet. A file or database that exists but
@@ -11,6 +11,8 @@
  *                if it could not); other stores take a snapshot and write it in the background.
  *   flush()      resolves when every started save is stored, and rejects if one of them failed.
  *   close()      optional: releases connections.
+ *   ping()       optional: rejects when the store cannot be reached (/api/health).
+ *   waitsForCommit  true when replies to changes must wait for flush() (server.js).
  */
 const fs = require("fs");
 const path = require("path");
@@ -54,9 +56,10 @@ function jsonStore(dataDir) {
 }
 
 // The store this process uses: STORE (json or postgres) and DATA_DIR / DATABASE_URL from the environment.
-function openStore({ dataDir, kind = process.env.STORE || "json" } = {}) {
+function openStore({ dataDir, kind = process.env.STORE || "json", url = process.env.DATABASE_URL } = {}) {
   if (kind === "json") return jsonStore(dataDir);
-  throw new Error(`Unknown STORE "${kind}": use json.`);
+  if (kind === "postgres") return require("./store-postgres").postgresStore({ url });
+  throw new Error(`Unknown STORE "${kind}": use json or postgres.`);
 }
 
 module.exports = { openStore };

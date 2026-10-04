@@ -8,6 +8,47 @@ const path = require("node:path");
 
 const ROOT = path.join(__dirname, "..");
 
+/* ---------- PostgreSQL (T162) ----------
+   With STORE=postgres and DATABASE_URL, every test data folder gets its own schema in that database, so tests
+   that restart on the same folder find their data and the others start empty. The schemas this process made
+   are dropped when it ends. */
+const POSTGRES = process.env.STORE === "postgres";
+const schemas = new Set();
+function schemaOf(dataDir) {
+  return (
+    "t_" +
+    require("node:crypto").createHash("sha256").update(path.resolve(dataDir)).digest("hex").slice(0, 24)
+  );
+}
+function databaseUrl(dataDir) {
+  const url = new URL(process.env.DATABASE_URL);
+  url.searchParams.set("options", `-c search_path=${schemaOf(dataDir)}`);
+  return url.toString();
+}
+async function adminQuery(sql) {
+  const { Client } = require("pg"),
+    client = new Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
+  try {
+    return await client.query(sql);
+  } finally {
+    await client.end();
+  }
+}
+async function ensureSchema(dataDir) {
+  const name = schemaOf(dataDir);
+  if (schemas.has(name)) return;
+  await adminQuery(`create schema if not exists ${name}`);
+  schemas.add(name);
+}
+let dropping = false;
+if (POSTGRES)
+  process.on("beforeExit", () => {
+    if (dropping || !schemas.size) return;
+    dropping = true;
+    adminQuery(`drop schema if exists ${[...schemas].join(", ")} cascade`).catch(() => {});
+  });
+
 function fakeSmtp() {
   const inbox = [];
   const server = net.createServer((sock) => {
@@ -72,6 +113,7 @@ function freePort() {
 // Pass `dataDir` to reuse a data folder (for example to restart on the same data); it is then kept on stop.
 async function startApp({ smtp, env = {}, dataDir: keepDir } = {}) {
   const dataDir = keepDir || mkdtempSync(path.join(tmpdir(), "craftcrew-test-"));
+  if (POSTGRES) await ensureSchema(dataDir);
   let proc,
     port,
     base,
@@ -87,6 +129,7 @@ async function startApp({ smtp, env = {}, dataDir: keepDir } = {}) {
         DATA_DIR: dataDir,
         PORT: String(port),
         APP_URL: `http://localhost:${port}`,
+        ...(POSTGRES ? { STORE: "postgres", DATABASE_URL: databaseUrl(dataDir) } : {}),
         BOOTSTRAP_ADMIN_EMAIL: "admin@test.local",
         BOOTSTRAP_ADMIN_PASSWORD: "Admin-Password-2026!",
         // Tests never call the real EU VIES service; a closed port makes it "not reachable" at once.
@@ -155,9 +198,12 @@ async function startApp({ smtp, env = {}, dataDir: keepDir } = {}) {
       legalConsent: true,
       ...extra,
     });
-  const stop = async () => {
-    proc.kill();
-    await new Promise((r) => proc.once("exit", r));
+  // stop({ signal: "SIGKILL" }) ends the server without its shutdown handler, like a crash.
+  const stop = async ({ signal = "SIGTERM" } = {}) => {
+    if (proc.exitCode === null && proc.signalCode === null) {
+      proc.kill(signal);
+      await new Promise((r) => proc.once("exit", r));
+    }
     if (!keepDir) rmSync(dataDir, { recursive: true, force: true });
   };
   return { base, port, dataDir, call, login, signup, stop, stderr: () => stderr };
@@ -310,11 +356,12 @@ async function submitInvoice(app, supplierToken, project, phase, task, amount) {
 function testStore(dataDir) {
   return require("../store").openStore({ dataDir, ...storeOptions(dataDir) });
 }
-// Extra options for the store of one test data folder; PostgreSQL gives each folder its own schema (T162).
-function storeOptions() {
-  return {};
+// The store of one test data folder: its own schema with PostgreSQL (T162).
+function storeOptions(dataDir) {
+  return POSTGRES ? { kind: "postgres", url: databaseUrl(dataDir) } : { kind: "json" };
 }
 async function readDb(dataDir) {
+  if (POSTGRES) await ensureSchema(dataDir);
   const store = testStore(dataDir);
   try {
     return store.loadSync();
@@ -323,13 +370,25 @@ async function readDb(dataDir) {
   }
 }
 async function writeDb(dataDir, data) {
+  if (POSTGRES) await ensureSchema(dataDir);
   const store = testStore(dataDir);
   try {
+    // Load first, so the store also removes what `data` no longer has.
+    store.loadSync();
     store.save(data);
     await store.flush();
   } finally {
     await store.close?.();
   }
+}
+// When the saved data last changed: the file's time, or the newest row in PostgreSQL.
+async function savedAt(dataDir) {
+  if (!POSTGRES) return require("node:fs").statSync(path.join(dataDir, "db.json")).mtimeMs;
+  const schema = schemaOf(dataDir),
+    { rows } = await adminQuery(
+      `select greatest((select max(updated_at) from ${schema}.records), (select max(updated_at) from ${schema}.kv)) as at`,
+    );
+  return rows[0].at.getTime();
 }
 async function editDb(dataDir, change) {
   const data = await readDb(dataDir);
@@ -348,4 +407,6 @@ module.exports = {
   readDb,
   writeDb,
   editDb,
+  savedAt,
+  POSTGRES,
 };

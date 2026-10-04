@@ -12,7 +12,7 @@ The work backlog is in `docs/TASKS.md`. Do **one task at a time**, exactly as wr
 | --- | --- |
 | `server.js` | HTTP server and most API routes. Routes are one long `if` chain on `parts` (`/api/<parts[1]>/<parts[2]>…`) inside `async function api(req, res, url)`. |
 | `sourcing.js`, `compliance.js`, `team.js`, `documents.js`, `planning.js` | Extra API modules. Each exports `handle(req, res, url, parts, user)` and gets helpers through a `ctx` object. |
-| `store.js` | Loads and saves the `db` object (T160): `DATA_DIR/db.json` by default. |
+| `store.js`, `store-postgres.js` | Load and save the `db` object (T160, T162): `DATA_DIR/db.json` by default, PostgreSQL with `STORE=postgres`. |
 | `db/`, `migrations/` | PostgreSQL (Wave 9): `db/pg.js` is the connection pool, `db/migrate.js` applies the numbered SQL files in `migrations/`. |
 | `mailer.js` | Dependency-free SMTP client. Emails are queued in `db.outbox` by `queueEmail()`. |
 | `locales.js` | The server's languages and texts (T137): reads `public/core/languages.js` and the locale files. Notifications (`notify(id, { key, params })`), emails (`sendMail()`) and PDFs take their texts from the `server` group there, in the recipient's language. |
@@ -35,6 +35,7 @@ when `save()` is called. Always call `save()` after changing data. Tests that pl
 ```bash
 node server.js     # demo mode on http://localhost:3000, seeds demo data into data/
 npm test           # all tests; must pass before every commit
+STORE=postgres DATABASE_URL=postgres://… npm test   # the same with PostgreSQL (CI job test-postgres)
 ```
 
 Demo logins (demo mode only): `customer.demo@craftcrew.local` / `CraftCrew2026!`,

@@ -94,7 +94,7 @@ The directory's Bronze/Silver/Gold labels are administrative decisions. External
 | `NODE_ENV=production` | Starts with a clean production store and no seeded demo accounts on first initialization |
 | `BOOTSTRAP_ADMIN_EMAIL` | First admin email, required on first production initialization |
 | `BOOTSTRAP_ADMIN_PASSWORD` | First admin password, minimum 16 characters, required on first production initialization |
-| `STORE` | `json` (default): the data is kept in `DATA_DIR/db.json`. `postgres`: in PostgreSQL (from T162) |
+| `STORE` | `json` (default): the data is kept in `DATA_DIR/db.json`. `postgres`: in PostgreSQL at `DATABASE_URL`; replies to changes wait for the commit |
 | `DATABASE_URL` | PostgreSQL connection, for example `postgres://craftcrew:password@localhost:5432/craftcrew`. Needed with `STORE=postgres` |
 | `PGSSLMODE` | `require` for a managed database that needs TLS |
 
@@ -117,6 +117,8 @@ export DATABASE_URL=postgres://craftcrew:your-password@localhost:5432/craftcrew_
 node tools/db/migrate.js            # applies migrations/ (the server also does this at start-up)
 node tools/db/migrate.js --status   # lists the applied and the pending migrations
 node --test test/migrations.test.js # the database tests run only when DATABASE_URL is set
+STORE=postgres npm test             # the whole suite on PostgreSQL, one schema per test data folder
+STORE=postgres node server.js       # the demo on PostgreSQL (an empty database gets the demo data)
 ```
 
 ## Main routes

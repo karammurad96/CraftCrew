@@ -182,6 +182,7 @@ LOCALES.en = {
     wrongAccount: "This page belongs to another type of account.",
     // API error messages by code (T137): the server sends { error, code, params }; see errorCode() in server.js
     api: {
+      couldNotSavePleaseTry: "Could not save. Please try again.",
       taskNotFound: "Task not found",
       onlyTheCustomerAcceptsWork: "Only the customer accepts work",
       thisProjectIsArchivedAnd: "This project is archived and can no longer be changed.",
