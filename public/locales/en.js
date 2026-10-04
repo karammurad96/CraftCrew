@@ -1879,6 +1879,49 @@ LOCALES.en = {
     "uploadedMany": "{n} files uploaded"
   },
   dir: {
+    "cat": {
+      "label": "Service categories",
+      "all": "All suppliers",
+      "automation": {
+        "title": "Automation & controls",
+        "plc": "PLC programming",
+        "robotics": "Robotics",
+        "safety": "Safety controls",
+        "vision": "Vision & sensors",
+        "scada": "SCADA, MES & HMI"
+      },
+      "engineering": {
+        "title": "Engineering & design",
+        "mechanical": "Mechanical engineering",
+        "electrical": "Electrical engineering",
+        "cad": "CAD & design",
+        "simulation": "Simulation"
+      },
+      "manufacturing": {
+        "title": "Manufacturing",
+        "fabrication": "Fabrication & assembly",
+        "machining": "Machining",
+        "welding": "Welding & steel"
+      },
+      "installation": {
+        "title": "Installation & commissioning",
+        "installation": "Installation",
+        "commissioning": "Commissioning",
+        "acceptance": "FAT, SAT & tests"
+      },
+      "service": {
+        "title": "Maintenance & service",
+        "maintenance": "Maintenance",
+        "retrofit": "Retrofit & repair",
+        "calibration": "Inspection & calibration"
+      },
+      "projects": {
+        "title": "Project services",
+        "management": "Project management",
+        "logistics": "Shipping & logistics",
+        "training": "Training & documentation"
+      }
+    },
     "eyebrow": "SUPPLIER DIRECTORY",
     "title": "Find the right industrial specialist.",
     "intro": "Explore service, workforce, certifications, rate and location.",
@@ -1910,7 +1953,12 @@ LOCALES.en = {
       "sortRelevance": "Best match",
       "sortRating": "Highest rated",
       "sortPrice": "Lowest rate",
-      "sortExperience": "Most experience"
+      "sortExperience": "Most experience",
+      "minRate": "Minimum hourly rate",
+      "projects": "Completed projects (min.)",
+      "sortPriceHigh": "Highest rate",
+      "sortProjects": "Most completed projects",
+      "sortOnTime": "Best on-time delivery"
     },
     "found": {
       "one": "{n} supplier found",

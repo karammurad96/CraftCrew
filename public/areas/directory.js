@@ -54,6 +54,80 @@ function dirReliability(s, full = false) {
     : `<div class="cc-rel">${body}</div>`;
 }
 
+/* ---------- Categories (T146): main categories with sub categories; a supplier's services decide where it shows ---------- */
+// Each sub category lists words that, found in a service name, put the supplier into it (English and German).
+const DIR_CATEGORIES = {
+  automation: {
+    plc: /plc|sps|programm|control system|steuerung/i,
+    robotics: /robot/i,
+    safety: /safety|sicherheit|sil\b/i,
+    vision: /vision|camera|kamera|sensor|inspection|prüf/i,
+    scada: /scada|mes\b|hmi|it\/ot|industrial it|data/i,
+  },
+  engineering: {
+    mechanical: /mechanical eng|maschinenbau|mechanik|mechanical design/i,
+    electrical: /electrical|elektro|cabinet|schaltschrank/i,
+    cad: /cad|design|konstruktion|drawing|zeichnung/i,
+    simulation: /simulat|virtual|digital twin|fea\b|cfd/i,
+  },
+  manufacturing: {
+    fabrication: /fabricat|manufactur|fertigung|cell build|assembly|montagebau/i,
+    machining: /machining|cnc|zerspan|turning|milling|fräs/i,
+    welding: /weld|schweiß|steel|stahl|sheet metal|blech/i,
+  },
+  installation: {
+    installation: /install|montage|mounting|relocat|umzug/i,
+    commissioning: /commission|inbetrieb|start-?up/i,
+    acceptance: /acceptance|fat\b|sat\b|abnahme|test/i,
+  },
+  service: {
+    maintenance: /maint|wartung|instandhalt|service/i,
+    retrofit: /retrofit|modernis|upgrade|repair|reparatur/i,
+    calibration: /calibrat|kalibrier|inspection|messtechnik|metrology/i,
+  },
+  projects: {
+    management: /project management|projektmanagement|project lead|bauleitung|coordination/i,
+    logistics: /shipping|logistic|transport|versand|rigging/i,
+    training: /training|schulung|documentation|dokumentation/i,
+  },
+};
+// The sub categories of one supplier (a supplier with several services can be in several)
+function dirSubsOf(s) {
+  const out = new Set();
+  for (const [main, subs] of Object.entries(DIR_CATEGORIES))
+    for (const [sub, re] of Object.entries(subs)) if ((s.services || []).some((x) => re.test(String(x)))) out.add(main + "." + sub);
+  return out;
+}
+function dirInCategory(s, cat, sub) {
+  if (!cat) return true;
+  const subs = dirSubsOf(s);
+  return sub ? subs.has(cat + "." + sub) : [...subs].some((x) => x.startsWith(cat + "."));
+}
+function dirCategoryBar(v, all) {
+  const count = (cat, sub) => all.filter((s) => dirInCategory(s, cat, sub)).length,
+    btn = (cat, sub, label, n, on) =>
+      `<button type="button" class="dir-cat${on ? " on" : ""}" aria-pressed="${on}" data-action="dir.cat" data-cat="${esc(cat)}" data-sub="${esc(sub)}">${label} <span class="dir-cat-n">${n}</span></button>`;
+  const mains = [btn("", "", dirk("cat.all"), all.length, !v.cat), ...Object.keys(DIR_CATEGORIES).map((c) => btn(c, "", dirk("cat." + c + ".title"), count(c), v.cat === c && !v.sub))];
+  const subs = v.cat
+    ? `<div class="dir-subcats" role="group" aria-label="${dirk("cat." + v.cat + ".title")}">${Object.keys(DIR_CATEGORIES[v.cat] || {})
+        .map((sub) => btn(v.cat, sub, dirk(`cat.${v.cat}.${sub}`), count(v.cat, sub), v.sub === sub))
+        .join("")}</div>`
+    : "";
+  return `<nav class="dir-cats" aria-label="${dirk("cat.label")}"><div class="dir-maincats" role="group">${mains.join("")}</div>${subs}</nav>`;
+}
+actions.on("dir.cat", (el) => {
+  const q = new URLSearchParams(location.hash.split("?")[1] || "");
+  // A second click on the selected main category, or on a selected sub category, steps back up
+  const cur = q.get("cat") || "",
+    curSub = q.get("sub") || "",
+    cat = el.dataset.cat,
+    sub = el.dataset.sub;
+  q.set("cat", sub && sub === curSub ? cat : !sub && cat === cur && !curSub ? "" : cat);
+  q.set("sub", sub && sub !== curSub ? sub : "");
+  for (const k of ["cat", "sub"]) if (!q.get(k)) q.delete(k);
+  dirGo(`${dirBase()}?${q}`);
+});
+
 /* ---------- Directory ---------- */
 async function dirPage(params, query) {
   const v = {
@@ -64,6 +138,10 @@ async function dirPage(params, query) {
       country: query.get("country") || "",
       minRating: query.get("rating") || "",
       maxRate: query.get("maxRate") || "",
+      minRate: query.get("minRate") || "",
+      minProjects: query.get("projects") || "",
+      cat: DIR_CATEGORIES[query.get("cat")] ? query.get("cat") : "",
+      sub: DIR_CATEGORIES[query.get("cat")]?.[query.get("sub")] ? query.get("sub") : "",
       minExperience: query.get("experience") || "",
       certs: (query.get("certs") || "").split(",").filter(Boolean),
       near: query.get("near") || "",
@@ -90,19 +168,28 @@ async function dirPage(params, query) {
         (!v.country || s.location?.toLowerCase().includes(v.country.toLowerCase())) &&
         (!v.minRating || Number(s.rating) >= Number(v.minRating)) &&
         (!v.maxRate || Number(s.hourlyRate) <= Number(v.maxRate)) &&
+        (!v.minRate || Number(s.hourlyRate) >= Number(v.minRate)) &&
+        (!v.minProjects || Number(s.projectsCompleted) >= Number(v.minProjects)) &&
+        dirInCategory(s, v.cat, v.sub) &&
         (!v.minExperience || Number(s.experience) >= Number(v.minExperience)) &&
         (!v.onlyShortlist || shortlist.includes(s.id)),
     )
     .sort((a, b) =>
       v.sort === "price"
         ? Number(a.hourlyRate) - Number(b.hourlyRate)
-        : v.sort === "rating"
+        : v.sort === "priceHigh"
+          ? Number(b.hourlyRate) - Number(a.hourlyRate)
+          : v.sort === "projects"
+            ? Number(b.projectsCompleted) - Number(a.projectsCompleted)
+            : v.sort === "onTime"
+              ? Number(b.reliability?.onTimeRate ?? -1) - Number(a.reliability?.onTimeRate ?? -1)
+              : v.sort === "rating"
           ? Number(b.rating) - Number(a.rating)
           : v.sort === "experience"
             ? Number(b.experience) - Number(a.experience)
             : reviewScore(b, v.q) - reviewScore(a, v.q),
     );
-  const html = `<div class="cc-page"><div class="page-head"><div><div class="eyebrow">${dirk("eyebrow")}</div><h1>${dirk("title")}</h1><p>${dirk("intro")}</p></div></div>${dirFilters(v, all, directory.certifications || [], customer)}<div class="review-directory-toolbar"><span>${esc(t.plural("dir.found", rows.length))}</span><div class="cc-actions">${["grid", "list", "map"]
+  const html = `<div class="cc-page"><div class="page-head"><div><div class="eyebrow">${dirk("eyebrow")}</div><h1>${dirk("title")}</h1><p>${dirk("intro")}</p></div></div>${dirCategoryBar(v, all)}${dirFilters(v, all, directory.certifications || [], customer)}<div class="review-directory-toolbar"><span>${esc(t.plural("dir.found", rows.length))}</span><div class="cc-actions">${["grid", "list", "map"]
     .map((x) => `<button class="btn small ${v.view === x ? "primary" : "outline"}" data-action="dir.view" data-view="${x}">${dirk("view." + x)}</button>`)
     .join("")}</div></div>${directory.region && !directory.region.found ? `<div class="notice" role="status">${dirk("region")}</div>` : ""}${dirListing(rows, v.view, customer, shortlist)}${dirBarHtml()}</div>`;
   app.innerHTML = customer ? dashboardShell("customer", "suppliers", html) : publicLayout(html);
@@ -112,14 +199,17 @@ function dirFilters(v, all, certifications, customer) {
   const opt = (value, label, on) => `<option value="${esc(value)}"${on ? " selected" : ""}>${label}</option>`,
     services = [...new Set(all.flatMap((s) => s.services || []))].sort(),
     countries = [...new Set(all.map((s) => (s.location || "").split(",").at(-1).trim()).filter(Boolean))].sort(),
-    more = v.certs.length || v.near || v.onlyShortlist || v.country || v.minRating || v.maxRate || v.minExperience;
-  return `<form id="ccSupplierSearch" class="cc-supplier-filters" data-action="dir.search"><label class="cc-search-wide">${dirk("f.search")}<input id="ccSq" value="${esc(v.q)}" placeholder="${dirk("f.searchHint")}"></label><label>${dirk("f.service")}<select id="ccSs">${opt("", esc(t("dir.f.allServices")))}${services.map((s) => opt(s, esc(s), s === v.service)).join("")}</select></label><label>${dirk("f.badge")}<select id="ccSb">${opt("", dirk("f.allBadges"))}${["Gold", "Silver", "Bronze"].map((s) => opt(s, esc(t("common.badge." + s)), s === v.badge)).join("")}</select></label><label class="cc-check-label"><input id="ccSa" type="checkbox"${v.available ? " checked" : ""}> ${dirk("f.available")}</label><button class="btn primary">${dirk("f.go")}</button><details class="cc-advanced-filters"${more ? " open" : ""}><summary>${dirk("f.more")}</summary><div class="cc-advanced-grid"><label>${dirk("f.country")}<select id="ccCountry">${opt("", esc(t("dir.f.anyLocation")))}${countries.map((s) => opt(s, esc(s), s === v.country)).join("")}</select></label><label>${dirk("f.rating")}<select id="ccRating">${opt("", dirk("f.anyRating"))}${["3", "3.5", "4", "4.5"].map((s) => opt(s, s, s === v.minRating)).join("")}</select></label><label>${dirk("f.maxRate")}<input id="ccRate" type="number" min="0" value="${esc(v.maxRate)}" placeholder="${dirk("f.rateHint")}"></label><label>${dirk("f.experience")}<input id="ccExperience" type="number" min="0" value="${esc(v.minExperience)}" placeholder="${dirk("f.years")}"></label><label>${dirk("f.near")}<input id="ccNear" value="${esc(v.near)}" placeholder="${dirk("f.nearHint")}"></label><label>${dirk("f.radius")}<select id="ccRadius">${["25", "50", "100", "200", "500"].map((r) => opt(r, dirk("f.km", { n: r }), r === v.radius)).join("")}</select></label>${customer ? `<label class="cc-check-label"><input id="ccShortlistOnly" type="checkbox"${v.onlyShortlist ? " checked" : ""}> ${dirk("f.shortlist")}</label>` : ""}<fieldset class="dir-certs"><legend>${dirk("f.certs")}</legend>${[...new Set([...certifications, ...v.certs])]
+    more = v.certs.length || v.near || v.onlyShortlist || v.country || v.minRating || v.maxRate || v.minRate || v.minExperience || v.minProjects;
+  return `<form id="ccSupplierSearch" class="cc-supplier-filters" data-action="dir.search"><label class="cc-search-wide">${dirk("f.search")}<input id="ccSq" value="${esc(v.q)}" placeholder="${dirk("f.searchHint")}"></label><label>${dirk("f.service")}<select id="ccSs">${opt("", esc(t("dir.f.allServices")))}${services.map((s) => opt(s, esc(s), s === v.service)).join("")}</select></label><label>${dirk("f.badge")}<select id="ccSb">${opt("", dirk("f.allBadges"))}${["Gold", "Silver", "Bronze"].map((s) => opt(s, esc(t("common.badge." + s)), s === v.badge)).join("")}</select></label><label class="cc-check-label"><input id="ccSa" type="checkbox"${v.available ? " checked" : ""}> ${dirk("f.available")}</label><button class="btn primary">${dirk("f.go")}</button><details class="cc-advanced-filters"${more ? " open" : ""}><summary>${dirk("f.more")}</summary><div class="cc-advanced-grid"><label>${dirk("f.country")}<select id="ccCountry">${opt("", esc(t("dir.f.anyLocation")))}${countries.map((s) => opt(s, esc(s), s === v.country)).join("")}</select></label><label>${dirk("f.rating")}<select id="ccRating">${opt("", dirk("f.anyRating"))}${["3", "3.5", "4", "4.5"].map((s) => opt(s, s, s === v.minRating)).join("")}</select></label><label>${dirk("f.minRate")}<input id="ccMinRate" type="number" min="0" value="${esc(v.minRate)}" placeholder="${dirk("f.rateHint")}"></label><label>${dirk("f.maxRate")}<input id="ccRate" type="number" min="0" value="${esc(v.maxRate)}" placeholder="${dirk("f.rateHint")}"></label><label>${dirk("f.projects")}<input id="ccProjects" type="number" min="0" value="${esc(v.minProjects)}" placeholder="0"></label><label>${dirk("f.experience")}<input id="ccExperience" type="number" min="0" value="${esc(v.minExperience)}" placeholder="${dirk("f.years")}"></label><label>${dirk("f.near")}<input id="ccNear" value="${esc(v.near)}" placeholder="${dirk("f.nearHint")}"></label><label>${dirk("f.radius")}<select id="ccRadius">${["25", "50", "100", "200", "500"].map((r) => opt(r, dirk("f.km", { n: r }), r === v.radius)).join("")}</select></label>${customer ? `<label class="cc-check-label"><input id="ccShortlistOnly" type="checkbox"${v.onlyShortlist ? " checked" : ""}> ${dirk("f.shortlist")}</label>` : ""}<fieldset class="dir-certs"><legend>${dirk("f.certs")}</legend>${[...new Set([...certifications, ...v.certs])]
     .map((c) => `<label class="cc-check-label"><input type="checkbox" name="ccCerts" value="${esc(c)}"${v.certs.includes(c) ? " checked" : ""}> ${dirDom(c)}</label>`)
     .join("")}</fieldset><label>${dirk("f.sort")}<select id="ccSort">${[
     ["relevance", "sortRelevance"],
     ["rating", "sortRating"],
     ["price", "sortPrice"],
+    ["priceHigh", "sortPriceHigh"],
     ["experience", "sortExperience"],
+    ["projects", "sortProjects"],
+    ["onTime", "sortOnTime"],
   ]
     .map(([value, key]) => opt(value, dirk("f." + key), value === v.sort))
     .join("")}</select></label></div></details></form>`;
@@ -195,6 +285,8 @@ actions.on("dir.search", (form) => {
       country: val("ccCountry"),
       rating: val("ccRating"),
       maxRate: val("ccRate"),
+      minRate: val("ccMinRate"),
+      projects: val("ccProjects"),
       experience: val("ccExperience"),
       certs: [...form.querySelectorAll('input[name="ccCerts"]:checked')].map((x) => x.value).join(","),
       near: val("ccNear").trim(),
@@ -203,6 +295,9 @@ actions.on("dir.search", (form) => {
       sort: val("ccSort") || "relevance",
       view: new URLSearchParams(location.hash.split("?")[1] || "").get("view") || "grid",
     });
+  // The chosen category stays when the other filters change
+  const cur = new URLSearchParams(location.hash.split("?")[1] || "");
+  for (const k of ["cat", "sub"]) if (cur.get(k)) q.set(k, cur.get(k));
   dirGo(`${dirBase()}?${q}`);
 });
 actions.on("dir.view", (el) => {

@@ -1878,6 +1878,49 @@ LOCALES.de = {
     "uploadedMany": "{n} Dateien hochgeladen"
   },
   dir: {
+    "cat": {
+      "label": "Leistungskategorien",
+      "all": "Alle Lieferanten",
+      "automation": {
+        "title": "Automatisierung & Steuerung",
+        "plc": "SPS-Programmierung",
+        "robotics": "Robotik",
+        "safety": "Sicherheitssteuerungen",
+        "vision": "Bildverarbeitung & Sensorik",
+        "scada": "SCADA, MES & HMI"
+      },
+      "engineering": {
+        "title": "Engineering & Konstruktion",
+        "mechanical": "Maschinenbau",
+        "electrical": "Elektrotechnik",
+        "cad": "CAD & Konstruktion",
+        "simulation": "Simulation"
+      },
+      "manufacturing": {
+        "title": "Fertigung",
+        "fabrication": "Fertigung & Montage",
+        "machining": "Zerspanung",
+        "welding": "Schweißen & Stahlbau"
+      },
+      "installation": {
+        "title": "Montage & Inbetriebnahme",
+        "installation": "Montage",
+        "commissioning": "Inbetriebnahme",
+        "acceptance": "FAT, SAT & Tests"
+      },
+      "service": {
+        "title": "Wartung & Service",
+        "maintenance": "Wartung",
+        "retrofit": "Retrofit & Reparatur",
+        "calibration": "Prüfung & Kalibrierung"
+      },
+      "projects": {
+        "title": "Projektleistungen",
+        "management": "Projektmanagement",
+        "logistics": "Versand & Logistik",
+        "training": "Schulung & Dokumentation"
+      }
+    },
     "eyebrow": "LIEFERANTENVERZEICHNIS",
     "title": "Den passenden Industriespezialisten finden.",
     "intro": "Leistungen, Personal, Zertifikate, Stundensätze und Standort vergleichen.",
@@ -1909,7 +1952,12 @@ LOCALES.de = {
       "sortRelevance": "Beste Übereinstimmung",
       "sortRating": "Beste Bewertung",
       "sortPrice": "Niedrigster Satz",
-      "sortExperience": "Meiste Erfahrung"
+      "sortExperience": "Meiste Erfahrung",
+      "minRate": "Minimaler Stundensatz",
+      "projects": "Abgeschlossene Projekte (min.)",
+      "sortPriceHigh": "Höchster Stundensatz",
+      "sortProjects": "Meiste abgeschlossene Projekte",
+      "sortOnTime": "Beste Termintreue"
     },
     "found": {
       "one": "{n} Lieferant gefunden",

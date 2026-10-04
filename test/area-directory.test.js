@@ -124,6 +124,30 @@ describe("supplier directory (T129a)", () => {
       }
     });
 
+  it("sorts suppliers into main and sub categories with counts (T146)", async () => {
+    const all = await area("en").render("#/customer/suppliers");
+    assert.match(all, /data-action="dir\.cat" data-cat="" data-sub="">All suppliers <span class="dir-cat-n">2<\/span>/);
+    assert.match(all, /data-cat="automation" data-sub="">Automation &amp; controls <span class="dir-cat-n">1<\/span>/);
+    assert.match(all, /data-cat="manufacturing" data-sub="">Manufacturing <span class="dir-cat-n">1<\/span>/);
+    assert.ok(!all.includes("dir-subcats"), "sub categories show under a chosen main category");
+    const auto = await area("en").render("#/customer/suppliers?cat=automation");
+    assert.ok(auto.includes("1 supplier found") && auto.includes("Keller") && !auto.includes(">Nordbau<"));
+    assert.match(auto, /<div class="dir-subcats"[^>]*>.*PLC programming <span class="dir-cat-n">1<\/span>.*Robotics <span class="dir-cat-n">1<\/span>/s);
+    const weld = await area("en").render("#/customer/suppliers?cat=manufacturing&sub=welding");
+    assert.ok(weld.includes(">Nordbau<") && !weld.includes(">Keller"));
+    // Clicking the chosen sub category again steps back to its main category; the other filters keep the category
+    const ctx = area("en", { hash: "#/customer/suppliers?cat=manufacturing&sub=welding" });
+    await ctx.render();
+    ctx.run("dir.cat", { dataset: { cat: "manufacturing", sub: "welding" } });
+    assert.deepEqual(ctx.calls.at(-1), ["navigate", "/customer/suppliers?cat=manufacturing"]);
+  });
+
+  it("filters by rate range and completed projects and sorts by the highest rate (T146)", async () => {
+    const html = await area("en").render("#/customer/suppliers?minRate=80&sort=priceHigh");
+    assert.ok(html.includes("1 supplier found") && !html.includes(">Nordbau<"));
+    assert.ok(html.includes('id="ccMinRate"') && html.includes('id="ccProjects"') && html.includes('<option value="onTime">Best on-time delivery</option>'));
+  });
+
   it("links cards to the profile and keeps filter values English", async () => {
     const html = await area("de").render();
     assert.ok(html.includes('<a class="btn small outline" href="#/customer/suppliers/s1">Profil ansehen</a>'));
