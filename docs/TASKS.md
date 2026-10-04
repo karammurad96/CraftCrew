@@ -3403,6 +3403,11 @@ mode. `README.md` documents `ALLOW_DEMO`.
 - The records of processing activities and the technical and organisational measures (TOMs). The agent can
   draft the TOMs from DEPLOY.md's "Security built in".
 
+**Agent's part done (4 October 2026):** `docs/LEGAL-FACTS.md` lists the processors and other recipients, the one
+cookie and the browser storage, the personal data kept, the retention periods and a TOMs draft, each taken from
+the code. The open points are marked **[decide]** (company details, hosting, email and backup providers, how long
+to keep the audit archive). The task stays open until Karam has the texts written and published.
+
 ### T173 · Security review before launch
 `P0 · M`
 
