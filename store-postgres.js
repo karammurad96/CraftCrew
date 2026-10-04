@@ -7,6 +7,8 @@
  *   users, sessions, auth_tokens         accounts and sign-ins in real tables with constraints (T164, TABLES)
  *   invoices, payments                   with the legal protections in triggers (T165); payments only grow:
  *                                        a changed payment is a new row (`version`), the newest one counts
+ *   projects, phases, tasks              the nested project lists, one row per project, phase and task (T166):
+ *                                        changing one task writes one task row
  *
  * - Loading runs db/load.js in a child process, so the server's start-up stays synchronous (T160). It applies
  *   the migrations first.
@@ -60,6 +62,52 @@ const COLLECTIONS = [
   "supplierInvites",
 ];
 const VALUES = ["meta", "settings", "counters", "uploadOwners"];
+// Projects hold their phases, and phases their tasks (T166). Each level is a table of its own: `children` is the
+// list field that is cut off and stored in the next table, `parent` the column that points back.
+const TASKS = {
+  collection: "projects.phases.tasks",
+  table: "tasks",
+  key: ["id", "id"],
+  parent: "phase_id",
+  columns: [
+    ["name", "name", "text"],
+    ["status", "status", "text"],
+    ["startDate", "start_date", "date"],
+    ["dueDate", "due_date", "date"],
+    ["assignedSupplierId", "assigned_supplier_id", "text"],
+    ["progress", "progress", "numeric"],
+    ["orderAmount", "order_amount", "numeric"],
+  ],
+};
+const PHASES = {
+  collection: "projects.phases",
+  table: "phases",
+  key: ["id", "id"],
+  parent: "project_id",
+  children: { field: "tasks", spec: TASKS },
+  columns: [
+    ["name", "name", "text"],
+    ["status", "status", "text"],
+    ["startDate", "start_date", "date"],
+    ["dueDate", "due_date", "date"],
+    ["supplierId", "supplier_id", "text"],
+  ],
+};
+const PROJECTS = {
+  collection: "projects",
+  table: "projects",
+  key: ["id", "id"],
+  children: { field: "phases", spec: PHASES },
+  columns: [
+    ["customerId", "customer_id", "text"],
+    ["name", "name", "text"],
+    ["status", "status", "text"],
+    ["budget", "budget", "numeric"],
+    ["startDate", "start_date", "date"],
+    ["dueDate", "due_date", "date"],
+    ["createdAt", "created_at", "timestamptz"],
+  ],
+};
 // The lists with a table of their own, in the order they are written (a table before the tables that refer to
 // it). Columns are [field, column, type]; the migrations create the same columns.
 const TABLES = [
@@ -133,6 +181,9 @@ const TABLES = [
       ["createdAt", "created_at", "timestamptz"],
     ],
   },
+  PROJECTS,
+  PHASES,
+  TASKS,
 ];
 // The kv row with the top-level order and the names of the lists, so empty lists come back as [].
 const SHAPE = "$shape";
@@ -275,20 +326,43 @@ function positions(saved) {
 
 /* ---------- What to write ---------- */
 const warned = new Set();
-// The rows of one list, with positions that keep the saved ones where the order allows
-function listRows(spec, list, savedPos) {
-  const counts = new Map(),
+// A record without its child list, which is stored in the next table; "$<field>": true says it had one.
+function withoutChildren(record, field) {
+  const { [field]: _, ...rest } = record;
+  return { ...rest, ["$" + field]: true };
+}
+
+// The rows of one list and of the lists nested in it, with positions that keep the saved ones where the order
+// allows. `body` is what the row stores: the record, without its child list.
+function listRows(spec, list, savedPos, parent = null, counts = new Map()) {
+  const field = spec.children?.field,
     rows = list.map((record) => {
-      const text = JSON.stringify(record);
+      const nested = field && Array.isArray(record[field]) ? record[field] : null,
+        body = nested ? withoutChildren(record, field) : record,
+        text = JSON.stringify(body);
       let key = recordKey(spec, record, text);
-      const n = (counts.get(key) || 0) + 1;
-      counts.set(key, n);
+      const n = (counts.get(spec.table + "\t" + key) || 0) + 1;
+      counts.set(spec.table + "\t" + key, n);
       if (n > 1) key += "#" + n;
-      return { spec, collection: spec.collection, key, text, id: rowId(spec, key), record, list };
+      return {
+        spec,
+        collection: spec.collection,
+        key,
+        text,
+        id: rowId(spec, key),
+        record,
+        body,
+        list,
+        parent,
+        nested,
+      };
     });
   const pos = positions(rows.map((r) => savedPos(r.id)));
   rows.forEach((r, i) => (r.pos = pos[i]));
-  return rows;
+  const all = [...rows];
+  for (const r of rows)
+    if (r.nested) all.push(...listRows(spec.children.spec, r.nested, savedPos, r.key, counts));
+  return all;
 }
 
 // The rows `data` should have now, compared with `saved`: what to write and what to delete.
@@ -311,7 +385,7 @@ function changes(data, saved) {
     for (const r of listRows(specOf(name), value, (id) => saved.records.get(id)?.pos)) {
       seen.add(r.id);
       const before = saved.records.get(r.id);
-      if (!before || before.text !== r.text || before.pos !== r.pos) {
+      if (!before || before.text !== r.text || before.pos !== r.pos || before.parent !== r.parent) {
         if (r.spec.append) r.version = (before?.version || 0) + 1;
         upserts.push(r);
       }
@@ -360,12 +434,19 @@ async function writeGeneric(client, upserts, deletes) {
 
 // The key is not the record's own text key (a repeated, missing or numeric id): the field stays in `extra`.
 const synthetic = (spec, r) => r.record[spec.key[0]] !== r.key;
+// The row of a real table for a row of listRows(), with the column that points to its parent
+function tableRow(spec, r) {
+  const row = toRow(spec, r.key, r.pos, r.body || r.record, synthetic(spec, r));
+  if (spec.parent) row[spec.parent] = r.parent;
+  return row;
+}
 
 async function upsertTable(client, spec, rows) {
   const keyColumn = spec.key[1],
     columns = [
       keyColumn,
       ...(spec.append ? ["version"] : []),
+      ...(spec.parent ? [spec.parent] : []),
       "pos",
       ...spec.columns.map((c) => c[1]),
       "extra",
@@ -375,16 +456,7 @@ async function upsertTable(client, spec, rows) {
     for (const part of chunks(rows))
       await client.query(
         `insert into ${spec.table} (${list}) select ${list} from jsonb_populate_recordset(null::${spec.table}, $1::jsonb)`,
-        [
-          jsonbSafe(
-            JSON.stringify(
-              part.map((r) => ({
-                ...toRow(spec, r.key, r.pos, r.record, synthetic(spec, r)),
-                version: r.version,
-              })),
-            ),
-          ),
-        ],
+        [jsonbSafe(JSON.stringify(part.map((r) => ({ ...tableRow(spec, r), version: r.version }))))],
       );
     return;
   }
@@ -397,7 +469,7 @@ async function upsertTable(client, spec, rows) {
          .slice(1)
          .map((c) => `${c} = excluded.${c}`)
          .join(", ")}, updated_at = now()`,
-      [jsonbSafe(JSON.stringify(part.map((r) => toRow(spec, r.key, r.pos, r.record, synthetic(spec, r)))))],
+      [jsonbSafe(JSON.stringify(part.map((r) => tableRow(spec, r))))],
     );
 }
 
@@ -485,19 +557,43 @@ async function readAll(client) {
       )
     ).rows.map((r) => r.table_name),
   );
+  // The rows of a table as records, with their child lists put back from the tables below it
+  const nested = [];
+  async function records(spec) {
+    if (!exists.has(spec.table)) return [];
+    const kids = new Map(),
+      field = spec.children?.field;
+    if (field)
+      for (const k of await records(spec.children.spec)) {
+        if (!kids.has(k.parent)) kids.set(k.parent, []);
+        kids.get(k.parent).push(k.record);
+      }
+    const sql = spec.append
+      ? `select * from (select distinct on (${spec.key[1]}) * from ${spec.table}
+         order by ${spec.key[1]}, version desc) newest order by pos`
+      : `select * from ${spec.table} order by ${spec.parent ? spec.parent + ", " : ""}pos`;
+    return (await client.query(sql)).rows.map((r) => {
+      const key = r[spec.key[1]],
+        record = fromRow(spec, r);
+      if (field && record["$" + field]) {
+        delete record["$" + field];
+        record[field] = kids.get(key) || [];
+      }
+      if (spec.parent) nested.push([spec.table, key, r.pos, r[spec.parent]]);
+      return {
+        key,
+        pos: r.pos,
+        version: r.version,
+        parent: spec.parent ? r[spec.parent] : undefined,
+        record,
+      };
+    });
+  }
   for (const spec of TABLES)
-    if (exists.has(spec.table))
-      for (const r of (
-        await client.query(
-          spec.append
-            ? `select * from (select distinct on (${spec.key[1]}) * from ${spec.table}
-               order by ${spec.key[1]}, version desc) newest order by pos`
-            : `select * from ${spec.table} order by pos`,
-        )
-      ).rows)
-        add(spec.collection, r[spec.key[1]], r.pos, fromRow(spec, r), r.version);
+    if (!spec.parent)
+      for (const r of await records(spec)) add(spec.collection, r.key, r.pos, r.record, r.version);
   if (!Object.keys(lists).length && !Object.keys(values).length) return null;
-  return { lists, values };
+  return { lists, values, nested };
 }
 
 // The data object from readAll(), in the saved top-level order, and what was saved (for the next comparison).
@@ -506,7 +602,14 @@ function assemble(loaded) {
   if (!loaded) return { data: null, saved };
   const { lists, values } = loaded,
     shape = values[SHAPE] || { lists: [], order: [] },
-    data = {};
+    data = {},
+    // The positions and parents of the nested rows (phases, tasks), by row id
+    nestedRows = new Map(
+      (loaded.nested || []).map(([table, key, pos, parent]) => [
+        table + "\t" + key,
+        { spec: TABLES.find((t) => t.table === table), key, pos, parent },
+      ]),
+    );
   for (const name of new Set([...shape.order, ...Object.keys(lists), ...Object.keys(values)])) {
     if (name === SHAPE) continue;
     const list = lists[name];
@@ -516,25 +619,28 @@ function assemble(loaded) {
       // Payments also carry the version their newest row has.
       const spec = specOf(name),
         stored = new Map(
-          list.keys.map((k, i) => [rowId(spec, k), { pos: list.pos[i], version: list.versions?.[i] }]),
+          list.keys.map((k, i) => [
+            rowId(spec, k),
+            { spec, key: k, pos: list.pos[i], version: list.versions?.[i] },
+          ]),
         );
-      for (const r of listRows(spec, list.rows, (id) => stored.get(id)?.pos)) {
-        if (stored.has(r.id)) saved.records.set(r.id, { ...r, ...stored.get(r.id) });
+      const find = (id) => stored.get(id) || nestedRows.get(id);
+      for (const r of listRows(spec, list.rows, (id) => find(id)?.pos)) {
+        const s = find(r.id);
+        if (s)
+          saved.records.set(r.id, { ...r, pos: s.pos, version: s.version, parent: s.parent ?? r.parent });
         stored.delete(r.id);
+        nestedRows.delete(r.id);
       }
-      for (const [id, s] of stored)
-        saved.records.set(id, {
-          spec,
-          collection: name,
-          key: id.slice(id.indexOf("\t") + 1),
-          ...s,
-          text: null,
-        });
+      for (const [id, s] of stored) saved.records.set(id, { ...s, collection: name, text: null });
     } else if (name in values) {
       data[name] = values[name];
       saved.values.set(name, JSON.stringify(values[name]));
     } else if (shape.lists.includes(name)) data[name] = [];
   }
+  // Nested rows that no record holds any more (for example under a lost parent) go with the next save.
+  for (const [id, s] of nestedRows)
+    saved.records.set(id, { ...s, collection: s.spec.collection, text: null });
   if (values[SHAPE]) saved.values.set(SHAPE, JSON.stringify(values[SHAPE]));
   return { data, saved };
 }
@@ -544,9 +650,11 @@ function restore(data, saved, refusal) {
   const { row, removed } = refusal,
     before = saved.records.get(row.id),
     old = before?.text ? JSON.parse(before.text) : null;
+  const field = row.spec.children?.field;
+  if (old && field) delete old["$" + field];
   if (removed) {
     // A refused delete: the record comes back, in front of the first record saved after it.
-    if (!old) return;
+    if (!old || row.parent != null) return;
     const list = Array.isArray(data[row.collection]) ? data[row.collection] : (data[row.collection] = []),
       at = list.findIndex((r) => {
         const s = saved.records.get(rowId(row.spec, recordKey(row.spec, r, JSON.stringify(r))));
@@ -555,7 +663,7 @@ function restore(data, saved, refusal) {
     list.splice(at < 0 ? list.length : at, 0, old);
   } else if (old) {
     // A refused change: the same object gets its saved content back, so references to it stay valid.
-    for (const k of Object.keys(row.record)) delete row.record[k];
+    for (const k of Object.keys(row.record)) if (k !== field) delete row.record[k];
     Object.assign(row.record, old);
   } else {
     // A refused new record is removed (from the list as it is now, if the code replaced the list meanwhile).
@@ -724,4 +832,5 @@ module.exports = {
   VALUES,
   TABLES,
   SHAPE,
+  listRows,
 };
