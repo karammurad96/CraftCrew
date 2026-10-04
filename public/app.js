@@ -138,7 +138,9 @@ function uiStaticTexts() {
   if (nav) {
     for (const a of nav.querySelectorAll("a")) {
       const key = { "#/how-it-works": "how", "#/pricing": "pricing", "#/faq": "support" }[a.getAttribute("href")];
+      // A link this version no longer has (an older cached page shell, e.g. the public directory, T140) goes away
       if (key) a.textContent = t("ui.nav." + key);
+      else a.remove();
     }
   }
   const footer = document.querySelector("body > footer");

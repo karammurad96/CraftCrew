@@ -18,11 +18,30 @@ if (typeof document !== "undefined" && document.documentElement) {
   document.documentElement.lang = ccLang;
   document.documentElement.dir = ccLanguage.dir || "ltr";
 }
-// The language buttons (one per registered language), for the sidebar and the public top bar
+// The language menu (T152): a globe button with the current language; it opens a list of every registered
+// language. One button however many languages there are, for the sidebar and the public top bar.
+const CC_GLOBE =
+  '<svg class="i18n-globe" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.8 3.9 5.8 3.9 9s-1.3 6.2-3.9 9c-2.6-2.8-3.9-5.8-3.9-9S9.4 5.8 12 3z"/></svg>';
 function langSwitch(label, action) {
-  return `<div class="i18n-switch" role="group" aria-label="${esc(label)}">${ccLanguages
-    .map((l) => `<button type="button" class="${l.code === ccLang ? "on" : ""}" data-action="${action}" data-lang="${l.code}" lang="${l.code}" title="${esc(l.name)}">${l.code.toUpperCase()}</button>`)
-    .join("")}</div>`;
+  return `<details class="i18n-menu"><summary aria-label="${esc(label)}: ${esc(ccLanguage.name)}" title="${esc(label)}">${CC_GLOBE}<span class="i18n-code">${esc(
+    ccLang.toUpperCase(),
+  )}</span></summary><div class="i18n-list" role="group" aria-label="${esc(label)}">${ccLanguages
+    .map(
+      (l) =>
+        `<button type="button" class="${l.code === ccLang ? "on" : ""}" aria-pressed="${l.code === ccLang}" data-action="${action}" data-lang="${l.code}" lang="${l.code}" dir="${l.dir || "ltr"}"><span>${esc(
+          l.name,
+        )}</span><small>${l.code.toUpperCase()}</small></button>`,
+    )
+    .join("")}</div></details>`;
+}
+// A click outside an open language menu, or Escape, closes it
+if (typeof document !== "undefined" && document.addEventListener) {
+  document.addEventListener("click", (event) => {
+    for (const d of document.querySelectorAll("details.i18n-menu[open]")) if (!d.contains(event.target)) d.open = false;
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") for (const d of document.querySelectorAll("details.i18n-menu[open]")) d.open = false;
+  });
 }
 // Switch the language: saved in this browser and, when signed in, on the account (emails use it), then reload.
 async function langSet(code) {
