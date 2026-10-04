@@ -4,6 +4,7 @@
  * lands on the inviting customer's list. Nobody else ever sees the list, the notes or the tags.
  */
 const locales = require("./locales");
+const { BRAND } = locales;
 
 module.exports = function createPreferred(ctx) {
   const { getDb, save, send, body, id, now, notify, queueEmail, appUrl, normEmail, rateLimited } = ctx;
@@ -69,7 +70,7 @@ module.exports = function createPreferred(ctx) {
       if (known?.supplierId && db.suppliers.some((s) => s.id === known.supplierId && s.live))
         return (
           send(res, 409, {
-            error: "This supplier is already on CraftCrew. Add them from the supplier directory.",
+            error: `This supplier is already on ${BRAND.name}. Add them from the supplier directory.`,
             supplierId: known.supplierId,
           }),
           true

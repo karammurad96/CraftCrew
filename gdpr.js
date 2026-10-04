@@ -3,6 +3,7 @@
  * 14-day grace period, and the job that anonymises an account once the grace period is over.
  */
 const locales = require("./locales");
+const { BRAND } = locales;
 
 // Fields that are never handed out, not even to their owner: password hashes, 2FA secrets, tokens.
 const SECRET = /password|salt|totp|secret|recovery|token/i;
@@ -137,7 +138,7 @@ module.exports = function createGdpr(ctx) {
     const data = {
       exportedAt: now(),
       about:
-        "This file contains the personal data CraftCrew stores about you (Art. 15 and 20 GDPR). Passwords, two-factor secrets and session tokens are never exported.",
+        `This file contains the personal data ${BRAND.name} stores about you (Art. 15 and 20 GDPR). Passwords, two-factor secrets and session tokens are never exported.`,
       account: withoutSecrets(self),
       sessions: (db.sessions || [])
         .filter((s) => s.userId === self.id)

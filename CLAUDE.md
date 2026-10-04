@@ -18,7 +18,7 @@ The work backlog is in `docs/TASKS.md`. Do **one task at a time**, exactly as wr
 | `locales.js` | The server's languages and texts (T137): reads `public/core/languages.js` and the locale files. Notifications (`notify(id, { key, params })`), emails (`sendMail()`) and PDFs take their texts from the `server` group there, in the recipient's language. |
 | `public/index.html` | Page shell. Loads `app.js` and then about 19 add-on scripts **in order**. |
 | `public/*.js` | Frontend. Later files override functions of earlier ones and wrap `window.route`. The **last** definition of a function wins. |
-| `public/core/` | `languages.js` (the language registry), `t.js` (translations: `t()`, `t.plural`, `fmt`, `tStatus`), `actions.js` (one delegated listener for `data-action`), `router.js` (the route table), `boot.js` (start-up). |
+| `public/core/` | `brand.js` (the product's name, T171: texts say `{brand}`, the page shell `{{brand}}`), `languages.js` (the language registry), `t.js` (translations: `t()`, `t.plural`, `fmt`, `tStatus`), `actions.js` (one delegated listener for `data-action`), `router.js` (the route table), `boot.js` (start-up). |
 | `public/areas/*.js` | The pages, one file per area (T126–T135), drawn with `t()` keys and `data-action` handlers. |
 | `public/locales/<code>.js` | The texts of one language by key (`en.js` is the reference). The `server` group holds the server's notifications, emails and PDF labels. |
 | `test/*.test.js` | `node:test` suites. `test/helpers.js` starts a real server in production mode on a temporary data folder. |

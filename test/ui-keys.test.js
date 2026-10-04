@@ -33,7 +33,7 @@ function ctxFor(lang, user) {
   ctx.window = ctx;
   ctx.els = els;
   vm.createContext(ctx);
-  for (const f of ["core/languages.js", "locales/en.js", "locales/de.js", "core/t.js", "core/actions.js"]) vm.runInContext(read(f), ctx, { filename: f });
+  for (const f of ["core/brand.js", "core/languages.js", "locales/en.js", "locales/de.js", "core/t.js", "core/actions.js"]) vm.runInContext(read(f), ctx, { filename: f });
   return ctx;
 }
 
