@@ -265,7 +265,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T144 Scrolling: the page scrolls over cards; long cards scroll inside · S
 - [x] T145 Team planner: no dark cells, week steps, bigger calendar, double-click to edit · M
 - [x] T146 Supplier search: main and sub categories, more filters and sorting · M
-- [ ] T147 Project plan view for suppliers (their own tasks only) · M
+- [x] T147 Project plan view for suppliers (their own tasks only) · M
 - [ ] T148 Analytics: add your own charts from any data, resizable · M
 - [ ] T149 Offer comparison: the weights next to the ranking · S
 - [ ] T150 Sidebar: projects as a drop-down under "Projects" · S

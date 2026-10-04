@@ -1287,6 +1287,20 @@ LOCALES.de = {
       "created": "Projekt angelegt"
     },
     "work": {
+      "view": {
+        "label": "Arbeit anzeigen als",
+        "plan": "Projektplan",
+        "tasks": "Aufgabenkarten"
+      },
+      "plan": {
+        "summary": "{done} von {n} Ihrer Aufgaben erledigt · {progress} % gesamt",
+        "open": "Projekt öffnen",
+        "today": "Heute",
+        "late": {
+          "one": "{n} Aufgabe verspätet",
+          "other": "{n} Aufgaben verspätet"
+        }
+      },
       "title": "Zugewiesene Arbeit",
       "intro": "Beantworten Sie neue Einladungen und melden Sie dann Fortschritt, Dokumente und Rechnungen für angenommene Arbeiten.",
       "findMore": "Weitere Aufträge finden",

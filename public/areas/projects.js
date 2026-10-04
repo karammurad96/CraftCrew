@@ -130,6 +130,11 @@ async function prSupplierWork(params, query) {
       back = `&back=${encodeURIComponent("/supplier/projects/" + p.id)}`;
     return `<article class="panel review-work-card"><div class="project-card-head"><div><span class="eyebrow">${esc(p.name)} · ${prDom(ph.name)}</span><h3>${esc(x.name)}</h3></div>${prStatus(x.status || "Not Started")}</div><p>${esc(x.description || "")}</p><div class="wf-task-meta"><span>${esc(fmt.date(x.startDate))} <span class="dir-flip" aria-hidden="true">→</span> ${esc(fmt.date(x.dueDate))}</span><span>${w("complete", { n: progress })}</span></div><div class="timeline-line"><i style="width:${progress}%"></i></div><div class="cc-actions"><button class="btn small outline" data-action="projects.progress" data-project="${esc(p.id)}" data-phase="${esc(ph.id)}" data-task="${esc(x.id)}" data-progress="${progress}">${w("updateProgress")}</button><a class="btn small outline" href="#/supplier/projects/${esc(p.id)}/documents?phase=${esc(encodeURIComponent(ph.id))}&amp;task=${esc(encodeURIComponent(x.id))}">${w("documents")}</a><a class="btn small outline" href="#/supplier/invoices?${esc(q + back)}">${w("invoices")}</a><a class="btn small outline" href="#/supplier/messages?${esc(q + back)}">${w("messages")}</a></div></article>`;
   };
+  // T147: the project plan (one timeline per project with this supplier's own tasks) or the task cards
+  const view = query.get("view") === "tasks" ? "tasks" : "plan",
+    switcher = `<div class="xp-views pl-spans pr-views" role="group" aria-label="${w("view.label")}">${["plan", "tasks"]
+      .map((v) => `<a class="${v === view ? "on" : ""}" aria-current="${v === view}" href="#/supplier/projects${v === "tasks" ? "?view=tasks" : ""}">${w("view." + v)}</a>`)
+      .join("")}</div>`;
   app.innerHTML = dashboardShell(
     "supplier",
     "phases",
@@ -138,11 +143,55 @@ async function prSupplierWork(params, query) {
       invites.length
         ? `<section class="panel inv-panel"><div class="panel-title"><h3>${w("waiting")}</h3><span class="ui-count">${invites.length}</span></div><p class="subtle inv-hint">${w("hint")}</p><div class="inv-list">${invites.map(inviteCard).join("")}</div></section>`
         : "",
-      `<div class="panel-title inv-work-title"><h3>${w("accepted")}</h3><span class="ui-count">${work.length}</span></div>`,
-      `<div class="review-work-grid">${work.map(workCard).join("") || `<div class="empty">${w("empty")}</div>`}</div>`,
+      `<div class="panel-title inv-work-title"><h3>${w("accepted")}</h3><span class="ui-count">${work.length}</span>${switcher}</div>`,
+      view === "plan"
+        ? prPlan(work) || `<div class="empty">${w("empty")}</div>`
+        : `<div class="review-work-grid">${work.map(workCard).join("") || `<div class="empty">${w("empty")}</div>`}</div>`,
     ),
   );
   if (highlight) document.getElementById("inv-" + highlight)?.scrollIntoView({ block: "center" });
+}
+// One card per project: the supplier's own tasks on a shared date axis, with progress, lateness and today
+function prPlan(work) {
+  const w = (key, params) => prk("work." + key, params),
+    today = new Date().toISOString().slice(0, 10),
+    byProject = new Map();
+  for (const x of work) {
+    if (!byProject.has(x.p.id)) byProject.set(x.p.id, { p: x.p, rows: [] });
+    byProject.get(x.p.id).rows.push(x);
+  }
+  const day = (d) => new Date(String(d).slice(0, 10) + "T00:00:00Z").getTime();
+  return [...byProject.values()]
+    // Running projects first, finished ones last; within each, the nearest due date first
+    .sort((a, b) => (a.p.status === "Completed") - (b.p.status === "Completed") || String(a.p.dueDate || "").localeCompare(String(b.p.dueDate || "")))
+    .map(({ p, rows }) => {
+      const dated = rows.filter((r) => r.t.startDate || r.t.dueDate),
+        from = Math.min(...dated.map((r) => day(r.t.startDate || r.t.dueDate))),
+        to = Math.max(...dated.map((r) => day(r.t.dueDate || r.t.startDate))),
+        span = Math.max(1, to - from + 86400000),
+        pos = (d) => Math.max(0, Math.min(100, ((day(d) - from) / span) * 100)),
+        done = rows.filter((r) => r.t.status === "Completed").length,
+        progress = Math.round(rows.reduce((a, r) => a + Math.min(100, Number(r.t.progress) || 0), 0) / rows.length),
+        late = rows.filter((r) => r.t.status !== "Completed" && r.t.dueDate && r.t.dueDate < today).length,
+        todayMark = dated.length && day(today) >= from && day(today) <= to ? `<i class="pr-today" style="inset-inline-start:${pos(today)}%" title="${w("plan.today")}"></i>` : "";
+      const row = ({ ph, t: x }) => {
+        const start = x.startDate || x.dueDate,
+          end = x.dueDate || x.startDate,
+          cls = x.status === "Completed" ? "done" : end && end < today ? "late" : "",
+          bar = start
+            ? `<span class="pr-bar ${cls}" style="inset-inline-start:${pos(start)}%;width:${Math.max(2, pos(end) - pos(start) + (86400000 / span) * 100)}%"><i style="width:${Math.min(100, Number(x.progress) || 0)}%"></i></span>`
+            : "";
+        return `<div class="pr-plan-row"><a href="#/supplier/projects/${esc(p.id)}?tab=tasks"><b>${esc(x.name)}</b><small>${prDom(ph.name)}</small></a><div class="pr-plan-track">${bar}${todayMark}</div><span class="pr-plan-when">${esc(fmt.date(end))} · ${esc(Math.min(100, Number(x.progress) || 0))}%</span></div>`;
+      };
+      return `<section class="panel pr-plan"><header class="pr-plan-head"><div><span class="eyebrow">${esc(p.customerCompany || "")}</span><h3><a href="#/supplier/projects/${esc(p.id)}">${esc(p.name)}</a></h3><small>${w("plan.summary", {
+        done,
+        n: rows.length,
+        progress,
+      })}${late ? ` · <span class="pr-late">${esc(t.plural("projects.work.plan.late", late))}</span>` : ""}</small></div>${prStatus(p.status || "In Progress")}<a class="btn small outline" href="#/supplier/projects/${esc(p.id)}">${w("plan.open")}</a></header>${
+        dated.length ? `<div class="pr-plan-axis"><span></span><div><span>${esc(fmt.date(new Date(from).toISOString().slice(0, 10)))}</span><span>${esc(fmt.date(new Date(to).toISOString().slice(0, 10)))}</span></div><span></span></div>` : ""
+      }<div class="pr-plan-rows">${rows.map(row).join("")}</div></section>`;
+    })
+    .join("");
 }
 actions.on("projects.progress", (el) => pdProgress(el.dataset.project, el.dataset.phase, el.dataset.task, Number(el.dataset.progress)));
 
