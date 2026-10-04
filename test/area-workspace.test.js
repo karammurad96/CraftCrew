@@ -98,6 +98,32 @@ function area(lang, role, { hash = `#/${role}/projects/p1`, proj = project(), us
 const text = (html) => html.replace(/<[^>]*>/g, " ");
 
 describe("project workspace area (T128b)", () => {
+  it("loads the project chat under the tab bar and sends from there (T143)", async () => {
+    const ctx = area("en", "customer");
+    const box = { dataset: { project: "p1" }, innerHTML: "", querySelector: () => ({ scrollTop: 0, scrollHeight: 10 }) };
+    ctx.document.querySelector = (sel) => (sel === ".ws-chat" ? box : null);
+    const api = ctx.api;
+    ctx.api = async (p, opts) => {
+      if (p === "/chats") return { chats: [{ id: "c2", projectId: "p1", taskId: "t1", title: "Task chat" }, { id: "c1", projectId: "p1", title: "Line 4", members: [{ id: "u2", name: "Jonas" }] }] };
+      if (p === "/chats/c1/messages") return opts?.method === "POST" ? {} : { messages: [{ senderId: "u2", text: "Cell is ready", createdAt: "2026-10-03T10:00:00Z" }] };
+      return api(p, opts);
+    };
+    await vm.runInContext("wsLoadChat()", ctx);
+    assert.match(box.innerHTML, /<h2 class="ds-dash-h ds-ui">Line 4<\/h2>/, "the whole-project chat comes first");
+    assert.ok(box.innerHTML.includes("<b>Jonas</b><p>Cell is ready</p>") && box.innerHTML.includes('data-action="ws.chatSend" data-chat="c1"'));
+    const sent = [];
+    const post = ctx.api;
+    ctx.api = async (p, opts) => (opts?.method === "POST" && sent.push([p, opts.body]), post(p, opts));
+    ctx.FormData = class {
+      get() {
+        return "On my way";
+      }
+    };
+    await vm.runInContext("actions", ctx).run("ws.chatSend", { dataset: { chat: "c1" } }, { type: "submit", preventDefault() {} });
+    await new Promise((r) => setTimeout(r, 0));
+    assert.deepEqual(JSON.parse(JSON.stringify(sent)), [["/chats/c1/messages", { text: "On my way" }]]);
+  });
+
   for (const lang of ["en", "de"])
     for (const role of ["customer", "supplier"])
       it(`draws the ${role} workspace in ${lang === "en" ? "English" : "German"} from keys`, async () => {
@@ -118,7 +144,12 @@ describe("project workspace area (T128b)", () => {
     for (const a of ["ws.share", "ws.edit", "ws.support", "ws.delete", "ws.addPhase", "ws.complete", "ws.editPhase", "ws.addTask"]) assert.ok(html.includes(`data-action="${a}"`), a);
     assert.ok(html.includes('href="#/customer/projects/p1/board">▦ Board view</a>'));
     assert.ok(html.includes('href="#/customer/invoices?project=p1">Review invoices</a>'));
-    assert.ok(html.includes(">Files (1)</a>") && html.includes(">Messages · 3</a>"));
+    // T143: Files, Messages and Invoices are tabs on the page, each with a compact view and the full page one click away
+    for (const tab of ["files", "messages", "invoices"]) assert.match(html, new RegExp(`<button type="button" role="tab" data-tab="${tab}" data-action="ws\\.tab"`), tab);
+    assert.ok(html.includes(">Files (1)</button>") && html.includes(">Messages · 3</button>"));
+    assert.ok(html.includes('<div class="ds-ws-pane ds-ws-files" data-tab="files" hidden>') && html.includes("Open document desk ›"));
+    assert.match(html, /<div class="ds-ws-pane ds-ws-invoices" data-tab="invoices" hidden>.*href="#\/customer\/invoice\/i1"><b>2026-0001<\/b>/s);
+    assert.ok(html.includes('href="#/customer/invoices?project=p1&amp;back=%2Fcustomer%2Fprojects%2Fp1">Open all invoices ›</a>'));
     // Overview (T98): up next, phases, progress, budget, suppliers
     assert.match(html, /href="#\/customer\/invoice\/i1"[^>]*>Review</);
     assert.ok(html.includes("Approve 1 time entry"));

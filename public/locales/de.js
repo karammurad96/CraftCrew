@@ -1324,6 +1324,23 @@ LOCALES.de = {
       "delete": "Projekt löschen oder archivieren …",
       "reviewInvoices": "Rechnungen prüfen"
     },
+    "pane": {
+      "loading": "Wird geladen…",
+      "files": "Dateien",
+      "openFiles": "Dokumentenablage öffnen ›",
+      "noFiles": "Noch keine Dateien in diesem Projekt.",
+      "invoices": "Rechnungen",
+      "openInvoices": "Alle Rechnungen öffnen ›",
+      "noInvoices": "Noch keine Rechnungen für dieses Projekt.",
+      "chat": "Projekt-Chat",
+      "openChat": "In Nachrichten öffnen ›",
+      "noChat": "Für dieses Projekt gibt es noch keine Unterhaltung.",
+      "startChat": "Projekt-Chat starten",
+      "noMessages": "Noch keine Nachrichten. Schreiben Sie unten die erste.",
+      "write": "Nachricht schreiben…",
+      "send": "Senden",
+      "you": "Sie"
+    },
     "tabs": {
       "label": "Projektbereiche",
       "overview": "Übersicht",
