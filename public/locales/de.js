@@ -4303,8 +4303,9 @@ LOCALES.de = {
         "other": "{n} Doppelbuchungen"
       }
     },
-    "prev": "Zurück",
-    "next": "Weiter",
+    "prev": "Vorherige Woche",
+    "next": "Nächste Woche",
+    "hint": "Doppelklick auf einen Tag plant, Doppelklick auf einen Eintrag bearbeitet ihn, Ziehen verschiebt ihn.",
     "today": "Heute",
     "legend": {
       "assignment": "Auftrag",

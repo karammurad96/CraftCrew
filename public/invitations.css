@@ -17,11 +17,6 @@
   .inv-card { grid-template-columns: 1fr; }
   .inv-card-actions { flex-direction: row; flex-wrap: wrap; min-width: 0; }
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .inv-wait { background: #422006; border-color: #92400e; color: #fde68a; }
-  :root:not([data-theme="light"]) .inv-wait.inv-declined { background: #450a0a; border-color: #991b1b; color: #fecaca; }
-}
-
 /* Assigned work cards start on the same line (no extra top margin on later panels). */
 .review-work-grid { align-items: stretch; }
 .review-work-grid > .panel { margin: 0 !important; }

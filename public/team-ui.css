@@ -209,18 +209,6 @@
     text-align: center;
   }
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .tm-level.tm-view,
-  :root:not([data-theme="light"]) .tm-seg-opt.tm-view input:checked + span {
-    background: #1e3a8a;
-    color: #dbeafe;
-  }
-  :root:not([data-theme="light"]) .tm-level.tm-full,
-  :root:not([data-theme="light"]) .tm-seg-opt.tm-full input:checked + span {
-    background: #14532d;
-    color: #dcfce7;
-  }
-}
 .sidebar nav a[hidden] {
   display: none !important;
 }

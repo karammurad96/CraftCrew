@@ -13,6 +13,7 @@
 .pl-nav {
   display: flex;
   align-items: center;
+  flex-wrap: wrap; /* T145: the week buttons wrap on phones instead of widening the page */
   gap: 6px;
 }
 .pl-nav h3 {
@@ -135,9 +136,9 @@
 .pl-track {
   position: relative;
   display: grid;
-  gap: 3px 0;
-  padding: 5px 0;
-  min-height: 36px;
+  gap: 4px 0;
+  padding: 8px 0;
+  min-height: 64px; /* T145: a roomy row even with nothing planned */
 }
 .pl-head .pl-track {
   padding: 0;
@@ -172,7 +173,7 @@
 .pl-cell {
   border-inline-start: 1px solid var(--line, #f1f3f6);
   cursor: pointer;
-  margin: -5px 0;
+  margin: -8px 0;
 }
 .pl-cell:hover {
   background: #eff6ff;
@@ -259,15 +260,6 @@
     display: none;
   }
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .pl-day.weekend,
-  :root:not([data-theme="light"]) .pl-cell.weekend {
-    background: #0f172a;
-  }
-  :root:not([data-theme="light"]) .pl-cell:hover {
-    background: #1e293b;
-  }
-}
 .pl-spans {
   --xp-sel: #dbeafe;
   display: flex;
@@ -318,4 +310,27 @@
   .pl-job > .btn {
     width: auto;
   }
+}
+
+/* T145: how to use the calendar, and a visible focus for keyboard editing */
+.pl-hint {
+  flex-basis: 100%;
+  order: 3;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted, #64748b);
+}
+.pl-bar[data-entry]:focus-visible {
+  outline: 2px solid var(--ui-blue, #2563eb);
+  outline-offset: 1px;
+}
+.pl-cell {
+  cursor: copy;
+}
+/* T145: the calendar keeps a good size when almost empty: the people rows share the extra height */
+.pl-grid {
+  display: grid;
+  grid-template-rows: auto;
+  grid-auto-rows: minmax(72px, 1fr);
+  min-height: 420px;
 }

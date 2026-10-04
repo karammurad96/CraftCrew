@@ -4304,8 +4304,9 @@ LOCALES.en = {
         "other": "{n} double bookings"
       }
     },
-    "prev": "Previous",
-    "next": "Next",
+    "prev": "Previous week",
+    "next": "Next week",
+    "hint": "Double-click a day to plan, double-click an entry to edit, drag an entry to move it.",
     "today": "Today",
     "legend": {
       "assignment": "Job",
