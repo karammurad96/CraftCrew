@@ -3485,6 +3485,18 @@ quality was not good enough).
    since T152.
 4. Known limit: Arabic PDFs fall back to English until a font with Arabic letters is embedded.
 
+**Steps 1 and 2 done (4 October 2026).** `tools/i18n/export.js` and `import.js` (shared code in `common.js`):
+- the CSV has the columns key, English, translation and note, with a byte order mark so spreadsheets open it
+  as UTF-8;
+- the note flags missing texts, wrong placeholders and texts that are the same as English;
+- `import.js` refuses missing texts, other placeholders and unknown keys, and writes nothing then; `--check`
+  only checks, `--out` writes elsewhere;
+- `test/i18n-tools.test.js` covers both directions.
+
+Exported from the saved branch on that day: French has 4,254 texts, of which 114 newer ones are missing. A few
+saved texts still say "CraftCrew" where English now says `{brand}` (T171); the note column shows each one.
+Steps 3 and 4 wait for the reviewers.
+
 ---
 
 ## Wave 11 — launch day and after
