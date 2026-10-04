@@ -349,8 +349,16 @@ async function inDecide(id, action, comment, message) {
     toast(x.message, "error");
   }
 }
+// Approving schedules a payment, so it is never one click (T142): the dialog names the invoice and the amount.
+async function inConfirmApprove(id) {
+  const i = (await api("/invoices/" + encodeURIComponent(id)).catch(() => ({}))).invoice;
+  return uiConfirm(t("inv.act.approveConfirm", { number: i ? invNo(i) : id, amount: i ? fmt.money(i.amount) : "" }), {
+    title: t("inv.act.approveTitle"),
+    confirmLabel: t("inv.act.approveYes"),
+  });
+}
 async function invoiceAction(id, action) {
-  if (action === "Approve") return inDecide(id, "Approve", "", "inv.act.approved");
+  if (action === "Approve") return (await inConfirmApprove(id)) && inDecide(id, "Approve", "", "inv.act.approved");
   const comment = inNote() || (await uiPrompt(t("inv.act.changesPrompt"))) || "";
   return inDecide(id, "Request Changes", comment, "inv.act.changesSent");
 }

@@ -32,7 +32,7 @@ const INVOICES = [
   { id: "inv2", number: "2026-0001", projectId: "p1", phaseId: "ph1", supplierCompany: "Keller Automation", status: "Changes Requested", amount: 9200, createdAt: "2026-09-01T10:00:00Z", comments: "Add hours" },
 ];
 
-function area(lang, { role = "customer", hash = "#/customer/invoices", prompt = "Too high" } = {}) {
+function area(lang, { role = "customer", hash = "#/customer/invoices", prompt = "Too high", confirm = true } = {}) {
   const warnings = [],
     calls = [],
     toasts = [],
@@ -56,6 +56,7 @@ function area(lang, { role = "customer", hash = "#/customer/invoices", prompt = 
     modal: (title, body) => shown.push({ title, body }),
     closeModal: () => calls.push(["close"]),
     uiPrompt: async (message) => (calls.push(["prompt", message]), prompt),
+    uiConfirm: async (message, opts) => (calls.push(["confirm", message, opts?.confirmLabel]), confirm),
     dashboardShell: (r, active, html) => `[${r}:${active}]${html}`,
     invNo: (i) => i.number || i.id,
     invNet: (i) => Number(i.amount),
@@ -137,6 +138,20 @@ describe("invoices (T130a)", () => {
     assert.deepEqual(writes, [{ action: "Request Changes", comment: "Bitte aufteilen" }, { action: "Rejected", comment: "Too high" }]);
     assert.ok(ctx.calls.some((c) => c[0] === "prompt" && c[1] === "Grund der Ablehnung?"));
     assert.equal(ctx.calls.filter((c) => c[1] === "/invoices/inv1" && c[2] === "GET").length, 3, "the current page is drawn again after each decision");
+  });
+
+  it("asks before approving, naming the invoice and the amount (T142)", async () => {
+    for (const confirm of [false, true]) {
+      const ctx = area("en", { confirm });
+      await ctx.render("#/customer/invoice/inv1");
+      ctx.run("inv.approve", { dataset: { id: "inv1" } });
+      await settle();
+      const asked = ctx.calls.find((c) => c[0] === "confirm");
+      assert.match(asked[1], /^Approve invoice 2026-0004 for €[\d,.]+\? The payment is then scheduled\.$/);
+      assert.equal(asked[2], "Approve invoice");
+      const writes = ctx.calls.filter((c) => c[2] === "PATCH").map((c) => c[3].action);
+      assert.deepEqual(writes, confirm ? ["Approve"] : [], confirm ? "approves after yes" : "cancel changes nothing");
+    }
   });
 
   it("lets suppliers fix and resubmit a returned invoice", async () => {
