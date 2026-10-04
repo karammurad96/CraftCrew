@@ -163,6 +163,15 @@ describe("design 2026", () => {
     // The pending deletions moved to the admin area (T134a), the self-service panel to the profile area (T135a)
   });
 
+  it("lines up inline page parts with the centred content on wide screens (T153)", () => {
+    // ui-refresh.css centres direct children of .dashboard-content with automatic margins; inline boxes ignore
+    // them, so these get the column's left edge explicitly (checked on every page by tools/audit/align.js)
+    assert.match(read("ui-refresh.css"), /\.dashboard-content > \* \{\n  max-width: 1400px;/);
+    const rule = read("design-screens.css").match(/\.dashboard-content > :is\(([^)]+)\) \{\n  margin-inline-start: max\(0px, calc\(\(100% - 1400px\) \/ 2\)\) !important;/);
+    assert.ok(rule, "the alignment rule exists");
+    for (const c of [".breadcrumb", ".ds-ws-tabs", ".ds-approve-filter", ".inv-work-title"]) assert.ok(rule[1].includes(c), c);
+  });
+
   it("lets the page scroll over cards and long cards scroll inside (T144)", () => {
     const fs = require("node:fs"),
       dir = path.join(__dirname, "..", "public");

@@ -273,7 +273,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T152 Language: a globe button with a drop-down of all languages instead of one button per language · S
 
 **Wave 8 follow-up (found by Karam on a wide screen, 4 October 2026)**
-- [ ] T153 Wide screens: breadcrumb, project tabs and filter bars line up with the page content · S · cheap model OK
+- [x] T153 Wide screens: breadcrumb, project tabs and filter bars line up with the page content · S · cheap model OK
 
 **Wave 9 — PostgreSQL (T81 split; decided with Karam on 4 October 2026: build it now at no cost, the JSON file stays the default until launch; details under "Wave 9 — PostgreSQL")**
 - [ ] T160 Store layer: one module loads and saves the data; tests stop reading `db.json` directly · M · no new dependency
@@ -2959,8 +2959,8 @@ a click outside or Escape closes it. Top-bar links without a text in this versio
 - The overflow runs still print "No problems." (4 runs).
 
 **Done when.**
-- [ ] On a 2,560 px screen the breadcrumb, tabs, header and cards of a project page share one left edge (screenshot in the PR).
-- [ ] `tools/audit/align.js` reports no problems at 1,920 and 2,560 px for every role.
+- [x] On a 2,560 px screen the breadcrumb, tabs, header and cards of a project page share one left edge (screenshot in the PR).
+- [x] `tools/audit/align.js` reports no problems at 1,920 and 2,560 px for every role.
 
 ---
 
