@@ -975,6 +975,7 @@ LOCALES.en = {
     "quickNav": "Quick navigation",
     "language": "Language",
     "bellLabel": "Notifications, {n} unread",
+    "yourData": "Your data & account",
     "projectsList": "Show or hide your projects",
     "noProjects": "No projects yet",
     "countLabel": "{n} open",
@@ -3956,6 +3957,15 @@ LOCALES.en = {
     }
   },
   prof: {
+    "sections": {
+      "label": "Settings sections",
+      "company": "Company",
+      "security": "Security",
+      "notifications": "Notifications",
+      "calendar": "Calendar",
+      "twoFactor": "Two-factor sign-in",
+      "data": "Your data & delete account"
+    },
     "editCompany": "Edit company details",
     "settings": "Settings",
     "eyebrow": "ACCOUNT WORKSPACE",

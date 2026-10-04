@@ -974,6 +974,7 @@ LOCALES.de = {
     "quickNav": "Schnellnavigation",
     "language": "Sprache",
     "bellLabel": "Benachrichtigungen, {n} ungelesen",
+    "yourData": "Ihre Daten & Konto",
     "projectsList": "Ihre Projekte ein- oder ausblenden",
     "noProjects": "Noch keine Projekte",
     "countLabel": "{n} offen",
@@ -3955,6 +3956,15 @@ LOCALES.de = {
     }
   },
   prof: {
+    "sections": {
+      "label": "Bereiche der Einstellungen",
+      "company": "Unternehmen",
+      "security": "Sicherheit",
+      "notifications": "Benachrichtigungen",
+      "calendar": "Kalender",
+      "twoFactor": "Zwei-Faktor-Anmeldung",
+      "data": "Ihre Daten & Konto löschen"
+    },
     "editCompany": "Unternehmensdaten bearbeiten",
     "settings": "Einstellungen",
     "eyebrow": "KONTO",

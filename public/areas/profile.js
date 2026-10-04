@@ -37,21 +37,43 @@ async function profilePage(role) {
           ...pfCompany(d),
           role === "supplier" && d.supplier ? pfMarketplace(d.supplier) : "",
         ];
+  // T151: a section menu at the top, so security, notifications and "Your data" (export, delete account) are one click away
+  const sections = [
+    role === "admin" ? null : ["pfCompany", "company"],
+    ["paSecurity", "security"],
+    ["pfNotify", "notifications"],
+    calendar ? ["cfPanel", "calendar"] : null,
+    twoFactor ? ["tfPanel", "twoFactor"] : null,
+    ["gdPanel", "data"],
+  ].filter(Boolean);
+  const menu = `<nav class="pf-sections" aria-label="${pfk("sections.label")}">${sections
+    .map(([id, key]) => `<button type="button" class="pf-section${key === "data" ? " pf-section-data" : ""}" data-action="prof.jump" data-target="${id}">${pfk("sections." + key)}</button>`)
+    .join("")}</nav>`;
   app.innerHTML = dashboardShell(
     role,
     "profile",
-    [...parts, pfSettings(role, d.user), calendar, twoFactor, pfDataPanel()]
+    [parts[0], menu, ...parts.slice(1), pfSettings(role, d.user), calendar, twoFactor, pfDataPanel()]
       .filter(Boolean)
       .join(""),
   );
   if (role !== "admin") pfDeletion();
+  // A link to "Your data & account" (?section=data) opens the page at that section
+  const want = { data: "gdPanel", security: "paSecurity", notifications: "pfNotify" }[new URLSearchParams(location.hash.split("?")[1] || "").get("section")];
+  if (want) document.getElementById(want)?.scrollIntoView({ block: "start" });
 }
+actions.on("prof.jump", (el) => {
+  const target = document.getElementById(el.dataset.target);
+  if (!target) return;
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+  target.classList.add("pf-flash");
+  setTimeout(() => target.classList.remove("pf-flash"), 1200);
+});
 function pfCompany(d) {
   const c = d.companyProfile || {},
     u = d.user,
     fields = ["legalName", "taxId", "industry", "companySize", "address", "website", "contactName", "phone", "procurementEmail", "description"],
     value = { ...c, contactName: c.contactName || u.name };
-  return [`<div class="wf-profile-head">${
+  return [`<div class="wf-profile-head" id="pfCompany">${
     u.profileImage ? `<img class="wf-profile-image" src="${esc(u.profileImage)}" alt="${pfk("photoAlt")}">` : `<div class="supplier-avatar large">${esc((u.company || u.name).slice(0, 2).toUpperCase())}</div>`
   }<div><h2>${u.company ? esc(u.company) : pfk("companyRequired")}</h2><b>${esc(u.name)}</b><p>${ltr(u.email)} · ${c.phone ? ltr(c.phone) : pfk("addPhone")}</p></div></div>`, `<div class="wf-profile-grid">${fields
     .map((k) => `<article class="cc-card"><span class="cc-label">${pfk("field." + k)}</span><b>${value[k] ? (k === "description" || k === "industry" ? pfDom(value[k]) : ["taxId", "website", "phone", "procurementEmail"].includes(k) ? ltr(value[k]) : esc(value[k])) : pfk("addInfo")}</b></article>`)
@@ -103,7 +125,7 @@ function pfSettings(role, user) {
     "repeat",
   )}<input name="confirm" type="password" autocomplete="new-password" minlength="10" required></label></div><small class="subtle">${s("rules")}</small><div class="form-error" role="alert"></div><div class="cc-actions"><button class="btn primary">${s(
     "change",
-  )}</button><button type="button" class="btn outline" data-action="prof.signOutOthers">${s("others")}</button></div></form></section><section class="panel"><h3>${pfk("prefs.title")}</h3><p class="subtle">${pfk(
+  )}</button><button type="button" class="btn outline" data-action="prof.signOutOthers">${s("others")}</button></div></form></section><section class="panel" id="pfNotify"><h3>${pfk("prefs.title")}</h3><p class="subtle">${pfk(
     "prefs.lead",
   )}</p><form id="paPrefsForm" class="pa-prefs" data-action="prof.prefs">${PF_PREFS.map((k) => `<label class="cc-check-label"><input type="checkbox" name="${k}" ${prefs[k] ? "checked" : ""}> ${pfk("prefs." + k)}</label>`).join(
     "",

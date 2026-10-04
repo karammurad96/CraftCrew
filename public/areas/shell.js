@@ -76,7 +76,7 @@ function dashboardShell(role, active, content) {
     more.length
       ? `<div class="ng-title" data-title="More" role="button" tabindex="0" aria-expanded="${open}" data-action="shell.more" data-key="shell.more" data-key-on="Enter,Space">${sk("more")}</div>${more.map(link).join("")}`
       : ""
-  }</nav><div class="help" data-ui="1" data-ds="1">${langSwitch(t("shell.language"), "shell.lang")}<button class="btn small ghost" data-action="shell.help">${uiIcon("help")}<span>${sk("help")}</span></button><button class="btn small danger" style="margin-top:8px;width:100%" data-action="shell.logout">${uiIcon("logout")}<span>${sk("logout")}</span></button><button type="button" class="ui-link-btn ob-reopen" data-action="shell.checklist"${user.isMember || (typeof obShow !== "undefined" && obShow.allDone) ? " hidden" : ""}>${sk("checklist")}</button></div></aside><section class="dashboard-content">${content}</section>${
+  }</nav><div class="help" data-ui="1" data-ds="1">${langSwitch(t("shell.language"), "shell.lang")}<button class="btn small ghost" data-action="shell.help">${uiIcon("help")}<span>${sk("help")}</span></button><button class="btn small danger" style="margin-top:8px;width:100%" data-action="shell.logout">${uiIcon("logout")}<span>${sk("logout")}</span></button><button type="button" class="ui-link-btn ob-reopen" data-action="shell.checklist"${user.isMember || (typeof obShow !== "undefined" && obShow.allDone) ? " hidden" : ""}>${sk("checklist")}</button><a class="ui-link-btn ds-side-data" href="#/${esc(role)}/profile?section=data">${sk("yourData")}</a></div></aside><section class="dashboard-content">${content}</section>${
     bottom.length
       ? `<nav class="mnav-bottom" aria-label="${sk("quickNav")}">${bottom
           .map((key) => {
