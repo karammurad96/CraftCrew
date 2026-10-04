@@ -14,7 +14,6 @@ const LOGINS = {
 const PUBLIC = [
   "/",
   "/how-it-works",
-  "/suppliers",
   "/pricing",
   "/faq",
   "/login",

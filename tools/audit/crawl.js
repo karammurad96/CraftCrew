@@ -19,8 +19,6 @@ const ROLES = {
 const START = {
   public: [
     "/",
-    "/suppliers",
-    "/suppliers/sup_002",
     "/how-it-works",
     "/pricing",
     "/faq",
@@ -211,7 +209,7 @@ async function login(email, password) {
           (role === "public"
             ? !/^\/(customer|supplier|admin)\//.test(clean)
             : clean.startsWith("/" + role + "/") ||
-              ["/suppliers", "/faq", "/pricing", "/how-it-works"].includes(clean))
+              ["/faq", "/pricing", "/how-it-works"].includes(clean))
         ) {
           seen.add(clean);
           queue.push(clean);

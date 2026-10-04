@@ -881,9 +881,15 @@ actions.on("rq.send", async (form) => {
   }
 });
 
-routes.add("/suppliers", dirPage);
+// The directory is for signed-in customers only (T140): old public links lead to sign-in or the customer directory.
+function dirPublicLink(id) {
+  if (!state.user) return navigate("/login");
+  if (state.user.role !== "customer") return navigate(`/${state.user.role}/dashboard`);
+  navigate("/customer/suppliers" + (id ? "/" + encodeURIComponent(id) : ""));
+}
+routes.add("/suppliers", () => dirPublicLink());
 routes.add("/customer/suppliers", dirPage);
-routes.add("/suppliers/:id", dirProfile);
+routes.add("/suppliers/:id", (params) => dirPublicLink(params.id));
 routes.add("/customer/suppliers/:id", dirProfile);
 routes.add("/customer/preferred", () => pvPage());
 routes.add("/supplier/requests", () => dirRequests());

@@ -172,7 +172,7 @@ async function login(e, p) {
   const browser = await chromium.launch();
   const found = {};
   const routes = {
-    public: ["/", "/suppliers", "/supplier-application"],
+    public: ["/", "/supplier-application"],
     customer: [
       "/customer/dashboard",
       "/customer/projects",
@@ -208,7 +208,6 @@ async function login(e, p) {
       "/supplier/profile",
       "/supplier/planning",
       "/supplier/analytics",
-      "/suppliers",
     ],
     admin: [
       "/admin/dashboard",
@@ -219,7 +218,6 @@ async function login(e, p) {
       "/admin/audit",
       "/admin/disputes",
       "/admin/platform",
-      "/suppliers",
     ],
   };
   const sessions = { public: null, customer: cus, supplier: sup, admin: adm };

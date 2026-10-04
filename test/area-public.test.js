@@ -64,7 +64,8 @@ describe("public area", () => {
   it("draws the landing page in German from the start, with its links", async () => {
     const html = await area("de").render("/");
     assert.match(html, /<h1>Jedes Team\. Ein Projekt\. Null Chaos\.<\/h1>/);
-    for (const link of ["#/signup", "#/suppliers", "#/supplier-application"]) assert.ok(html.includes(`href="${link}"`), link);
+    for (const link of ["#/signup", "#/how-it-works", "#/supplier-application"]) assert.ok(html.includes(`href="${link}"`), link);
+    assert.ok(!html.includes('href="#/suppliers'), "no public supplier directory (T140)");
     assert.doesNotMatch(html, /Every crew/);
   });
 

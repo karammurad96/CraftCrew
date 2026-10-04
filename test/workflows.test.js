@@ -71,7 +71,7 @@ describe("full project workflow across customer, supplier and admin", () => {
         200,
       );
     }
-    const { suppliers } = await app.call("GET", "/suppliers");
+    const { suppliers } = await app.call("GET", "/suppliers", undefined, customer);
     assert.ok(
       suppliers.some((x) => x.id === supplierId) && suppliers.some((x) => x.id === rivalId),
       "approved suppliers are listed",

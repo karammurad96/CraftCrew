@@ -86,9 +86,9 @@ describe("account deletion job", () => {
   });
 
   it("removes the supplier from the directory", async () => {
-    const list = (await app.call("GET", "/suppliers")).suppliers;
+    const list = (await app.call("GET", "/suppliers", undefined, customer)).suppliers;
     assert.ok(!list.some((s) => s.id === supplierId));
-    assert.equal((await app.call("GET", `/suppliers/${supplierId}`)).status, 404);
+    assert.equal((await app.call("GET", `/suppliers/${supplierId}`, undefined, customer)).status, 404);
   });
 
   it("keeps the invoice with its legal details but without personal contact details", async () => {

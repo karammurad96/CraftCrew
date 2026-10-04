@@ -58,7 +58,7 @@ actions.on("apply.submit", async (form) => {
     body.proofUploads = await Promise.all(files.map(applyReadFile));
     const { application } = await api("/applications", { method: "POST", body });
     app.innerHTML = publicLayout(
-      `<div class="simple-page center-page"><div class="login-card"><div class="feature-icon" style="margin:auto">✓</div><h1>${pk("submittedTitle")}</h1><p>${pk("submittedText")}</p><p><b>${pk("reference")}</b> ${esc(application.id)}</p><a class="btn primary" href="#/suppliers">${pk("browse")}</a></div></div>`,
+      `<div class="simple-page center-page"><div class="login-card"><div class="feature-icon" style="margin:auto">✓</div><h1>${pk("submittedTitle")}</h1><p>${pk("submittedText")}</p><p><b>${pk("reference")}</b> ${esc(application.id)}</p><a class="btn primary" href="#/">${pk("browse")}</a></div></div>`,
     );
   } catch (x) {
     toast(x.message, "error"); // a server message, already in the user's language (api(), T137)

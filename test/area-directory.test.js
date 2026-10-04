@@ -133,9 +133,13 @@ describe("supplier directory (T129a)", () => {
     assert.match(html, /data-action="dir\.star" data-id="s1">★ Auf der Merkliste/);
     assert.match(html, /data-action="dir\.view" data-view="map"/);
     assert.match(html, /<form id="ccSupplierSearch" class="cc-supplier-filters" data-action="dir\.search">/);
-    // Visitors get the public layout and no shortlist
-    const visitor = await area("en", { role: null, hash: "#/suppliers" }).render();
-    assert.ok(visitor.startsWith("[public]") && !visitor.includes("dir.star") && visitor.includes('href="#/suppliers/s1"'));
+    // The directory is not public (T140): visitors go to sign-in, customers to their own directory
+    const visitor = area("en", { role: null, hash: "#/suppliers" });
+    await visitor.render();
+    assert.deepEqual(visitor.calls.at(-1), ["navigate", "/login"]);
+    const old = area("en", { hash: "#/suppliers/s1" });
+    await old.render();
+    assert.deepEqual(old.calls.at(-1), ["navigate", "/customer/suppliers/s1"]);
   });
 
   it("shows certificates after the reliability panel, the scorecard, and request buttons only to customers", async () => {
@@ -145,8 +149,9 @@ describe("supplier directory (T129a)", () => {
     assert.ok(html.includes("Supplier scorecard") && html.includes("Low risk"));
     assert.match(html, /data-action="dir\.ask" data-kind="service" data-supplier="s1" data-name="Robot cell">Request service/);
     assert.match(html, /data-action="pv\.add" data-supplier="s1"/);
-    const visitor = await area("en", { role: null }).render("#/suppliers/s1");
-    assert.ok(!visitor.includes('data-action="dir.ask"') && !visitor.includes("Supplier scorecard"));
+    const supplier = area("en", { role: "supplier", hash: "#/suppliers/s1" });
+    await supplier.render();
+    assert.deepEqual(supplier.calls.at(-1), ["navigate", "/supplier/dashboard"]);
   });
 
   it("sends a service request with an English kind", async () => {

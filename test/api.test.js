@@ -43,7 +43,8 @@ describe("production start-up and security", () => {
       ["alex@craftcrew.demo", "demo123"],
     ])
       assert.equal((await app.call("POST", "/auth/login", { email, password: pw })).status, 401, email);
-    assert.equal((await app.call("GET", "/suppliers")).suppliers.length, 0);
+    assert.equal((await app.call("GET", "/suppliers")).status, 401, "the directory needs a sign-in (T140)");
+    assert.equal((await app.call("GET", "/suppliers", undefined, await app.login("admin@test.local", "Admin-Password-2026!"))).suppliers.length, 0);
   });
   it("lets the bootstrap admin sign in and locks out password guessing", async () => {
     assert.ok(await app.login("admin@test.local", "Admin-Password-2026!"));
@@ -188,7 +189,7 @@ describe("marketplace flow: vetting → project → sourcing → contract → in
       admin,
     );
     assert.equal(ok.status, 200);
-    const dir = await app.call("GET", "/suppliers");
+    const dir = await app.call("GET", "/suppliers", undefined, customer);
     assert.equal(dir.suppliers.length, 1);
     assert.equal(dir.suppliers[0].badge, "Silver");
     assert.equal(
@@ -337,7 +338,7 @@ describe("marketplace flow: vetting → project → sourcing → contract → in
         .status,
       "Approved",
     );
-    const sid = (await app.call("GET", "/suppliers")).suppliers[0].id;
+    const sid = (await app.call("GET", "/suppliers", undefined, customer)).suppliers[0].id;
     const card = (await app.call("GET", `/suppliers/${sid}/scorecard`, undefined, customer)).scorecard;
     assert.equal(card.metrics.firstTimeRightRate, 0, "the invoice needed a correction");
     assert.equal(card.metrics.winRate, 100);
