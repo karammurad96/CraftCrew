@@ -240,3 +240,29 @@
     justify-items: center;
   }
 }
+
+/* T149: the weights right above the offer cards */
+.sr-weights-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 4px 0 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #f1f5ff;
+  color: #1e293b;
+  font-size: 14px;
+}
+.sr-weights-bar .ds-weights-toggle {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #2563eb;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sr-weights-panel {
+  margin-bottom: 14px !important;
+}

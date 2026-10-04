@@ -108,6 +108,10 @@ describe("sourcing (T129c)", () => {
 
   it("shows a card per offer with the award and the other decisions", async () => {
     const html = await area("en").render();
+    // T149: the weights sit between the header and the offer cards they rank, not further down the page
+    const at = (x) => html.indexOf(x);
+    assert.ok(at('class="sr-weights-bar"') > at("</h1>") && at('id="dsWeights"') < at('id="srCards"') && at('class="sr-weights-bar"') < at('id="dsWeights"'));
+    assert.match(html, /<div class="sr-weights-bar"><span class="ds-weights-line"><\/span><button type="button" class="ds-text-link ds-weights-toggle"[^>]*>Change weights/);
     assert.ok(html.includes('<span class="ds-offer-chip ds-chip-best">Best match ·'));
     assert.match(html, /data-action="src\.award" data-bid="b1" data-offer="o1">Award Keller</);
     assert.match(html, /data-action="src\.eliminate" data-bid="b1" data-offer="o2">Eliminate</);
