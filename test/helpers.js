@@ -304,4 +304,48 @@ async function submitInvoice(app, supplierToken, project, phase, task, amount) {
   return r.invoice;
 }
 
-module.exports = { startApp, fakeSmtp, vettedSupplier, projectWithTasks, assignAndAccept, submitInvoice };
+/* ---------- The saved data of a stopped app (T160) ----------
+   Tests that plant or age data stop the app, change the saved data and start it again on the same data folder.
+   These go through store.js, so they work with every store (STORE=json or STORE=postgres). */
+function testStore(dataDir) {
+  return require("../store").openStore({ dataDir, ...storeOptions(dataDir) });
+}
+// Extra options for the store of one test data folder; PostgreSQL gives each folder its own schema (T162).
+function storeOptions() {
+  return {};
+}
+async function readDb(dataDir) {
+  const store = testStore(dataDir);
+  try {
+    return store.loadSync();
+  } finally {
+    await store.close?.();
+  }
+}
+async function writeDb(dataDir, data) {
+  const store = testStore(dataDir);
+  try {
+    store.save(data);
+    await store.flush();
+  } finally {
+    await store.close?.();
+  }
+}
+async function editDb(dataDir, change) {
+  const data = await readDb(dataDir);
+  await change(data);
+  await writeDb(dataDir, data);
+  return data;
+}
+
+module.exports = {
+  startApp,
+  fakeSmtp,
+  vettedSupplier,
+  projectWithTasks,
+  assignAndAccept,
+  submitInvoice,
+  readDb,
+  writeDb,
+  editDb,
+};

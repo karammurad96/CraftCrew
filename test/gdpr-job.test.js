@@ -2,10 +2,17 @@
 // details for the retention period, the other party keeps the conversation, and nothing else of the person stays.
 const { describe, it, before, after } = require("node:test");
 const assert = require("node:assert/strict");
-const { mkdtempSync, rmSync, readFileSync, writeFileSync, existsSync } = require("node:fs");
+const { mkdtempSync, rmSync, existsSync } = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { startApp, vettedSupplier, projectWithTasks, assignAndAccept, submitInvoice } = require("./helpers");
+const {
+  startApp,
+  vettedSupplier,
+  projectWithTasks,
+  assignAndAccept,
+  submitInvoice,
+  editDb,
+} = require("./helpers");
 
 const PW = "Test-Password-2026";
 const PNG = Buffer.from(
@@ -17,10 +24,7 @@ describe("account deletion job", () => {
   let dir, app, admin, customer, supplierId, supplierUserId, memberId, invoice, issued, chat, loose, kept, later;
   const restart = async (change) => {
     await app.stop();
-    const file = path.join(dir, "db.json"),
-      db = JSON.parse(readFileSync(file, "utf8"));
-    if (change) change(db);
-    writeFileSync(file, JSON.stringify(db));
+    if (change) await editDb(dir, change);
     app = await startApp({ dataDir: dir });
     admin = await app.login("admin@test.local", "Admin-Password-2026!");
     customer = await app.login("job-buyer@test.local", PW);

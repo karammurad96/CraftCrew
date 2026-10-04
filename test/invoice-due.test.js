@@ -2,10 +2,17 @@
 // a corrected invoice starts the terms again, and the customer is reminded once when it passes unreviewed.
 const { describe, it, before, after } = require("node:test");
 const assert = require("node:assert/strict");
-const { mkdtempSync, rmSync, readFileSync, writeFileSync } = require("node:fs");
+const { mkdtempSync, rmSync } = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { startApp, vettedSupplier, projectWithTasks, assignAndAccept, submitInvoice } = require("./helpers");
+const {
+  startApp,
+  vettedSupplier,
+  projectWithTasks,
+  assignAndAccept,
+  submitInvoice,
+  editDb,
+} = require("./helpers");
 
 const PASSWORD = "Test-Password-2026";
 const day = (offset) => new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10);
@@ -80,10 +87,7 @@ describe("invoice due date", () => {
       legacy = await submitInvoice(app, supplier, project, phase, task, 105);
     const restart = async (change) => {
       await app.stop();
-      const file = path.join(dir, "db.json"),
-        db = JSON.parse(readFileSync(file, "utf8"));
-      if (change) change(db);
-      writeFileSync(file, JSON.stringify(db));
+      if (change) await editDb(dir, change);
       app = await startApp({ dataDir: dir });
       admin = await app.login("admin@test.local", "Admin-Password-2026!");
       customer = await app.login("due-buyer@test.local", PASSWORD);

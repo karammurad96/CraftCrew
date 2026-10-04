@@ -1,10 +1,18 @@
 // Invoice numbers: sequential per supplier and year, shown in the PDF, and given to older invoices on start-up.
 const { describe, it, before, after } = require("node:test");
 const assert = require("node:assert/strict");
-const { mkdtempSync, rmSync, readFileSync, writeFileSync } = require("node:fs");
+const { mkdtempSync, rmSync } = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { startApp, vettedSupplier, projectWithTasks, assignAndAccept, submitInvoice } = require("./helpers");
+const {
+  startApp,
+  vettedSupplier,
+  projectWithTasks,
+  assignAndAccept,
+  submitInvoice,
+  readDb,
+  writeDb,
+} = require("./helpers");
 
 const ADMIN = ["admin@test.local", "Admin-Password-2026!"];
 const YEAR = new Date().getFullYear();
@@ -52,8 +60,7 @@ describe("invoice numbers", () => {
 
   it("numbers older invoices in creation order on start-up", async () => {
     await app.stop();
-    const file = path.join(dir, "db.json"),
-      db = JSON.parse(readFileSync(file, "utf8")),
+    const db = await readDb(dir),
       ids = db.invoices.map((i) => i.id);
     // Pretend the invoices were created before numbering existed, in 2025 and 2026.
     const twice = db.invoices.find((i) => i.number.endsWith("-0002")).supplierId;
@@ -69,7 +76,7 @@ describe("invoice numbers", () => {
       read: false,
       createdAt: new Date().toISOString(),
     });
-    writeFileSync(file, JSON.stringify(db));
+    await writeDb(dir, db);
     app = await startApp({ dataDir: dir });
     const { data } = await app.call("GET", "/backup/export", undefined, await app.login(...ADMIN));
     const byId = Object.fromEntries(data.invoices.map((i) => [i.id, i.number]));

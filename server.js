@@ -1,9 +1,9 @@
 /**
- * CraftCrew backend — dependency-free Node.js API.
+ * CraftCrew backend — Node.js API.
  *
- * Persistent pilot data lives in DATA_DIR/db.json; uploaded files are stored
- * beneath DATA_DIR/uploads. Production mode starts from a clean store and
- * requires an explicit first-administrator bootstrap.
+ * The data lives in memory in `db` and is saved by the store (store.js): DATA_DIR/db.json by default, or
+ * PostgreSQL with STORE=postgres. Uploaded files are stored beneath DATA_DIR/uploads. Production mode starts
+ * from a clean store and requires an explicit first-administrator bootstrap.
  */
 const http = require("http");
 const fs = require("fs");
@@ -15,7 +15,8 @@ const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, "public");
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT, "data"));
 const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
-const DB_FILE = path.join(DATA_DIR, "db.json");
+// Where the data is saved: DATA_DIR/db.json or PostgreSQL (T160, T162)
+const store = require("./store").openStore({ dataDir: DATA_DIR });
 const PORT = Number(process.env.PORT || 3000);
 // Demo/showcase data and demo logins exist only outside production.
 const DEMO_MODE = process.env.NODE_ENV !== "production";
@@ -771,12 +772,9 @@ function seed() {
     sessions: [],
   };
 }
-let db;
-try {
-  db = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
-} catch {
-  db = seed();
-}
+// Nothing saved yet: demo data outside production, the bootstrap below in production. A store that exists
+// but cannot be read stops the start-up (store.js), so damaged data is never replaced by an empty store.
+let db = store.loadSync() || seed();
 
 // A production container must never boot with demo users or their known passwords.
 // Start it with a dedicated data volume and bootstrap credentials to create the first admin.
@@ -2698,15 +2696,7 @@ var SAVE_DELAY_MS = 200,
 function saveNow() {
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = null;
-  const temp = DB_FILE + ".tmp",
-    fd = fs.openSync(temp, "w", 0o600);
-  try {
-    fs.writeSync(fd, JSON.stringify(db));
-    fs.fsyncSync(fd);
-  } finally {
-    fs.closeSync(fd);
-  }
-  fs.renameSync(temp, DB_FILE);
+  store.save(db);
 }
 function save() {
   if (saveTimer) return;
@@ -2759,7 +2749,14 @@ for (const signal of ["SIGTERM", "SIGINT"])
     try {
       if (saveTimer) saveNow();
     } finally {
-      process.exit(0);
+      // The JSON store has written already; a database store finishes its last write first.
+      store.flush().then(
+        () => process.exit(0),
+        (e) => {
+          console.error("Could not save the database:", e);
+          process.exit(1);
+        },
+      );
     }
   });
 

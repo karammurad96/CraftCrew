@@ -1,10 +1,10 @@
 // Data retention: notifications are capped per user and old read ones removed; old audit entries move to files.
 const { describe, it, before, after } = require("node:test");
 const assert = require("node:assert/strict");
-const { mkdtempSync, rmSync, readFileSync, writeFileSync, readdirSync } = require("node:fs");
+const { mkdtempSync, rmSync, readFileSync, readdirSync } = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { startApp } = require("./helpers");
+const { startApp, readDb, writeDb } = require("./helpers");
 
 const ADMIN = ["admin@test.local", "Admin-Password-2026!"];
 
@@ -16,8 +16,7 @@ describe("data retention", () => {
     app = await startApp({ dataDir: dir });
     await app.signup("customer", "busy@test.local");
     await app.stop();
-    const file = path.join(dir, "db.json"),
-      db = JSON.parse(readFileSync(file, "utf8")),
+    const db = await readDb(dir),
       user = db.users.find((u) => u.email === "busy@test.local"),
       day = (n) => new Date(Date.now() - n * 86400000).toISOString();
     db.notifications = Array.from({ length: 320 }, (_, i) => ({
@@ -41,7 +40,7 @@ describe("data retention", () => {
       at: `2026-0${i < 5000 ? 9 : 8}-01T00:00:00.000Z`,
       action: "Test entry",
     }));
-    writeFileSync(file, JSON.stringify(db));
+    await writeDb(dir, db);
     app = await startApp({ dataDir: dir });
   });
   after(async () => {

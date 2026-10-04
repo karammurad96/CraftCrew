@@ -12,6 +12,7 @@ The work backlog is in `docs/TASKS.md`. Do **one task at a time**, exactly as wr
 | --- | --- |
 | `server.js` | HTTP server and most API routes. Routes are one long `if` chain on `parts` (`/api/<parts[1]>/<parts[2]>…`) inside `async function api(req, res, url)`. |
 | `sourcing.js`, `compliance.js`, `team.js`, `documents.js`, `planning.js` | Extra API modules. Each exports `handle(req, res, url, parts, user)` and gets helpers through a `ctx` object. |
+| `store.js` | Loads and saves the `db` object (T160): `DATA_DIR/db.json` by default. |
 | `mailer.js` | Dependency-free SMTP client. Emails are queued in `db.outbox` by `queueEmail()`. |
 | `locales.js` | The server's languages and texts (T137): reads `public/core/languages.js` and the locale files. Notifications (`notify(id, { key, params })`), emails (`sendMail()`) and PDFs take their texts from the `server` group there, in the recipient's language. |
 | `public/index.html` | Page shell. Loads `app.js` and then about 19 add-on scripts **in order**. |
@@ -24,8 +25,9 @@ The work backlog is in `docs/TASKS.md`. Do **one task at a time**, exactly as wr
 | `docs/design/` | Design 2026: the boards (exact values), reference pictures and design tokens for tasks T90–T105. `tools/design/` renders the boards and screenshots app pages for comparison. |
 | `data/` | Local demo database (`db.json`) and uploads. Never commit it. |
 
-Data lives in memory in the `db` object and is written to `DATA_DIR/db.json` by `save()`. Always call
-`save()` after changing data.
+Data lives in memory in the `db` object and is saved by the store in `store.js` (`DATA_DIR/db.json` by default)
+when `save()` is called. Always call `save()` after changing data. Tests that plant data in a stopped app use
+`readDb`, `writeDb` and `editDb` from `test/helpers.js`, never the file itself.
 
 ## Run and test
 

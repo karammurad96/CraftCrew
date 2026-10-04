@@ -1,11 +1,18 @@
 // Invoice reminders: 3- and 7-day review reminders (admins at 7 days) and overdue approved invoices, each sent once.
-// The job runs at start-up, so the test ages the invoices in db.json and restarts the server.
+// The job runs at start-up, so the test ages the saved invoices and restarts the server.
 const { describe, it, before, after } = require("node:test");
 const assert = require("node:assert/strict");
-const { mkdtempSync, rmSync, readFileSync, writeFileSync } = require("node:fs");
+const { mkdtempSync, rmSync } = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { startApp, vettedSupplier, projectWithTasks, assignAndAccept, submitInvoice } = require("./helpers");
+const {
+  startApp,
+  vettedSupplier,
+  projectWithTasks,
+  assignAndAccept,
+  submitInvoice,
+  editDb,
+} = require("./helpers");
 
 const ADMIN = ["admin@test.local", "Admin-Password-2026!"];
 const PASSWORD = "Test-Password-2026";
@@ -19,10 +26,7 @@ describe("invoice reminders", () => {
   const count = (list, re) => list.filter((t) => re.test(t)).length;
   const restart = async (change) => {
     await app.stop();
-    const file = path.join(dir, "db.json"),
-      db = JSON.parse(readFileSync(file, "utf8"));
-    if (change) change(db);
-    writeFileSync(file, JSON.stringify(db));
+    if (change) await editDb(dir, change);
     app = await startApp({ dataDir: dir });
   };
   before(async () => {
