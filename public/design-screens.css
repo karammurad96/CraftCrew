@@ -3635,3 +3635,55 @@ html body .pr-today {
     display: none;
   }
 }
+
+/* ---------- Projects drop-down in the sidebar (T150) ---------- */
+html body .sidebar nav > a[data-ui-icon="projects"] {
+  position: relative;
+}
+html body .sidebar .ds-side-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-inline-start: auto;
+  border-radius: 6px;
+  color: #64748b;
+  cursor: pointer;
+}
+html body .sidebar .ds-side-toggle:hover,
+html body .sidebar .ds-side-toggle:focus-visible {
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--ui-blue, #2563eb);
+  outline: none;
+}
+html body .sidebar .ds-side-toggle svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  transition: transform 0.15s ease;
+}
+html body .sidebar .ds-side-toggle[aria-expanded="true"] svg {
+  transform: rotate(90deg);
+}
+html body .sidebar .ds-side-projects[hidden] {
+  display: none !important;
+}
+html body .sidebar .ds-side-projects {
+  max-height: 260px;
+  overflow-y: auto;
+}
+html body .sidebar .ds-side-none {
+  display: block;
+  padding-block: 4px 6px;
+  padding-inline: 38px 0;
+  color: #64748b;
+  font-size: 12.5px;
+}
+html[dir="rtl"] body .sidebar .ds-side-toggle svg {
+  transform: scaleX(-1);
+}
+html[dir="rtl"] body .sidebar .ds-side-toggle[aria-expanded="true"] svg {
+  transform: rotate(90deg);
+}

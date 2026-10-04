@@ -106,7 +106,7 @@ window.addEventListener("hashchange", () => (shellCountsAt = 0));
 let shellProjects = null;
 function shellProjectList() {
   shellProjects ||= api("/projects")
-    .then((d) => (d.projects || []).slice(0, 5))
+    .then((d) => (d.projects || []).slice(0, 12))
     .catch(() => (shellProjects = null) || []);
   return shellProjects;
 }
@@ -123,19 +123,35 @@ function shellEnhance() {
       a.insertAdjacentHTML("beforeend", `<span class="ng-count" aria-label="${sk("countLabel", { n })}">${n > 99 ? "99+" : n}</span>`);
     }
   });
-  // Projects of this user under "Projects", on any page inside a project
+  // Projects of this user under "Projects" (T150): a chevron opens and closes the list on every page; the choice is
+  // remembered in this browser, and inside a project the list starts open
   const m = location.hash.match(/^#\/(customer|supplier)\/projects\/([^/?]+)/),
     projectsLink = nav.querySelector(':scope > a[data-ui-icon="projects"]');
   projectsLink?.classList.toggle("ds-section-active", !!m);
-  if (m && projectsLink) {
-    const sub = document.createElement("div");
+  if (projectsLink && role !== "admin") {
+    let saved = null;
+    try {
+      saved = localStorage.getItem("cc_side_projects");
+    } catch {}
+    const open = saved === null ? !!m : saved === "1",
+      sub = document.createElement("div");
     sub.className = "ds-side-projects";
+    sub.id = "dsSideProjects";
+    sub.hidden = !open;
+    projectsLink.insertAdjacentHTML(
+      "beforeend",
+      `<span class="ds-side-toggle" role="button" tabindex="0" aria-controls="dsSideProjects" aria-expanded="${open}" aria-label="${sk("projectsList")}" data-action="shell.projects" data-key="shell.projects" data-key-on="Enter,Space"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span>`,
+    );
     projectsLink.after(sub);
-    shellProjectList().then((list) => {
-      sub.innerHTML = list
-        .map((p) => `<a href="#/${role}/projects/${encodeURIComponent(p.id)}"${p.id === m[2] ? ' class="ds-current" aria-current="page"' : ""}>${esc(p.name)}</a>`)
-        .join("");
-    });
+    const fill = () =>
+      shellProjectList().then((list) => {
+        sub.innerHTML =
+          list
+            .map((p) => `<a href="#/${role}/projects/${encodeURIComponent(p.id)}"${p.id === m?.[2] ? ' class="ds-current" aria-current="page"' : ""}>${esc(p.name)}</a>`)
+            .join("") || `<span class="ds-side-none">${sk("noProjects")}</span>`;
+      });
+    if (open) fill();
+    else sub.dataset.lazy = "1";
   }
   uiRefreshBadge();
 }
@@ -150,6 +166,26 @@ actions.on("shell.search", () => {
 });
 actions.on("shell.profile", () => navigate(`/${state.user.role}/profile`));
 actions.on("shell.lang", (el) => langSet(el.dataset.lang));
+actions.on("shell.projects", (el, event) => {
+  // The chevron sits inside the "Projects" link: it opens the list instead of following the link
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
+  const sub = document.getElementById("dsSideProjects");
+  if (!sub) return;
+  sub.hidden = !sub.hidden;
+  el.setAttribute("aria-expanded", String(!sub.hidden));
+  try {
+    localStorage.setItem("cc_side_projects", sub.hidden ? "0" : "1");
+  } catch {}
+  if (!sub.hidden && sub.dataset.lazy) {
+    delete sub.dataset.lazy;
+    const role = state.user.role;
+    shellProjectList().then((list) => {
+      sub.innerHTML =
+        list.map((p) => `<a href="#/${role}/projects/${encodeURIComponent(p.id)}">${esc(p.name)}</a>`).join("") || `<span class="ds-side-none">${sk("noProjects")}</span>`;
+    });
+  }
+});
 actions.on("shell.help", () => navigate("/faq"));
 actions.on("shell.logout", () => logout());
 actions.on("shell.checklist", () => obShow());
