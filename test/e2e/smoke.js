@@ -226,8 +226,9 @@ async function main() {
     const failures = [],
       totals = [];
     for (const view of ["desktop", "mobile"]) {
-      // Accessibility (axe) runs on desktop when axe-core is installed (CI installs it).
-      const axe = view === "desktop" && axeAvailable();
+      // Accessibility (axe) runs on desktop and phone when axe-core is installed (CI installs it). The phone run
+      // keeps scroll areas reachable by keyboard and the bottom bar readable (T173).
+      const axe = axeAvailable();
       execFileSync(process.execPath, [path.join(ROOT, "tools/audit/crawl.js"), base, out, "en", view], {
         cwd: ROOT,
         env: { ...process.env, AXE: axe ? "1" : "0" },

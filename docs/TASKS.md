@@ -290,7 +290,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T170 Refuse demo mode on a public server · S · cheap model OK
 - [ ] T171 Rename the product to the new brand and domain · S · **needs Karam's decision on the name**
 - [ ] T172 Legal pages and data-protection documents · S · **a lawyer or trusted generator, not code**
-- [ ] T173 Security review before launch · M
+- [x] T173 Security review before launch · M
 - [ ] T174 Launch runbook and go/no-go checklist · S
 - [ ] T175 French, Spanish and Arabic texts reviewed and brought back · M · **needs native speakers; optional for launch**
 
@@ -301,6 +301,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T183 Monthly maintenance routine · S · recurring
 - [ ] T184 Load test before the first marketing push · S
 - [ ] T185 Managed database with standby and point-in-time restore, when customers depend on it daily · S
+- [ ] T176 Rate limit for chat messages · S · from the security review (T173)
 - [ ] T80 Real payments (Wave 6): only after T165, needs Karam's provider decision
 
 ---
@@ -3438,6 +3439,10 @@ to keep the audit archive). The task stays open until Karam has the texts writte
 7. Confirm that "Require two-factor sign-in for all admin accounts" is switched on in the launch runbook (T174).
 8. Write `docs/SECURITY-REVIEW.md`: what was checked, what was found, and the new tasks for anything not fixed.
 
+**Done (4 October 2026):** see `docs/SECURITY-REVIEW.md`. Nothing blocks the launch. Fixed here: scroll areas
+without anything focusable (`core/boot.js` makes them focusable) and the contrast of the phone bar's active label;
+the e2e smoke test now runs axe on phones too. New task: T176.
+
 ### T174 · Launch runbook and go/no-go checklist
 `P1 · S`
 
@@ -3480,6 +3485,17 @@ quality was not good enough).
 ---
 
 ## Wave 11 — launch day and after
+
+### T176 · Rate limit for chat messages
+`P3 · S · from the security review (T173); after launch is fine for an invited pilot`
+
+**Problem.** A signed-in user can send any number of chat messages (each up to 5,000 characters), so one account
+could flood a project chat and the notifications of everyone in it.
+
+**Do.** Limit `POST /api/chats/:id/messages` (and the project messages route) to 30 messages per minute per user
+with `rateLimited()`, and answer 429 with a friendly message (a new `errors.api` key in en and de).
+
+**Tests.** The 31st message within a minute is refused; another user is not affected.
 
 ### T180 · Launch day
 `P0 · S · Karam with an agent, following docs/LAUNCH.md (T174)`
