@@ -380,6 +380,7 @@ module.exports = {
   readAll,
   assemble,
   changes,
+  write,
   positions,
   jsonbSafe,
   COLLECTIONS,

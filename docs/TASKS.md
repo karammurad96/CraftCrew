@@ -279,7 +279,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T160 Store layer: one module loads and saves the data; tests stop reading `db.json` directly · M · no new dependency
 - [x] T161 PostgreSQL foundation: `pg`, `DATABASE_URL`, migrations, a database for local tests and CI · S · **needs Karam's OK for the `pg` dependency**
 - [x] T162 PostgreSQL store: every collection in PostgreSQL, only changed records written, the reply waits for the commit · M
-- [ ] T163 Move the data across and back: import, export, checksums, runbook · S
+- [x] T163 Move the data across and back: import, export, checksums, runbook · S
 - [ ] T164 Real tables: accounts, sessions and sign-in tokens · M
 - [ ] T165 Real tables: invoices and payments with the legal protections · M
 - [ ] T166 Real tables: projects, phases and tasks · L
@@ -3155,8 +3155,19 @@ database, a second run changes nothing, and a broken migration rolls back comple
 **Tests.** A round trip json → PostgreSQL → json gives identical checksums for the test data and the demo
 data, in CI.
 
+**As built (4 October 2026).**
+- The checksums are in `db/checksums.js`: per collection, the record count and the SHA-256 of canonical JSON
+  (keys sorted), so jsonb's own key order doesn't matter but the record order does.
+- The import does everything in one transaction, including reading back and comparing. It commits only when
+  every checksum matches; `--dry-run` always rolls back.
+- The export reads one consistent snapshot (`repeatable read`), so it may run while the app runs.
+- The image now contains `tools/db/`, so the runbook (`DEPLOY.md` section 6) runs the tools with
+  `docker compose run --rm craftcrew node tools/db/…`.
+- `test/db-tools.test.js` round-trips the demo data and data made through the API, checks that the exported
+  file starts the app with `STORE=json`, and covers `--replace`, `--dry-run` and broken files.
+
 **Done when.**
-- [ ] The runbook was followed once on a copy of the demo data and the output is pasted in the PR.
+- [x] The runbook was followed once on a copy of the demo data and the output is pasted in the PR.
 
 ### T164 · Real tables: accounts, sessions and sign-in tokens
 `P2 · M · depends on T162`
