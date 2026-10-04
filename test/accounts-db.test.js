@@ -196,11 +196,11 @@ describe("account tables", { skip: !DB_URL && "needs DATABASE_URL" }, () => {
         createdAt: "2026-10-04T10:00:00.000Z",
       });
       await rec("sessions", "t2", 1, { tokenHash: "t2", userId: "gone" });
-      await rec("projects", "p1", 0, { id: "p1", name: "Stays" });
+      await rec("suppliers", "s1", 0, { id: "s1", name: "Stays" });
       await migrate(client);
       assert.deepEqual(
         (await client.query("select collection from records")).rows.map((r) => r.collection),
-        ["projects"],
+        ["suppliers"],
       );
       const store = postgresStore({ url });
       try {

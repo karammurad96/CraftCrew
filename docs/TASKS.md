@@ -282,7 +282,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T163 Move the data across and back: import, export, checksums, runbook · S
 - [x] T164 Real tables: accounts, sessions and sign-in tokens · M
 - [x] T165 Real tables: invoices and payments with the legal protections · M
-- [ ] T166 Real tables: projects, phases and tasks · L
+- [x] T166 Real tables: projects, phases and tasks · L
 - [x] T167 Backup and restore scripts with a restore drill in CI · S
 - [ ] T168 Several app servers: no state in one process, jobs run once, uploads in object storage · L · **after launch**, when one server is not enough
 
@@ -3267,6 +3267,15 @@ lookups go through a list.
 - A round trip gives identical projects.
 - Changing one task of a project with 50 phases × 20 tasks writes exactly one task row.
 - Both CI jobs pass.
+
+**As built (4 October 2026).**
+- `006_projects.sql`: `projects`, `phases` (`project_id`) and `tasks` (`phase_id`), with `on delete cascade` and
+  the indexes on `customer_id`, `assigned_supplier_id` and `due_date`. `007_projects_rows.js` moves existing rows.
+- The store cuts a project's `phases` (and a phase's `tasks`) off into the next table; a `"$phases": true` in
+  `extra` says the list existed, so an empty or missing list loads back the same way. Rows compare with their
+  saved text, position and parent, so moving a task to another phase writes one row.
+- Dates go into `date` columns only when they are plain days; anything else stays in `extra`.
+- One PR: the nesting fits in the store's row model, so no split was needed.
 
 ### T167 · Backup and restore scripts with a restore drill
 `P1 · S · depends on T163 · scripts now, switched on at launch (T180)`
