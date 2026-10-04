@@ -102,6 +102,13 @@ describe("profile and settings (T135a)", () => {
         if (role === "admin") assert.ok(html.includes('href="#/admin/platform"'));
         else assert.match(html, /data-action="prof\.edit"/);
         if (lang === "de" && role === "supplier") assert.ok(html.includes("Änderung wartet auf erneute Prüfung") && html.includes("Passwort zuletzt geändert am"));
+        // T151: a section menu right under the title leads to every section, "Your data" (export, delete) last
+        const nav = html.slice(html.indexOf('<nav class="pf-sections"'), html.indexOf("</nav>", html.indexOf('<nav class="pf-sections"')));
+        assert.ok(html.indexOf('<nav class="pf-sections"') < html.indexOf('id="paSecurity"'));
+        const targets = [...nav.matchAll(/data-target="(\w+)"/g)].map((x) => x[1]);
+        assert.deepEqual(targets, [...(role === "admin" ? [] : ["pfCompany"]), "paSecurity", "pfNotify", ...(role === "admin" ? [] : ["cfPanel"]), "tfPanel", "gdPanel"]);
+        for (const id of targets) assert.ok(html.includes(`id="${id}"`), id);
+        assert.match(nav, /class="pf-section pf-section-data" data-action="prof\.jump" data-target="gdPanel">/);
       });
 
   it("draws the service catalog and its editor from keys and keeps the values in English", async () => {

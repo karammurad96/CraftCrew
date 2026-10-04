@@ -269,7 +269,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T148 Analytics: add your own charts from any data, resizable · M
 - [x] T149 Offer comparison: the weights next to the ranking · S
 - [x] T150 Sidebar: projects as a drop-down under "Projects" · S
-- [ ] T151 Settings: "Your data" and "Delete account" easy to find · S
+- [x] T151 Settings: "Your data" and "Delete account" easy to find · S
 - [x] T152 Language: a globe button with a drop-down of all languages instead of one button per language · S
 
 ---

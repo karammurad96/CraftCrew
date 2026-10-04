@@ -3687,3 +3687,47 @@ html[dir="rtl"] body .sidebar .ds-side-toggle svg {
 html[dir="rtl"] body .sidebar .ds-side-toggle[aria-expanded="true"] svg {
   transform: rotate(90deg);
 }
+
+/* ---------- Settings sections (T151) ---------- */
+html body .pf-sections {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-block: 0 18px;
+  padding: 10px 0;
+  background: var(--cc-bg, #f5f6f8);
+}
+html body .pf-section {
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--ui-line, #e2e8f0);
+  border-radius: 999px;
+  background: #fff;
+  color: #1e293b;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+html body .pf-section:hover {
+  border-color: #93c5fd;
+  color: var(--ui-blue, #2563eb);
+}
+html body .pf-section-data {
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+html body .pf-flash {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.35) !important;
+  transition: box-shadow 0.3s ease;
+}
+html body .sidebar .help .ds-side-data {
+  display: block;
+  flex-basis: 100%;
+  order: 20;
+  margin-top: 6px;
+  font-size: 12.5px;
+}
