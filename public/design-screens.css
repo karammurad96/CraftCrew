@@ -3731,3 +3731,12 @@ html body .sidebar .help .ds-side-data {
   margin-top: 6px;
   font-size: 12.5px;
 }
+
+/* ---------- Wide screens (T153): every part of the page starts at the left edge of the centred content ----------
+   ui-refresh.css centres each direct child of .dashboard-content (max 1400 px, automatic side margins). Inline
+   boxes (breadcrumb, tab bar, filter buttons) ignore automatic margins, and a few headings reset them, so on a
+   screen wider than about 1,700 px they stayed at the far left. This gives them the column's left edge without
+   stretching them. tools/audit/align.js checks every page. */
+html body .dashboard-content > :is(.breadcrumb, .ds-ws-tabs, .ds-approve-filter, .inv-work-title) {
+  margin-inline-start: max(0px, calc((100% - 1400px) / 2)) !important;
+}
