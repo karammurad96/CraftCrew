@@ -92,6 +92,7 @@ The directory's Bronze/Silver/Gold labels are administrative decisions. External
 | `PORT` | HTTP listener port (default `3000`) |
 | `DATA_DIR` | Persistent directory for the JSON store and uploaded files (default `./data`) |
 | `NODE_ENV=production` | Starts with a clean production store and no seeded demo accounts on first initialization |
+| `ALLOW_DEMO=1` | Lets demo mode (no `NODE_ENV=production`) start although `DOMAIN` is set, `APP_URL` is not localhost or `DATA_DIR` is `/var/lib/craftcrew`. Only for a private demo server; without it, demo mode refuses to start there (T170) |
 | `BOOTSTRAP_ADMIN_EMAIL` | First admin email, required on first production initialization |
 | `BOOTSTRAP_ADMIN_PASSWORD` | First admin password, minimum 16 characters, required on first production initialization |
 | `STORE` | `json` (default): the data is kept in `DATA_DIR/db.json`. `postgres`: in PostgreSQL at `DATABASE_URL`; replies to changes wait for the commit |
