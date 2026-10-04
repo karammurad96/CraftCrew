@@ -262,7 +262,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T141 "Blocked for your security" when creating a project: CSRF origin check behind proxies, fresh scripts after a deploy · S
 - [x] T142 Confirmation before approving an invoice · S
 - [x] T143 Project tabs stay on the page: Files, Messages and Invoices open under the tab bar · M
-- [ ] T144 Scrolling: the page scrolls over cards; long cards scroll inside · S
+- [x] T144 Scrolling: the page scrolls over cards; long cards scroll inside · S
 - [ ] T145 Team planner: no dark cells, week steps, bigger calendar, double-click to edit · M
 - [ ] T146 Supplier search: main and sub categories, more filters and sorting · M
 - [ ] T147 Project plan view for suppliers (their own tasks only) · M

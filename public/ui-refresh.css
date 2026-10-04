@@ -1247,7 +1247,7 @@ footer .legal-footer-links a:hover {
 .dashboard-content .cc-table-wrap {
   max-height: min(560px, 70vh);
   overflow: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior: auto; /* T144: at the end of a list the page keeps scrolling */
   border-radius: 10px;
 }
 .dashboard-content .cc-table-wrap thead th {
@@ -1275,7 +1275,7 @@ footer .legal-footer-links a:hover {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior: auto; /* T144: at the end of a list the page keeps scrolling */
   margin-inline-end: -8px;
   padding-inline-end: 8px;
   scrollbar-width: thin;

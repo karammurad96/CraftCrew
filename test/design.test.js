@@ -163,6 +163,16 @@ describe("design 2026", () => {
     // The pending deletions moved to the admin area (T134a), the self-service panel to the profile area (T135a)
   });
 
+  it("lets the page scroll over cards and long cards scroll inside (T144)", () => {
+    const fs = require("node:fs"),
+      dir = path.join(__dirname, "..", "public");
+    for (const f of fs.readdirSync(dir).filter((x) => x.endsWith(".css")))
+      assert.doesNotMatch(fs.readFileSync(path.join(dir, f), "utf8"), /overscroll-behavior:\s*contain/, f);
+    const css = read("design-screens.css");
+    for (const c of ["ds-dec-list", "ds-week", "ds-next", "ds-phases", "ds-suppliers"]) assert.ok(css.includes(`html body .ds-card.${c}`), c);
+    assert.match(css, /\.ds-card\.ds-suppliers \{\n  max-height: 520px;\n  overflow-y: auto;/);
+  });
+
   it("uses a new service worker cache so installed apps load the new files", () => {
     assert.match(read("sw.js"), /const CACHE = "craftcrew-shell-v4"/);
   });

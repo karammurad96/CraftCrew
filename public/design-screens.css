@@ -3490,3 +3490,15 @@ html body .ws-chat-compose textarea {
 html body .ws-pane-head .ds-text-link {
   font-size: 14px;
 }
+
+/* ---------- Long cards scroll inside (T144): lists in dashboard and workspace cards stop growing ---------- */
+html body .ds-card.ds-dec-list,
+html body .ds-card.ds-week,
+html body .ds-card.ds-crew,
+html body .ds-card.ds-next,
+html body .ds-card.ds-phases,
+html body .ds-card.ds-suppliers {
+  max-height: 520px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
