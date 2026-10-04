@@ -3790,7 +3790,16 @@ async function api(req, res, url) {
     res.end();
     return true;
   }
-  if (parts[1] === "health" && method === "GET") return (send(res, 200, { status: "ok", time: now() }), true);
+  if (parts[1] === "health" && method === "GET") {
+    // A database store also has to answer (T161); the reply never says why it did not.
+    if (store.ping)
+      try {
+        await store.ping();
+      } catch {
+        return (send(res, 503, { status: "unavailable", time: now() }), true);
+      }
+    return (send(res, 200, { status: "ok", time: now() }), true);
+  }
   try {
     // Auth
     if (parts[1] === "auth" && parts[2] === "signup" && method === "POST") {

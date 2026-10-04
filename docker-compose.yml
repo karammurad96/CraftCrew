@@ -20,6 +20,26 @@ services:
     cap_drop:
       - ALL
 
+  # Optional PostgreSQL database for STORE=postgres (T161). Starts only with the profile `db`:
+  #   docker compose --profile db up -d
+  # No published port: only the app reaches it, at postgres:5432 on the compose network.
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["db"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: craftcrew
+      POSTGRES_USER: craftcrew
+      # From .env; the database refuses to start without it.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+    volumes:
+      - craftcrew-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U craftcrew -d craftcrew"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   # Public entry point: HTTPS with automatic Let's Encrypt certificates.
   caddy:
     image: caddy:2-alpine
@@ -38,5 +58,6 @@ services:
 
 volumes:
   craftcrew-data:
+  craftcrew-postgres:
   caddy-data:
   caddy-config:

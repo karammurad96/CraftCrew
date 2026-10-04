@@ -13,6 +13,7 @@ The work backlog is in `docs/TASKS.md`. Do **one task at a time**, exactly as wr
 | `server.js` | HTTP server and most API routes. Routes are one long `if` chain on `parts` (`/api/<parts[1]>/<parts[2]>…`) inside `async function api(req, res, url)`. |
 | `sourcing.js`, `compliance.js`, `team.js`, `documents.js`, `planning.js` | Extra API modules. Each exports `handle(req, res, url, parts, user)` and gets helpers through a `ctx` object. |
 | `store.js` | Loads and saves the `db` object (T160): `DATA_DIR/db.json` by default. |
+| `db/`, `migrations/` | PostgreSQL (Wave 9): `db/pg.js` is the connection pool, `db/migrate.js` applies the numbered SQL files in `migrations/`. |
 | `mailer.js` | Dependency-free SMTP client. Emails are queued in `db.outbox` by `queueEmail()`. |
 | `locales.js` | The server's languages and texts (T137): reads `public/core/languages.js` and the locale files. Notifications (`notify(id, { key, params })`), emails (`sendMail()`) and PDFs take their texts from the `server` group there, in the recipient's language. |
 | `public/index.html` | Page shell. Loads `app.js` and then about 19 add-on scripts **in order**. |
@@ -58,7 +59,8 @@ when signing in to get the token in the response body, then use `Authorization: 
    (`parts[1]==='invoices'`), so search for the quoted segment only (`'invoices'`).
 2. **Every fix gets a regression test** in `test/`. Add new cases to the suite that fits, or create
    `test/<area>.test.js`.
-3. **No new runtime dependencies.** `package.json` has none; keep it that way unless a task says otherwise.
+3. **No new runtime dependencies.** The only one is `pg` (T161), loaded only with `STORE=postgres`. Keep it that
+   way unless a task says otherwise. Install with `npm ci`; `package-lock.json` pins the versions.
 4. **Escape all user data in HTML** with `esc()` or the file's alias (`ccEsc`, `reviewEsc`, `paEsc`, …).
 5. **Validate on the server:** types, allowed values, lengths and ownership. Use `projectFor(user, id)`
    and `supplierForUser(user)` for access checks. Never trust ids, statuses or amounts sent by the client.

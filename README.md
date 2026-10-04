@@ -94,6 +94,30 @@ The directory's Bronze/Silver/Gold labels are administrative decisions. External
 | `NODE_ENV=production` | Starts with a clean production store and no seeded demo accounts on first initialization |
 | `BOOTSTRAP_ADMIN_EMAIL` | First admin email, required on first production initialization |
 | `BOOTSTRAP_ADMIN_PASSWORD` | First admin password, minimum 16 characters, required on first production initialization |
+| `STORE` | `json` (default): the data is kept in `DATA_DIR/db.json`. `postgres`: in PostgreSQL (from T162) |
+| `DATABASE_URL` | PostgreSQL connection, for example `postgres://craftcrew:password@localhost:5432/craftcrew`. Needed with `STORE=postgres` |
+| `PGSSLMODE` | `require` for a managed database that needs TLS |
+
+## Local PostgreSQL (optional)
+
+The JSON file stays the default until launch. To work on the PostgreSQL store (Wave 9 in `docs/TASKS.md`), use
+any local PostgreSQL 15 or newer, or the database in `docker-compose.yml`:
+
+```bash
+npm ci                                              # installs the only runtime dependency, the `pg` driver
+echo "POSTGRES_PASSWORD=choose-a-local-password" >> .env
+docker compose --profile db up -d postgres          # PostgreSQL 16, data in the volume craftcrew-postgres
+```
+
+The compose database has no published port; from the host, use a local PostgreSQL instead, for example:
+
+```bash
+createuser --createdb craftcrew && createdb -O craftcrew craftcrew_test   # as the postgres user
+export DATABASE_URL=postgres://craftcrew:your-password@localhost:5432/craftcrew_test
+node tools/db/migrate.js            # applies migrations/ (the server also does this at start-up)
+node tools/db/migrate.js --status   # lists the applied and the pending migrations
+node --test test/migrations.test.js # the database tests run only when DATABASE_URL is set
+```
 
 ## Main routes
 
@@ -103,4 +127,4 @@ The directory's Bronze/Silver/Gold labels are administrative decisions. External
 - Admin: `/#/admin/dashboard`, `/#/admin/applications`, `/#/admin/users`, `/#/admin/reports`
 - API health: `/api/health`
 
-The backend is dependency-free Node.js. API routes are implemented in `server.js`; the responsive single-page application is in `public/`.
+The backend is Node.js; its only runtime dependency is the PostgreSQL driver `pg`, used only with `STORE=postgres`. API routes are implemented in `server.js`; the responsive single-page application is in `public/`.
