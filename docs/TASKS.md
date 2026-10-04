@@ -178,7 +178,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 
 **Wave 6 — strategic (P3, needs a human decision or a stronger model)**
 - [ ] T80 Real payments: escrow-like milestones, payment terms, early payout
-- [ ] T81 Move data to PostgreSQL
+- [ ] T81 Move data to PostgreSQL (split into T160–T168 on 4 October 2026, see Wave 9)
 - [x] T82 Replace DOM-based translation with translation keys (done by T125–T137)
 - [x] T83 Merge the frontend add-on layers; cookie sessions; strict CSP (done by T124–T136)
 - [x] T84 Installable phone app (PWA) with offline time and photo capture
@@ -271,6 +271,37 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T150 Sidebar: projects as a drop-down under "Projects" · S
 - [x] T151 Settings: "Your data" and "Delete account" easy to find · S
 - [x] T152 Language: a globe button with a drop-down of all languages instead of one button per language · S
+
+**Wave 8 follow-up (found by Karam on a wide screen, 4 October 2026)**
+- [ ] T153 Wide screens: breadcrumb, project tabs and filter bars line up with the page content · S · cheap model OK
+
+**Wave 9 — PostgreSQL (T81 split; decided with Karam on 4 October 2026: build it now at no cost, the JSON file stays the default until launch; details under "Wave 9 — PostgreSQL")**
+- [ ] T160 Store layer: one module loads and saves the data; tests stop reading `db.json` directly · M · no new dependency
+- [ ] T161 PostgreSQL foundation: `pg`, `DATABASE_URL`, migrations, a database for local tests and CI · S · **needs Karam's OK for the `pg` dependency**
+- [ ] T162 PostgreSQL store: every collection in PostgreSQL, only changed records written, the reply waits for the commit · M
+- [ ] T163 Move the data across and back: import, export, checksums, runbook · S
+- [ ] T164 Real tables: accounts, sessions and sign-in tokens · M
+- [ ] T165 Real tables: invoices and payments with the legal protections · M
+- [ ] T166 Real tables: projects, phases and tasks · L
+- [ ] T167 Backup and restore scripts with a restore drill in CI · S
+- [ ] T168 Several app servers: no state in one process, jobs run once, uploads in object storage · L · **after launch**, when one server is not enough
+
+**Wave 10 — before launch (no running costs; in this order)**
+- [ ] T170 Refuse demo mode on a public server · S · cheap model OK
+- [ ] T171 Rename the product to the new brand and domain · S · **needs Karam's decision on the name**
+- [ ] T172 Legal pages and data-protection documents · S · **a lawyer or trusted generator, not code**
+- [ ] T173 Security review before launch · M
+- [ ] T174 Launch runbook and go/no-go checklist · S
+- [ ] T175 French, Spanish and Arabic texts reviewed and brought back · M · **needs native speakers; optional for launch**
+
+**Wave 11 — launch day and after (running costs start here)**
+- [ ] T180 Launch day: server, database, domain, email, first admin · S · Karam with an agent, follows `docs/LAUNCH.md`
+- [ ] T181 Email delivery for the domain: SPF, DKIM, DMARC · S
+- [ ] T182 Monitoring and alerts: uptime, errors, disk and database size, backups · S
+- [ ] T183 Monthly maintenance routine · S · recurring
+- [ ] T184 Load test before the first marketing push · S
+- [ ] T185 Managed database with standby and point-in-time restore, when customers depend on it daily · S
+- [ ] T80 Real payments (Wave 6): only after T165, needs Karam's provider decision
 
 ---
 
@@ -2890,6 +2921,505 @@ phones that still had the old page shell cached, the removed directory link show
 
 **Do.** A globe button with the current language code opens a list of all registered languages (name and code);
 a click outside or Escape closes it. Top-bar links without a text in this version are removed.
+
+#### T153 · Wide screens: breadcrumb, project tabs and filter bars line up with the page content
+`P1 · S · cheap model OK` (reported by Karam with a screenshot on 4 October 2026)
+
+**Problem.** On a screen wider than about 1,700 px, a project page shows the breadcrumb and the tab bar
+(Overview · Tasks · Files …) further left than the title and the cards below them.
+
+- `public/ui-refresh.css` ("Layout: content stays centred") limits every direct child of
+  `.dashboard-content` to `max-width: 1400px` and centres it with automatic side margins.
+- Automatic margins only work on block boxes. The breadcrumb (`display: inline-block`) and the tab bar
+  (`display: inline-flex`) ignore them and stay at the left edge of the content area.
+- Measured at 2,560 px on the project page: breadcrumb and tabs start at 284 px, the header and the cards
+  at 700 px. Below about 1,680 px of content width everything lines up, which is why the 1,440 px
+  screenshots looked right.
+
+`node tools/audit/align.js` (2,560 px, every sidebar page per role) found these elements:
+
+| Element | Pages |
+| --- | --- |
+| `.breadcrumb` | customer and supplier project page, offer comparison |
+| `.ds-ws-tabs` (project tabs) | customer and supplier project page |
+| `.ds-seg.ds-approve-filter` (filter buttons) | `/customer/approvals` |
+| `.panel-title.inv-work-title` ("Accepted work" heading) | `/supplier/projects`. It is a flex box, so check which rule overrides its margins. |
+
+**Do.**
+1. In `public/design-screens.css`, give these direct children of `.dashboard-content` the left edge of the
+   centred 1,400 px column without stretching them. Use
+   `margin-inline-start: max(0px, calc((100% - 1400px) / 2)) !important` (percentages refer to the content
+   width). Write one rule with a short comment, not one per page.
+2. Keep their own look: the tab bar stays as wide as its tabs, the breadcrumb stays one line.
+3. Check right-to-left with `--rtl`. The logical property mirrors by itself.
+
+**Tests.**
+- `node tools/audit/align.js http://localhost:3100` prints "No problems." at 2,560 and 1,920 px (`W=1920`).
+- Add a case to `test/design.test.js` that checks the rule exists.
+- The overflow runs still print "No problems." (4 runs).
+
+**Done when.**
+- [ ] On a 2,560 px screen the breadcrumb, tabs, header and cards of a project page share one left edge (screenshot in the PR).
+- [ ] `tools/audit/align.js` reports no problems at 1,920 and 2,560 px for every role.
+
+---
+
+## Wave 9 — PostgreSQL
+
+Decided with Karam on 4 October 2026:
+- Build the code **now**, at no running cost. PostgreSQL is free software and runs only on the developer's
+  machine and in GitHub's free CI.
+- The JSON file stays the default (`STORE=json`) until launch.
+- At launch Karam chooses where the database runs: on the same server (about €0–10 a month) or a managed
+  EU database (about €15–50 a month).
+
+Why it matters (the value for the business):
+- No lost changes: a change is committed before the user sees "saved".
+- Real backups, with restore to any minute on a managed database.
+- Legal integrity of invoices: unique numbers, no changes after approval, kept 10 years.
+- Room for more users and several servers (T168).
+- Real payments (T80) need atomic money movements.
+
+### Rules for every PostgreSQL task (T160–T168)
+1. **Nothing visible changes.** API responses and pages stay the same: control diff, smoke test, overflow
+   runs and German screenshots as for the area tasks.
+2. **Both stores keep working** until launch:
+   - from T162 on, CI runs the whole suite twice, with `STORE=json` and with `STORE=postgres`;
+   - a task is done only when both pass.
+3. **Migrations:**
+   - numbered SQL files in `migrations/` (`001_records.sql`, `002_users.sql` …), applied in order, each in
+     one transaction;
+   - a merged migration is never edited: a change is a new file.
+4. **Types:**
+   - keep the current ids as `text` primary keys;
+   - money is `numeric(12,2)`, times are `timestamptz`;
+   - fields not yet modelled as columns go into an `extra jsonb` column, so nothing is lost.
+5. **Never log** `DATABASE_URL`, passwords or rows with personal data.
+6. **Financial records are never hard-deleted** (rule 6 in `CLAUDE.md`). From T165 on, the database
+   enforces it too.
+
+### T160 · Store layer: one module loads and saves the data
+`P1 · M · no new dependency · do first`
+
+**Problem.** Loading and saving are spread over `server.js`:
+- `db = JSON.parse(fs.readFileSync(DB_FILE, "utf8"))` near the top;
+- `saveNow()` and `save()`;
+- the backup import (`parts[1] === "backup" && parts[2] === "import"`);
+- the SIGTERM handler.
+
+Ten tests also read or write `data/db.json` directly to plant or check data: `emails`, `gdpr-job`,
+`invoice-due`, `invoice-numbers`, `invoice-reminders`, `persistence`, `retention`, `supplier-profile`,
+`timephotos` and `twofactor`. A database switch would have to change all of them at once.
+
+**Do.**
+1. Create `store.js` with one interface and the JSON implementation (the current code, unchanged in
+   behaviour: temp file, `fsync`, rename, file mode `0600`):
+   - `load()` returns the data object;
+   - `persist(data)` saves it;
+   - `flush()` resolves when nothing is pending;
+   - `replaceAll(data)` is used by the backup import.
+2. `server.js` uses the store for loading, `save()`, `saveNow()`, the backup import and SIGTERM.
+3. **Make start-up asynchronous**, which PostgreSQL needs:
+   - put the start-up code that needs the data (`numberInvoices()`, the production bootstrap, seeding and
+     the module setup that reads `db`) into `async function main()`;
+   - call `server.listen()` only after `await store.load()`;
+   - the request code does not change.
+4. Add `readDb(app)` and `writeDb(app, data)` to `test/helpers.js`. Both go through `store.js`. Writing
+   needs a stopped app, as the tests do today with `dataDir`. Change the ten tests to use them.
+
+**Done when.**
+- [ ] `grep -rn "db.json" test/` finds only `test/persistence.test.js` (which tests the file format itself) and the helpers.
+- [ ] `npm test` and the e2e smoke test pass; nothing visible changes.
+
+### T161 · PostgreSQL foundation
+`P1 · S · needs Karam's OK for the first runtime dependency (CLAUDE.md rule 3)`
+
+**Do.**
+1. Add `pg@8` as the only runtime dependency, pinned, with `package-lock.json`:
+   - the Dockerfile installs it with `npm ci --omit=dev` (it copies only `package.json` today);
+   - change rule 3 in `CLAUDE.md` to "only `pg`".
+2. `db/pg.js`:
+   - a connection pool from `DATABASE_URL`, with `PGSSLMODE=require` for managed databases;
+   - `query(sql, params)` and `tx(async (client) => …)` for transactions.
+3. `tools/db/migrate.js`:
+   - a `schema_migrations(version text primary key, applied_at timestamptz)` table;
+   - applies the files in `migrations/` in order, each in its own transaction;
+   - also runs at start-up when `STORE=postgres`.
+4. `docker-compose.yml`: a `postgres` service (`postgres:16-alpine`) under the profile `db`, with its own
+   volume and no published port. `.env.example` gets `STORE`, `DATABASE_URL` and `POSTGRES_PASSWORD`,
+   commented out.
+5. `README.md`: how to start a local database with `docker compose --profile db up -d postgres`, or any
+   local PostgreSQL 15+.
+6. CI (`.github/workflows/test.yml`): a job `test-postgres` with a `services: postgres:16` container.
+   In this task it runs only the migration test; from T162 on it runs the whole suite with `STORE=postgres`.
+7. With `STORE=postgres`, `/api/health` also checks that the database answers. It never shows details.
+
+**Tests.** `test/migrations.test.js` (skipped without `DATABASE_URL`): migrations apply on an empty
+database, a second run changes nothing, and a broken migration rolls back completely.
+
+**Done when.**
+- [ ] `docker build` works with `pg` installed and the image still runs without a database (`STORE=json`).
+- [ ] The CI job `test-postgres` is green.
+
+### T162 · PostgreSQL store
+`P1 · M · depends on T160 and T161`
+
+**Do.**
+1. Migration `001_records.sql`:
+   - `records(collection text, key text, pos integer, data jsonb not null, updated_at timestamptz default now(), primary key (collection, key))` for the arrays (users, projects, invoices …);
+   - `kv(name text primary key, data jsonb not null)` for the values that are not arrays: `meta`,
+     `settings`, `counters`, `uploadOwners`, `json`.
+2. **Keys:**
+   - a record's key is its `id`;
+   - `sessions` and `authTokens` use `tokenHash`;
+   - a record without either gets an id when it is first loaded;
+   - list the collections in `store.js`, so a new collection must be added on purpose.
+3. **`load()`** reads all rows into the same `db` shape as today, keeping each array's order (`pos`).
+4. **`persist()`** writes only what changed, in one transaction:
+   - it keeps the last saved JSON text of every record;
+   - on save it writes new and changed records (`insert … on conflict do update`) and deletes removed ones;
+   - the code that changes `db` (more than 200 places) stays as it is.
+5. **The reply waits for the commit** for every request that changes data (any method except GET/HEAD):
+   - the request handler wraps `res.end` so the reply goes out after `store.flush()` has committed;
+   - if the commit fails, the reply is 503 "Could not save. Please try again." (a new `errors.api` key in en and de);
+   - GET requests and background jobs keep the short save delay; jobs call `flush()` at the end of a run.
+6. The backup export and import work in both stores. An import replaces all rows in one transaction.
+7. Choose the store with `STORE=json|postgres`. The default is `json`.
+
+**Tests.**
+- The whole suite passes in CI with `STORE=postgres`.
+- Changing one invoice writes exactly one row. Count the writes with a test hook in `store.js`.
+- Kill the server (`SIGKILL`) right after a 200 reply to a change, restart it: the change is there.
+
+**Done when.**
+- [ ] Both CI jobs pass; the control diff, smoke test and overflow runs are unchanged.
+
+### T163 · Move the data across and back
+`P1 · S · depends on T162`
+
+**Do.**
+1. `node tools/db/import-json.js <path/to/db.json> [--dry-run] [--replace]`:
+   - fills an empty database, and refuses a non-empty one without `--replace`;
+   - prints the count per collection;
+   - reads everything back and compares a SHA-256 of the canonical JSON per collection.
+2. `node tools/db/export-json.js > db.json` is the way back. Its output must load with `STORE=json` and
+   give the same checksums.
+3. Uploaded files stay on disk; nothing changes for them here.
+4. `DEPLOY.md`, new section "Switch to PostgreSQL":
+   - stop the app;
+   - back up the volume;
+   - import with `--dry-run`, then for real;
+   - set `STORE=postgres` and start;
+   - run the smoke checks;
+   - the exact rollback steps.
+
+**Tests.** A round trip json → PostgreSQL → json gives identical checksums for the test data and the demo
+data, in CI.
+
+**Done when.**
+- [ ] The runbook was followed once on a copy of the demo data and the output is pasted in the PR.
+
+### T164 · Real tables: accounts, sessions and sign-in tokens
+`P2 · M · depends on T162`
+
+**Problem.** Today only the code guarantees that an email address belongs to one account, and session
+lookups go through a list.
+
+**Do.**
+1. A migration with three tables:
+   - `users`: `id`, `email` with a unique index on `lower(email)`, `role` checked against
+     customer/supplier/admin, `status`, `password_hash`, `salt`, `created_at`, and `extra jsonb` for the rest;
+   - `sessions`: `token_hash` primary key, `user_id` referencing `users` with `on delete cascade`,
+     `created_at`, `last_seen_at`, `expires_at`;
+   - `auth_tokens`, in the same shape.
+2. The store maps these collections to the tables instead of `records`, still writing only changed rows.
+3. A database error for a duplicate email becomes the existing 409 "Email already registered".
+4. Move the existing rows across in the migration itself.
+
+**Done when.**
+- [ ] A test shows that the database rejects a second account with the same email even when the code check is bypassed.
+- [ ] Both CI jobs pass.
+
+### T165 · Real tables: invoices and payments with the legal protections
+`P1 · M · depends on T164 · needed before T80`
+
+**Do.**
+1. An `invoices` table:
+   - `id`, `number`, `supplier_id`, `customer_id`, `project_id`, `status`, net, VAT and gross amounts,
+     VAT mode, service dates, `line_items jsonb`, `revisions jsonb`, `extra jsonb`;
+   - `status` is checked against the invoice statuses;
+   - `unique (supplier_id, number)`.
+2. A `payments` table that only ever grows: a trigger refuses `update` and `delete`, and corrections are
+   new rows (for example a refund).
+3. A trigger on `invoices`:
+   - refuses every `delete` (rule 6);
+   - once the old status is Approved, Paid or Refunded, refuses changes to the number, amounts, VAT,
+     line items, service dates, supplier and customer. Only status and payment fields may change.
+4. **Gap-free invoice numbers** in PostgreSQL mode: an `invoice_counters(supplier_id, year, last)` table
+   with `update … returning` inside the same transaction, instead of `db.counters`
+   (`nextInvoiceNumber()` in `server.js`).
+
+**Tests.**
+- Changing the amount of an approved invoice with plain SQL fails.
+- Updating a payment fails.
+- Two invoices created at the same moment get consecutive numbers.
+- The invoice, XRechnung and payment tests pass in both stores.
+
+### T166 · Real tables: projects, phases and tasks
+`P2 · L · depends on T162; split into two PRs if needed`
+
+**Do.**
+1. Three tables:
+   - `projects`: `id`, `customer_id`, `name`, `status`, `budget`, dates, `extra jsonb`;
+   - `phases`: `project_id` foreign key, `position`, `name`, `status`, dates, `supplier_id`, `extra jsonb`;
+   - `tasks`: `phase_id` foreign key, `position`, `assigned_supplier_id`, `status`, dates, `progress`,
+     `order_amount`, `extra jsonb`.
+2. Lists inside a task (`deliverables`, `assignmentHistory`, defects, acceptance and so on) stay
+   `jsonb` columns on `tasks` for now.
+3. The store maps the nested project objects to rows and back, writing only the rows that changed.
+4. Indexes on `customer_id`, `assigned_supplier_id` and `due_date`.
+
+**Tests.**
+- A round trip gives identical projects.
+- Changing one task of a project with 50 phases × 20 tasks writes exactly one task row.
+- Both CI jobs pass.
+
+### T167 · Backup and restore scripts with a restore drill
+`P1 · S · depends on T163 · scripts now, switched on at launch (T180)`
+
+**Do.**
+1. `tools/db/backup.sh`:
+   - `pg_dump -Fc` plus a tar of the uploads into a dated folder;
+   - keeps 14 daily and 6 monthly copies;
+   - copies off the server with `rclone` when `BACKUP_REMOTE` is set.
+2. `tools/db/restore.sh <dump>` restores into a scratch database. `tools/db/verify.js` then starts the app
+   against it and checks `/api/health` and the record counts.
+3. Rewrite `DEPLOY.md` section 4 for PostgreSQL (cron line, off-site copy, monthly restore test), and keep
+   the JSON instructions for `STORE=json`.
+4. A note for a managed database: the provider's backups and point-in-time restore replace the cron job,
+   and the monthly restore test stays.
+
+**Done when.**
+- [ ] CI runs backup → restore → verify against the CI database with the demo data.
+
+### T168 · Several app servers
+`P3 · L · after launch, only when one server is not enough (see T184); one PR per part`
+
+**Problem.** One process holds the state. With two servers, each would have its own copy of the data, its
+own rate limits, and would run every background job twice. The state is:
+- the `db` object;
+- `rateBuckets` and the sign-in lockouts;
+- the background jobs: outbox every 10 s, invoice reminders and GDPR deletions hourly, compliance and
+  contract-renewal sweeps every 6 h;
+- uploads on the local disk.
+
+**Do.**
+1. **(a) Rate limits and lockouts** live in PostgreSQL, not in memory.
+2. **(b) Background jobs** each take a PostgreSQL advisory lock, so only one server runs a job at a time.
+3. **(c) Uploads** go to S3-compatible object storage when `UPLOAD_STORE=s3` (endpoint, bucket and keys
+   from the environment):
+   - the bucket is private;
+   - downloads still pass the existing permission check and stream through the app or use short-lived signed links;
+   - test with MinIO in CI;
+   - a script copies `data/uploads` across.
+4. **(d) Read and write the database per request** instead of the in-memory `db`:
+   - area by area: accounts first, then invoices, then projects;
+   - with a `version` column so two servers can't overwrite each other's changes (optimistic locking);
+   - this is the largest part; plan one PR per area.
+5. **(e)** Two app containers behind Caddy (`reverse_proxy` with both and health checks), and DEPLOY.md
+   steps for an update without downtime.
+
+**Done when.**
+- [ ] Two app instances pass the smoke test in parallel with no lost or duplicated changes.
+
+---
+
+## Wave 10 — before launch
+
+### T170 · Refuse demo mode on a public server
+`P0 · S · cheap model OK`
+
+**Problem.** `DEMO_MODE` is `process.env.NODE_ENV !== "production"`. A server started without
+`NODE_ENV=production` seeds the demo accounts, whose passwords are printed in `README.md` and `CLAUDE.md`
+(for example `admin@craftcrew.demo` / `admin123`). The Docker files set production mode, but a plain
+`node server.js` on a public server would be open.
+
+**Do.**
+1. At start-up in demo mode, refuse to start with a clear message when any of these is true, unless
+   `ALLOW_DEMO=1` is set:
+   - `DOMAIN` is set;
+   - `APP_URL` is set and is not localhost;
+   - `DATA_DIR` is the Docker path `/var/lib/craftcrew`.
+2. In demo mode, print a loud one-line warning at every start.
+
+**Tests.** The server exits with the message when `DOMAIN=example.com` is set without `NODE_ENV`; it starts
+with `ALLOW_DEMO=1`; production mode is unaffected.
+
+### T171 · Rename the product to the new brand and domain
+`P1 · S · needs Karam's decision on the name (candidates checked on 4 October 2026: Kramvo, Bramvo, Werkmesh, Werkspan …)`
+
+**Do.**
+1. One place for the brand name, `BRAND` in `public/core/languages.js` or a small `public/core/brand.js`,
+   and the server equivalent. Use it in:
+   - the page title, the logo word and the manifest;
+   - emails and PDFs (the `server` group in the locales), the ICS `PRODID` and the default `SMTP_FROM` text.
+2. Replace "CraftCrew" in `public/locales/en.js` and `de.js` (texts only, never keys), `README.md`,
+   `DEPLOY.md` and `.env.example`.
+3. Rename the service worker cache (`craftcrew-shell-v5`) and the Docker volume names with a migration
+   note: renaming a volume loses data unless it is copied.
+4. Keep internal names (`cc_` prefixes, file names) unless they are visible to users.
+
+**Done when.**
+- [ ] `grep -rni craftcrew public server.js *.md` finds only internal names listed in the PR.
+- [ ] German and English screenshots of the landing page, sign-in, an email and an invoice PDF are in the PR.
+
+### T172 · Legal pages and data-protection documents
+`P0 · S · not code: Karam with a lawyer or a trusted generator (e.g. eRecht24); the agent only lists the facts`
+
+**Facts the texts need** (the agent collects them from the code and the hosting choice):
+- **Processors:**
+  - the hosting provider and the database provider (if managed);
+  - email (Brevo or the chosen SMTP);
+  - OpenStreetMap tiles on the map view;
+  - the EU VIES VAT check.
+- **Cookies:** only the session cookie `cc_session`, which is strictly necessary, so no consent banner is
+  needed. Local storage holds the language and layout choices.
+- **Retention:** account deletion after 14 days; invoices kept 10 years (§ 147 AO, § 14b UStG); the audit
+  log archive.
+
+**Karam does.**
+- The Impressum (§ 5 DDG), the privacy policy and the terms of use, entered under Platform management →
+  Legal pages.
+- Data-processing agreements (AVV) with the hosting, database and email providers.
+- The records of processing activities and the technical and organisational measures (TOMs). The agent can
+  draft the TOMs from DEPLOY.md's "Security built in".
+
+### T173 · Security review before launch
+`P0 · M`
+
+**Do.**
+1. `npm audit --omit=dev` must be clean (only `pg` from T161).
+2. Re-run the audit tools and fix every finding: `tools/audit/xss-check.js`, `tools/audit/bugcheck.js`,
+   and the crawl in EN and DE, desktop and phone.
+3. List every API route that answers without a session (search `server.js` for routes before
+   `requireAuth`) and confirm each must be public.
+4. Check the size limits and rate limits of the routes added since T60: chats, chart layouts, the planner,
+   site reports and uploads.
+5. Check the security headers on the production build (HSTS, CSP, frame, referrer).
+6. Check that no log line contains a password, token, IBAN or `DATABASE_URL`.
+7. Confirm that "Require two-factor sign-in for all admin accounts" is switched on in the launch runbook (T174).
+8. Write `docs/SECURITY-REVIEW.md`: what was checked, what was found, and the new tasks for anything not fixed.
+
+### T174 · Launch runbook and go/no-go checklist
+`P1 · S`
+
+**Do.** Write `docs/LAUNCH.md` (English, plain language). It contains:
+- **The decisions**, with the costs from Wave 9: domain, server (EU), database option, SMTP provider.
+- **The steps in order**:
+  - server;
+  - DNS;
+  - `.env`;
+  - database (empty, or import the pilot data with T163);
+  - start;
+  - first admin and two-factor sign-in;
+  - legal pages;
+  - test email;
+  - backups on (T167);
+  - monitoring on (T182).
+- **The go/no-go checklist**:
+  - CI green;
+  - restore drill done;
+  - legal pages published;
+  - demo-mode guard (T170) in place;
+  - the full journey tested with two test companies, then those accounts deleted.
+- **The rollback plan** for launch day.
+
+### T175 · French, Spanish and Arabic texts reviewed and brought back
+`P3 · M · needs native speakers · optional for launch`
+
+The three locale files are kept on the branch `saved/locales-ar-fr-es` (rolled back in #112 because the
+quality was not good enough).
+
+**Do.**
+1. `tools/i18n/export.js <lang>`: a CSV with key, English and translation, for reviewers.
+2. `tools/i18n/import.js <lang> <csv>`: writes the reviewed texts back and checks the placeholders.
+3. Bring back one language per PR, after its review. Re-apply the two layout fixes from that branch that
+   longer languages need: the admin two-factor checkbox label wraps, and the planner's "Plan people" column
+   grows to fit (`public/twofactor-ui.css`, `public/planner.css`). The phone language buttons are obsolete
+   since T152.
+4. Known limit: Arabic PDFs fall back to English until a font with Arabic letters is embedded.
+
+---
+
+## Wave 11 — launch day and after
+
+### T180 · Launch day
+`P0 · S · Karam with an agent, following docs/LAUNCH.md (T174)`
+
+The running costs start here. **Do:** follow the runbook step by step. Record the actual choices (server,
+database option, SMTP, domain) at the top of `docs/LAUNCH.md`.
+
+**Done when.**
+- [ ] The site answers on the domain over HTTPS.
+- [ ] The first admin signed in with two-factor sign-in, and two-factor sign-in is required for all admins.
+- [ ] The test email arrived.
+- [ ] The first nightly backup and a restore test succeeded.
+
+### T181 · Email delivery for the domain
+`P1 · S · right after T180`
+
+**Do.**
+- SPF and DKIM for the sending domain (from the SMTP provider), and DMARC starting at `p=none` with
+  reports, moving to `p=quarantine` after two clean weeks.
+- `SMTP_FROM` on the own domain.
+- Check with a mail tester: no spam warnings.
+- Document the DNS records in `DEPLOY.md`.
+
+### T182 · Monitoring and alerts
+`P1 · S · at launch`
+
+**Do.**
+- **Uptime:** a check of `/api/health` every minute (free tiers of UptimeRobot or Better Stack, or
+  self-hosted Uptime Kuma), with an alert by email or phone.
+- **Disk and database size:** an alert at 80 % full.
+- **Errors:** an alert when the server logs more than N 5xx replies in 10 minutes.
+- **Backups:** an alert when the nightly backup did not run or failed.
+- **Email:** an alert when the email outbox has failed deliveries (Platform → Email outbox).
+- Document everything in `DEPLOY.md`.
+
+### T183 · Monthly maintenance routine
+`P1 · S · recurring, first time one month after launch`
+
+A checklist in `DEPLOY.md`, ticked once a month:
+- [ ] Server and Docker image updates (`docker compose pull && up -d --build`).
+- [ ] `npm audit --omit=dev` clean.
+- [ ] Restore the latest backup into a scratch database and verify it (T167).
+- [ ] Review admin accounts, suspended accounts, the audit log and the failed emails.
+- [ ] Check database and disk size against the alerts.
+
+### T184 · Load test before the first marketing push
+`P2 · S`
+
+**Do.**
+1. A scenario with `autocannon` or `k6`, run from a developer machine against a staging copy, never
+   against production:
+   - sign in;
+   - dashboard;
+   - project page;
+   - submit and approve an invoice;
+   - messages.
+2. Run it at 50 and at 200 simultaneous users and record the 95th-percentile response times.
+3. Decide from the numbers whether T168 (several servers) or a bigger server is needed. Write the result
+   in `docs/LAUNCH.md`.
+
+### T185 · Managed database with standby and point-in-time restore
+`P2 · S · when customers depend on CraftCrew every day`
+
+**Do.**
+1. Move from the database on the app server to a managed EU database with a standby copy: `pg_dump` and
+   restore in a short announced maintenance window, or logical replication for no downtime.
+2. Switch `DATABASE_URL`.
+3. Retire the cron backup in favour of the provider's point-in-time restore. Keep the monthly restore test.
 
 ---
 
