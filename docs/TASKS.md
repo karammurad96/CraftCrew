@@ -281,7 +281,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T162 PostgreSQL store: every collection in PostgreSQL, only changed records written, the reply waits for the commit · M
 - [x] T163 Move the data across and back: import, export, checksums, runbook · S
 - [x] T164 Real tables: accounts, sessions and sign-in tokens · M
-- [ ] T165 Real tables: invoices and payments with the legal protections · M
+- [x] T165 Real tables: invoices and payments with the legal protections · M
 - [ ] T166 Real tables: projects, phases and tasks · L
 - [x] T167 Backup and restore scripts with a restore drill in CI · S
 - [ ] T168 Several app servers: no state in one process, jobs run once, uploads in object storage · L · **after launch**, when one server is not enough
@@ -3230,6 +3230,24 @@ lookups go through a list.
 - Updating a payment fails.
 - Two invoices created at the same moment get consecutive numbers.
 - The invoice, XRechnung and payment tests pass in both stores.
+
+**As built (4 October 2026).**
+- `004_invoices.sql` holds the tables and triggers; `005_invoices_rows.js` moves existing rows (payments as
+  version 1) and stops on two invoices with one number of one supplier.
+- **Payments keep their history instead of being frozen.** The app moves a payment from Scheduled to Paid to
+  Refunded. So a payment row is never updated or deleted (trigger); every change is a new row with the next
+  `version`. The newest one counts (view `payments_current`), and a refund is a new row.
+- **What is locked after approval:** supplier, customer, amounts, VAT mode and rate, line items and service
+  dates. A value kept in `extra` (because it did not fit its column) counts too. A number may be set once (old
+  invoices numbered at start-up), but never changed.
+- The functions use `search_path from current`, so the protections also hold for a plain SQL session.
+- Only `import-json.js --replace` may delete invoices or payments (`set local craftcrew.replace_all = 'on'`).
+- **Deviation, step 4:** the numbers are still given by `nextInvoiceNumber()` in memory. With one server, that is
+  already sequential and without gaps; `invoices_number_unique` makes a repeated number impossible. The trigger
+  keeps `invoice_counters` up to date, so T168 (several servers) can switch to
+  `update invoice_counters … returning`. The test "two invoices at the same moment" passes in both stores.
+- A refused change is undone in memory and answered with 409 and the trigger's message (new `errors.api` keys
+  in en and de).
 
 ### T166 · Real tables: projects, phases and tasks
 `P2 · L · depends on T162; split into two PRs if needed`

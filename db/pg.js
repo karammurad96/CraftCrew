@@ -7,7 +7,10 @@
  *
  * Never log DATABASE_URL or a connection error's full text: both can contain the password.
  */
-const { Pool } = require("pg");
+const { Pool, types } = require("pg");
+
+// A `date` column comes back as the text it was given ("2026-10-04"), not as a Date in the local time zone.
+types.setTypeParser(1082, (v) => v);
 
 let pool = null;
 

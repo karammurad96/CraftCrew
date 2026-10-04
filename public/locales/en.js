@@ -183,6 +183,9 @@ LOCALES.en = {
     // API error messages by code (T137): the server sends { error, code, params }; see errorCode() in server.js
     api: {
       couldNotSavePleaseTry: "Could not save. Please try again.",
+      thisInvoiceIsApprovedAnd: "This invoice is approved and can no longer be changed.",
+      invoicesAreKeptFor10: "Invoices are kept for 10 years and cannot be deleted.",
+      paymentsAreNeverChangedOr: "Payments are never changed or deleted: a correction is a new entry.",
       taskNotFound: "Task not found",
       onlyTheCustomerAcceptsWork: "Only the customer accepts work",
       thisProjectIsArchivedAnd: "This project is archived and can no longer be changed.",
