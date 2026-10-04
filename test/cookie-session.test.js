@@ -122,3 +122,61 @@ describe("cookie sessions", () => {
     assert.match(r.headers.get("set-cookie"), /; HttpOnly; Secure; SameSite=Strict;/);
   });
 });
+
+// T141: behind a proxy that rewrites Host (port forwarding, load balancers) the browser's Origin is the public
+// address. It passes when the proxy forwards it (TRUST_PROXY=1) or when it is the configured APP_URL.
+describe("cookie sessions behind a proxy", () => {
+  let app, cookie;
+  const change = (headers) =>
+    fetch(app.base + "/api/account/preferences", {
+      method: "PUT",
+      body: JSON.stringify({ language: "en" }),
+      headers: { "Content-Type": "application/json", Cookie: cookie, "X-CSRF": "1", ...headers },
+    }).then((r) => r.status);
+
+  before(async () => {
+    app = await startApp({ env: { TRUST_PROXY: "1", APP_URL: "https://app.example" } });
+    await app.signup("customer", "proxy@test.local");
+    const r = await fetch(app.base + "/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "proxy@test.local", password: PW }),
+    });
+    cookie = (r.headers.get("set-cookie") || "").split(";")[0];
+  });
+  after(() => app.stop());
+
+  it("accepts the configured public address and the host the proxy forwarded", async () => {
+    assert.equal(await change({ Origin: "https://app.example" }), 200);
+    assert.equal(await change({ Origin: "https://tunnel.example", "X-Forwarded-Host": "tunnel.example" }), 200);
+    assert.equal(await change({ Referer: "https://app.example/#/customer/projects/new" }), 200);
+  });
+
+  it("still blocks other websites", async () => {
+    assert.equal(await change({ Origin: "https://evil.example" }), 403);
+    assert.equal(await change({ Origin: "https://evil.example", "X-Forwarded-Host": "app.example" }), 403);
+  });
+});
+
+describe("cookie sessions without a trusted proxy", () => {
+  it("ignores a forwarded host", async () => {
+    const app = await startApp();
+    try {
+      await app.signup("customer", "direct@test.local");
+      const r = await fetch(app.base + "/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "direct@test.local", password: PW }),
+      });
+      const cookie = (r.headers.get("set-cookie") || "").split(";")[0];
+      const status = await fetch(app.base + "/api/account/preferences", {
+        method: "PUT",
+        body: JSON.stringify({ language: "en" }),
+        headers: { "Content-Type": "application/json", Cookie: cookie, "X-CSRF": "1", Origin: "https://tunnel.example", "X-Forwarded-Host": "tunnel.example" },
+      }).then((x) => x.status);
+      assert.equal(status, 403);
+    } finally {
+      app.stop();
+    }
+  });
+});

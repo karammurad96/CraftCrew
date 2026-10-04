@@ -259,7 +259,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 
 **Wave 8 — feedback from Karam (3 October 2026; details under "Wave 8 — feedback")**
 - [x] T140 Supplier directory only for signed-in customers: remove the public directory pages · S
-- [ ] T141 "Blocked for your security" when creating a project: CSRF origin check behind proxies, fresh scripts after a deploy · S
+- [x] T141 "Blocked for your security" when creating a project: CSRF origin check behind proxies, fresh scripts after a deploy · S
 - [ ] T142 Confirmation before approving an invoice · S
 - [ ] T143 Project tabs stay on the page: Files, Messages and Invoices open under the tab bar · M
 - [ ] T144 Scrolling: the page scrolls over cards; long cards scroll inside · S
@@ -2810,7 +2810,7 @@ the old scripts first, so a page can run old code against the new server.
 The service worker loads scripts, styles and pages from the network first and uses the cache only offline.
 
 **Done when.**
-- [ ] A cookie request with `Origin: https://app.example` passes with `X-Forwarded-Host: app.example` and
+- [x] A cookie request with `Origin: https://app.example` passes with `X-Forwarded-Host: app.example` and
   `TRUST_PROXY=1`, and with `APP_URL=https://app.example`; another origin is still blocked (tests).
 
 #### T142 · Confirmation before approving an invoice

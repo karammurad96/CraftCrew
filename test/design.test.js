@@ -164,6 +164,11 @@ describe("design 2026", () => {
   });
 
   it("uses a new service worker cache so installed apps load the new files", () => {
-    assert.match(read("sw.js"), /const CACHE = "craftcrew-shell-v3"/);
+    assert.match(read("sw.js"), /const CACHE = "craftcrew-shell-v4"/);
+  });
+
+  it("loads the page files from the network first, the cache only offline (T141)", () => {
+    const sw = read("sw.js");
+    assert.ok(sw.indexOf("await fetch(req)") < sw.indexOf("cache.match(req"), "network before cache");
   });
 });

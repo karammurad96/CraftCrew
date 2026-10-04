@@ -2855,12 +2855,24 @@ function csrfProblem(req) {
   const from = req.headers.origin || req.headers.referer;
   if (from) {
     try {
-      if (new URL(from).host !== req.headers.host) return "This request was blocked: it came from another website.";
+      if (!ownHosts(req).has(new URL(from).host)) return "This request was blocked: it came from another website.";
     } catch {
       return "This request was blocked: it came from another website.";
     }
   }
   return null;
+}
+// The names this site answers to (T141): the Host header, the host a trusted proxy forwarded (port forwarding and
+// load balancers often rewrite Host) and the configured public address (APP_URL or DOMAIN).
+function ownHosts(req) {
+  const hosts = new Set([req.headers.host]);
+  if (process.env.TRUST_PROXY === "1" && req.headers["x-forwarded-host"])
+    hosts.add(String(req.headers["x-forwarded-host"]).split(",")[0].trim());
+  if (process.env.APP_URL || process.env.DOMAIN)
+    try {
+      hosts.add(new URL(APP_URL).host);
+    } catch {}
+  return hosts;
 }
 // The hash of the token this request signed in with: the bearer token of API clients or the browser's cookie.
 // "Sign out other sessions" and a password change keep this one session.
