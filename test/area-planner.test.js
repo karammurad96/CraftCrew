@@ -71,6 +71,44 @@ const clean = (ctx, html) => {
 };
 
 describe("team planner and analytics (T135c)", () => {
+  it("draws the user's own charts, saves new ones on the account and resizes them (T148)", async () => {
+    const ctx = area("en", "customer"),
+      api = ctx.api,
+      saved = [];
+    const charts = [
+      { id: "a", source: "spendSupplier", type: "donut", size: "small", tall: false },
+      { id: "b", source: "spendMonth", type: "line", size: "wide", tall: true, title: "Spend" },
+      { id: "x", source: "notAThing", type: "bar", size: "small" },
+    ];
+    ctx.api = async (p, opts) => {
+      if (p === "/profile") return { user: { layouts: { "/customer/analytics/charts": { charts } } } };
+      if (p === "/account/layout") return saved.push(opts.body), { layouts: {} };
+      return api(p, opts);
+    };
+    ctx.state.user.role = "customer";
+    await vm.runInContext("inCustomerAnalytics()", ctx);
+    const html = ctx.app.innerHTML;
+    assert.ok(html.includes("<h2>Your charts</h2>") && html.includes('data-action="an.chartAdd"'));
+    assert.match(html, /<section class="panel an-chart an-small" data-chart="a">.*<h3>Spend per supplier<\/h3>.*class="in-donut"/s);
+    assert.match(html, /<section class="panel an-chart an-wide an-tall" data-chart="b">.*<h3>Spend<\/h3>.*<svg class="an-line"/s);
+    assert.ok(!html.includes('data-chart="x"'), "an unknown data source is skipped");
+    ctx.run("an.chartSize", { dataset: { id: "a" } });
+    await new Promise((r) => setTimeout(r, 0));
+    assert.equal(saved.at(-1).page, "/customer/analytics/charts");
+    assert.equal(saved.at(-1).layout.charts.find((c) => c.id === "a").size, "wide");
+    ctx.FormData = class {
+      constructor() {
+        return new Map(Object.entries({ source: "budgetProject", type: "bar", title: "Budgets", size: "full" }));
+      }
+    };
+    ctx.run("an.chartSave", { dataset: { id: "" } });
+    await new Promise((r) => setTimeout(r, 0));
+    assert.deepEqual(
+      JSON.parse(JSON.stringify(saved.at(-1).layout.charts.at(-1))),
+      { ...JSON.parse(JSON.stringify(saved.at(-1).layout.charts.at(-1))), source: "budgetProject", type: "bar", title: "Budgets", size: "full", tall: false },
+    );
+  });
+
   it("moves one week per arrow click in every view (T145)", async () => {
     const ctx = area("en", "supplier");
     await vm.runInContext("plPage()", ctx);

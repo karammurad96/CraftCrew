@@ -4451,6 +4451,53 @@ LOCALES.en = {
     }
   },
   an: {
+    "my": {
+      "items": "entries",
+      "title": "Your charts",
+      "lead": "Add a chart with the data you need. Resize or remove it at any time; your charts are saved on your account.",
+      "add": "+ Add chart",
+      "empty": "No charts yet. Choose \"Add chart\" to build your first one.",
+      "addTitle": "Add a chart",
+      "editTitle": "Edit chart",
+      "data": "Data",
+      "type": "Chart type",
+      "chartTitle": "Title (optional)",
+      "titleHint": "e.g. Spend per month",
+      "sizeLabel": "Size",
+      "save": "Save chart",
+      "edit": "Edit",
+      "remove": "Remove",
+      "removeConfirm": "Remove this chart from your analytics?",
+      "resize": "Change the width",
+      "height": "Change the height",
+      "taller": "Taller",
+      "lower": "Lower",
+      "size": {
+        "small": "Small",
+        "wide": "Wide",
+        "full": "Full width"
+      },
+      "types": {
+        "bar": "Bars",
+        "line": "Line",
+        "donut": "Donut"
+      },
+      "src": {
+        "spendMonth": "Invoiced per month",
+        "paidMonth": "Paid per month",
+        "invoicesStatus": "Invoices by status",
+        "budgetProject": "Budget per project",
+        "invoicedProject": "Invoiced per project",
+        "spendSupplier": "Spend per supplier",
+        "workStatus": "Work items by status",
+        "revenueMonth": "Revenue paid per month",
+        "invoicedMonth": "Invoiced per month",
+        "revenueCustomer": "Revenue per customer",
+        "hoursPerson": "Approved hours per person",
+        "hoursMonth": "Approved hours per month",
+        "offersStatus": "Offers by status"
+      }
+    },
     "eyebrow": "INSIGHTS",
     "export": "Export CSV",
     "period": "Period",

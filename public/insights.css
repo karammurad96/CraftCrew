@@ -449,3 +449,94 @@
 .in-board {
   grid-template-columns: repeat(4, minmax(200px, 1fr));
 }
+
+/* ---------- Your own charts (T148) ---------- */
+.an-custom {
+  display: grid;
+  gap: 14px;
+  margin-top: 24px;
+}
+.an-custom-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.an-custom-head h2 {
+  margin: 0;
+  font-size: 20px;
+}
+.an-custom-head p {
+  margin: 4px 0 0;
+  color: var(--ui-muted, #64748b);
+}
+.an-empty {
+  padding: 28px;
+  border: 1px dashed var(--ui-line, #cbd5e1);
+  border-radius: 14px;
+  text-align: center;
+}
+.an-grid {
+  grid-auto-flow: dense;
+}
+.an-grid > .an-wide {
+  grid-column: span 2;
+}
+.an-grid > .an-full {
+  grid-column: 1 / -1;
+}
+html body .an-grid > .panel.an-chart {
+  max-height: none;
+}
+html body .an-grid > .panel.an-tall {
+  min-height: 520px;
+}
+.an-grid > .an-tall .an-line {
+  min-height: 360px;
+}
+.an-chart .panel-title {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.an-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.an-tools .btn {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+.an-line {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.an-line .an-axis {
+  stroke: #e2e8f0;
+}
+.an-line .an-area {
+  fill: rgba(37, 99, 235, 0.1);
+}
+.an-line .an-stroke {
+  fill: none;
+  stroke: #2563eb;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+.an-line .an-dot {
+  fill: #fff;
+  stroke: #2563eb;
+  stroke-width: 2;
+}
+.an-line .an-tick {
+  fill: #64748b;
+  font-size: 12px;
+}
+@media (max-width: 900px) {
+  .an-grid > .an-wide {
+    grid-column: 1 / -1;
+  }
+}

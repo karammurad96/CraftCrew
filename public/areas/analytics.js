@@ -17,7 +17,7 @@ async function inCustomerAnalytics() {
   const q = new URLSearchParams(location.hash.split("?")[1] || ""),
     period = Number(q.get("period")) || 6,
     projectId = q.get("project") || "";
-  const [{ projects: allProjects = [] }, { invoices: allInvoices = [] }] = await Promise.all([api("/projects"), api("/invoices")]);
+  const [{ projects: allProjects = [] }, { invoices: allInvoices = [] }] = await Promise.all([api("/projects"), api("/invoices"), anLoadCharts()]);
   const projects = allProjects.filter((p) => !projectId || p.id === projectId),
     ids = new Set(projects.map((p) => p.id)),
     invoices = allInvoices.filter((i) => ids.has(i.projectId)),
@@ -39,6 +39,7 @@ async function inCustomerAnalytics() {
     .map((s) => ({ label: t("an.work." + s.replaceAll(" ", "")), value: items.filter((x) => x.status === s && !(s !== "Completed" && x.dueDate < today)).length, color: IN_STATUS_COLORS[s] }))
     .concat([{ label: t("an.work.Overdue"), value: overdue.length, color: IN_STATUS_COLORS.Overdue }]);
   anReport = { projects, invoices };
+  anData = { projects, invoices, items, months, live };
   const c = (key, params) => ank("c." + key, params);
   app.innerHTML = dashboardShell(
     "customer",
@@ -95,6 +96,7 @@ async function inCustomerAnalytics() {
           )
           .join("") || `<p class="pa-empty">${c("nothingOverdue")}</p>`
       }</section></div>`,
+      anCustomSection("customer"),
     ]
       .join(""),
   );
@@ -124,7 +126,13 @@ async function inSupplierAnalytics() {
   const q = new URLSearchParams(location.hash.split("?")[1] || ""),
     period = Number(q.get("period")) || 6,
     sid = state.user.supplierId;
-  const [{ projects = [] }, { invoices = [] }, { bids = [] }, { entries = [] }] = await Promise.all([api("/projects"), api("/invoices"), api("/bids").catch(() => ({})), api("/time-entries").catch(() => ({}))]);
+  const [{ projects = [] }, { invoices = [] }, { bids = [] }, { entries = [] }] = await Promise.all([
+    api("/projects"),
+    api("/invoices"),
+    api("/bids").catch(() => ({})),
+    api("/time-entries").catch(() => ({})),
+    anLoadCharts(),
+  ]);
   const months = inMonths(period),
     today = inToday(),
     items = inWorkItems(projects, sid).filter((x) => !x.t || x.t.acceptanceStatus === "Accepted"),
@@ -153,6 +161,7 @@ async function inSupplierAnalytics() {
     offerTone = (o) => (o.status === "Accepted" ? "completed" : ["Not selected", "Declined"].includes(o.status) ? "rejected" : "submitted"),
     offerStatus = (st) => (typeof ccLookup("en", "an.s.offer." + st.replaceAll(" ", "")) === "string" ? s("offer." + st.replaceAll(" ", "")) : esc(st));
   anReport = { invoices, offers };
+  anData = { projects, invoices, items, months, offers, entries };
   app.innerHTML = dashboardShell(
     "supplier",
     "analytics",
@@ -207,6 +216,7 @@ async function inSupplierAnalytics() {
           )
           .join("") || `<p class="pa-empty">${s("noOffers")}</p>`
       }</section></div>`,
+      anCustomSection("supplier"),
     ]
       .join(""),
   );
@@ -224,3 +234,151 @@ actions.on("an.exportSupplier", () => {
 
 routes.add("/customer/analytics", inCustomerAnalytics);
 routes.add("/supplier/analytics", inSupplierAnalytics);
+
+/* ---------- Your own charts (T148): choose the data and the chart type, resize, remove; saved on the account ---------- */
+const AN_TYPES = ["bar", "line", "donut"];
+const AN_SIZES = ["small", "wide", "full"];
+let anCharts = [],
+  anData = null;
+// What a chart can show, per role. Each source returns month values (months) or labelled values (rows).
+const AN_SOURCES = {
+  customer: {
+    spendMonth: (d) => ({ months: d.months.map((m) => inSum(d.invoices.filter((i) => String(i.createdAt).slice(0, 7) === m && d.live(i)))), fmt: "money" }),
+    paidMonth: (d) => ({ months: d.months.map((m) => inSum(d.invoices.filter((i) => i.status === "Paid" && String(i.paymentDate || i.updatedAt).slice(0, 7) === m))), fmt: "money" }),
+    invoicesStatus: (d) => ({ rows: anCount(d.invoices, (i) => anStatus(i.status)), fmt: "count" }),
+    budgetProject: (d) => ({ rows: d.projects.map((p) => ({ label: p.name, value: Number(p.budget) || 0 })), fmt: "money" }),
+    invoicedProject: (d) => ({ rows: d.projects.map((p) => ({ label: p.name, value: inSum(d.invoices.filter((i) => i.projectId === p.id && d.live(i))) })), fmt: "money" }),
+    spendSupplier: (d) => ({ rows: anSumBy(d.invoices.filter((i) => ["Approved", "Paid", "Submitted"].includes(i.status)), (i) => i.supplierCompany || i.supplierId, (i) => i.amount), fmt: "money" }),
+    workStatus: (d) => ({ rows: anCount(d.items, (x) => tStatus(x.status || "Not Started")), fmt: "count" }),
+  },
+  supplier: {
+    revenueMonth: (d) => ({ months: d.months.map((m) => inSum(d.invoices.filter((i) => i.status === "Paid" && String(i.paymentDate || i.updatedAt).slice(0, 7) === m))), fmt: "money" }),
+    invoicedMonth: (d) => ({ months: d.months.map((m) => inSum(d.invoices.filter((i) => String(i.createdAt).slice(0, 7) === m && !["Rejected", "Refunded"].includes(i.status)))), fmt: "money" }),
+    revenueCustomer: (d) => ({ rows: anSumBy(d.invoices.filter((i) => ["Approved", "Paid"].includes(i.status)), (i) => i.customerCompany || t("an.s.customer"), (i) => i.amount), fmt: "money" }),
+    invoicesStatus: (d) => ({ rows: anCount(d.invoices, (i) => anStatus(i.status)), fmt: "count" }),
+    hoursPerson: (d) => ({ rows: anSumBy(d.entries.filter((e) => e.status === "Approved" && d.months.includes(String(e.workDate).slice(0, 7))), (e) => e.employeeName, (e) => e.hours), fmt: "hours" }),
+    hoursMonth: (d) => ({ months: d.months.map((m) => inSum(d.entries.filter((e) => e.status === "Approved" && String(e.workDate).slice(0, 7) === m), (e) => e.hours)), fmt: "hours" }),
+    offersStatus: (d) => ({ rows: anCount(d.offers, (o) => tStatus(o.status || "Submitted")), fmt: "count" }),
+  },
+};
+function anCount(list, key) {
+  const m = new Map();
+  for (const x of list) m.set(key(x), (m.get(key(x)) || 0) + 1);
+  return [...m].map(([label, value]) => ({ label, value }));
+}
+function anSumBy(list, key, val) {
+  const m = new Map();
+  for (const x of list) m.set(key(x), (m.get(key(x)) || 0) + Number(val(x) || 0));
+  return [...m].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value);
+}
+const anFmt = (kind) => (kind === "money" ? anMoney : kind === "hours" ? (v) => `${fmt.number(v, 1)} h` : (v) => fmt.number(v, 0));
+// A line chart over the months or the labelled values
+function anLine(rows, f) {
+  if (!rows.some((r) => r.value)) return `<p class="pa-empty in-empty-chart">${esc(t("common.chart.noData"))}</p>`;
+  const W = 600,
+    H = 220,
+    pad = { l: 12, r: 12, t: 22, b: 30 },
+    max = Math.max(1, ...rows.map((r) => r.value)),
+    x = (i) => pad.l + (rows.length === 1 ? (W - pad.l - pad.r) / 2 : (i * (W - pad.l - pad.r)) / (rows.length - 1)),
+    y = (v) => H - pad.b - (v / max) * (H - pad.t - pad.b),
+    pts = rows.map((r, i) => `${x(i).toFixed(1)},${y(r.value).toFixed(1)}`).join(" ");
+  return `<svg class="an-line" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(rows.map((r) => `${r.label}: ${f(r.value)}`).join(", "))}"><line x1="${pad.l}" x2="${W - pad.r}" y1="${H - pad.b}" y2="${H - pad.b}" class="an-axis"/><polygon points="${pad.l},${H - pad.b} ${pts} ${x(rows.length - 1)},${H - pad.b}" class="an-area"/><polyline points="${pts}" class="an-stroke"/>${rows
+    .map(
+      (r, i) =>
+        `<circle cx="${x(i).toFixed(1)}" cy="${y(r.value).toFixed(1)}" r="4" class="an-dot"><title>${esc(r.label)}: ${esc(f(r.value))}</title></circle><text x="${x(i).toFixed(1)}" y="${H - 10}" text-anchor="middle" class="an-tick">${esc(r.label)}</text>`,
+    )
+    .join("")}<text x="${pad.l}" y="14" class="an-tick">${esc(f(max))}</text></svg>`;
+}
+function anChartBody(c, role) {
+  const src = AN_SOURCES[role][c.source];
+  if (!src || !anData) return "";
+  const data = src(anData),
+    f = anFmt(data.fmt),
+    rows = data.months ? anData.months.map((m, i) => ({ label: inMonthLabel(m), value: data.months[i] })) : data.rows;
+  if (c.type === "line") return anLine(rows, f);
+  if (c.type === "donut") {
+    const top = [...rows].sort((a, b) => b.value - a.value),
+      seg = top.slice(0, 5).map((r, i) => ({ ...r, color: IN_COLORS[i] })),
+      rest = top.slice(5).reduce((a, r) => a + r.value, 0);
+    return inDonut(rest ? [...seg, { label: t("an.others"), value: rest, color: IN_COLORS[5] }] : seg, t("an.my.items"), f);
+  }
+  if (data.months) return inBars(anData.months, [{ label: c.title || t(`an.my.src.${c.source}`), color: IN_COLORS[0], values: data.months }], f);
+  return rows.length ? inHBars(rows.map((r) => ({ label: r.label, values: [{ label: r.label, value: r.value, color: IN_COLORS[0] }] })), f) : `<p class="pa-empty">${esc(t("common.chart.noData"))}</p>`;
+}
+function anCustomSection(role) {
+  const m = (key, params) => ank("my." + key, params),
+    tool = (action, c, label, title) => `<button type="button" class="btn small ghost" data-action="${action}" data-id="${esc(c.id)}" title="${title}">${label}</button>`;
+  const panels = anCharts
+    .filter((c) => AN_SOURCES[role][c.source])
+    .map(
+      (c) =>
+        `<section class="panel an-chart an-${esc(c.size)}${c.tall ? " an-tall" : ""}" data-chart="${esc(c.id)}"><div class="panel-title"><h3>${esc(c.title || t(`an.my.src.${c.source}`))}</h3><div class="an-tools">${tool(
+          "an.chartSize",
+          c,
+          `⤢ ${m("size." + c.size)}`,
+          m("resize"),
+        )}${tool("an.chartTall", c, c.tall ? m("lower") : m("taller"), m("height"))}${tool("an.chartEdit", c, m("edit"), m("edit"))}${tool("an.chartRemove", c, m("remove"), m("remove"))}</div></div>${anChartBody(c, role)}</section>`,
+    )
+    .join("");
+  return `<section class="an-custom"><div class="an-custom-head"><div><h2>${m("title")}</h2><p>${m("lead")}</p></div><button class="btn primary" data-action="an.chartAdd">${m("add")}</button></div>${
+    panels ? `<div class="in-grid an-grid">${panels}</div>` : `<p class="pa-empty an-empty">${m("empty")}</p>`
+  }</section>`;
+}
+const anChartsPage = () => `/${state.user.role}/analytics/charts`;
+async function anLoadCharts() {
+  try {
+    const all = typeof lcLayouts !== "undefined" && lcLayouts && Object.keys(lcLayouts).length ? lcLayouts : (await api("/profile")).user?.layouts || {};
+    const list = all[anChartsPage()]?.charts;
+    anCharts = Array.isArray(list)
+      ? list.filter((c) => c && typeof c.id === "string" && AN_TYPES.includes(c.type)).map((c) => ({ ...c, size: AN_SIZES.includes(c.size) ? c.size : "small", tall: !!c.tall }))
+      : [];
+  } catch {
+    anCharts = [];
+  }
+}
+async function anSaveCharts() {
+  try {
+    const r = await api("/account/layout", { method: "PUT", body: { page: anChartsPage(), layout: { charts: anCharts } } });
+    if (typeof lcLayouts !== "undefined" && r.layouts) lcLayouts = r.layouts;
+  } catch (x) {
+    toast(x.message, "error");
+  }
+  route();
+}
+function anChartForm(c = {}) {
+  const role = state.user.role,
+    m = (key, params) => ank("my." + key, params),
+    opt = (v, label, on) => `<option value="${esc(v)}"${on ? " selected" : ""}>${label}</option>`;
+  modal(
+    t(c.id ? "an.my.editTitle" : "an.my.addTitle"),
+    `<form id="anChartForm" class="modal-form" data-action="an.chartSave" data-id="${esc(c.id || "")}"><label>${m("data")}<select name="source" required>${Object.keys(AN_SOURCES[role])
+      .map((k) => opt(k, m("src." + k), k === c.source))
+      .join("")}</select></label><label>${m("type")}<select name="type">${AN_TYPES.map((k) => opt(k, m("types." + k), k === (c.type || "bar"))).join("")}</select></label><label>${m("chartTitle")}<input name="title" maxlength="80" value="${esc(
+      c.title || "",
+    )}" placeholder="${m("titleHint")}"></label><label>${m("sizeLabel")}<select name="size">${AN_SIZES.map((k) => opt(k, m("size." + k), k === (c.size || "small"))).join("")}</select></label><button class="btn primary">${m("save")}</button></form>`,
+  );
+}
+actions.on("an.chartAdd", () => anChartForm());
+actions.on("an.chartEdit", (el) => anChartForm(anCharts.find((c) => c.id === el.dataset.id)));
+actions.on("an.chartSave", (form) => {
+  const b = Object.fromEntries(new FormData(form)),
+    id = form.dataset.id,
+    c = { source: b.source, type: AN_TYPES.includes(b.type) ? b.type : "bar", title: String(b.title || "").trim().slice(0, 80), size: AN_SIZES.includes(b.size) ? b.size : "small" };
+  if (!AN_SOURCES[state.user.role][c.source]) return;
+  anCharts = id ? anCharts.map((x) => (x.id === id ? { ...x, ...c } : x)) : [...anCharts, { id: "ch" + Date.now().toString(36), tall: false, ...c }];
+  closeModal();
+  anSaveCharts();
+});
+actions.on("an.chartSize", (el) => {
+  anCharts = anCharts.map((c) => (c.id === el.dataset.id ? { ...c, size: AN_SIZES[(AN_SIZES.indexOf(c.size) + 1) % AN_SIZES.length] } : c));
+  anSaveCharts();
+});
+actions.on("an.chartTall", (el) => {
+  anCharts = anCharts.map((c) => (c.id === el.dataset.id ? { ...c, tall: !c.tall } : c));
+  anSaveCharts();
+});
+actions.on("an.chartRemove", async (el) => {
+  if (!(await uiConfirm(t("an.my.removeConfirm")))) return;
+  anCharts = anCharts.filter((c) => c.id !== el.dataset.id);
+  anSaveCharts();
+});
