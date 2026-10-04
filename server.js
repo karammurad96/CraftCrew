@@ -8053,10 +8053,44 @@ function mime(file) {
     }[path.extname(file)] || "application/octet-stream"
   );
 }
+// With a database store (T162) the reply to a change goes out only after the change is committed. If the
+// commit fails, the client gets 503 instead of a success that a crash could still lose.
+function replyAfterCommit(res) {
+  const writeHead = res.writeHead,
+    write = res.write,
+    end = res.end,
+    chunks = [];
+  let head = null,
+    ended = false;
+  res.writeHead = (...args) => ((head = args), res);
+  res.write = (chunk, ...rest) => (chunks.push([chunk, ...rest]), true);
+  res.end = (...args) => {
+    if (ended) return res;
+    ended = true;
+    if (saveTimer) saveNow();
+    store.flush().then(
+      () => {
+        if (head) writeHead.apply(res, head);
+        for (const c of chunks) write.apply(res, c);
+        end.apply(res, args);
+      },
+      () => {
+        res.removeHeader("Set-Cookie");
+        Object.assign(res, { writeHead, write, end });
+        send(res, 503, { error: "Could not save. Please try again." });
+      },
+    );
+    return res;
+  };
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
   if (url.pathname.startsWith("/api/")) {
-    if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) trackAudit(req, res, url);
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
+      trackAudit(req, res, url);
+      if (store.waitsForCommit) replyAfterCommit(res);
+    }
     return api(req, res, url);
   }
   if (url.pathname.startsWith("/ics/")) {

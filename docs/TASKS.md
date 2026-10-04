@@ -278,7 +278,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 **Wave 9 — PostgreSQL (T81 split; decided with Karam on 4 October 2026: build it now at no cost, the JSON file stays the default until launch; details under "Wave 9 — PostgreSQL")**
 - [x] T160 Store layer: one module loads and saves the data; tests stop reading `db.json` directly · M · no new dependency
 - [x] T161 PostgreSQL foundation: `pg`, `DATABASE_URL`, migrations, a database for local tests and CI · S · **needs Karam's OK for the `pg` dependency**
-- [ ] T162 PostgreSQL store: every collection in PostgreSQL, only changed records written, the reply waits for the commit · M
+- [x] T162 PostgreSQL store: every collection in PostgreSQL, only changed records written, the reply waits for the commit · M
 - [ ] T163 Move the data across and back: import, export, checksums, runbook · S
 - [ ] T164 Real tables: accounts, sessions and sign-in tokens · M
 - [ ] T165 Real tables: invoices and payments with the legal protections · M
@@ -3113,8 +3113,25 @@ database, a second run changes nothing, and a broken migration rolls back comple
 - Changing one invoice writes exactly one row. Count the writes with a test hook in `store.js`.
 - Kill the server (`SIGKILL`) right after a 200 reply to a change, restart it: the change is there.
 
+**As built (4 October 2026).**
+- `store-postgres.js` holds the store; `db/load.js` is the loader that runs in a child process (T160).
+- **`pos` is a `double precision`, not an integer.** The code adds to the front of many lists (`unshift` on the
+  audit log, notifications, invoices …). With whole-number positions every such change would rewrite the whole
+  list. Now the records that keep their order keep their position (the longest run in order), and new or moved
+  records get a position between their neighbours. When there is no room left, the list is numbered again.
+- A repeated key gets `#2`, `#3` …, and a record without an id is keyed by a hash of its content. Records are
+  never changed to give them an id.
+- The kv row `$shape` keeps the top-level order and the names of the lists, so empty lists load as `[]`.
+- jsonb cannot hold `\u0000` or a lone UTF-16 surrogate. These only come from broken input, so they are dropped
+  or replaced by U+FFFD instead of failing every later save.
+- **A failed commit** answers the change with 503 `errors.api.couldNotSavePleaseTry`. The change stays in memory
+  and is written with the next save, or by a retry after 5 seconds.
+- **Background jobs don't call `flush()`:** the store writes in the background anyway and logs failures.
+- The test helpers give every test data folder its own schema and drop them when the test file ends.
+  `stop({ signal: "SIGKILL" })` simulates a crash.
+
 **Done when.**
-- [ ] Both CI jobs pass; the control diff, smoke test and overflow runs are unchanged.
+- [x] Both CI jobs pass; the control diff, smoke test and overflow runs are unchanged.
 
 ### T163 · Move the data across and back
 `P1 · S · depends on T162`

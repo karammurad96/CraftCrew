@@ -181,6 +181,7 @@ LOCALES.de = {
     wrongAccount: "Diese Seite gehört zu einer anderen Kontoart.",
     // API error messages by code (T137): the server sends { error, code, params }; see errorCode() in server.js
     api: {
+      couldNotSavePleaseTry: "Die Änderung konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
       taskNotFound: "Aufgabe nicht gefunden",
       onlyTheCustomerAcceptsWork: "Nur der Auftraggeber nimmt Leistungen ab",
       thisProjectIsArchivedAnd: "Dieses Projekt ist archiviert und kann nicht mehr geändert werden.",
