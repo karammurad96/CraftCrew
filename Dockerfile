@@ -6,6 +6,8 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY server.js store.js store-postgres.js mailer.js sourcing.js compliance.js team.js documents.js planning.js xrechnung.js vies.js geo.js pdf.js acceptance.js punchlist.js sitereports.js calendar.js twofactor.js preferred.js benchmarks.js gdpr.js locales.js ./
 COPY db ./db
+# The database tools (migrate, import, export), run with `docker compose run --rm craftcrew node tools/db/…`
+COPY tools/db ./tools/db
 COPY migrations ./migrations
 COPY public ./public
 RUN mkdir -p /var/lib/craftcrew/uploads && chown -R node:node /app /var/lib/craftcrew
