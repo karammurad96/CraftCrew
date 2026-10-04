@@ -287,7 +287,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T168 Several app servers: no state in one process, jobs run once, uploads in object storage · L · **after launch**, when one server is not enough
 
 **Wave 10 — before launch (no running costs; in this order)**
-- [ ] T170 Refuse demo mode on a public server · S · cheap model OK
+- [x] T170 Refuse demo mode on a public server · S · cheap model OK
 - [ ] T171 Rename the product to the new brand and domain · S · **needs Karam's decision on the name**
 - [ ] T172 Legal pages and data-protection documents · S · **a lawyer or trusted generator, not code**
 - [ ] T173 Security review before launch · M
@@ -3359,6 +3359,10 @@ own rate limits, and would run every background job twice. The state is:
 
 **Tests.** The server exits with the message when `DOMAIN=example.com` is set without `NODE_ENV`; it starts
 with `ALLOW_DEMO=1`; production mode is unaffected.
+
+**As built (4 October 2026).** `demoModeProblems()` near the top of `server.js` runs before any data is loaded.
+`test/demo-guard.test.js` covers `DOMAIN`, a public `APP_URL`, `ALLOW_DEMO=1` with the warning, and production
+mode. `README.md` documents `ALLOW_DEMO`.
 
 ### T171 · Rename the product to the new brand and domain
 `P1 · S · needs Karam's decision on the name (candidates checked on 4 October 2026: Kramvo, Bramvo, Werkmesh, Werkspan …)`

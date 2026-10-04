@@ -20,6 +20,28 @@ const store = require("./store").openStore({ dataDir: DATA_DIR });
 const PORT = Number(process.env.PORT || 3000);
 // Demo/showcase data and demo logins exist only outside production.
 const DEMO_MODE = process.env.NODE_ENV !== "production";
+// T170: demo mode creates accounts whose passwords are printed in README.md. It must never run on a public
+// server, so it refuses to start where the settings look like one, unless ALLOW_DEMO=1 says it is on purpose.
+function demoModeProblems(env = process.env, dataDir = DATA_DIR) {
+  return [
+    env.DOMAIN && "DOMAIN is set",
+    env.APP_URL &&
+      !/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?(\/|$)/i.test(env.APP_URL) &&
+      "APP_URL is not localhost",
+    dataDir === "/var/lib/craftcrew" && "DATA_DIR is the Docker data volume",
+  ].filter(Boolean);
+}
+if (DEMO_MODE) {
+  const problems = demoModeProblems();
+  if (problems.length && process.env.ALLOW_DEMO !== "1") {
+    console.error(
+      `Refusing to start in DEMO MODE (${problems.join(", ")}): demo mode creates accounts with public ` +
+        "passwords. Set NODE_ENV=production for a real server, or ALLOW_DEMO=1 for a private demo.",
+    );
+    process.exit(1);
+  }
+  console.warn("DEMO MODE: demo accounts with public passwords exist. Never run this on a public server.");
+}
 const mailer = require("./mailer");
 const { buildXRechnung, xrechnungProblem } = require("./xrechnung");
 function withinRadius(location, center, radius) {
