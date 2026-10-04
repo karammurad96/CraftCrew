@@ -1,5 +1,6 @@
 /* Area: team planner (T135c). The supplier's people × days calendar with job assignments, absences and site
-   visits. Click an empty day to plan, click a bar to edit, drag a bar to move it to another day or person. Drawn
+   visits. Double-click an empty day to plan, double-click a bar (or Enter on it) to edit, drag a bar to move it to
+   another day or person (T145). The arrows move by one week. Drawn
    with translation keys; names, jobs, titles and notes are data. */
 const plk = (key, params) => esc(t("pl." + key, params));
 const plDom = (text) => `<bdi>${esc(text)}</bdi>`;
@@ -64,7 +65,7 @@ async function plPage() {
       f = Math.min(days - 1, plDiff(pl.start, e.end)),
       when = esc(fmt.date(e.start)) + (e.end !== e.start ? " – " + esc(fmt.date(e.end)) : "");
     return `<div class="pl-bar pl-${esc(e.type)} ${e.conflict ? "conflict" : ""} ${e.readOnly ? "ro" : ""}" style="grid-column:${s + 1} / ${f + 2};grid-row:${e.lane + 1}" ${
-      e.readOnly ? 'data-action="pl.visit"' : `draggable="true" data-entry="${esc(e.id)}" data-action="pl.edit"`
+      e.readOnly ? 'data-action="pl.visit"' : `draggable="true" tabindex="0" data-entry="${esc(e.id)}" data-key="pl.edit" data-key-on="Enter"`
     } title="${esc(plType(e.type, e.typeLabel))}: ${esc(e.title)} (${when})${e.conflict ? " — " + plk("overlaps") : ""}${e.note ? "\n" + esc(e.note) : ""}"><span>${e.conflict ? "⚠ " : ""}${esc(e.title)}</span></div>`;
   };
   const rows = people
@@ -79,10 +80,10 @@ async function plPage() {
           .slice(0, 2),
       )}</span><div><b>${esc(p.name)}</b><small>${plRole(p)}</small></div><span class="pl-util ${u > 90 ? "high" : u < 30 ? "low" : ""}" title="${plk("utilTip", { n: u })}">${u}%</span></div><div class="pl-track" data-person="${esc(
         p.id,
-      )}" style="grid-template-columns:repeat(${days},minmax(0,1fr));grid-template-rows:repeat(${count},26px)">${dates
+      )}" style="grid-template-columns:repeat(${days},minmax(0,1fr));grid-template-rows:repeat(${count},32px) 1fr">${dates
         .map(
           (d, i) =>
-            `<div class="pl-cell ${[0, 6].includes(plParse(d).getDay()) ? "weekend" : ""} ${d === today ? "today" : ""}" style="grid-column:${i + 1};grid-row:1 / -1" data-date="${d}" data-person="${esc(p.id)}" data-action="pl.new"></div>`,
+            `<div class="pl-cell ${[0, 6].includes(plParse(d).getDay()) ? "weekend" : ""} ${d === today ? "today" : ""}" style="grid-column:${i + 1};grid-row:1 / -1" data-date="${d}" data-person="${esc(p.id)}"></div>`,
         )
         .join("")}${items.map(bar).join("")}</div></div>`;
     })
@@ -113,9 +114,9 @@ async function plPage() {
         plk("kpi.absentSub"),
         absentToday ? "warn" : "",
       )}${kpi("kpi.unstaffed", unplanned.length, esc(t.plural("pl.kpi.double", conflicts)), unplanned.length || conflicts ? "warn" : "good")}</div>`,
-      `<section class="panel pl-panel"><div class="pl-toolbar"><div class="pl-nav"><button class="btn small outline" data-action="pl.shift" data-dir="-1" title="${plk("prev")}">‹</button><button class="btn small outline" data-action="pl.today">${plk(
+      `<section class="panel pl-panel"><div class="pl-toolbar"><div class="pl-nav"><button class="btn small outline" data-action="pl.shift" data-dir="-1"><span class="dir-flip" aria-hidden="true">‹</span> ${plk("prev")}</button><button class="btn small outline" data-action="pl.today">${plk(
         "today",
-      )}</button><button class="btn small outline" data-action="pl.shift" data-dir="1" title="${plk("next")}">›</button><h3>${esc(title)}</h3></div><div class="pl-legend">${PL_TYPES.map((k) => `<span><i class="pl-${k}"></i>${plk("legend." + k)}</span>`).join(
+      )}</button><button class="btn small outline" data-action="pl.shift" data-dir="1">${plk("next")} <span class="dir-flip" aria-hidden="true">›</span></button><h3>${esc(title)}</h3></div><p class="pl-hint">${plk("hint")}</p><div class="pl-legend">${PL_TYPES.map((k) => `<span><i class="pl-${k}"></i>${plk("legend." + k)}</span>`).join(
         "",
       )}</div><div class="xp-views pl-spans">${Object.keys(PL_SPANS)
         .map((k) => `<button type="button" class="${pl.span === k ? "on" : ""}" data-action="pl.span" data-span="${k}">${plk("span." + k)}</button>`)
@@ -133,7 +134,8 @@ async function plPage() {
   plBindDrag();
 }
 actions.on("pl.shift", (el) => {
-  pl.start = plAdd(pl.start, Number(el.dataset.dir) * (pl.span === "week" ? 7 : 14));
+  // One week per click in every view (T145)
+  pl.start = plAdd(pl.start, Number(el.dataset.dir) * 7);
   plPage();
 });
 actions.on("pl.today", () => {
@@ -294,6 +296,13 @@ function plBindDrag() {
     });
   });
   document.querySelectorAll(".pl-track[data-person]").forEach((track) => {
+    // Double-click: a bar opens its entry, an empty day a new entry for that person and day (T145)
+    track.addEventListener("dblclick", (ev) => {
+      const bar = ev.target.closest(".pl-bar[data-entry]"),
+        cell = ev.target.closest(".pl-cell");
+      if (bar) actions.run("pl.edit", bar, ev);
+      else if (cell) actions.run("pl.new", cell, ev);
+    });
     const cellAt = (ev) => {
       const r = track.getBoundingClientRect(),
         days = PL_SPANS[pl.span];

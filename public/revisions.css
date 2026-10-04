@@ -59,14 +59,6 @@
   background: #fff7ed;
   color: #9a3412;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .notice.warn,
-  :root:not([data-theme="light"]) .rv-change-note {
-    background: #431407;
-    border-color: #9a3412;
-    color: #fed7aa;
-  }
-}
 .cc-table.rv-lines {
   min-width: 0;
   width: 100%;

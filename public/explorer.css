@@ -666,16 +666,6 @@ body.xp-max .app-shell:has(.xp-page) .dashboard-content {
     display: none;
   }
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .xp-window {
-    --xp-soft: #111827;
-    --xp-sel: #1e3a5f;
-    --xp-hover: #1f2937;
-  }
-  :root:not([data-theme="light"]) .xp-winbtn:hover {
-    background: #1f2937;
-  }
-}
 .xp-search input,
 .xp-search input:focus {
   border: 0 !important;

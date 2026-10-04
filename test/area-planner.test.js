@@ -71,6 +71,25 @@ const clean = (ctx, html) => {
 };
 
 describe("team planner and analytics (T135c)", () => {
+  it("moves one week per arrow click in every view (T145)", async () => {
+    const ctx = area("en", "supplier");
+    await vm.runInContext("plPage()", ctx);
+    for (const span of ["week", "twoweeks", "month"]) {
+      vm.runInContext(`pl.span = "${span}"`, ctx);
+      const before = vm.runInContext("pl.start", ctx);
+      ctx.run("pl.shift", { dataset: { dir: "1" } });
+      assert.equal(vm.runInContext(`plDiff("${before}", pl.start)`, ctx), 7, span);
+      ctx.run("pl.shift", { dataset: { dir: "-1" } });
+      assert.equal(vm.runInContext("pl.start", ctx), before);
+    }
+  });
+
+  it("has no dark-mode colours: the app is light only (T145)", () => {
+    const fs = require("node:fs"),
+      dir = path.join(__dirname, "..", "public");
+    for (const f of fs.readdirSync(dir).filter((x) => x.endsWith(".css"))) assert.doesNotMatch(fs.readFileSync(path.join(dir, f), "utf8"), /prefers-color-scheme:\s*dark/, f);
+  });
+
   for (const lang of ["en", "de"]) {
     const de = lang === "de";
     it(`draws the planner and its dialogs in ${de ? "German" : "English"} from keys`, async () => {
@@ -78,8 +97,10 @@ describe("team planner and analytics (T135c)", () => {
       await vm.runInContext("plPage()", ctx);
       const html = ctx.app.innerHTML;
       clean(ctx, html);
-      assert.match(html, /data-person="w1" data-action="pl\.new"/);
-      assert.match(html, /draggable="true" data-entry="e1" data-action="pl\.edit"/);
+      // T145: double-click plans or edits (bound on the track), Enter edits a focused bar, arrows move a week
+      assert.match(html, /data-date="\d{4}-\d\d-\d\d" data-person="w1"><\/div>/);
+      assert.match(html, /draggable="true" tabindex="0" data-entry="e1" data-key="pl\.edit" data-key-on="Enter"/);
+      assert.match(html, /<p class="pl-hint">/);
       assert.match(html, /class="pl-bar pl-visit[^"]*ro" [^>]*data-action="pl\.visit"/);
       assert.match(html, /data-action="pl\.span" data-span="month"/);
       assert.ok(html.includes(de ? "1 Monteur" : "1 field worker") && html.includes(de ? "1 Doppelbuchung" : "1 double booking"));
