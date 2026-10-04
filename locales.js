@@ -11,6 +11,9 @@ const ctx = { window: {} };
 ctx.window = ctx;
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(PUBLIC, "core", "languages.js"), "utf8"), ctx);
+// The product's name (T171), the same file as in the browser
+vm.runInContext(fs.readFileSync(path.join(PUBLIC, "core", "brand.js"), "utf8"), ctx);
+const BRAND = { ...ctx.BRAND };
 const LANGUAGES = ctx.LANGUAGES.map((l) => ({ ...l }));
 for (const l of LANGUAGES) vm.runInContext(fs.readFileSync(path.join(PUBLIC, "locales", `${l.code}.js`), "utf8"), ctx);
 const LOCALES = ctx.LOCALES;
@@ -25,7 +28,11 @@ const localeOf = (lang) => (LANGUAGES.find((l) => l.code === lang) || LANGUAGES[
 function lookup(lang, key) {
   return key.split(".").reduce((node, part) => (node && typeof node === "object" ? node[part] : undefined), LOCALES[lang]);
 }
-const fill = (text, params) => String(text).replace(/\{(\w+)\}/g, (m, k) => (params && params[k] !== undefined ? String(params[k]) : m));
+// {brand} is the product's name unless the caller passes its own (T171).
+const fill = (text, params) =>
+  String(text).replace(/\{(\w+)\}/g, (m, k) =>
+    params && params[k] !== undefined ? String(params[k]) : k === "brand" ? BRAND.name : m,
+  );
 // text("de", "server.notify.invoicePaid", { number }) → the German text, else the English one, else the key.
 function text(lang, key, params) {
   let value = lookup(lang, key);
@@ -34,7 +41,9 @@ function text(lang, key, params) {
 }
 // A whole group, e.g. the labels of one PDF, with English for anything the language lacks.
 function group(lang, key) {
-  return { ...lookup("en", key), ...lookup(lang, key) };
+  const all = { ...lookup("en", key), ...lookup(lang, key) };
+  for (const [k, v] of Object.entries(all)) if (typeof v === "string") all[k] = fill(v);
+  return all;
 }
 // Status, priority and category values: common.status.<camelCase>, as in the browser (tStatus); others unchanged.
 // English keeps the value exactly as stored.
@@ -79,4 +88,4 @@ function addLanguage(language, texts) {
   LOCALES[language.code] = texts;
 }
 
-module.exports = { LANGUAGES, codes, langOf, localeOf, text, group, statusText, notifyText, email, pdfLang, addLanguage };
+module.exports = { BRAND, LANGUAGES, codes, langOf, localeOf, text, group, statusText, notifyText, email, pdfLang, addLanguage };

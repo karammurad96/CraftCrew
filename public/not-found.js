@@ -17,7 +17,7 @@ function renderNotFound(kind) {
   )}</button></div></section>`;
   app.innerHTML = role ? dashboardShell(role, kind ? list : "dashboard", card) : publicLayout(`<div class="cc-page">${card}</div>`);
   document.getElementById("toast")?.classList.remove("show");
-  document.title = `${t(`ui.nf.${k}.title`)} · CraftCrew`;
+  document.title = `${t(`ui.nf.${k}.title`)} · ${BRAND.name}`;
 }
 actions.on("ui.back", () => history.back());
 actions.on("ui.retry", () => route());

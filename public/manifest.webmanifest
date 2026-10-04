@@ -1,6 +1,6 @@
 {
-  "name": "CraftCrew",
-  "short_name": "CraftCrew",
+  "name": "{{brand}}",
+  "short_name": "{{brand}}",
   "description": "Find vetted industrial service suppliers and run multi-phase projects with them.",
   "id": "/",
   "start_url": "/?pwa=1",

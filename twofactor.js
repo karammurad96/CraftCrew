@@ -4,6 +4,7 @@
  * Admins can require it for every admin account.
  */
 const crypto = require("node:crypto");
+const { BRAND } = require("./locales");
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 function base32Encode(buf) {
@@ -143,11 +144,11 @@ module.exports = function createTwoFactor(ctx) {
       const secret = base32Encode(crypto.randomBytes(20));
       account.totpPending = { secret, createdAt: now() };
       save();
-      const label = `CraftCrew:${encodeURIComponent(account.email)}`;
+      const label = `${encodeURIComponent(BRAND.name)}:${encodeURIComponent(account.email)}`;
       return (
         send(res, 200, {
           secret,
-          otpauthUrl: `otpauth://totp/${label}?secret=${secret}&issuer=CraftCrew&algorithm=SHA1&digits=6&period=30`,
+          otpauthUrl: `otpauth://totp/${label}?secret=${secret}&issuer=${encodeURIComponent(BRAND.name)}&algorithm=SHA1&digits=6&period=30`,
         }),
         true
       );

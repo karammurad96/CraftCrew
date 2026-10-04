@@ -187,7 +187,8 @@ describe("route table", () => {
   it("is loaded right after workflows.js, with the language registry and core first", () => {
     const order = [...read("index.html").matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]),
       at = (f) => order.indexOf(f);
-    assert.deepEqual(order.slice(0, 7), [
+    assert.deepEqual(order.slice(0, 8), [
+      "core/brand.js",
       "app.js",
       "core/languages.js",
       "core/t.js",

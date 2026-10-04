@@ -3378,6 +3378,20 @@ mode. `README.md` documents `ALLOW_DEMO`.
    note: renaming a volume loses data unless it is copied.
 4. Keep internal names (`cc_` prefixes, file names) unless they are visible to users.
 
+**Step 1 done (4 October 2026), the name is still CraftCrew.**
+- `public/core/brand.js` holds `BRAND` (name and the two halves of the logo word). The browser loads it first;
+  the server reads the same file through `locales.js` (`locales.BRAND`).
+- The texts in `en.js` and `de.js` say `{brand}`, which `t()` and the server's `text()`/`group()` fill in
+  unless a caller passes its own `brand`.
+- The page shell and the manifest say `{{brand}}`, `{{brandStart}}` and `{{brandEnd}}`; the server fills them in
+  when it serves them.
+- Server texts use `BRAND.name`: email footer, error messages, PDF and email file names, the calendar feed
+  (`PRODID`, calendar name), the two-factor issuer, the GDPR export note and the start-up log.
+- **Still CraftCrew on purpose** (internal or demo only): the demo data and demo passwords in `server.js`,
+  code comments, `updateCraftCrewShell()`, the `cc_` prefixes and the `craftcrew-shell-v4` cache name.
+- **When the name is chosen:** change `brand.js`; then do steps 2 and 3 (docs, `.env.example`, cache name,
+  volume names with the migration note) and the checks below.
+
 **Done when.**
 - [ ] `grep -rni craftcrew public server.js *.md` finds only internal names listed in the PR.
 - [ ] German and English screenshots of the landing page, sign-in, an email and an invoice PDF are in the PR.

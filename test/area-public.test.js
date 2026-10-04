@@ -32,7 +32,7 @@ function area(lang, config = {}) {
   ctx.window = ctx;
   ctx.window.scrollTo = () => {};
   vm.createContext(ctx);
-  for (const f of ["core/languages.js", "locales/en.js", "locales/de.js", "core/t.js", "core/actions.js", "core/router.js", "areas/public.js"])
+  for (const f of ["core/brand.js", "core/languages.js", "locales/en.js", "locales/de.js", "core/t.js", "core/actions.js", "core/router.js", "areas/public.js"])
     vm.runInContext(read(f), ctx, { filename: f });
   ctx.warnings = warnings;
   ctx.render = async (hash) => {

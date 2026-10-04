@@ -4,6 +4,7 @@
  * Only a hash of the token is stored; creating a new link makes the old one stop working.
  */
 const crypto = require("node:crypto");
+const { BRAND } = require("./locales");
 
 const hash = (token) => crypto.createHash("sha256").update(token).digest("hex");
 const ymd = (day) => String(day).slice(0, 10).replaceAll("-", "");
@@ -141,10 +142,10 @@ module.exports = function createCalendar(ctx) {
       lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//CraftCrew//Calendar feed//EN",
+        `PRODID:-//${BRAND.name}//Calendar feed//EN`,
         "CALSCALE:GREGORIAN",
         "METHOD:PUBLISH",
-        `X-WR-CALNAME:${icsText(`CraftCrew – ${user.name || user.email}`)}`,
+        `X-WR-CALNAME:${icsText(`${BRAND.name} – ${user.name || user.email}`)}`,
       ];
     for (const e of events(user))
       lines.push(

@@ -47,7 +47,7 @@ async function wfDownloadInvoice(id, kind = "pdf") {
     const blob = await r.blob(),
       a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = r.headers.get("Content-Disposition")?.match(/filename="?([^";]+)"?/)?.[1] || `CraftCrew-${id}.${kind === "email" ? "eml" : kind === "xrechnung" ? "xml" : "pdf"}`;
+    a.download = r.headers.get("Content-Disposition")?.match(/filename="?([^";]+)"?/)?.[1] || `${BRAND.name}-${id}.${kind === "email" ? "eml" : kind === "xrechnung" ? "xml" : "pdf"}`;
     document.body.appendChild(a);
     a.click();
     a.remove();

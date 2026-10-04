@@ -65,8 +65,11 @@ const ccMissingKeys = new Set();
 function ccLookup(lang, key) {
   return key.split(".").reduce((node, part) => (node && typeof node === "object" ? node[part] : undefined), (window.LOCALES || {})[lang]);
 }
+// {brand} is the product's name (core/brand.js, T171) unless the caller passes its own.
 function ccFill(text, params) {
-  return String(text).replace(/\{(\w+)\}/g, (m, name) => (params && params[name] !== undefined ? String(params[name]) : m));
+  return String(text).replace(/\{(\w+)\}/g, (m, name) =>
+    params && params[name] !== undefined ? String(params[name]) : name === "brand" && window.BRAND ? BRAND.name : m,
+  );
 }
 // A missing key shows the key itself (so it is easy to spot) and is logged once.
 function t(key, params) {

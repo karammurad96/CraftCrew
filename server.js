@@ -99,6 +99,8 @@ const createVies = require("./vies");
 const { pdfText, wrapPdfText } = require("./pdf");
 const geo = require("./geo");
 const locales = require("./locales");
+// The product's name, from public/core/brand.js (T171)
+const BRAND = locales.BRAND;
 const vies = createVies({
   fetch: (...a) => fetch(...a),
   ...(process.env.VIES_URL ? { url: process.env.VIES_URL } : {}),
@@ -3282,7 +3284,7 @@ async function processOutbox() {
         await mailer.sendMail({
           to: m.to,
           subject: m.subject,
-          text: `${m.body}\n\n—\nCraftCrew · ${APP_URL}`,
+          text: `${m.body}\n\n—\n${BRAND.name} · ${APP_URL}`,
         });
         m.status = "Sent";
         m.sentAt = now();
@@ -3936,7 +3938,7 @@ async function api(req, res, url) {
       if (!mailer.enabled)
         return (
           send(res, 503, {
-            error: "Password reset by email is not available. Please contact your CraftCrew administrator.",
+            error: `Password reset by email is not available. Please contact your ${BRAND.name} administrator.`,
           }),
           true
         );
@@ -4024,7 +4026,7 @@ async function api(req, res, url) {
           send(res, 403, {
             error: u.orgOwnerId
               ? "Your access to this company account has been removed. Contact your account owner."
-              : "This account is suspended. Contact CraftCrew support.",
+              : `This account is suspended. Contact ${BRAND.name} support.`,
           }),
           true
         );
@@ -4467,7 +4469,7 @@ async function api(req, res, url) {
             sendMail(email, "projectShare", colleague, {
               name: colleague.name,
               sender: user.name,
-              company: user.company || "CraftCrew",
+              company: user.company || BRAND.name,
               project: p.name,
               link: `${APP_URL}/#/reset?token=${token}`,
             });
@@ -6045,7 +6047,7 @@ async function api(req, res, url) {
         res.writeHead(200, {
           "Content-Type": "application/pdf",
           "Content-Length": buffer.length,
-          "Content-Disposition": `attachment; filename="CraftCrew-${safeName}.pdf"`,
+          "Content-Disposition": `attachment; filename="${BRAND.name}-${safeName}.pdf"`,
           "Cache-Control": "no-store",
           "X-Content-Type-Options": "nosniff",
         });
@@ -6083,10 +6085,10 @@ async function api(req, res, url) {
           .match(/.{1,76}/g)
           .join("\r\n"),
         body = m.body.replace(/\n/g, "\r\n");
-      const eml = `To: ${to}\r\nSubject: ${subject}\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n--${boundary}\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n${body}\r\n\r\n--${boundary}\r\nContent-Type: application/pdf; name="CraftCrew-${safeName}.pdf"\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename="CraftCrew-${safeName}.pdf"\r\n\r\n${pdf}\r\n--${boundary}--\r\n`;
+      const eml = `To: ${to}\r\nSubject: ${subject}\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n--${boundary}\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n${body}\r\n\r\n--${boundary}\r\nContent-Type: application/pdf; name="${BRAND.name}-${safeName}.pdf"\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename="${BRAND.name}-${safeName}.pdf"\r\n\r\n${pdf}\r\n--${boundary}--\r\n`;
       res.writeHead(200, {
         "Content-Type": "message/rfc822; charset=utf-8",
-        "Content-Disposition": `attachment; filename="CraftCrew-${safeName}.eml"`,
+        "Content-Disposition": `attachment; filename="${BRAND.name}-${safeName}.eml"`,
         "Cache-Control": "no-store",
         "X-Content-Type-Options": "nosniff",
       });
@@ -7619,7 +7621,7 @@ async function api(req, res, url) {
       if (!data || typeof data !== "object" || required.some((k) => !Array.isArray(data[k])))
         return (
           send(res, 400, {
-            error: "This is not a CraftCrew backup: users, projects, invoices and suppliers are missing.",
+            error: `This is not a ${BRAND.name} backup: users, projects, invoices and suppliers are missing.`,
           }),
           true
         );
@@ -8040,6 +8042,12 @@ function pageHeaders(req) {
 /* In-memory cache of static files with a pre-compressed copy, invalidated when the file changes. */
 const zlib = require("zlib"),
   assetCache = new Map();
+// The page shell and the manifest name the product with {{brand}}, {{brandStart}} and {{brandEnd}} (T171).
+const branded = (text) =>
+  String(text)
+    .replace(/\{\{brand\}\}/g, BRAND.name)
+    .replace(/\{\{brandStart\}\}/g, BRAND.start)
+    .replace(/\{\{brandEnd\}\}/g, BRAND.end);
 function staticAsset(file) {
   let stat;
   try {
@@ -8245,9 +8253,7 @@ const server = http.createServer(async (req, res) => {
           return "0";
         }
       };
-      const html = fs
-        .readFileSync(path.join(PUBLIC, "index.html"), "utf8")
-        .replace(/(href|src)="([\w./-]+\.(?:css|js))"/g, (_, attr, f) => `${attr}="${f}?v=${stamp(f)}"`);
+      const html = branded(fs.readFileSync(path.join(PUBLIC, "index.html"), "utf8")).replace(/(href|src)="([\w./-]+\.(?:css|js))"/g, (_, attr, f) => `${attr}="${f}?v=${stamp(f)}"`);
       res.writeHead(200, {
         ...pageHeaders(req),
         "Content-Type": "text/html; charset=utf-8",
@@ -8284,13 +8290,13 @@ const server = http.createServer(async (req, res) => {
             "Content-Type": "text/html; charset=utf-8",
             "Cache-Control": "no-cache",
           });
-          res.end(d);
+          res.end(branded(d));
         }
       });
     } else {
       res.writeHead(200, { ...pageHeaders(req), "Content-Type": mime(file), "Cache-Control": "no-cache" });
-      res.end(data);
+      res.end(/\.(html|webmanifest)$/.test(file) ? branded(data) : data);
     }
   });
 });
-server.listen(PORT, () => console.log(`CraftCrew running at http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`${BRAND.name} running at http://localhost:${PORT}`));
