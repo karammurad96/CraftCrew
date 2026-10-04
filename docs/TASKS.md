@@ -291,7 +291,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T171 Rename the product to the new brand and domain · S · **needs Karam's decision on the name**
 - [ ] T172 Legal pages and data-protection documents · S · **a lawyer or trusted generator, not code**
 - [x] T173 Security review before launch · M
-- [ ] T174 Launch runbook and go/no-go checklist · S
+- [x] T174 Launch runbook and go/no-go checklist · S
 - [ ] T175 French, Spanish and Arabic texts reviewed and brought back · M · **needs native speakers; optional for launch**
 
 **Wave 11 — launch day and after (running costs start here)**
@@ -3466,6 +3466,9 @@ the e2e smoke test now runs axe on phones too. New task: T176.
   - demo-mode guard (T170) in place;
   - the full journey tested with two test companies, then those accounts deleted.
 - **The rollback plan** for launch day.
+
+**Done (4 October 2026):** `docs/LAUNCH.md`. It also has a place for the T184 load test results and points to
+`docs/LEGAL-FACTS.md` (T172) and `docs/SECURITY-REVIEW.md` (T173).
 
 ### T175 · French, Spanish and Arabic texts reviewed and brought back
 `P3 · M · needs native speakers · optional for launch`
