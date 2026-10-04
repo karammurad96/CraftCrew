@@ -304,6 +304,23 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T176 Rate limit for chat messages · S · from the security review (T173)
 - [ ] T80 Real payments (Wave 6): only after T165, needs Karam's provider decision
 
+**Wave 12 — a large supplier base before launch (decided with Karam on 5 October 2026: source = an existing register that is legal to reuse; "Listed" suppliers are shown to signed-in customers, clearly marked; details under "Wave 12")**
+- [ ] T190 Three supplier levels: Listed, Registered, Vetted · M · do first
+- [ ] T191 Import Listed suppliers from EU public procurement awards (TED) · M · **free, licence 2011/833/EU, attribution needed**
+- [ ] T192 Check imported companies against the GLEIF LEI register (CC0) · S
+- [ ] T193 "Is this your company?": claim or remove a listing, and a do-not-list register · M · **privacy texts need Karam's lawyer (Art. 14 GDPR)**
+- [ ] T194 Customers ask a Listed supplier to quote: requests wait until the company joins · S
+- [ ] T195 Outreach desk for admins: call and letter list, claim codes, funnel numbers · M · **no automatic emails to Listed companies (§ 7 UWG)**
+- [ ] T196 Admin CSV import for other legal sources (licensed lists, fair exhibitor lists with permission) · S
+
+**Wave 13 — contracts both sides agree to (details under "Wave 13")**
+- [ ] T200 A complete contract: parties, scope, price, payment, schedule, acceptance, warranty, liability, insurance, confidentiality, changes, termination, law · L · **the clause texts need a lawyer's review**
+- [ ] T201 A contract is valid only when both sides accept the same version · M · do right after T200
+- [ ] T202 Amendments, change orders and termination · M
+- [ ] T203 The contract as a PDF with both acceptances, kept unchangeable · S
+- [ ] T204 Contracts pages: waiting for you, compare versions, accept or ask for changes · M
+- [ ] T205 Existing contracts: from one-sided "Active" to the new acceptance · S
+
 ---
 
 ## Wave 0 — preparation
@@ -3582,7 +3599,317 @@ A checklist in `DEPLOY.md`, ticked once a month:
 
 ---
 
+## Wave 12 — a large supplier base before launch
+
+Decided with Karam on 5 October 2026:
+- The directory should already be full on launch day. The starting base comes from an **existing register
+  that may legally be reused**, not from scraping websites.
+- Every supplier has one of three **levels**: Listed, Registered, Vetted.
+- Signed-in customers see Listed suppliers, clearly marked. The public site still shows no supplier list (T140).
+
+### Which registers may be used (checked on 5 October 2026)
+| Source | Use it? | Why |
+| --- | --- | --- |
+| **EU public procurement, TED** (award notices: who won which public contract, with name, address and CPV category) | **Yes, main source** | Free for commercial reuse under Commission Decision 2011/833/EU, with the source named. It shows companies that really deliver industrial services (maintenance, installation, engineering), with their category. |
+| **GLEIF LEI register** | Yes, to check legal names and addresses | CC0: free for any use, no attribution needed. Mostly larger companies, no industry codes. |
+| German commercial register (handelsregister.de) | **No bulk use**, only single look-ups during vetting | Automated mass retrieval is not allowed (at most 60 retrievals an hour; mass queries are blocked and can be criminal under §§ 303a, 303b StGB). |
+| Commercial directories (wlw.de, Kompass, Google Maps …) | **No scraping** | Their terms forbid it, and the database rights belong to them. |
+| Licensed company data (Creditreform, Dun & Bradstreet, North Data …) | Later, if Karam pays | Industry codes (WZ 2008: 33.1 repair, 33.2 installation of machinery, 71.1 engineering) and a licence for marketing use. Costs money, so not before launch. |
+| Trade-fair exhibitor lists, association member lists | Only with the organiser's written permission | Usually protected as a database. |
+
+### Rules for every Wave 12 task
+1. **No automatic emails or newsletters to Listed companies.** Under § 7 UWG, promotional email needs prior
+   consent, also between businesses. Phone calls to businesses need at least presumed consent; letters by post
+   are allowed. The outreach is therefore done by people: phone or letter (T195).
+2. **Listed data is business data only:** company name, address, website, category, and where it came from.
+   No names of employees. If a listing turns out to be a sole trader (a person's name), it is not imported.
+3. **Every Listed profile says where its data came from** (source, notice number and date) and offers "This is
+   my company: claim it or remove it" (T193).
+4. **A removed company is never imported again** (do-not-list register, T193).
+5. Karam has the privacy policy updated for listed companies (Art. 14 GDPR) before the first import goes live
+   for customers.
+
+### T190 · Three supplier levels: Listed, Registered, Vetted
+`P1 · M · do first`
+
+**Problem.** Today a supplier is either live (vetted, with a badge) or a placeholder of an account that has not
+been vetted yet (`live: false`). There is no place for companies that have no account at all.
+
+**Do.**
+1. Each supplier gets `level`:
+   - `listed`: imported from a register, no account. It cannot sign in, send offers or be given work.
+   - `registered`: has an account and a company profile, not yet vetted. It can receive quote requests and send
+     offers. Giving it work or awarding it needs one confirmation by the customer ("not vetted yet").
+   - `vetted`: an admin approved the application (today's live suppliers). Bronze, Silver and Gold stay as the
+     result of vetting.
+2. Start-up migration: `live: true` → `vetted`; accounts with a placeholder supplier → `registered`. Keep
+   `live` for now and derive it from `level === "vetted"`, so no other code has to change in this task.
+3. Supplier search (T146):
+   - a "Level" filter with counts, default "All";
+   - a label on each card: grey "Listed: not on the platform yet", blue "Registered", green "Vetted · Gold";
+   - Listed cards show the source line and the "Ask to quote" button (T194) instead of "Request a quote";
+   - vetted suppliers come first in the default sort.
+4. The admin supplier list gets the same filter. The admin dashboard shows the counts per level.
+5. Texts as keys in en and de; `errors.api` for every new message.
+
+**Tests.** The migration; a listed supplier cannot be assigned, invited, sent a quote request or awarded
+(each 409 with a clear message); a registered supplier can send an offer, and assigning it needs
+`confirmNotVetted: true`; the search filter and counts per level; customers see the label; the public routes
+still list nothing.
+
+### T191 · Import Listed suppliers from EU public procurement awards (TED)
+`P1 · M · depends on T190 · free`
+
+**Do.**
+1. `node tools/suppliers/import-ted.js --country DEU --since 2023-01-01 [--cpv 50000000,45300000,…] [--dry-run]`:
+   - uses the official TED search API (anonymous search, no cost); respect its rate limits;
+   - reads contract award notices and takes each **winner** (organisation name, address, country, website if
+     given, CPV codes of the lot);
+   - default CPV codes, mapped to the categories of T146: 50000000 (repair and maintenance), 51000000
+     (installation services), 45300000 (building installation work), 42000000 (industrial machinery),
+     71300000 (engineering services), 72000000 (IT incl. automation software). Keep the mapping in one table
+     in the tool.
+2. Clean-up before anything is stored:
+   - skip anything that looks like a person (no legal form such as GmbH, AG, KG, UG, e.K., SE, Ltd …);
+   - de-duplicate by VAT number when given, else by normalised name + post code; merge categories;
+   - skip anything on the do-not-list register (T193) and anything already on the platform.
+3. The result goes to an **import batch** that an admin reviews (`/admin/supplier-imports`): count per
+   category and city, a sample of 20, "Publish" or "Discard". Only published batches appear for customers.
+4. Each listing stores `source: { register: "TED", notice, awardDate, url }` and shows "Source: EU public
+   procurement (TED), notice …, © European Union". This is the attribution the licence asks for.
+5. `--dry-run` writes a CSV of what would be imported, for a first look.
+
+**Tests.** With recorded API answers in `test/fixtures/ted/` (no network in tests): parsing a notice, the CPV
+mapping, skipping persons and duplicates, the do-not-list skip, the review batch, and the attribution line.
+
+**Done when.**
+- [ ] A dry run for Germany since 2023 gives a CSV; Karam has looked at it before the first real import.
+
+### T192 · Check imported companies against the GLEIF LEI register
+`P2 · S · depends on T191 · free (CC0)`
+
+**Do.** `node tools/suppliers/match-lei.js [--batch <id>]` looks up each listed company by name and country in the
+GLEIF API. On a confident match (same name after normalisation, same post code), it stores the LEI, the
+official legal name and the registered address, and shows "Legal entity confirmed (LEI)". An unclear match is
+left alone, never guessed. In vetting (Wave 3), an LEI match fills the "registration" check's evidence.
+
+**Tests.** With recorded answers: a clear match, two candidates (no match), an inactive LEI (no match).
+
+### T193 · "Is this your company?": claim or remove a listing, and the do-not-list register
+`P1 · M · depends on T190 · the Art. 14 GDPR text needs Karam's lawyer`
+
+**Do.**
+1. A public page `/#/listing/<code>`, reached by the claim code from a letter or call (T195) or by "Is this your
+   company?" on the listing. It shows only the listing itself and offers two choices.
+2. **Claim:** sign up as a supplier, or sign in. The account takes over the listing and becomes `registered`;
+   the listing's categories and address fill the company profile. Proof that the person belongs to the company:
+   - an email address on the company's website domain, or
+   - the claim code from the letter, or
+   - an admin confirms it after a call.
+3. **Remove:** one click and an optional reason. The listing is deleted at once and its key (VAT number or
+   normalised name + post code, stored only as a hash) goes into the do-not-list register, which every import
+   checks.
+4. A page "About listed companies" (texts from the lawyer): where the data comes from, the purpose, the legal
+   basis (legitimate interest), how long it is kept, and how to object. It is linked from every Listed profile.
+5. Listed profiles that were neither claimed nor touched for 24 months are removed by a job.
+
+**Tests.** Claim by matching email domain; claim by code; a wrong code is refused (rate-limited); removal
+deletes the listing and blocks a re-import; the 24-month clean-up; nobody can see another listing through
+the claim page.
+
+### T194 · Customers ask a Listed supplier to quote
+`P2 · S · depends on T190`
+
+**Do.** "Ask to quote" on a Listed card saves a request (customer, project, short note) and shows "We will
+contact the company and let you know." No email goes to the listed company (§ 7 UWG). The request appears on
+the outreach desk (T195) with a higher priority, because a real customer is waiting. When the company claims
+its listing, every waiting request becomes a normal quote request, and the customer is notified.
+
+**Tests.** The request is stored and no email is queued; on claim the requests turn into quote requests and the
+customer gets a notification; the customer can withdraw a request.
+
+### T195 · Outreach desk for admins
+`P1 · M · depends on T193`
+
+**Do.**
+1. `/admin/outreach`: listed companies with status (not contacted, called, letter sent, interested, declined,
+   claimed, removed), next step date, notes and who did it. Filters by category, region and "customers are
+   waiting" (T194).
+2. **Letters:** select companies → a printable PDF, one page each, with the claim code, a QR code to
+   `/#/listing/<code>` and the "About listed companies" text. Postal letters are allowed without consent.
+3. **Calls:** a "Called" button with outcome and note. Phone numbers come only from the company's own public
+   imprint (entered by hand), never from bought lists.
+4. **Funnel** on the admin dashboard: listed → contacted → registered → vetted, per category and month.
+5. No feature in this wave sends email to a company that has not signed up itself.
+
+**Tests.** Status changes are logged in the audit log; the letter PDF contains the right code; the funnel counts.
+
+### T196 · Admin CSV import for other legal sources
+`P3 · S · depends on T191`
+
+**Do.** Upload a CSV (name, legal form, street, post code, city, country, website, categories, source, licence
+note) into the same review batch as T191. The upload form asks for the source and confirms "We may use this
+data for this purpose" (licensed lists, exhibitor lists with written permission). The same clean-up rules as
+T191 apply (no persons, duplicates, do-not-list).
+
+**Tests.** A good file; a file with a person's name (skipped); a missing source (refused).
+
+---
+
+## Wave 13 — contracts both sides agree to
+
+**Problem today.** A contract is a short record (title, value, dates, notice period and one "terms" text). The
+customer alone sets it to Active, and the supplier is only told. A contract should be complete, and valid only
+when both companies have accepted exactly the same text.
+
+### Rules for every Wave 13 task
+1. **The clause texts need a lawyer's review before launch**, like the legal pages (T172). The code holds them
+   as a versioned template, so a reviewed version can replace them without code changes.
+2. The contract is a B2B service or work contract under German law (BGB §§ 631 ff. by default, or VOB/B when
+   both choose it). Acceptance on the platform is an electronic declaration in text form (§ 126b BGB), not a
+   qualified electronic signature. Contracts that legally need more (rare in this business) are out of scope.
+3. A contract that both sides accepted is never edited or deleted. Changes are amendments that both accept
+   again (T202), and the database protects it like invoices (T165).
+
+### T200 · A complete contract
+`P1 · L · the clause texts need a lawyer's review; split into two PRs (data + editor, then template texts)`
+
+**Do.**
+1. **Sections** of a contract, each filled from the platform where possible and editable while it is a draft:
+   - **Parties:** legal name, address, VAT ID and register number from both company profiles; the signatory
+     of each side (name, role).
+   - **Scope:** a description, plus the linked project, phases and tasks with their deliverables; what is
+     *not* included.
+   - **Price:** fixed price, time and materials (hourly and day rates, travel costs, a cap if any) or unit
+     prices; currency; VAT mode (as on invoices).
+   - **Payment:** terms in days (T108), payment plan by milestone, retention (e.g. 5 % until acceptance) and
+     the link to invoicing (invoices above the contract value are flagged).
+   - **Schedule:** start, end and milestones; what happens on delay (optional contractual penalty with a cap).
+   - **Acceptance:** the procedure of the acceptance protocols (formal acceptance, defects list, deadline).
+   - **Warranty:** period (12 or 24 months, or the law's default) and how defects are reported.
+   - **Liability:** a cap (e.g. contract value), excluding intent, gross negligence and injury.
+   - **Insurance:** required liability insurance and amount, checked against the supplier's vetting evidence.
+   - **Site and safety rules:** the customer's site briefing (compliance), minimum wage and posted workers
+     (MiLoG, A1 certificates), subcontracting only with consent.
+   - **Confidentiality** and **rights to the results** (drawings, programs, documentation).
+   - **Data protection:** whether a data-processing agreement (Art. 28 GDPR) is needed.
+   - **Changes:** change orders (Nachträge) only in writing on the platform (T202).
+   - **Term and termination:** notice period, renewal (today's fields), termination for cause.
+   - **Law and courts:** German law, place of jurisdiction; BGB or VOB/B.
+   - **Attachments:** documents from the project's document desk.
+2. **Templates:** a contract template is a list of clauses with parameters (`{warrantyMonths}`, `{liabilityCap}`
+   …), stored versioned in `contractTemplates`. One standard template (EN and DE) ships with the app, marked
+   "draft – to be reviewed by a lawyer". Admins can publish a new template version; customers choose clauses
+   and fill in parameters, and may add their own clauses.
+3. **The contract text** is rendered from the template version, the parameters and the platform data, in the
+   language of the contract (EN or DE, chosen per contract).
+4. Validation on the server: required parties data (legal name, address) on both sides, a value or a rate,
+   a start date, and a signatory per side.
+
+**Tests.** Rendering a contract from the template with parameters in EN and DE; missing party data is refused
+with a clear message; a time-and-materials contract needs rates; custom clauses are kept; a new template version
+does not change existing contracts.
+
+### T201 · A contract is valid only when both sides accept the same version
+`P1 · M · depends on T200`
+
+**Do.**
+1. **Statuses:**
+   - `draft`: the customer edits it; the supplier does not see it yet (as today);
+   - `proposed`: the customer sends it and accepts it at the same time; the text is frozen as **version n**
+     with a SHA-256 of its content;
+   - the supplier then **accepts**, **asks for changes** (a comment per section → back to `draft`, version n+1
+     follows) or **declines** (→ `declined`);
+   - `active` only when both acceptances refer to the same version hash.
+   The supplier may also propose changes themselves: that creates version n+1, which the supplier accepts, and
+   which then waits for the customer's acceptance.
+2. **An acceptance records** who (user, name, role, company), when, the version and its hash, and the request's
+   IP address (kept like the audit log). The person needs the "sourcing" module with full access (team
+   roles), or is the main account.
+3. **Any change after one acceptance** creates a new version and clears the acceptances.
+4. **Only `active` contracts count:** value tracking, renewal reminders, "under contract" on the supplier,
+   and invoice checks against the contract value. A task or award that refers to a contract shows "contract
+   not yet accepted by …" until it is active.
+5. Awards from sourcing (`contractFromAward`) still create a `draft`.
+6. Notifications and emails to the other side for each step; "waiting for you" counts on both dashboards.
+7. The routes: `POST /api/contracts/:id/propose`, `/accept`, `/request-changes`, `/decline`, `/withdraw`
+   (the customer, before the supplier accepted). `PATCH` only in `draft`.
+
+**Tests.** The full path to `active`; accepting an outdated version is refused (409); a change after the
+customer's acceptance resets both; the supplier's own proposal needs the customer's acceptance; a team member
+without sourcing access cannot accept; renewal reminders ignore non-active contracts; the customer can no
+longer set `status: "Active"` directly.
+
+### T202 · Amendments, change orders and termination
+`P2 · M · depends on T201`
+
+**Do.**
+1. An **amendment** (for example more scope, a new price or a later end date) is a small contract of its own
+   that refers to the active contract and goes through the same propose and accept steps. When it is active,
+   the contract's current terms are the original plus the amendments, shown as one consolidated view with
+   the history.
+2. **Change orders** from a project (extra work found on site): the supplier proposes with a price and a
+   reason, and the customer accepts. They count towards the contract value.
+3. **Termination** is one-sided: the party gives notice with a date and a reason, within the notice period,
+   or for cause. The other side is notified. The contract becomes `terminated` on that date.
+4. **Expiry:** an active contract past its end date without renewal becomes `ended`.
+
+**Tests.** An amendment needs both acceptances; the consolidated view; a change order raises the value; notice
+after the notice period is refused unless it is for cause; expiry.
+
+### T203 · The contract as a PDF with both acceptances, kept unchangeable
+`P1 · S · depends on T201`
+
+**Do.**
+1. A PDF (the same PDF engine as invoices) with every section, the version, the hash, both acceptances (name,
+   role, date and time) and the amendments, in the contract's language.
+2. Download for both parties; the document desk of the project keeps a copy.
+3. In PostgreSQL (Wave 9 pattern, like T165): a `contracts` table whose trigger refuses deletes, and refuses
+   changes to the text, versions and acceptances once the contract is `active`. The JSON store keeps the same
+   rule in code (no delete route, 409 on edits).
+
+**Tests.** The PDF contains both acceptances and the hash; plain SQL cannot change an active contract or delete
+one; the PDF of a draft says "Draft – not valid".
+
+### T204 · Contracts pages
+`P2 · M · depends on T201`
+
+**Do.**
+- The contracts list grouped by status, with a "Waiting for you" section at the top.
+- The contract page: sections, the status line ("Accepted by Keller Automation on 3 Oct, waiting for you"),
+  and the buttons for the next step.
+- **Compare versions:** the changes between two versions, section by section.
+- **Ask for changes:** a comment on each section.
+- Same design as the other area pages, phone included. Every text as a key in en and de.
+
+**Tests.** Area tests for the list, the page and the buttons per status and role; the control diff; overflow runs.
+
+### T205 · Existing contracts: from one-sided "Active" to the new acceptance
+`P1 · S · depends on T201`
+
+**Do.** A start-up migration:
+- `Draft` stays `draft`;
+- `Active` becomes `proposed`, as version 1 with the customer's acceptance taken from who created it, so the
+  supplier must accept;
+- `Terminated` becomes `terminated`. "Expiring" and "Expired" stay derived from the dates, as today.
+
+Both sides get one notification: "Please confirm the contract …". Note for Karam: the pilot has no real
+contracts yet, so this mainly affects the demo data.
+
+**Tests.** Each old status maps as described; a migrated contract is not counted as active until the supplier
+accepts.
+
+---
+
 ## Sources
+
+- Wave 12 registers: [TED reuse under Decision 2011/833/EU](https://apify.com/publicdata/ted-tenders-eu-procurement),
+  [GLEIF LEI data terms (CC0)](https://www.gleif.org/en/meta/lei-data-terms-of-use),
+  [GLEIF open data](https://www.gleif.org/en/about/open-data),
+  [Handelsregisterverordnung §§ 52–53, automated retrieval](https://www.haufe.de/id/norm/handelsregisterverordnung-52-53-3-automatisierter-abruf-von-daten-HI1622457.html),
+  [Registerportal FAQ](https://www.handelsregister.de/rp_web/faq.do)
+- Wave 12 outreach rules (§ 7 UWG): [IT-Recht Kanzlei](https://www.it-recht-kanzlei.de/werbung-email-social-media-telefon-fax-was-ist-erlaubt.html),
+  [Kaltakquise B2B nach § 7 UWG](https://www.yagemi.de/blog/recht-compliance/kaltakquise-b2b-uwg/)
 
 - German e-invoicing duty: [Bundesfinanzministerium FAQ](https://www.bundesfinanzministerium.de/Content/DE/FAQ/e-rechnung.html),
   [IHK Stuttgart](https://www.ihk.de/stuttgart/fuer-unternehmen/recht-und-steuern/steuerrecht/steuermeldungen/e-rechnungen-5864496),
