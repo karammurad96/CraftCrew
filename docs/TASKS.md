@@ -283,7 +283,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T164 Real tables: accounts, sessions and sign-in tokens · M
 - [ ] T165 Real tables: invoices and payments with the legal protections · M
 - [ ] T166 Real tables: projects, phases and tasks · L
-- [ ] T167 Backup and restore scripts with a restore drill in CI · S
+- [x] T167 Backup and restore scripts with a restore drill in CI · S
 - [ ] T168 Several app servers: no state in one process, jobs run once, uploads in object storage · L · **after launch**, when one server is not enough
 
 **Wave 10 — before launch (no running costs; in this order)**
@@ -3249,8 +3249,20 @@ lookups go through a list.
 4. A note for a managed database: the provider's backups and point-in-time restore replace the cron job,
    and the monthly restore test stays.
 
+**As built (4 October 2026).**
+- `backup.sh` handles both stores: the data folder always (uploads, audit archive, `db.json`), plus the dump
+  when `DATABASE_URL` is set. Every copy has a `SHA256SUMS` list. The first copy of a month is the monthly one.
+  `PG_DUMP` can be `docker compose … exec -T postgres pg_dump` for the compose database, which has no
+  published port.
+- `restore.sh` refuses the live database (`DATABASE_URL`), a target that is not empty, and damaged files.
+  Without a dump (JSON store) it checks `db.json`.
+- `verify.js` prints the records and checksums per collection, compares them with `--expect` (written by
+  `verify.js --save`), and starts the app on the restored data with no SMTP settings, so it never sends email.
+- The drill is `test/restore-drill.test.js`, part of the suite in the `test-postgres` job: the demo data is
+  imported, backed up, restored into a new database and verified. The test also covers retention and the guards.
+
 **Done when.**
-- [ ] CI runs backup → restore → verify against the CI database with the demo data.
+- [x] CI runs backup → restore → verify against the CI database with the demo data.
 
 ### T168 · Several app servers
 `P3 · L · after launch, only when one server is not enough (see T184); one PR per part`

@@ -57,6 +57,12 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      # The restore drill (test/restore-drill.test.js, T167) needs the client tools of the server's version
+      - name: PostgreSQL 16 client tools
+        run: |
+          v=$(pg_dump --version 2>/dev/null | grep -oE '[0-9]+' | head -1)
+          [ "${v:-0}" -ge 16 ] || (sudo apt-get update && sudo apt-get install -y postgresql-client-16)
+          pg_dump --version
       - run: npm test
       - run: node tools/db/migrate.js && node tools/db/migrate.js --status
 

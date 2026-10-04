@@ -36,15 +36,52 @@ Production mode starts with an **empty** data store: no demo accounts, projects 
 4. Test the full journey with two test companies: application → vetting → project → assignment → invoice → payment. Then delete the test accounts.
 
 ## 4. Backups (do not skip)
-Everything is in the `craftcrew-data` Docker volume. A nightly backup, kept for 14 days:
+`tools/db/backup.sh` puts a dated copy in `/opt/craftcrew-backups`:
+- the data folder: uploads, the audit archive, and `db.json` with the JSON store;
+- with PostgreSQL, also a database dump (`pg_dump`).
+
+It keeps 14 daily and 6 monthly copies and checks every file with a SHA-256 list. Put its settings in a file
+only root can read:
 ```bash
 sudo mkdir -p /opt/craftcrew-backups
-( crontab -l 2>/dev/null; echo '30 2 * * * docker run --rm -v craftcrew_craftcrew-data:/data -v /opt/craftcrew-backups:/backup alpine tar czf /backup/craftcrew-$(date +\%F).tgz -C /data . && find /opt/craftcrew-backups -name "*.tgz" -mtime +14 -delete' ) | crontab -
+sudo install -m 600 /dev/null /etc/craftcrew-backup.env
+sudo nano /etc/craftcrew-backup.env
 ```
-The volume also holds `audit/audit-YYYY-MM.jsonl`: audit entries older than the newest 5,000 are moved
-there, one JSON object per line. Keep these files in the backup; they are the only copy of the older audit log.
+```sh
+export BACKUP_DIR=/opt/craftcrew-backups
+export DATA_DIR=/var/lib/docker/volumes/craftcrew_craftcrew-data/_data
+# Only with STORE=postgres and the compose database (section 6):
+# export PG_DUMP="docker compose -f /opt/craftcrew/docker-compose.yml exec -T postgres pg_dump"
+# export DATABASE_URL=postgres://craftcrew:<POSTGRES_PASSWORD>@localhost:5432/craftcrew
+# Off-site copy with rclone (for example a Hetzner Storage Box), strongly recommended:
+# export BACKUP_REMOTE=storagebox:craftcrew-backups
+```
+Then run it every night at 02:30:
+```bash
+( sudo crontab -l 2>/dev/null; echo '30 2 * * * . /etc/craftcrew-backup.env && /opt/craftcrew/tools/db/backup.sh >> /var/log/craftcrew-backup.log 2>&1' ) | sudo crontab -
+```
+The audit archive (`audit/audit-YYYY-MM.jsonl`, audit entries older than the newest 5,000) is in the data folder.
+Keep it in the backup; it is the only copy of the older audit log.
 
-Copy the backups off the server as well (e.g. provider snapshots or `rclone` to storage). Test a restore once.
+**Off-site:** with `BACKUP_REMOTE` set, every new copy also goes to that `rclone` remote. Nothing is ever deleted
+there, so set a retention rule at the storage provider. Provider snapshots of the server are a good extra layer.
+
+**Managed database:** with a managed PostgreSQL, the provider's backups and point-in-time restore replace the
+dump. Leave `DATABASE_URL` out of the backup settings, but keep the nightly copy of the data folder (the
+uploads), and keep the monthly restore test.
+
+**Monthly restore test** (also on a laptop). It needs Node.js 18+ and the PostgreSQL 16 client tools
+(`sudo apt install -y nodejs postgresql-client-16`). It restores into a throwaway database, never the live one:
+```bash
+docker run -d --name craftcrew-restore-test -e POSTGRES_PASSWORD=restore-test -p 127.0.0.1:5433:5432 postgres:16-alpine
+sleep 5
+cd /opt/craftcrew
+RESTORE_URL=postgres://postgres:restore-test@localhost:5433/postgres tools/db/restore.sh /opt/craftcrew-backups/daily/$(ls /opt/craftcrew-backups/daily | tail -1)
+docker rm -f craftcrew-restore-test
+```
+The last line must read `verify: … records, and the app starts on them (/api/health ok).` With the JSON store
+there is no dump; `restore.sh` then checks `db.json` and needs no database (`RESTORE_URL` can be any empty
+database).
 
 ## 5. Updates
 ```bash
