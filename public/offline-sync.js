@@ -84,6 +84,11 @@ function oflLabel(path) {
   return last.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+// Writes that carry a password, a code or a session are never stored on the device: replaying a login
+// later makes no sense, and the browser database would keep the password in plain text.
+const OFL_NEVER_QUEUE = /^\/(auth\/|account\/(password|2fa|sessions)(\/|\?|$))/;
+const oflNeverQueue = (path) => OFL_NEVER_QUEUE.test(path);
+
 /* ---------- Wrap api(): queue a write that fails because the network itself failed ---------- */
 const oflBaseApi = api;
 api = async function (path, opts = {}) {
@@ -94,7 +99,7 @@ api = async function (path, opts = {}) {
   } catch (e) {
     // e.status is only set for a real HTTP response (see app.js); its absence means fetch itself never
     // got an answer — the one case worth queueing. A GET is never queued: there is nothing to replay later.
-    if (method !== "GET" && e.status === undefined && !/^https?:/i.test(path)) {
+    if (method !== "GET" && e.status === undefined && !/^https?:/i.test(path) && !oflNeverQueue(path)) {
       const id = await oflAdd(path, method, body);
       if (id) {
         oflRender();
@@ -104,6 +109,8 @@ api = async function (path, opts = {}) {
         );
       }
     }
+    if (e.status === undefined && oflNeverQueue(path))
+      throw Object.assign(new Error(t("ui.ofl.noServer")), { cause: e });
     throw e;
   }
 };
@@ -141,6 +148,7 @@ async function oflSync() {
   if (oflSyncing || !navigator.onLine) return;
   oflSyncing = true;
   try {
+    await oflPurgeNeverQueued();
     const items = (await oflAll()).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     let synced = 0;
     for (const item of items) {
@@ -212,6 +220,11 @@ async function oflPanel() {
     }</div></div>`,
   );
 }
+// Removes sign-in data that an older version queued, so no stored password is ever sent or kept.
+async function oflPurgeNeverQueued() {
+  for (const i of await oflAll()) if (oflNeverQueue(i.path)) await oflRemove(i.id);
+}
+
 actions.on("ofl.panel", () => oflPanel());
 actions.on("ofl.sync", () => oflSync());
 async function oflDiscard(id) {
@@ -228,4 +241,4 @@ actions.on("ofl.discardAll", async () => {
   tToast(t("ui.ofl.cleared"));
 });
 
-oflRender();
+oflPurgeNeverQueued().then(oflRender);

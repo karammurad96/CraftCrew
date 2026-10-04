@@ -4782,6 +4782,7 @@ LOCALES.en = {
     "ofl": {
       "saved": "Saved offline — it will be sent automatically once you're back online.",
       "rejected": "The server rejected this change.",
+      "noServer": "Can't reach the server. Check your connection and try again.",
       "sent": {
         "one": "{n} offline change was sent",
         "other": "{n} offline changes were sent"

@@ -4781,6 +4781,7 @@ LOCALES.de = {
     "ofl": {
       "saved": "Offline gespeichert – wird automatisch gesendet, sobald Sie wieder online sind.",
       "rejected": "Der Server hat diese Änderung abgelehnt.",
+      "noServer": "Server nicht erreichbar. Bitte Verbindung prüfen und erneut versuchen.",
       "sent": {
         "one": "{n} Offline-Änderung wurde gesendet",
         "other": "{n} Offline-Änderungen wurden gesendet"
