@@ -270,6 +270,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T149 Offer comparison: the weights next to the ranking · S
 - [ ] T150 Sidebar: projects as a drop-down under "Projects" · S
 - [ ] T151 Settings: "Your data" and "Delete account" easy to find · S
+- [x] T152 Language: a globe button with a drop-down of all languages instead of one button per language · S
 
 ---
 
@@ -2880,6 +2881,15 @@ Suppliers get the same list of their projects.
 
 **Do.** The settings page gets a section menu at the top (Company, Security, Notifications, Calendar,
 Two-factor, Your data). The user menu in the sidebar links to "Your data & account".
+
+#### T152 · Language menu
+`P1 · S` (added by Karam on 4 October 2026)
+
+**Problem.** One button per language in the top bar and the sidebar gets crowded as languages are added. On
+phones that still had the old page shell cached, the removed directory link showed the raw key `ui.nav.suppliers`.
+
+**Do.** A globe button with the current language code opens a list of all registered languages (name and code);
+a click outside or Escape closes it. Top-bar links without a text in this version are removed.
 
 ---
 
