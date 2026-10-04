@@ -23,6 +23,41 @@ jobs:
       - name: Docker image builds
         if: matrix.node == 20
         run: docker build -t craftcrew-test .
+      - name: Docker image starts without a database (STORE=json)
+        if: matrix.node == 20
+        run: |
+          docker run -d --name craftcrew-test -p 3999:3000 -e BOOTSTRAP_ADMIN_EMAIL=admin@test.local \
+            -e BOOTSTRAP_ADMIN_PASSWORD=Admin-Password-2026! craftcrew-test
+          for i in $(seq 1 30); do curl -fs http://localhost:3999/api/health && exit 0; sleep 1; done
+          docker logs craftcrew-test; exit 1
+
+  # PostgreSQL (Wave 9): the migrations against a real database. From T162 on, the whole suite with STORE=postgres.
+  test-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: craftcrew_test
+          POSTGRES_USER: craftcrew
+          POSTGRES_PASSWORD: craftcrew
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U craftcrew -d craftcrew_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://craftcrew:craftcrew@localhost:5432/craftcrew_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: node --test test/migrations.test.js
+      - run: node tools/db/migrate.js && node tools/db/migrate.js --status
 
   browser-smoke:
     runs-on: ubuntu-latest

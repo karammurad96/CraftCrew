@@ -1,7 +1,12 @@
 FROM node:20-alpine
 ENV NODE_ENV=production PORT=3000 DATA_DIR=/var/lib/craftcrew
 WORKDIR /app
-COPY package.json server.js store.js mailer.js sourcing.js compliance.js team.js documents.js planning.js xrechnung.js vies.js geo.js pdf.js acceptance.js punchlist.js sitereports.js calendar.js twofactor.js preferred.js benchmarks.js gdpr.js locales.js ./
+# Runtime dependencies (only `pg`), installed exactly as locked
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev && npm cache clean --force
+COPY server.js store.js mailer.js sourcing.js compliance.js team.js documents.js planning.js xrechnung.js vies.js geo.js pdf.js acceptance.js punchlist.js sitereports.js calendar.js twofactor.js preferred.js benchmarks.js gdpr.js locales.js ./
+COPY db ./db
+COPY migrations ./migrations
 COPY public ./public
 RUN mkdir -p /var/lib/craftcrew/uploads && chown -R node:node /app /var/lib/craftcrew
 USER node

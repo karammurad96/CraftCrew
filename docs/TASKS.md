@@ -277,7 +277,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 
 **Wave 9 — PostgreSQL (T81 split; decided with Karam on 4 October 2026: build it now at no cost, the JSON file stays the default until launch; details under "Wave 9 — PostgreSQL")**
 - [x] T160 Store layer: one module loads and saves the data; tests stop reading `db.json` directly · M · no new dependency
-- [ ] T161 PostgreSQL foundation: `pg`, `DATABASE_URL`, migrations, a database for local tests and CI · S · **needs Karam's OK for the `pg` dependency**
+- [x] T161 PostgreSQL foundation: `pg`, `DATABASE_URL`, migrations, a database for local tests and CI · S · **needs Karam's OK for the `pg` dependency**
 - [ ] T162 PostgreSQL store: every collection in PostgreSQL, only changed records written, the reply waits for the commit · M
 - [ ] T163 Move the data across and back: import, export, checksums, runbook · S
 - [ ] T164 Real tables: accounts, sessions and sign-in tokens · M
@@ -3070,9 +3070,18 @@ most of the file for no visible gain. Instead:
 **Tests.** `test/migrations.test.js` (skipped without `DATABASE_URL`): migrations apply on an empty
 database, a second run changes nothing, and a broken migration rolls back completely.
 
+**As built (4 October 2026).**
+- `pg` 8.23.1, pinned in `package-lock.json`. `npm audit --omit=dev` is clean.
+- The migration logic is in `db/migrate.js`; `tools/db/migrate.js` is the command line (`--status` lists
+  applied and pending migrations). An advisory lock keeps two servers from migrating at once.
+- `/api/health` asks `store.ping()` when the store has one. The PostgreSQL store brings it in T162, because
+  `STORE=postgres` cannot start before then.
+- CI builds the image and starts it without a database (job `test`), and runs the migrations against
+  PostgreSQL 16 (job `test-postgres`).
+
 **Done when.**
-- [ ] `docker build` works with `pg` installed and the image still runs without a database (`STORE=json`).
-- [ ] The CI job `test-postgres` is green.
+- [x] `docker build` works with `pg` installed and the image still runs without a database (`STORE=json`).
+- [x] The CI job `test-postgres` is green.
 
 ### T162 · PostgreSQL store
 `P1 · M · depends on T160 and T161`
