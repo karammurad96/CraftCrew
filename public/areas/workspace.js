@@ -370,21 +370,101 @@ async function wsPage(role, pid, query) {
   if (invitedOnly) sections = [breadcrumb, header, invited, stats, lateNotice, gantt, taskTime, phasePanel, reviewPanel, activityPanel];
   else {
     const tab = query.get("tab") || WS_TAB[p.id] || "overview",
-      tabBtn = (key) => `<button type="button" role="tab" data-tab="${key}" data-action="ws.tab" aria-selected="${key === tab}" tabindex="${key === tab ? 0 : -1}">${wk("tabs." + key)}</button>`,
-      tabLink = (href, label) => `<a class="ds-ws-link" href="${esc(href)}" role="tab" aria-selected="false" tabindex="-1">${label}</a>`,
+      tabBtn = (key, label = wk("tabs." + key)) =>
+        `<button type="button" role="tab" data-tab="${key}" data-action="ws.tab" aria-selected="${key === tab}" tabindex="${key === tab ? 0 : -1}">${label}</button>`,
       unread = Number(counts?.counts?.projectMessages) || 0,
       pane = (key, html) => `<div class="ds-ws-pane ds-ws-${key}" data-tab="${key}"${key === tab ? "" : " hidden"}>${html}</div>`;
-    const tabs = `<div class="ds-ws-tabs ds-ui" role="tablist" aria-label="${wk("tabs.label")}" data-key="ws.tabkey" data-key-on="ArrowLeft,ArrowRight">${tabBtn("overview")}${tabBtn("tasks")}${tabLink(scope.documents, wk("tabs.files", { n: documents.length }))}${tabLink(
-      `#/${role}/messages?project=${encodeURIComponent(p.id)}&back=${encodeURIComponent(`/${role}/projects/${p.id}`)}`,
+    const tabs = `<div class="ds-ws-tabs ds-ui" role="tablist" aria-label="${wk("tabs.label")}" data-key="ws.tabkey" data-key-on="ArrowLeft,ArrowRight">${tabBtn("overview")}${tabBtn("tasks")}${tabBtn("files", wk("tabs.files", { n: documents.length }))}${tabBtn(
+      "messages",
       unread > 0 ? wk("tabs.messagesCount", { n: unread }) : wk("tabs.messages"),
-    )}${tabLink(`#/${role}/invoices?project=${encodeURIComponent(p.id)}&back=${encodeURIComponent(`/${role}/projects/${p.id}`)}`, wk("tabs.invoices"))}${tabBtn("activity")}</div>`;
+    )}${tabBtn("invoices")}${tabBtn("activity")}</div>`;
     const overview = `<div class="ds-dash-cols ds-ws-cols"><div class="ds-dash-main"><h2 class="ds-dash-h ds-ui">${wk("next.title")}</h2><div class="ds-card ds-next">${wsUpNext(role, { project: p, invoices, entries, documents })}</div><h2 class="ds-dash-h ds-ui ds-gap">${wk("phases.title")}</h2><div class="ds-card ds-phases">${
       wsPhaseRows({ project: p }) || `<p class="ds-next-none">${wk("phases.none")}</p>`
     }</div></div><div class="ds-dash-side">${wsSide(role, { project: p, invoices, documents, suppliers: sups })}</div></div>`;
-    sections = [breadcrumb, header, tabs, stats, pane("overview", overview + lateNotice + reviewPanel), pane("tasks", gantt + taskTime + phasePanel), pane("activity", activityPanel)];
+    sections = [
+      breadcrumb,
+      header,
+      tabs,
+      stats,
+      pane("overview", overview + lateNotice + reviewPanel),
+      pane("tasks", gantt + taskTime + phasePanel),
+      pane("files", wsFilesPane(role, p, documents)),
+      pane("messages", `<section class="ds-card ws-pane-card ws-chat" data-project="${esc(p.id)}"><p class="ds-next-none">${wk("pane.loading")}</p></section>`),
+      pane("invoices", wsInvoicesPane(role, p, invoices)),
+      pane("activity", activityPanel),
+    ];
   }
   app.innerHTML = dashboardShell(role, "projects", sections.filter(Boolean).join(""));
+  if (!invitedOnly && (query.get("tab") || WS_TAB[p.id]) === "messages") wsLoadChat();
 }
+
+/* ---------- Files, messages and invoices under the tab bar (T143): a compact view, the full page one click away ---------- */
+const wsPaneHead = (title, href, label) => `<header class="ws-pane-head"><h2 class="ds-dash-h ds-ui">${title}</h2>${wsLink(href, "ds-text-link", label)}</header>`;
+function wsFilesPane(role, p, documents) {
+  const rows = [...documents]
+    .sort((a, b) => String(b.updatedAt || b.uploadedAt || "").localeCompare(String(a.updatedAt || a.uploadedAt || "")))
+    .map(
+      (d) =>
+        `<li class="ws-pane-row"><a href="${esc(d.url || wsScope(role, p).documents)}" target="_blank" rel="noopener"><b>${esc(d.filename)}</b><small>${esc(
+          [d.phaseName, d.taskName].filter(Boolean).join(" · ") || d.category || "",
+        )}</small></a><span class="status ${wsStatusClass(d.status)}">${esc(tStatus(d.status || ""))}</span><small class="ws-pane-date">${esc(fmt.date(d.updatedAt || d.uploadedAt))}</small></li>`,
+    )
+    .join("");
+  return `<section class="ds-card ws-pane-card">${wsPaneHead(wk("pane.files"), wsScope(role, p).documents, wk("pane.openFiles"))}${
+    rows ? `<ul class="ws-pane-list">${rows}</ul>` : `<p class="ds-next-none">${wk("pane.noFiles")}</p>`
+  }</section>`;
+}
+function wsInvoicesPane(role, p, invoices) {
+  const rows = [...invoices]
+    .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")))
+    .map(
+      (i) =>
+        `<li class="ws-pane-row"><a href="#/${role}/invoice/${encodeURIComponent(i.id)}"><b>${esc(invNo(i))}</b><small>${esc(i.supplierCompany || i.customerCompany || "")}</small></a><span class="status ${wsStatusClass(
+          i.status,
+        )}">${esc(tStatus(i.status))}</span><b class="ws-pane-amount">${esc(fmt.money(i.amount))}</b></li>`,
+    )
+    .join("");
+  return `<section class="ds-card ws-pane-card">${wsPaneHead(wk("pane.invoices"), `#/${role}/invoices?project=${encodeURIComponent(p.id)}&back=${encodeURIComponent(`/${role}/projects/${p.id}`)}`, wk("pane.openInvoices"))}${
+    rows ? `<ul class="ws-pane-list">${rows}</ul>` : `<p class="ds-next-none">${wk("pane.noInvoices")}</p>`
+  }</section>`;
+}
+// The project's own conversation (the one for the whole project, else the newest), loaded when the tab opens
+async function wsLoadChat() {
+  const box = document.querySelector(".ws-chat");
+  if (!box) return;
+  const role = state.user.role,
+    pid = box.dataset.project,
+    full = `#/${role}/messages?project=${encodeURIComponent(pid)}&back=${encodeURIComponent(`/${role}/projects/${pid}`)}`;
+  try {
+    const chats = ((await api("/chats")).chats || []).filter((c) => c.projectId === pid),
+      chat = chats.find((c) => !c.phaseId && !c.taskId) || chats[0];
+    if (!chat) {
+      box.innerHTML = `${wsPaneHead(wk("pane.chat"), full, wk("pane.openChat"))}<p class="ds-next-none">${wk("pane.noChat")}</p>${wsLink(full, "btn small primary", wk("pane.startChat"))}`;
+      return;
+    }
+    const { messages = [] } = await api(`/chats/${encodeURIComponent(chat.id)}/messages`),
+      name = (id) => (id === state.user.id ? wk("pane.you") : esc(chat.members?.find((m) => m.id === id)?.name || "")),
+      bubble = (m) =>
+        `<article class="cc-chat-bubble ${m.senderId === state.user.id ? "mine" : ""}"><b>${name(m.senderId)}</b><p>${esc(m.text)}</p><small>${esc(fmt.date(m.createdAt))}</small></article>`;
+    box.innerHTML = `${wsPaneHead(esc(chat.title) || wk("pane.chat"), `#/${role}/messages?chat=${encodeURIComponent(chat.id)}&back=${encodeURIComponent(`/${role}/projects/${pid}`)}`, wk("pane.openChat"))}<div class="ws-chat-messages">${
+      messages.slice(-30).map(bubble).join("") || `<p class="ds-next-none">${wk("pane.noMessages")}</p>`
+    }</div><form class="cc-chat-compose ws-chat-compose" data-action="ws.chatSend" data-chat="${esc(chat.id)}"><textarea name="text" maxlength="5000" rows="2" placeholder="${wk("pane.write")}" required></textarea><button class="btn primary">${wk("pane.send")}</button></form>`;
+    const list = box.querySelector(".ws-chat-messages");
+    list.scrollTop = list.scrollHeight;
+  } catch (x) {
+    box.innerHTML = `<p class="form-error">${esc(x.message)}</p>`;
+  }
+}
+actions.on("ws.chatSend", async (form) => {
+  const text = new FormData(form).get("text");
+  if (!String(text || "").trim()) return;
+  try {
+    await api(`/chats/${encodeURIComponent(form.dataset.chat)}/messages`, { method: "POST", body: { text } });
+    await wsLoadChat();
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
 // Older dialogs re-render the project after a change: draw the current page again (the tab is remembered)
 async function projectDetail() {
   return route();
@@ -403,6 +483,7 @@ function wsShowTab(content, tab) {
     b.setAttribute("aria-selected", String(on));
     b.tabIndex = on ? 0 : -1;
   });
+  if (tab === "messages") wsLoadChat();
 }
 actions.on("ws.tab", (el) => wsShowTab(el.closest(".dashboard-content"), el.dataset.tab));
 // Arrow keys move between the tabs

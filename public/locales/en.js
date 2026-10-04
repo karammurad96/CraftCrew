@@ -1325,6 +1325,23 @@ LOCALES.en = {
       "delete": "Delete or archive project…",
       "reviewInvoices": "Review invoices"
     },
+    "pane": {
+      "loading": "Loading…",
+      "files": "Files",
+      "openFiles": "Open document desk ›",
+      "noFiles": "No files in this project yet.",
+      "invoices": "Invoices",
+      "openInvoices": "Open all invoices ›",
+      "noInvoices": "No invoices for this project yet.",
+      "chat": "Project chat",
+      "openChat": "Open in Messages ›",
+      "noChat": "There is no conversation for this project yet.",
+      "startChat": "Start a project chat",
+      "noMessages": "No messages yet. Write the first one below.",
+      "write": "Write a message…",
+      "send": "Send",
+      "you": "You"
+    },
     "tabs": {
       "label": "Project sections",
       "overview": "Overview",
