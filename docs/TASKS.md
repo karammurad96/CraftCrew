@@ -335,7 +335,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T220 Platform mode: "brokered" (default) or "marketplace", one admin setting · S · do first
 - [x] T221 Brokered mode hides the marketplace from customers: directory, profiles, quote requests, invitations · M
 - [x] T222 Customer requests to the platform and the operator's request queue · M
-- [ ] T223 Automatic supplier suggestions for the operator, and invitations from a request · M
+- [x] T223 Automatic supplier suggestions for the operator, and invitations from a request · M
 - [ ] T224 Anonymised options for the customer: fastest, cheapest, best quality · M · **price model needs Karam's decision**
 - [ ] T225 The customer chooses: platform contract with the non-circumvention clause, then the supplier is revealed · M
 - [ ] T226 Messages through the platform: no direct contact before the contract, contact details hidden, leak hints · M
@@ -4330,10 +4330,44 @@ Decided with Karam on 5 October 2026.
    - When Wave 14 is switched on, T212 (AI supplier matching) can re-rank this list. It never replaces it.
 
 **Done when.**
-- [ ] The ranking test covers category, distance, scorecard, workload and a supplier who is not live (never
+- [x] The ranking test covers category, distance, scorecard, workload and a supplier who is not live (never
       suggested).
-- [ ] No customer and no supplier can read the suggestions.
-- [ ] The brokered bid shows neither the customer's name nor their company to suppliers.
+- [x] No customer and no supplier can read the suggestions.
+- [x] The brokered bid shows neither the customer's name nor their company to suppliers.
+
+**As built (5 October 2026).**
+- **Ranking.** `sourcing.suggestSuppliers(request, { limit = 10 })` ranks live suppliers. Points:
+  - category match: 40;
+  - distance from the site (`geo.js`): 20 up to 50 km, 15 up to 150 km, 10 up to 300 km, else 5;
+  - scorecard score: up to 20 (10 when unknown);
+  - badge: Gold 10, Silver 7, Bronze 4;
+  - open tasks in the same weeks: minus 3 each, at most minus 15;
+  - availability "Busy": minus 5;
+  - earlier work for the same customer: plus 5.
+  Every point has a reason, a translation key in `req.reason.*`.
+- **API.**
+  - A new request stores its suggestions (`request.suggestions = { at, list }`), unless the admin setting
+    *Suggest suppliers automatically* (`settings.autoSuggest`) is off.
+  - `GET /api/requests/:id/suggestions` (admin) makes them again.
+  - `POST /api/requests/:id/invitations {supplierIds, dueDate}` opens a brokered bid round (`brokered: true`,
+    `requestId`, `region`, the request's dates and files), or adds to the open one. A new request is taken at
+    the same time.
+  - The admin's request answer includes `sourcing`: the invited suppliers and their offers.
+- **Brokered bids elsewhere.**
+  - Suppliers get the bid without customer, project, phase, task, request or operator fields.
+  - Offers and supplier questions notify the operators, never the customer.
+  - The customer does not see the bid in `/api/bids`, the action queue, the calendar, scorecards, file access
+    for offer files, or the data export, and cannot change it.
+  - Only admins can manage it, and *Accept offer* is refused: the customer's choice (T224, T225) awards it.
+  - Deleting the customer's task keeps it.
+  - Closing or withdrawing the request closes the round; open offers become "Not selected".
+- **Pages.**
+  - The admin request page has *Find suppliers*: the suggestions with score and reasons, a search over all
+    suppliers, the offer deadline, *Invite selected*, and the invited suppliers with their offers.
+  - The supplier's bid card shows "Platform request · region 93", the category and the wished period.
+- **Tests and checks.**
+  - `test/suggestions.test.js` covers the ranking with fixed data and the API flow.
+  - A browser check on the demo data ran: 10 suggestions with reasons, search, invitation, no page errors.
 
 ### T224 · Anonymised options for the customer
 `P1 · M · depends on T223 · price model needs Karam's decision`

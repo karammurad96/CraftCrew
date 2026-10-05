@@ -64,9 +64,16 @@ async function ofPage(role, query) {
       : `<div class="notice">${ofk("waiting")}</div>`;
     // Bids with offers link to their side-by-side comparison (T100)
     const compare = customer && offers.length ? `<a class="ds-text-link ds-compare-link" href="#/customer/sourcing/${encodeURIComponent(b.id)}">${ofk("compare")}</a>` : "";
-    return `<article class="panel wf-bid-card"><div class="project-card-head"><div><span class="eyebrow">${p?.name || b.projectName ? esc(p?.name || b.projectName) : ofk("projectFallback")}</span><h3>${esc(b.title)}</h3>${compare}</div><span class="status">${ofStatus(
+    return `<article class="panel wf-bid-card"><div class="project-card-head"><div><span class="eyebrow">${
+      b.brokered ? ofk(b.region ? "brokered.eyebrow" : "brokered.eyebrowNoRegion", { region: b.region }) : p?.name || b.projectName ? esc(p?.name || b.projectName) : ofk("projectFallback")
+    }</span><h3>${esc(b.title)}</h3>${compare}</div><span class="status">${ofStatus(
       b.status,
-    )}</span></div><p>${b.description ? ofDom(b.description) : ""}</p><div class="wf-task-meta"><span>${b.phaseName ? esc(b.phaseName) : ofk("phaseFallback")} · ${b.taskName ? esc(b.taskName) : ofk("taskFallback")}</span><span>${ofk("deadline", {
+    )}</span></div><p>${b.description ? ofDom(b.description) : ""}</p><div class="wf-task-meta"><span>${
+      // T223: a brokered bid names the work and its period, not the customer's project
+      b.brokered
+        ? `<bdi>${esc(b.category || "")}</bdi>${b.startDate || b.finishDate ? " · " + ofk("brokered.period", { from: b.startDate ? fmt.date(b.startDate) : "…", to: b.finishDate ? fmt.date(b.finishDate) : "…" }) : ""}`
+        : `${b.phaseName ? esc(b.phaseName) : ofk("phaseFallback")} · ${b.taskName ? esc(b.taskName) : ofk("taskFallback")}`
+    }</span><span>${ofk("deadline", {
       date: fmt.date(b.dueDate),
     })}</span><span>${esc(t.plural("offers.offerCount", offers.length))}</span></div>${table}${
       role === "supplier" && active ? btn("offers.offer", "primary", offers.some((o) => o.supplierId === state.user.supplierId) ? "editOffer" : "submitBid") : ""
@@ -126,8 +133,8 @@ async function ccOpenBidOffer(id) {
     t(mine ? "offers.form.reviseTitle" : "offers.form.submitTitle"),
     `<form id="srOfferForm" class="modal-form" data-action="offers.send" data-bid="${esc(id)}"><p><b>${esc(b.title)}</b><br><small class="subtle">${f("meta", {
       type: b.eventType || "RFQ",
-      project: b.projectName,
-      task: b.taskName,
+      project: b.brokered ? t("offers.brokered.eyebrowNoRegion") : b.projectName,
+      task: b.brokered ? b.category : b.taskName,
       date: fmt.date(b.dueDate),
     })}</small></p>${b.description ? `<p class="subtle">${ofDom(b.description)}</p>` : ""}${
       mine?.status === "Changes requested" ? `<div class="notice warn"><b>${f("asked")}</b> ${ofDom(mine.changeNote || "")}</div>` : ""

@@ -160,7 +160,7 @@ module.exports = function createGdpr(ctx) {
       if (user.role === "customer")
         Object.assign(data, {
           invoices: mine(db.invoices, (i) => i.customerId === user.id),
-          quoteRequests: mine(db.bids, (b) => b.customerId === user.id),
+          quoteRequests: mine(db.bids, (b) => b.customerId === user.id && !b.brokered),
           directRequests: mine(db.rfqs, (r) => r.customerId === user.id),
           // Requests to the platform (T222), without the operators' working notes
           platformRequests: mine(db.requests, (r) => r.customerId === user.id).map(

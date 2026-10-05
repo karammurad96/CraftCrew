@@ -11,6 +11,7 @@ const DAY = 86400000;
 
 module.exports = function createRequests(ctx) {
   const { getDb, save, send, body, id, now, notify, activity, projectFor, ownUpload, categories } = ctx;
+  const { suggest, cleanWeights } = ctx;
   const text = (v, max) =>
     String(v ?? "")
       .trim()
@@ -22,11 +23,62 @@ module.exports = function createRequests(ctx) {
   // What a customer may see: no operator notes, no sourcing data (T223/T224 add more operator-only fields).
   const OPERATOR_ONLY = ["operatorNote", "suggestions", "bidId"];
   function view(user, r) {
-    if (user.role === "admin") return r;
+    if (user.role === "admin") return { ...r, sourcing: sourcingView(r) };
     const out = { ...r };
     for (const k of OPERATOR_ONLY) delete out[k];
     out.history = (r.history || []).map(({ byId, ...h }) => h);
     return out;
+  }
+  // The operator's view of the brokered bid (T223): who was invited and what each one offered
+  function sourcingView(r) {
+    const db = getDb(),
+      bid = r.bidId && (db.bids || []).find((b) => b.id === r.bidId);
+    if (!bid) return null;
+    const company = (sid) => db.suppliers.find((s) => s.id === sid)?.company || "";
+    return {
+      bidId: bid.id,
+      status: bid.status,
+      dueDate: bid.dueDate,
+      invited: (bid.invitedSupplierIds || []).map((sid) => ({
+        supplierId: sid,
+        company: company(sid),
+        offer:
+          (bid.offers || [])
+            .filter((o) => o.supplierId === sid)
+            .map(({ id: offerId, amount, deliveryDays, status, notes, hourlyRate, updatedAt }) => ({
+              id: offerId,
+              amount,
+              deliveryDays,
+              status,
+              notes,
+              hourlyRate,
+              updatedAt,
+            }))[0] || null,
+      })),
+    };
+  }
+  // T223: suggestions are stored with the time they were made, so the operator sees them on opening
+  function refreshSuggestions(r) {
+    r.suggestions = { at: now(), list: suggest(r) };
+    return r.suggestions;
+  }
+  function take(r, user, optionsBy) {
+    Object.assign(r, { operatorId: user.id, operatorName: user.name, optionsBy });
+    move(r, "Sourcing", user);
+    notify(
+      r.customerId,
+      { key: "requestTaken", params: { title: r.title, date: optionsBy } },
+      `/customer/requests/${r.id}`,
+    );
+  }
+  // A request that ends before an option is chosen ends its bid round too
+  function endBid(r) {
+    const bid = r.bidId && (getDb().bids || []).find((b) => b.id === r.bidId);
+    if (!bid || ["Awarded", "Closed"].includes(bid.status)) return;
+    bid.status = "Closed";
+    bid.updatedAt = now();
+    for (const o of bid.offers || [])
+      if (["Submitted", "Changes requested"].includes(o.status)) o.status = "Not selected";
   }
   function canSee(user, r) {
     return user.role === "admin" || (user.role === "customer" && r.customerId === user.id);
@@ -125,6 +177,7 @@ module.exports = function createRequests(ctx) {
         createdAt: now(),
       };
       move(r, "New", user);
+      if (getDb().settings?.autoSuggest !== false) refreshSuggestions(r);
       list().unshift(r);
       for (const a of admins())
         notify(a.id, { key: "requestNew", params: { title: r.title } }, `/admin/requests/${r.id}`);
@@ -142,6 +195,7 @@ module.exports = function createRequests(ctx) {
         if (user.role !== "customer" || !OPEN.includes(r.status))
           return (send(res, 409, { error: "This request can no longer be withdrawn." }), true);
         move(r, "Withdrawn", user, text(b.reason, 1000));
+        endBid(r);
         for (const a of admins())
           notify(a.id, { key: "requestWithdrawn", params: { title: r.title } }, `/admin/requests/${r.id}`);
       } else if (b.action === "take") {
@@ -153,9 +207,7 @@ module.exports = function createRequests(ctx) {
           : new Date(Date.now() + 5 * DAY).toISOString().slice(0, 10);
         if (!isDate(optionsBy))
           return (send(res, 400, { error: "Enter the date by which the options will be ready." }), true);
-        Object.assign(r, { operatorId: user.id, operatorName: user.name, optionsBy });
-        move(r, "Sourcing", user);
-        notify(r.customerId, { key: "requestTaken", params: { title: r.title, date: optionsBy } }, link);
+        take(r, user, optionsBy);
       } else if (b.action === "close") {
         if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
         const reason = text(b.reason, 1000);
@@ -164,12 +216,85 @@ module.exports = function createRequests(ctx) {
           return (send(res, 409, { error: "This request is already finished." }), true);
         r.closeReason = reason;
         move(r, "Closed", user, reason);
+        endBid(r);
         notify(r.customerId, { key: "requestClosed", params: { title: r.title, reason } }, link);
       } else if (b.action === "note") {
         if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
         r.operatorNote = text(b.note, 5000);
         r.updatedAt = now();
       } else return (send(res, 400, { error: "Choose a valid action for this request." }), true);
+      save();
+      return (send(res, 200, { request: view(user, r) }), true);
+    }
+    // T223: the operator's supplier suggestions, made again on request
+    if (parts[3] === "suggestions" && !parts[4] && method === "GET") {
+      if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
+      refreshSuggestions(r);
+      save();
+      return (send(res, 200, { suggestions: r.suggestions }), true);
+    }
+    // T223: invite suppliers to quote. The first invitation opens a brokered bid round for the request; suppliers
+    // see the work, the region and the dates, never the customer (see GET /api/bids).
+    if (parts[3] === "invitations" && !parts[4] && method === "POST") {
+      if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
+      if (!OPEN.includes(r.status))
+        return (send(res, 409, { error: "This request is already finished." }), true);
+      const b = await body(req),
+        db = getDb(),
+        ids = [
+          ...new Set(
+            (Array.isArray(b.supplierIds) ? b.supplierIds : []).filter((sid) =>
+              db.suppliers.some((s) => s.id === sid && s.live),
+            ),
+          ),
+        ];
+      if (!ids.length) return (send(res, 400, { error: "Choose at least one active supplier" }), true);
+      db.bids ||= [];
+      let bid = r.bidId && db.bids.find((x) => x.id === r.bidId && !["Awarded", "Closed"].includes(x.status));
+      if (!bid) {
+        const dueDate = String(b.dueDate || "");
+        if (!isDate(dueDate) || dueDate < new Date().toISOString().slice(0, 10))
+          return (send(res, 400, { error: "Set a future deadline for the offers." }), true);
+        bid = {
+          id: id("bid"),
+          brokered: true,
+          requestId: r.id,
+          customerId: r.customerId,
+          projectId: r.projectId,
+          projectName: r.projectName,
+          phaseId: r.phaseId,
+          taskId: r.taskId,
+          taskName: r.taskName,
+          operatorId: user.id,
+          title: r.title,
+          description: r.description,
+          category: r.category,
+          region: r.sitePostcode ? r.sitePostcode.slice(0, 2) : "",
+          startDate: r.startDate,
+          finishDate: r.dueDate,
+          dueDate,
+          status: "Open",
+          invitedSupplierIds: [],
+          attachments: [...(r.attachments || [])],
+          offers: [],
+          eventType: "RFQ",
+          baseline: null,
+          weights: cleanWeights(),
+          questions: [],
+          createdAt: now(),
+          updatedAt: now(),
+        };
+        db.bids.unshift(bid);
+        r.bidId = bid.id;
+      }
+      if (r.status === "New") take(r, user, new Date(Date.now() + 5 * DAY).toISOString().slice(0, 10));
+      const added = ids.filter((sid) => !bid.invitedSupplierIds.includes(sid));
+      bid.invitedSupplierIds.push(...added);
+      bid.updatedAt = now();
+      for (const sid of added)
+        for (const su of db.users.filter((x) => x.supplierId === sid))
+          notify(su.id, { key: "bidInvitationPlatform", params: { title: bid.title } }, "/supplier/bids");
+      activity(user, `Invited ${added.length} supplier(s) to quote for request ${r.title}`);
       save();
       return (send(res, 200, { request: view(user, r) }), true);
     }

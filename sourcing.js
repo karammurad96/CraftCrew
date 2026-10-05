@@ -6,6 +6,7 @@
 const WEIGHT_KEYS = ["price", "delivery", "quality", "experience"];
 const DEFAULT_WEIGHTS = { price: 50, delivery: 20, quality: 20, experience: 10 };
 const CONTRACT_STATUSES = ["Draft", "Active", "Terminated"];
+const geo = require("./geo");
 
 module.exports = function createSourcing(ctx) {
   const { getDb, save, send, body, id, now, notify, projectFor, supplierForUser } = ctx;
@@ -281,7 +282,7 @@ module.exports = function createSourcing(ctx) {
             if (ph.supplierId) mine.add(ph.supplierId);
             for (const t of ph.tasks || []) if (t.assignedSupplierId) mine.add(t.assignedSupplierId);
           }
-        for (const b of (db.bids || []).filter((b) => projectFor(user, b.projectId)))
+        for (const b of (db.bids || []).filter((b) => !b.brokered && projectFor(user, b.projectId)))
           for (const o of b.offers || []) mine.add(o.supplierId);
       }
       const ids = user.role === "admin" ? db.suppliers.filter((s) => s.live).map((s) => s.id) : [...mine];
@@ -316,8 +317,66 @@ module.exports = function createSourcing(ctx) {
     return null;
   }
 
+  /* T223: suppliers for a customer request, best first, each with a score and the reasons for it as
+     translation keys (req.reason.*). Uses only what the platform already knows: the category (T146), the
+     distance from the site, the scorecard, the badge, open work in the same weeks and earlier work for the same
+     customer. Suppliers that are not live are never suggested. */
+  function suggestSuppliers(request, { limit = 10 } = {}) {
+    const db = getDb(),
+      site = geo.geocode(request.sitePostcode || "") || geo.geocode(request.siteCity || ""),
+      from = request.startDate || new Date().toISOString().slice(0, 10),
+      to = request.dueDate || "9999-12-31",
+      tasks = db.projects.flatMap((p) => p.phases.flatMap((ph) => (ph.tasks || []).map((t) => ({ p, t }))));
+    return db.suppliers
+      .filter((s) => s.live)
+      .map((s) => {
+        const reasons = [];
+        let score = 0;
+        if ((s.services || []).includes(request.category)) {
+          score += 40;
+          reasons.push({ key: "category" });
+        }
+        const place = geo.geocode(s.location || "");
+        if (site && place) {
+          const km = Math.round(geo.distanceKm(site, place));
+          score += km <= 50 ? 20 : km <= 150 ? 15 : km <= 300 ? 10 : 5;
+          reasons.push({ key: "distance", params: { km } });
+        } else score += 5;
+        const card = scorecard(s.id);
+        if (card?.score !== null && card?.score !== undefined) {
+          score += Math.round(card.score / 5);
+          reasons.push({ key: "score", params: { score: card.score } });
+        } else score += 10;
+        const badge = { Gold: 10, Silver: 7, Bronze: 4 }[s.badge] || 0;
+        if (badge) {
+          score += badge;
+          reasons.push({ key: "badge", params: { badge: s.badge } });
+        }
+        const open = tasks.filter(
+          ({ t }) =>
+            t.assignedSupplierId === s.id &&
+            t.status !== "Completed" &&
+            (t.startDate || "0000-00-00") <= to &&
+            (t.dueDate || "9999-12-31") >= from,
+        ).length;
+        if (open) {
+          score -= Math.min(15, open * 3);
+          reasons.push({ key: "busy", params: { n: open } });
+        }
+        if (s.availability === "Busy") score -= 5;
+        if (tasks.some(({ p, t }) => p.customerId === request.customerId && t.assignedSupplierId === s.id)) {
+          score += 5;
+          reasons.push({ key: "worked" });
+        }
+        return { supplierId: s.id, company: s.company, location: s.location || "", score, reasons };
+      })
+      .sort((a, b) => b.score - a.score || String(a.company).localeCompare(String(b.company)))
+      .slice(0, limit);
+  }
+
   return {
     handle,
+    suggestSuppliers,
     cleanWeights,
     contractFromAward,
     contractView,
