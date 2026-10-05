@@ -426,6 +426,10 @@ LOCALES.en = {
       anotherRoundCanBeAsked: "Another round can be asked for once options are ready.",
       setAFutureDeadlineFor: "Set a future deadline for the offers.",
       theCustomerChoosesAmongThe: "The customer chooses among the options; the award follows their choice.",
+      aRequestCanHaveUp: "A request can have up to ten work packages.",
+      enterTheEffortInHours: "Enter the effort in hours (1 to 5,000), or leave it empty.",
+      chooseOpenTasksOfThe: "Choose open tasks of the selected project as work packages.",
+      giveEveryWorkPackageA: "Give every work package a name.",
       requestsAreBetweenCustomersAnd: "Requests are between customers and the platform.",
       onlyCustomersSendRequests: "Only customers send requests.",
       giveTheRequestATitle: "Give the request a title and describe the work in a few sentences.",
@@ -3570,6 +3574,24 @@ LOCALES.en = {
     "hours": "{n} h · {name}"
   },
   req: {
+    "pkg": {
+      "hoursN": "{n} h",
+      "hoursRough": "about {n} h (estimated from the dates)",
+      "projectTitle": "Project",
+      "newProject": "New project from this request",
+      "projectHint": "Every request belongs to a project. A new project is created from the title, description, site and dates.",
+      "title": "Work packages",
+      "lead": "Tick open tasks of the project, or add packages. Each package can go to a different supplier if that is cheaper or faster. Leave the effort empty if you do not know it; we estimate it from the wished dates.",
+      "name": "Package name",
+      "namePh": "e.g. PLC programming",
+      "hours": "Effort in hours",
+      "hoursPh": "Hours (optional)",
+      "remove": "Remove package",
+      "add": "+ Add work package",
+      "noOpenTasks": "This project has no open tasks. Add packages below.",
+      "none": "Add at least one work package.",
+      "chooseCategory": "Choose a category for every work package."
+    },
     "leak": {
       "title": "Contact details shared {n} time(s):",
       "item": "{date} by the {who} in the {where}",

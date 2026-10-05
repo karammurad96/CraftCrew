@@ -1070,3 +1070,49 @@
 .rq-order {
   margin-block-end: 12px;
 }
+
+/* Project and work packages of a request (T230) */
+.rq-project,
+.rq-packages {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #dce4ef;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.rq-project legend,
+.rq-packages legend {
+  font-weight: 700;
+  padding-inline: 4px;
+}
+.rq-pkg {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) minmax(90px, 0.6fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+.rq-pkg-task {
+  grid-template-columns: auto minmax(0, 2fr) minmax(0, 1.4fr) minmax(90px, 0.6fr);
+}
+.rq-pkg-task span {
+  display: grid;
+}
+.rq-pkg input:not([type="checkbox"]),
+.rq-pkg select {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 11px;
+  border: 1px solid #dce4ef;
+  border-radius: 8px;
+  background: #fff;
+}
+.rq-pkg-list {
+  margin: 0 0 10px;
+  padding-inline-start: 18px;
+}
+@media (max-width: 650px) {
+  .rq-pkg,
+  .rq-pkg-task {
+    grid-template-columns: 1fr;
+  }
+}

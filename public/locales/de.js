@@ -424,6 +424,10 @@ LOCALES.de = {
       anotherRoundCanBeAsked: "Eine weitere Runde kann angefragt werden, sobald Optionen bereit sind.",
       setAFutureDeadlineFor: "Setzen Sie eine Frist in der Zukunft für die Angebote.",
       theCustomerChoosesAmongThe: "Der Kunde wählt unter den Optionen; die Vergabe folgt seiner Wahl.",
+      aRequestCanHaveUp: "Eine Anfrage kann bis zu zehn Arbeitspakete haben.",
+      enterTheEffortInHours: "Geben Sie den Aufwand in Stunden an (1 bis 5.000), oder lassen Sie ihn leer.",
+      chooseOpenTasksOfThe: "Wählen Sie offene Aufgaben des gewählten Projekts als Arbeitspakete.",
+      giveEveryWorkPackageA: "Geben Sie jedem Arbeitspaket einen Namen.",
       requestsAreBetweenCustomersAnd: "Anfragen laufen zwischen Kunden und der Plattform.",
       onlyCustomersSendRequests: "Nur Kunden senden Anfragen.",
       giveTheRequestATitle: "Geben Sie der Anfrage einen Titel und beschreiben Sie die Arbeit in einigen Sätzen.",
@@ -3569,6 +3573,24 @@ LOCALES.de = {
     "hours": "{n} h · {name}"
   },
   req: {
+    "pkg": {
+      "hoursN": "{n} Std.",
+      "hoursRough": "ca. {n} Std. (aus den Terminen geschätzt)",
+      "projectTitle": "Projekt",
+      "newProject": "Neues Projekt aus dieser Anfrage",
+      "projectHint": "Jede Anfrage gehört zu einem Projekt. Ein neues Projekt wird aus Titel, Beschreibung, Baustelle und Terminen angelegt.",
+      "title": "Arbeitspakete",
+      "lead": "Haken Sie offene Aufgaben des Projekts an oder fügen Sie Pakete hinzu. Jedes Paket kann an einen anderen Lieferanten gehen, wenn das günstiger oder schneller ist. Lassen Sie den Aufwand leer, wenn Sie ihn nicht kennen; wir schätzen ihn aus den Wunschterminen.",
+      "name": "Name des Pakets",
+      "namePh": "z. B. SPS-Programmierung",
+      "hours": "Aufwand in Stunden",
+      "hoursPh": "Stunden (optional)",
+      "remove": "Paket entfernen",
+      "add": "+ Arbeitspaket hinzufügen",
+      "noOpenTasks": "Dieses Projekt hat keine offenen Aufgaben. Fügen Sie unten Pakete hinzu.",
+      "none": "Fügen Sie mindestens ein Arbeitspaket hinzu.",
+      "chooseCategory": "Wählen Sie für jedes Arbeitspaket eine Kategorie."
+    },
     "leak": {
       "title": "Kontaktdaten {n}-mal geteilt:",
       "item": "{date} durch den {who} im {where}",

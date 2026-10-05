@@ -168,8 +168,6 @@ module.exports = function createRequests(ctx) {
       description = text(b.description, 5000);
     if (title.length < 3 || description.length < 10)
       return { error: "Give the request a title and describe the work in a few sentences." };
-    const category = text(b.category, 80);
-    if (!categories().includes(category)) return { error: "Choose a category from the list." };
     const startDate = b.startDate ? String(b.startDate) : null,
       dueDate = b.dueDate ? String(b.dueDate) : null;
     if (
@@ -197,12 +195,46 @@ module.exports = function createRequests(ctx) {
       task = phase && b.taskId ? (phase.tasks || []).find((x) => x.id === b.taskId) : null;
       if (!project || (b.phaseId && !phase) || (b.taskId && !task))
         return { error: "The selected project, phase or task was not found." };
+      if (project.status === "Archived")
+        return { error: "The selected project, phase or task was not found." };
     }
+    // T230: the work packages. A project task (unassigned) or a new one; without any, the request is one package.
+    const given =
+      Array.isArray(b.packages) && b.packages.length
+        ? b.packages
+        : [{ taskId: task?.id, category: b.category, hours: b.hours }];
+    if (given.length > 10) return { error: "A request can have up to ten work packages." };
+    const tasks = project ? project.phases.flatMap((ph) => (ph.tasks || []).map((t) => ({ ph, t }))) : [],
+      packages = [];
+    for (const g of given) {
+      const category = text(g?.category, 80);
+      if (!categories().includes(category)) return { error: "Choose a category from the list." };
+      let hours = null;
+      if (g.hours !== undefined && g.hours !== null && g.hours !== "") {
+        hours = Number(g.hours);
+        if (!Number.isFinite(hours) || hours < 1 || hours > 5000)
+          return { error: "Enter the effort in hours (1 to 5,000), or leave it empty." };
+      }
+      const own = g.taskId ? tasks.find((x) => x.t.id === g.taskId) : null;
+      if (g.taskId && (!own || (own.t.assignedSupplierId && own.t.acceptanceStatus !== "Declined")))
+        return { error: "Choose open tasks of the selected project as work packages." };
+      if (own && packages.some((x) => x.taskId === own.t.id))
+        return { error: "Choose open tasks of the selected project as work packages." };
+      const name = own ? own.t.name : text(g.name, 140) || (given.length === 1 ? title : "");
+      if (name.length < 2) return { error: "Give every work package a name." };
+      if (!hours && own && Number(own.t.estimatedHours) > 0) hours = Number(own.t.estimatedHours);
+      packages.push({ taskId: own?.t.id || null, phaseId: own?.ph.id || null, name, category, hours });
+    }
+    // Effort not given: one person, eight hours a working day over the wished period (a week without dates)
+    const rough = workingDays(startDate, dueDate) * 8;
+    for (const x of packages) if (!x.hours) Object.assign(x, { hours: rough, rough: true });
+    const category = packages[0].category;
     return {
       fields: {
         title,
         description,
         category,
+        packages,
         siteCity: text(b.siteCity, 80),
         sitePostcode: text(b.sitePostcode, 10),
         startDate,
@@ -216,6 +248,97 @@ module.exports = function createRequests(ctx) {
         taskName: task?.name || "",
       },
     };
+  }
+
+  /* ---------- T230: every request belongs to a project, every package to one of its tasks ---------- */
+  function workingDays(from, to) {
+    if (!from || !to) return 5;
+    let n = 0;
+    for (let d = new Date(from); d <= new Date(to) && n < 400; d.setUTCDate(d.getUTCDate() + 1))
+      if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6) n++;
+    return Math.max(1, n);
+  }
+  function newTask(name, description, start, due) {
+    return {
+      id: id("tsk"),
+      name,
+      description,
+      startDate: start,
+      dueDate: due,
+      status: "Not Started",
+      assignedSupplierId: null,
+      acceptanceStatus: "Unassigned",
+      orderAmount: null,
+      dependencies: [],
+      progress: 0,
+      subtasks: [],
+      assignmentHistory: [],
+      offers: [],
+    };
+  }
+  // The project of a new request: the chosen one, or a new one named after the request. Packages without a task
+  // become tasks of a phase "Requested work".
+  function linkProject(user, r) {
+    const db = getDb(),
+      start = r.startDate || now().slice(0, 10),
+      due = r.dueDate || new Date(Date.parse(start) + 28 * 86400000).toISOString().slice(0, 10);
+    let p = r.projectId && db.projects.find((x) => x.id === r.projectId);
+    if (!p) {
+      p = {
+        id: id("prj"),
+        customerId: user.id,
+        name: r.title,
+        description: r.description,
+        requirements: "",
+        location: [r.sitePostcode, r.siteCity].filter(Boolean).join(" "),
+        buyerReference: "",
+        budget: r.budget || 0,
+        startDate: start,
+        dueDate: due,
+        status: "In Progress",
+        template: "",
+        phases: [],
+        fromRequestId: r.id,
+        createdAt: now(),
+        updatedAt: now(),
+      };
+      db.projects.unshift(p);
+    }
+    let phase = null;
+    for (const x of r.packages) {
+      x.id = id("pkg");
+      if (x.taskId) continue;
+      if (!phase) {
+        phase = {
+          id: id("ph"),
+          name: "Requested work",
+          description: r.title,
+          startDate: start,
+          dueDate: due,
+          status: "Not Started",
+          dependencies: [],
+          supplierId: null,
+          acceptanceStatus: "Unassigned",
+          orderAmount: null,
+          subtasks: [],
+          assignmentHistory: [],
+          deliverables: [],
+          tasks: [],
+        };
+        p.phases.push(phase);
+      }
+      const t = newTask(x.name, r.packages.length === 1 ? r.description : "", start, due);
+      t.estimatedHours = x.hours;
+      phase.tasks.push(t);
+      Object.assign(x, { taskId: t.id, phaseId: phase.id });
+    }
+    p.updatedAt = now();
+    Object.assign(r, { projectId: p.id, projectName: p.name });
+    // One package: the request stands for that task (T225 assigns it)
+    if (r.packages.length === 1) {
+      const t = p.phases.flatMap((ph) => ph.tasks || []).find((x) => x.id === r.packages[0].taskId);
+      Object.assign(r, { phaseId: r.packages[0].phaseId, taskId: t.id, taskName: t.name });
+    } else Object.assign(r, { phaseId: null, taskId: null, taskName: "" });
   }
 
   /* ---------- T225: the customer's choice, the supplier's confirmation, the reveal ---------- */
@@ -484,6 +607,7 @@ module.exports = function createRequests(ctx) {
         ...fields,
         createdAt: now(),
       };
+      linkProject(user, r);
       move(r, "New", user);
       if (getDb().settings?.autoSuggest !== false) refreshSuggestions(r);
       list().unshift(r);
