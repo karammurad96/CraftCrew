@@ -2776,6 +2776,10 @@ function repairShowcaseMessagesV1() {
   db.meta.showcaseMessagesRepairV1 = true;
 }
 if (DEMO_MODE) repairShowcaseMessagesV1();
+// Brokered mode demo (Wave 15): more customers, suppliers and an operator now; their requests once the server
+// listens (see demo-brokered.js and the listen call at the end of this file).
+const demoBrokered = require("./demo-brokered");
+if (DEMO_MODE) demoBrokered.accounts(db, { hashPassword, now, initials });
 // Writes are batched: save() marks the data dirty and one write follows within SAVE_DELAY_MS.
 // saveNow() writes at once (start-up, backup import, shutdown).
 // `var`, because start-up repairs call save() before these lines run.
@@ -8487,4 +8491,10 @@ const server = http.createServer(async (req, res) => {
     }
   });
 });
-server.listen(PORT, () => console.log(`${BRAND.name} running at http://localhost:${PORT}`));
+server.listen(PORT, () => {
+  console.log(`${BRAND.name} running at http://localhost:${PORT}`);
+  if (DEMO_MODE)
+    demoBrokered
+      .journeys(`http://127.0.0.1:${PORT}`, { getDb: () => db, saveNow: () => saveNow() })
+      .catch((e) => console.error("Demo data for brokered mode could not be created:", e.message));
+});

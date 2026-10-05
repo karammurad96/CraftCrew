@@ -29,6 +29,23 @@ Showcase customer and supplier accounts (share a populated project workspace):
 
 The showcase workspace contains two example projects, supplier assignments, an open task bid and a quote request awaiting a supplier response, private task conversations with several suppliers/customer contacts, pending and approved PDF handovers, submitted and approved invoices, and an open multi-supplier bid comparison. Use the Offers overview as the customer or Bid opportunities as the supplier. This showcase data is added once to the local demo data store on startup; it does not overwrite existing accounts or projects.
 
+**Brokered mode (Wave 15), the default.** A few seconds after start-up, `demo-brokered.js` creates more
+accounts and drives eight requests through the real API, so every stage can be tried. All passwords are
+`CraftCrew2026!`.
+
+| Role | Email | What to try |
+| --- | --- | --- |
+| Operator (admin) | `operator.demo@craftcrew.local` | *Requests* queue: all eight stages; suggestions, invitations, options, the leak hint on the spiral freezer; the clause and introductions under *Platform management* |
+| Customer | `customer.demo@craftcrew.local` (Maya, MAKBERG) | *Commissioning of a palletising cell*: **options ready**, choose one; *Safety PLC upgrade*: offers coming in; *Painting of a hall floor*: withdrawn |
+| Customer | `customer2.demo@craftcrew.local` (Lena, Brenner Verpackung) | *Conveyor belt replacement*: **new**; *Retrofit of a filling machine*: chosen, waiting for the supplier; *Annual crane inspection*: closed with a reason |
+| Customer | `customer3.demo@craftcrew.local` (Tobias, Hansa Food) | *Control cabinet for a spiral freezer*: **contracted**, the supplier is named, project, contract, chat with the operator, an invoice; *Hygienic washdown robot cell*: suppliers invited |
+| Supplier | `supplier.demo@craftcrew.local` (Keller) | *Platform orders*: confirm or decline the filling machine; *Opportunities*: still quote for the safety PLC upgrade |
+| Supplier | `supplier2.demo@craftcrew.local` (Donau Elektrotechnik) | Offers on three platform requests |
+| Supplier | `supplier3.demo@craftcrew.local` (Nordwind Robotics) | A confirmed platform order, its project and chat, an invoice; an open invitation (washdown cell) |
+| Supplier | `supplier4.demo@craftcrew.local` (Alpen Steuerungstechnik) | Offers and an open invitation |
+
+To see the marketplace instead, switch *Platform management → How customers find suppliers → Marketplace*.
+
 Seeded data lives in `data/db.json`; uploaded files live under `data/uploads`. For a fresh local demo, stop the server and remove `data/db.json` and `data/uploads`. The server recreates demo data at startup.
 
 ## Run the private production pilot container
