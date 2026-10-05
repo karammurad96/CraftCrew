@@ -77,6 +77,8 @@ function area(lang, { role = "customer", hash = "#/customer/suppliers" } = {}) {
     esc: (s) => String(s ?? "").replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[c]),
     api: async (p, opts) => {
       calls.push(["api", p, opts?.method || "GET", opts?.body]);
+      // The directory exists in marketplace mode only (T221)
+      if (p === "/platform-config") return { platformMode: "marketplace" };
       if (p.startsWith("/suppliers?")) return { suppliers: JSON.parse(JSON.stringify(SUPPLIERS)), certifications: ["ISO 9001"] };
       if (p === "/shortlist") return { supplierIds: ["s1"] };
       if (p === "/suppliers/s1") return { supplier: JSON.parse(JSON.stringify(SUPPLIERS[0])) };

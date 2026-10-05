@@ -11,7 +11,10 @@ const pubPage = (html) => `<div>${html}</div>`;
 
 /* ---------- Landing page (board Landing, T94) ---------- */
 async function pubHome() {
-  const k = (key, params) => esc(t("public.home." + key, params));
+  // T221: in brokered mode the texts that promise a searchable directory have a brokered version
+  const brokered = typeof ccPlatformMode !== "function" || (await ccPlatformMode()) === "brokered";
+  const k = (key, params) =>
+    esc(t((brokered && typeof ccLookup("en", "public.home.brokered." + key) === "string" ? "public.home.brokered." : "public.home.") + key, params));
   const step = (name) =>
     `<div class="ds-step"><span class="ds-step-label">${k(name)}</span><span class="ds-step-lead">${k(name + "Lead")}</span><span class="ds-step-text">${k(name + "Text")}</span></div>`;
   const phase = (name, width, colour, end) =>

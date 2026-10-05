@@ -12,14 +12,15 @@ async function obSteps(role) {
   const { user = {}, supplier, companyProfile: cp = {} } = await api("/profile").catch(() => ({}));
   const filled = (...v) => v.every((x) => String(x || "").trim());
   obSteps.user = user;
+  const ccBrokeredNow = () => typeof ccBrokered === "function" && ccBrokered();
   if (role === "customer") {
     const [{ projects = [] }, { bids = [] }] = await Promise.all([api("/projects"), api("/bids").catch(() => ({}))]);
     const tasks = projects.flatMap((p) => p.phases.flatMap((ph) => ph.tasks || []));
     return [
       obStep("customer", "profile", filled(cp.legalName, cp.address), "/customer/profile"),
       obStep("customer", "project", projects.length > 0, "/customer/projects/new"),
-      obStep("customer", "source", tasks.some((x) => x.assignedSupplierId) || bids.length > 0, projects[0] ? `/customer/projects/${projects[0].id}` : "/customer/suppliers", {
-        cta: t(projects[0] ? "ob.customer.source.cta" : "ob.customer.source.ctaFind"),
+      obStep("customer", "source", tasks.some((x) => x.assignedSupplierId) || bids.length > 0, projects[0] ? `/customer/projects/${projects[0].id}` : ccBrokeredNow() ? "/customer/projects/new" : "/customer/suppliers", {
+        cta: t(projects[0] || ccBrokeredNow() ? "ob.customer.source.cta" : "ob.customer.source.ctaFind"),
       }),
       obStep("customer", "prefs", !!user.notificationPrefsSavedAt || (!!user.notificationPrefs && Object.values(user.notificationPrefs).some(Boolean)), "/customer/profile"),
     ];

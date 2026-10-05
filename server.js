@@ -586,6 +586,36 @@ function platformMode() {
   const mode = db.settings?.platformMode || process.env.PLATFORM_MODE || "brokered";
   return PLATFORM_MODES.includes(mode) ? mode : "brokered";
 }
+// T221: in brokered mode a customer sees and assigns only the suppliers already working on one of their projects
+// (a phase or task given to them, or an active contract). Everyone else is found by the platform.
+const MARKETPLACE_CLOSED = "Suppliers are chosen for you by the platform. Send a request instead.";
+function knownSupplierIds(user) {
+  const ids = new Set();
+  for (const p of db.projects)
+    if (projectFor(user, p.id))
+      for (const ph of p.phases || []) {
+        if (ph.supplierId) ids.add(ph.supplierId);
+        for (const t of ph.tasks || []) if (t.assignedSupplierId) ids.add(t.assignedSupplierId);
+      }
+  for (const c of db.contracts || [])
+    if (c.customerId === user.id && c.status === "Active" && c.supplierId) ids.add(c.supplierId);
+  return ids;
+}
+const ASSIGN_KNOWN_ONLY =
+  "You can assign suppliers who already work with you. For a new supplier, send a request to the platform.";
+const marketplaceClosed = (user) => user.role === "customer" && platformMode() === "brokered";
+const supplierHidden = (user, supplierId) => marketplaceClosed(user) && !knownSupplierIds(user).has(supplierId);
+// The routes brokered mode refuses a customer; the supplier list is filtered instead (see GET /api/suppliers).
+function marketplaceRefusal(user, parts, method) {
+  if (!marketplaceClosed(user)) return null;
+  if (parts[1] === "suppliers" && parts[2] && method === "GET")
+    return supplierHidden(user, parts[2]) ? MARKETPLACE_CLOSED : null;
+  if (parts[1] === "shortlist" || parts[1] === "preferred-suppliers") return MARKETPLACE_CLOSED;
+  if (parts[1] === "rfqs" && method === "POST") return MARKETPLACE_CLOSED;
+  if (parts[1] === "bids" && method === "POST" && (parts.length === 2 || parts[3] === "invitations"))
+    return MARKETPLACE_CLOSED;
+  return null;
+}
 const paymentTermsDays = () => Math.max(0, Math.min(180, Number(db.settings?.defaultPaymentTermsDays ?? 14) || 0));
 function dueDateFrom(isoTime, days = paymentTermsDays()) {
   return new Date(Date.parse(String(isoTime).slice(0, 10) + "T00:00:00Z") + days * 86400000)
@@ -4115,9 +4145,12 @@ async function api(req, res, url) {
         near = String(url.searchParams.get("near") || "").slice(0, 80),
         radius = Math.min(Math.max(Number(url.searchParams.get("radius")) || 100, 1), 5000),
         center = near ? geo.geocode(near) : null;
+      const viewer = auth(req),
+        known = marketplaceClosed(viewer) ? knownSupplierIds(viewer) : null;
       let list = db.suppliers.filter(
         (s) =>
           s.live &&
+          (!known || known.has(s.id)) &&
           (!q ||
             String(s.company ?? "")
               .toLowerCase()
@@ -4147,6 +4180,7 @@ async function api(req, res, url) {
       );
     }
     if (parts[1] === "suppliers" && parts[2] && !parts[3] && method === "GET") {
+      if (supplierHidden(auth(req), parts[2])) return (send(res, 403, { error: MARKETPLACE_CLOSED }), true);
       const s = db.suppliers.find((x) => x.id === parts[2] && x.live);
       if (!s) return (send(res, 404, { error: "Supplier not found" }), true);
       return (send(res, 200, { supplier: publicSupplier(s) }), true);
@@ -4329,6 +4363,8 @@ async function api(req, res, url) {
     // Team members: the main account decides which areas they may view or change.
     const teamDenied = team.denied(user, parts, method);
     if (teamDenied) return (send(res, 403, { error: teamDenied }), true);
+    const closed = marketplaceRefusal(user, parts, method);
+    if (closed) return (send(res, 403, { error: closed }), true);
     if (await team.handle(req, res, url, parts, user)) return true;
     if (await gdpr.handle(req, res, url, parts, user)) return true;
     // Archived projects are read-only for everyone who can see them.
@@ -5320,6 +5356,7 @@ async function api(req, res, url) {
           p.phases.flatMap((ph) => (ph.tasks || []).map((t) => ({ ph, t }))).find((x) => x.t.id === parts[4]);
       if (!p || user.role !== "customer" || !found || !s)
         return (send(res, 404, { error: "Project, task or supplier not found" }), true);
+      if (supplierHidden(user, s.id)) return (send(res, 403, { error: ASSIGN_KNOWN_ONLY }), true);
       const { ph, t } = found;
       t.assignmentHistory ||= [];
       if (t.assignedSupplierId && t.assignedSupplierId !== s.id) {
@@ -5758,6 +5795,7 @@ async function api(req, res, url) {
       const ph = p.phases.find((x) => x.id === b.phaseId),
         s = db.suppliers.find((x) => x.id === b.supplierId && x.live);
       if (!ph || !s) return (send(res, 404, { error: "Phase or supplier not found" }), true);
+      if (supplierHidden(user, s.id)) return (send(res, 403, { error: ASSIGN_KNOWN_ONLY }), true);
       ph.assignmentHistory ||= [];
       if (ph.supplierId) {
         ph.assignmentHistory.push({

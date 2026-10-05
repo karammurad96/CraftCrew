@@ -399,6 +399,8 @@ LOCALES.de = {
       invoiceCannotBeResubmitted: "Die Rechnung kann nicht erneut eingereicht werden",
       enterAValidInvoiceAmount: "Geben Sie einen gültigen Rechnungsbetrag ein",
       chooseBrokeredOrMarketplace: "Wählen Sie Vermittlung oder Marktplatz",
+      suppliersAreChosenForYou: "Lieferanten wählt die Plattform für Sie aus. Senden Sie stattdessen eine Anfrage.",
+      youCanAssignSuppliersWho: "Sie können Lieferanten zuweisen, die bereits für Sie arbeiten. Für einen neuen Lieferanten senden Sie eine Anfrage an die Plattform.",
       adminOnly: "Nur für Admins",
       aRefundReasonIsRequired: "Ein Erstattungsgrund ist erforderlich",
       invoiceIsNotEligibleFor: "Für diese Rechnung ist diese Aktion nicht möglich",
@@ -598,6 +600,15 @@ LOCALES.de = {
   // Public pages (T126)
   public: {
     "home": {
+      "brokered": {
+        "sub": "Sagen Sie uns, was Sie brauchen. Wir finden geprüfte Industriespezialisten, bereiten die besten Optionen vor – am schnellsten, am günstigsten oder in bester Qualität – und Sie steuern den ganzen Auftrag an einem Ort, von der Arbeitssicherheit bis zur Schlussrechnung.",
+        "compareLead": "Optionen, für Sie vorbereitet.",
+        "compareText": "Am schnellsten, am günstigsten oder in bester Qualität – Sie wählen, wir übernehmen die Lieferantensuche.",
+        "tiles": {
+          "smesText": "Anfrage senden, aus vorbereiteten Optionen wählen, Phasen koordinieren, Rechnungen freigeben und Projekte mit Bewertungen abschließen.",
+          "operationsText": "Prüfstufen, Scorecards und automatische Vorschläge nutzen, um für jede Anfrage den passenden Lieferanten zu finden."
+        }
+      },
       "kicker": "Industrielle Dienstleistungen, koordiniert.",
       "title": "Jedes Team. Ein Projekt. Null Chaos.",
       "sub": "Finden Sie geprüfte Industriespezialisten, vergleichen Sie ihre Angebote direkt nebeneinander und steuern Sie den ganzen Auftrag – von der Arbeitssicherheit bis zur Schlussrechnung – an einem Ort.",
