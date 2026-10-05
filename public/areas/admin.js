@@ -663,6 +663,15 @@ async function adminPlatform() {
     .join("")}</div></section><section class="panel"><div class="panel-title"><h3>${f("integrations")}</h3><small>${f("integrationsHint")}</small></div><div class="cc-integration-list">${Object.entries(s.integrations || {})
     .map(([k, v]) => `<div><b>${typeof ccLookup("en", "adm.platform.integration." + k) === "string" ? f("integration." + k) : esc(k)}</b><span>${adDom(v)}</span><em>${f("configOnly")}</em></div>`)
     .join("")}</div><p class="subtle">${f("integrationsNote")}</p></section><div class="cc-actions"><button class="btn primary">${f("save")}</button><span id="ccPlatformSaved" class="subtle"></span></div></form>`;
+  // T220: brokered or marketplace; switching back is the Wave 15 rollback (T228)
+  const mode = s.platformMode === "marketplace" ? "marketplace" : "brokered",
+    modeChoice = (k) =>
+      `<label class="cc-mode-choice"><input type="radio" name="mode" value="${k}"${k === mode ? " checked" : ""}><span><b>${f("mode." + k)}</b>${k === mode ? ` <span class="status completed">${f("mode.current")}</span>` : ""}<small>${f(
+        "mode." + k + "Hint",
+      )}</small></span></label>`;
+  const modePanel = `<section class="panel cc-platform-mode"><div class="panel-title"><h3>${f("mode.title")}</h3><small>${f("mode.hint")}</small></div><form id="ccPlatformMode" data-action="adm.saveMode">${["brokered", "marketplace"]
+    .map(modeChoice)
+    .join("")}<div class="cc-actions"><button class="btn outline">${f("mode.switch")}</button></div></form></section>`;
   const mailStatus = (m) => `<span class="status ${m.status === "Sent" ? "completed" : m.status === "Failed" ? "rejected" : "submitted"}">${adValue("mailStatus", m.status)}</span>`;
   const outbox = `<details class="panel pa-outbox"><summary><h3>${f("outbox")}</h3><small>${f("outboxCount", {
     messages: t.plural("adm.platform.messages", emails.length),
@@ -686,7 +695,7 @@ async function adminPlatform() {
   app.innerHTML = dashboardShell(
     "admin",
     "platform",
-    [`<div class="dash-top"><div><div class="eyebrow">${f("eyebrow")}</div><h1>${f("title")}</h1><p>${f("lead")}</p></div></div>`, settings, outbox, legalPanel].join(""),
+    [`<div class="dash-top"><div><div class="eyebrow">${f("eyebrow")}</div><h1>${f("title")}</h1><p>${f("lead")}</p></div></div>`, modePanel, settings, outbox, legalPanel].join(""),
   );
 }
 actions.on("adm.saveSettings", async (form) => {
@@ -711,6 +720,19 @@ actions.on("adm.saveSettings", async (form) => {
     await api("/admin/settings", { method: "PUT", body });
     document.getElementById("ccPlatformSaved").textContent = t("adm.platform.saved");
     tToast(t("adm.platform.savedToast"));
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
+actions.on("adm.saveMode", async (form) => {
+  const mode = new FormData(form).get("mode"),
+    name = t("adm.platform.mode." + mode);
+  const ok = await uiDialog({ title: t("adm.platform.mode.confirmTitle", { mode: name }), message: t("adm.platform.mode.confirmText"), confirmLabel: t("adm.platform.mode.switch") });
+  if (!ok) return;
+  try {
+    await api("/admin/platform-mode", { method: "PUT", body: { mode } });
+    tToast(t("adm.platform.mode.switched", { mode: name }));
+    adminPlatform();
   } catch (x) {
     toast(x.message, "error");
   }

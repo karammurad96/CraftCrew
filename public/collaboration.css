@@ -731,6 +731,29 @@
   display: grid;
   gap: 14px;
 }
+.cc-platform-mode form {
+  display: grid;
+  gap: 10px;
+}
+.cc-mode-choice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid #dce4ef;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.cc-mode-choice:has(input:checked) {
+  border-color: var(--cc-blue, #1d5bd8);
+}
+.cc-mode-choice span {
+  display: grid;
+  gap: 4px;
+}
+.cc-mode-choice small {
+  color: #526174;
+}
 .cc-platform-grid,
 .cc-badge-criteria {
   display: grid;

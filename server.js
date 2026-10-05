@@ -578,6 +578,14 @@ function future(days) {
   return d.toISOString().slice(0, 10);
 }
 // Payment terms of new invoices (T108): the admin's default, "N days net" from the day of submission.
+// T220: how customers find suppliers. "brokered" (the default): customers send requests to the platform and see
+// no supplier before they choose. "marketplace": the directory, profiles and direct quote requests. The admin
+// setting wins over PLATFORM_MODE; anything else counts as brokered. Switching back is the Wave 15 rollback (T228).
+const PLATFORM_MODES = ["brokered", "marketplace"];
+function platformMode() {
+  const mode = db.settings?.platformMode || process.env.PLATFORM_MODE || "brokered";
+  return PLATFORM_MODES.includes(mode) ? mode : "brokered";
+}
 const paymentTermsDays = () => Math.max(0, Math.min(180, Number(db.settings?.defaultPaymentTermsDays ?? 14) || 0));
 function dueDateFrom(isoTime, days = paymentTermsDays()) {
   return new Date(Date.parse(String(isoTime).slice(0, 10) + "T00:00:00Z") + days * 86400000)
@@ -4286,6 +4294,7 @@ async function api(req, res, url) {
           supportEmail: db.settings?.supportEmail || "support@craftcrew.local",
           faqContent: db.settings?.faqContent || "",
           mailEnabled: mailer.enabled,
+          platformMode: platformMode(),
           legal: {
             imprint: db.settings?.legal?.imprint || "",
             privacy: db.settings?.legal?.privacy || "",
@@ -6600,6 +6609,7 @@ async function api(req, res, url) {
             badgeCriteria: { ...defaults.badgeCriteria, ...(db.settings?.badgeCriteria || {}) },
             emailTemplates: { ...defaults.emailTemplates, ...(db.settings?.emailTemplates || {}) },
             integrations: { ...defaults.integrations, ...(db.settings?.integrations || {}) },
+            platformMode: platformMode(),
           },
         }),
         true
@@ -6653,6 +6663,33 @@ async function api(req, res, url) {
       activity(user, "Updated platform settings");
       save();
       return (send(res, 200, { settings: db.settings }), true);
+    }
+    if (parts[1] === "admin" && parts[2] === "platform-mode" && !parts[3] && method === "PUT") {
+      if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
+      const b = await body(req);
+      if (!PLATFORM_MODES.includes(b.mode))
+        return (send(res, 400, { error: "Choose brokered or marketplace" }), true);
+      const before = platformMode();
+      db.settings = {
+        ...(db.settings || {}),
+        platformMode: b.mode,
+        platformModeChangedAt: now(),
+        platformModeChangedBy: user.id,
+      };
+      if (before !== b.mode) {
+        activity(user, `Switched the platform from ${before} to ${b.mode} mode`);
+        for (const admin of db.users.filter((x) => x.role === "admin" && x.id !== user.id))
+          notify(
+            admin.id,
+            {
+              key: { brokered: "platformModeBrokered", marketplace: "platformModeMarketplace" }[b.mode],
+              params: { name: user.name },
+            },
+            "/admin/platform",
+          );
+      }
+      save();
+      return (send(res, 200, { platformMode: platformMode() }), true);
     }
     if (parts[1] === "admin" && parts[2] === "suppliers" && parts.length === 3 && method === "GET") {
       if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
@@ -7938,6 +7975,7 @@ const AUDIT_ACTIONS = [
   [/^PATCH admin\/users\//, "Changed account status"],
   [/^PATCH admin\/suppliers\//, "Changed supplier badge"],
   [/^PUT admin\/settings$/, "Updated platform settings"],
+  [/^PUT admin\/platform-mode$/, "Changed platform mode"],
   [/^PUT profile$/, "Updated profile"],
   [/^POST account\/password$/, "Changed password"],
   [/^DELETE account\/sessions$/, "Signed out other sessions"],
