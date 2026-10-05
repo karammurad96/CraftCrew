@@ -413,6 +413,8 @@ const requests = require("./requests")({
   projectFor: (...a) => projectFor(...a),
   ownUpload: (...a) => ownUpload(...a),
   categories: () => db.settings?.serviceCategories || services,
+  suggest: (r) => sourcing.suggestSuppliers(r),
+  cleanWeights: (w) => sourcing.cleanWeights(w),
 });
 const benchmarks = require("./benchmarks")({
   getDb: () => db,
@@ -4636,6 +4638,7 @@ async function api(req, res, url) {
         for (const b of (db.bids || []).filter(
           (b) =>
             ids.has(b.projectId) &&
+            !b.brokered &&
             ["Open", "Shortlist", "Second round", "Final round"].includes(b.status) &&
             (b.offers || []).length,
         ))
@@ -5350,7 +5353,7 @@ async function api(req, res, url) {
         );
       ph.tasks = ph.tasks.filter((x) => x.id !== t.id);
       for (const other of ph.tasks) other.dependencies = (other.dependencies || []).filter((x) => x !== t.id);
-      db.bids = (db.bids || []).filter((b) => b.taskId !== t.id);
+      db.bids = (db.bids || []).filter((b) => b.taskId !== t.id || b.brokered);
       save();
       return (send(res, 200, { ok: true }), true);
     }
@@ -6704,6 +6707,8 @@ async function api(req, res, url) {
         defaultPaymentTermsDays: terms,
         uploadLimitMb: limit,
         faqContent: String(b.faqContent || "").slice(0, 10000),
+        // T223: suggest suppliers as soon as a request arrives (on unless switched off)
+        autoSuggest: b.autoSuggest === undefined ? db.settings?.autoSuggest !== false : !!b.autoSuggest,
         emailTemplates: Object.fromEntries(
           Object.entries(b.emailTemplates || {}).map(([k, v]) => [k, String(v).slice(0, 300)]),
         ),
@@ -7151,17 +7156,21 @@ async function api(req, res, url) {
       const list = (db.bids || []).filter(
         (x) =>
           user.role === "admin" ||
-          (user.role === "customer" && !!projectFor(user, x.projectId)) ||
+          (user.role === "customer" && !x.brokered && !!projectFor(user, x.projectId)) ||
           (user.role === "supplier" &&
             ((x.status === "Open" &&
               (!(x.invitedSupplierIds || []).length || x.invitedSupplierIds.includes(user.supplierId))) ||
               (x.offers || []).some((o) => o.supplierId === user.supplierId))),
       );
       // Bidders see only their own offer — never competing prices, the customer's baseline or evaluation weights.
+      // A brokered bid (T223) names no customer, project or request to suppliers.
       const safe =
         user.role === "supplier"
           ? list.map((x) => {
               const { baseline, weights, savings, awardedAmount, ...rest } = x;
+              if (x.brokered)
+                for (const k of ["customerId", "projectId", "projectName", "phaseId", "phaseName", "taskId", "taskName", "requestId", "operatorId"])
+                  delete rest[k];
               return { ...rest, offers: (x.offers || []).filter((o) => o.supplierId === user.supplierId) };
             })
           : list;
@@ -7289,17 +7298,21 @@ async function api(req, res, url) {
         updatedAt: now(),
       });
       bid.updatedAt = now();
-      notify(
-        bid.customerId,
-        { key: revised ? "offerRevised" : "offerSubmitted", params: { company: supplier.company, title: bid.title } },
-      );
+      // A brokered bid's offers go to the platform, never to the customer (T223)
+      for (const to of bid.brokered ? db.users.filter((u) => u.role === "admin").map((u) => u.id) : [bid.customerId])
+        notify(
+          to,
+          { key: revised ? "offerRevised" : "offerSubmitted", params: { company: supplier.company, title: bid.title } },
+          bid.brokered ? `/admin/requests/${bid.requestId}` : "",
+        );
       save();
       return (send(res, 201, { offer }), true);
     }
     if (parts[1] === "bids" && parts[2] && method === "PATCH") {
       const bid = (db.bids || []).find((x) => x.id === parts[2]);
       if (!bid) return (send(res, 404, { error: "Bid request not found" }), true);
-      if (user.role !== "customer" || !projectFor(user, bid.projectId))
+      // A brokered bid is run by the platform (T223); the customer chooses among the options of the request
+      if (bid.brokered ? user.role !== "admin" : user.role !== "customer" || !projectFor(user, bid.projectId))
         return (send(res, 403, { error: "Only project customers can decide on offers" }), true);
       const b = await body(req),
         offer = (bid.offers || []).find((x) => x.id === b.offerId);
@@ -7368,6 +7381,11 @@ async function api(req, res, url) {
       }
       if (!["Accept offer", "Decline offer", "Close bid"].includes(b.action))
         return (send(res, 400, { error: "Choose a valid offer decision" }), true);
+      if (b.action === "Accept offer" && bid.brokered)
+        return (
+          send(res, 409, { error: "The customer chooses among the options; the award follows their choice." }),
+          true
+        );
       if (b.action === "Accept offer") {
         const p = db.projects.find((x) => x.id === bid.projectId),
           ph = p?.phases.find((x) => x.id === bid.phaseId),
@@ -7415,6 +7433,7 @@ async function api(req, res, url) {
       if (!bid) return (send(res, 404, { error: "Bid request not found" }), true);
       if (
         user.role !== "customer" ||
+        bid.brokered ||
         !projectFor(user, bid.projectId) ||
         !["Open", "Shortlist", "Second round", "Final round"].includes(bid.status)
       )
@@ -7444,12 +7463,15 @@ async function api(req, res, url) {
       if (!bid) return (send(res, 404, { error: "Bid request not found" }), true);
       const b = await body(req),
         offer = (bid.offers || []).find((x) => x.id === b.offerId),
-        p = projectFor(user, bid.projectId);
+        // A brokered bid's questions go between the supplier and the platform (T223)
+        p = bid.brokered
+          ? user.role === "admin" || (user.role === "supplier" && offer?.supplierId === user.supplierId)
+          : projectFor(user, bid.projectId);
       if (
         !p ||
         !offer ||
         (user.role === "supplier" && offer.supplierId !== user.supplierId) ||
-        (user.role !== "supplier" && user.role !== "customer")
+        (user.role !== "supplier" && user.role !== (bid.brokered ? "admin" : "customer"))
       )
         return (send(res, 403, { error: "You cannot comment on this offer" }), true);
       const text = String(b.text || "").trim();
@@ -7464,12 +7486,12 @@ async function api(req, res, url) {
         createdAt: now(),
       });
       bid.updatedAt = now();
-      notify(
-        user.role === "supplier"
-          ? bid.customerId
-          : db.users.find((x) => x.supplierId === offer.supplierId)?.id,
-        { key: "clarificationAdded", params: { title: bid.title } },
-      );
+      for (const to of user.role !== "supplier"
+        ? [db.users.find((x) => x.supplierId === offer.supplierId)?.id]
+        : bid.brokered
+          ? db.users.filter((u) => u.role === "admin").map((u) => u.id)
+          : [bid.customerId])
+        notify(to, { key: "clarificationAdded", params: { title: bid.title } });
       save();
       return (send(res, 201, { clarifications: offer.clarifications }), true);
     }
@@ -8287,7 +8309,7 @@ const server = http.createServer(async (req, res) => {
             o.attachment === fileUrl &&
             (user.role === "admin" ||
               o.supplierId === user.supplierId ||
-              (user.role === "customer" && !!projectFor(user, bd.projectId))),
+              (user.role === "customer" && !bd.brokered && !!projectFor(user, bd.projectId))),
         ),
       ) ||
       // Time entry photos (T106): the supplier who logged them and the customer's project team.

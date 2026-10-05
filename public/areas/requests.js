@@ -160,6 +160,78 @@ async function rqAdminQueue(params, query) {
     }</tbody></table></div></section>`,
   );
 }
+/* T223: suggestions, a search over all suppliers, invitations and the offers received */
+const rqPick = (x, invited) =>
+  `<tr><td><input type="checkbox" name="supplierIds" value="${esc(x.supplierId)}" aria-label="${esc(x.company)}"${invited.has(x.supplierId) ? " checked disabled" : ""}></td><td><b><bdi>${esc(x.company)}</bdi></b><small><bdi>${esc(x.location || "")}</bdi></small></td><td>${
+    x.score === undefined ? "—" : esc(String(x.score))
+  }</td><td>${(x.reasons || []).map((y) => esc(t("req.reason." + y.key, y.params || {}))).join(" · ")}</td></tr>`;
+function rqSourcingPanel(r) {
+  const s = r.sourcing,
+    invited = new Set((s?.invited || []).map((x) => x.supplierId)),
+    list = r.suggestions?.list || [];
+  const offers = s
+    ? `<h4>${rqk("invitedTitle", { date: fmt.date(s.dueDate) })}</h4><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>${rqk("col.supplier")}</th><th>${rqk("col.offer")}</th><th>${rqk("col.days")}</th><th>${rqk("col.status")}</th></tr></thead><tbody>${s.invited
+        .map(
+          (x) =>
+            `<tr><td><bdi>${esc(x.company)}</bdi></td><td>${x.offer ? esc(fmt.money(x.offer.amount)) : "—"}</td><td>${x.offer ? esc(String(x.offer.deliveryDays)) : "—"}</td><td>${x.offer ? statusHtml(x.offer.status) : rqk("noOfferYet")}</td></tr>`,
+        )
+        .join("")}</tbody></table></div>`
+    : "";
+  if (!RQ_OPEN.includes(r.status))
+    return s ? `<section class="panel"><h3>${rqk("sourcingTitle")}</h3>${offers}</section>` : "";
+  return `<section class="panel rq-sourcing"><div class="panel-title"><h3>${rqk("sourcingTitle")}</h3><button type="button" class="btn small outline" data-action="req.suggest" data-id="${esc(r.id)}">${rqk("refresh")}</button></div>
+<p class="subtle">${r.suggestions ? rqk("suggestedAt", { date: fmt.date(r.suggestions.at) }) : rqk("noSuggestions")}</p>
+<form data-action="req.invite" data-id="${esc(r.id)}"><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th></th><th>${rqk("col.supplier")}</th><th>${rqk("col.score")}</th><th>${rqk("col.reasons")}</th></tr></thead><tbody id="rqPickRows">${
+    list.map((x) => rqPick(x, invited)).join("") || `<tr><td colspan="4">${rqk("noMatches")}</td></tr>`
+  }</tbody></table></div>
+<div class="cc-actions rq-search"><input type="search" id="rqSearch" placeholder="${rqk("searchPlaceholder")}" aria-label="${rqk("searchPlaceholder")}"><button type="button" class="btn small outline" data-action="req.search">${rqk("search")}</button></div>
+<div class="cc-actions rq-take">${
+    s
+      ? ""
+      : `<label>${rqk("offersDue")}<input type="date" name="dueDate" required value="${new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10)}"></label>`
+  }<button class="btn primary">${rqk("invite")}</button></div></form>${offers}</section>`;
+}
+actions.on("req.suggest", async (el) => {
+  try {
+    await api(`/requests/${encodeURIComponent(el.dataset.id)}/suggestions`);
+    route();
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
+actions.on("req.search", async () => {
+  const q = document.getElementById("rqSearch")?.value.trim();
+  if (!q) return;
+  try {
+    const { suppliers = [] } = await api("/suppliers?q=" + encodeURIComponent(q)),
+      rows = document.getElementById("rqPickRows"),
+      shown = new Set([...rows.querySelectorAll("input[name=supplierIds]")].map((x) => x.value));
+    rows.insertAdjacentHTML(
+      "beforeend",
+      suppliers
+        .filter((s) => !shown.has(s.id))
+        .map((s) => rqPick({ supplierId: s.id, company: s.company, location: s.location }, new Set()))
+        .join("") || `<tr><td colspan="4">${rqk("noMatches")}</td></tr>`,
+    );
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
+actions.on("req.invite", async (form) => {
+  const f = new FormData(form),
+    supplierIds = f.getAll("supplierIds");
+  if (!supplierIds.length) return toast(t("req.chooseSuppliers"), "error");
+  try {
+    await api(`/requests/${encodeURIComponent(form.dataset.id)}/invitations`, {
+      method: "POST",
+      body: { supplierIds, dueDate: f.get("dueDate") || undefined },
+    });
+    tToast(t("req.invited", { n: supplierIds.length }));
+    route();
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
 async function rqAdminDetail(params) {
   const { request: r } = await api("/requests/" + encodeURIComponent(params.id)),
     open = RQ_OPEN.includes(r.status);
@@ -176,7 +248,7 @@ async function rqAdminDetail(params) {
         : ""
     }</div>${take}
 <section class="panel"><h3>${rqk("details")}</h3>${rqFacts(r)}<p class="rq-description"><bdi>${esc(r.description)}</bdi></p></section>
-<section class="panel"><h3>${rqk("files")}</h3>${rqFiles(r)}</section>
+<section class="panel"><h3>${rqk("files")}</h3>${rqFiles(r)}</section>${rqSourcingPanel(r)}
 <section class="panel"><h3>${rqk("note")}</h3><form class="modal-form" data-action="req.note" data-id="${esc(r.id)}"><textarea name="note" rows="4" maxlength="5000" placeholder="${rqk("notePlaceholder")}">${esc(r.operatorNote || "")}</textarea><div class="cc-actions"><button class="btn outline">${rqk("saveNote")}</button></div></form></section>
 <section class="panel"><h3>${rqk("timeline")}</h3>${rqTimeline(r)}</section>`,
   );

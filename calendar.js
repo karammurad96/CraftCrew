@@ -90,7 +90,7 @@ module.exports = function createCalendar(ctx) {
       if (!["Open", "Shortlist", "Second round", "Final round"].includes(b.status)) continue;
       const visible =
         user.role === "customer"
-          ? !!projectFor(user, b.projectId)
+          ? !b.brokered && !!projectFor(user, b.projectId)
           : user.role === "supplier" &&
             ((b.invitedSupplierIds || []).includes(user.supplierId) ||
               (b.offers || []).some((o) => o.supplierId === user.supplierId));
