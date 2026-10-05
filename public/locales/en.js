@@ -83,6 +83,7 @@ LOCALES.en = {
       busy: "Currently marked as busy",
       complianceExpired: "{n} compliance document(s) expired",
     },
+    contactHint: "Sent. A reminder: this work was arranged through the platform, so please keep contact and orders on the platform (platform contract, non-circumvention clause).",
     // Status, priority and category values (T137). The server keeps the English value; tStatus(value) shows it.
     status: {
       notStarted: "Not started",
@@ -3569,6 +3570,18 @@ LOCALES.en = {
     "hours": "{n} h · {name}"
   },
   req: {
+    "leak": {
+      "title": "Contact details shared {n} time(s):",
+      "item": "{date} by the {who} in the {where}",
+      "role": {
+        "customer": "customer",
+        "supplier": "supplier"
+      },
+      "where": {
+        "chat": "project chat",
+        "offer": "offer"
+      }
+    },
     "awardWaiting": "You chose this option. The supplier confirms by {date}; then you see who it is.",
     "awardDone": "Contract in place. Your supplier: {company}.",
     "openProject": "Open the project",

@@ -82,6 +82,7 @@ LOCALES.de = {
       busy: "Derzeit als ausgelastet markiert",
       complianceExpired: "{n} Compliance-Dokument(e) abgelaufen",
     },
+    contactHint: "Gesendet. Zur Erinnerung: Dieser Auftrag wurde über die Plattform vermittelt, bitte halten Sie Kontakt und Aufträge auf der Plattform (Plattformvertrag, Umgehungsschutzklausel).",
     // Status, priority and category values (T137). The server keeps the English value; tStatus(value) shows it.
     status: {
       notStarted: "Nicht begonnen",
@@ -3568,6 +3569,18 @@ LOCALES.de = {
     "hours": "{n} h · {name}"
   },
   req: {
+    "leak": {
+      "title": "Kontaktdaten {n}-mal geteilt:",
+      "item": "{date} durch den {who} im {where}",
+      "role": {
+        "customer": "Kunden",
+        "supplier": "Lieferanten"
+      },
+      "where": {
+        "chat": "Projektchat",
+        "offer": "Angebot"
+      }
+    },
     "awardWaiting": "Sie haben diese Option gewählt. Der Lieferant bestätigt bis {date}; danach sehen Sie, wer es ist.",
     "awardDone": "Vertrag geschlossen. Ihr Lieferant: {company}.",
     "openProject": "Projekt öffnen",

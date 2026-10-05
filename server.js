@@ -3569,6 +3569,15 @@ function invoiceAmountLines(inv, lang = "en") {
 }
 // Plain data for the XRechnung builder (xrechnung.js), from the invoice, both company profiles and the project.
 function xrechnungData(inv) {
+  const data = xrechnungDataRaw(inv);
+  // T226: a brokered pair's e-invoice names the platform as contact point (see invoiceParties)
+  if (introduced(inv.customerId, inv.supplierId)) {
+    data.seller = { ...data.seller, email: platformEmail(), phone: "" };
+    data.buyer = { ...data.buyer, email: platformEmail() };
+  }
+  return data;
+}
+function xrechnungDataRaw(inv) {
   const sellerUser = supplierAccount(inv.supplierId),
     supplier = db.suppliers.find((x) => x.id === inv.supplierId),
     customer = db.users.find((x) => x.id === inv.customerId),
@@ -3618,7 +3627,32 @@ function xrechnungData(inv) {
       : [{ name: inv.description || "Services", quantity: 1, unit: "units", unitPrice: net, total: net }],
   };
 }
+// T226: customer and supplier who met through the platform (T225) reach each other through it: their invoices
+// show the platform's email and no phone number. Name, address and VAT ID stay (§ 14 UStG).
+// Function declarations, not constants: the deletion job uses them while the server starts (T122).
+function introduced(customerId, supplierId) {
+  return (db.introductions || []).some((x) => x.customerId === customerId && x.supplierId === supplierId);
+}
+// Records a leak hint on the request behind a project or bid, for the operator's request page
+function leakHint(projectId, user, where, requestId = null) {
+  const r = (db.requests || []).find((x) => (requestId ? x.id === requestId : x.projectId === projectId));
+  if (!r) return;
+  r.leakHints ||= [];
+  r.leakHints.push({ at: now(), role: user.role, userId: user.id, where });
+  r.leakHints = r.leakHints.slice(-50);
+}
+function platformEmail() {
+  return db.settings?.supportEmail || "support@craftcrew.local";
+}
+// Contact details in a text: an email address, a phone number or a web address (T226 leak hints)
+const CONTACT_RE = /[\w.+-]+@[\w-]+\.[\w.-]+|(?:\+|00)\d[\d\s/()-]{6,}\d|\b0\d{2,5}[\s/-]?\d{4,}|https?:\/\/\S+|\bwww\.\S+/i;
 function invoiceParties(inv) {
+  const parties = invoicePartiesRaw(inv);
+  if (introduced(inv.customerId, inv.supplierId))
+    Object.assign(parties, { customerEmail: platformEmail(), supplierEmail: platformEmail(), supplierPhone: "" });
+  return parties;
+}
+function invoicePartiesRaw(inv) {
   // After a party deleted its account (T122) the invoice keeps the legal details it was issued with.
   if (inv.frozenParties) return { ...inv.frozenParties.parties };
   const customer = db.users.find((x) => x.id === inv.customerId),
@@ -6855,9 +6889,13 @@ async function api(req, res, url) {
         .filter((c) => chatScopeAllows(user, c))
         .map((c) => ({
           ...c,
-          members: (c.participantIds || []).map((uid) =>
-            publicUser(db.users.find((x) => x.id === uid) || { id: uid, name: "Participant", role: "user" }),
-          ),
+          members: (c.participantIds || []).map((uid) => {
+            const m = publicUser(db.users.find((x) => x.id === uid) || { id: uid, name: "Participant", role: "user" });
+            // T226: in a brokered project the other side sees a name and company, no contact details
+            if (!db.projects.find((x) => x.id === c.projectId)?.brokered || uid === user.id || user.role === "admin")
+              return m;
+            return { id: m.id, name: m.name, role: m.role, company: m.company, profileImage: m.profileImage };
+          }),
           lastMessage: db.messages.filter((m) => m.chatId === c.id).at(-1) || null,
         }))
         .sort((a, b) =>
@@ -6895,6 +6933,12 @@ async function api(req, res, url) {
       const ids = [...new Set([user.id, ...(Array.isArray(b.participantIds) ? b.participantIds : [])])];
       if (ids.length < 2 || ids.length > 30 || ids.some((x) => !allowed.has(x)))
         return (send(res, 403, { error: "Select at least one other participant from this project" }), true);
+      // T226: in a project brokered by the platform the operator is in every conversation
+      if (p.brokered) {
+        const operator =
+          db.users.find((x) => x.id === p.operatorId && x.role === "admin") || db.users.find((x) => x.role === "admin");
+        if (operator && !ids.includes(operator.id)) ids.push(operator.id);
+      }
       db.chats ||= [];
       const c = {
         id: id("chat"),
@@ -6958,6 +7002,9 @@ async function api(req, res, url) {
         read: false,
       };
       db.messages.push(m);
+      // T226: contact details in a brokered project's chat are sent, with a reminder and a hint to the operator
+      const hint = user.role !== "admin" && !!db.projects.find((x) => x.id === c.projectId)?.brokered && CONTACT_RE.test(text);
+      if (hint) leakHint(c.projectId, user, "chat");
       for (const uid of c.participantIds)
         if (uid !== user.id)
           notify(
@@ -6967,7 +7014,7 @@ async function api(req, res, url) {
             c.projectId ? { projectId: c.projectId } : {},
           );
       save();
-      return (send(res, 201, { message: m }), true);
+      return (send(res, 201, { message: m, ...(hint ? { contactHint: true } : {}) }), true);
     }
     // Messaging
     if (parts[1] === "messages" && method === "GET") {
@@ -7314,6 +7361,8 @@ async function api(req, res, url) {
         updatedAt: now(),
       });
       bid.updatedAt = now();
+      const hint = !!bid.brokered && CONTACT_RE.test(offer.notes || "");
+      if (hint) leakHint(null, user, "offer", bid.requestId);
       // A brokered bid's offers go to the platform, never to the customer (T223)
       for (const to of bid.brokered ? db.users.filter((u) => u.role === "admin").map((u) => u.id) : [bid.customerId])
         notify(
@@ -7322,7 +7371,7 @@ async function api(req, res, url) {
           bid.brokered ? `/admin/requests/${bid.requestId}` : "",
         );
       save();
-      return (send(res, 201, { offer }), true);
+      return (send(res, 201, { offer, ...(hint ? { contactHint: true } : {}) }), true);
     }
     if (parts[1] === "bids" && parts[2] && method === "PATCH") {
       const bid = (db.bids || []).find((x) => x.id === parts[2]);

@@ -167,7 +167,8 @@ actions.on("offers.send", async (form) => {
   try {
     if (file) body.attachment = (await uploadFile(file)).url;
     else if (mine?.attachment) body.attachment = mine.attachment;
-    await api(`/bids/${encodeURIComponent(id)}/offers`, { method: "POST", body });
+    const sent = await api(`/bids/${encodeURIComponent(id)}/offers`, { method: "POST", body });
+    if (sent?.contactHint) toast(t("common.contactHint"), "warn"); // T226
     closeModal();
     tToast(t("offers.form.sent"));
     await route();
@@ -203,7 +204,8 @@ actions.on("offers.taskSend", async (form) => {
   try {
     if (file) b.attachment = (await uploadFile(file)).url;
     delete b.offerFile;
-    await api(`/bids/${encodeURIComponent(form.dataset.bid)}/offers`, { method: "POST", body: b });
+    const sent = await api(`/bids/${encodeURIComponent(form.dataset.bid)}/offers`, { method: "POST", body: b });
+    if (sent?.contactHint) toast(t("common.contactHint"), "warn"); // T226
     closeModal();
     tToast(t("offers.task.sent"));
     await route();

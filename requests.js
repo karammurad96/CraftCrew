@@ -22,7 +22,7 @@ module.exports = function createRequests(ctx) {
   const admins = () => getDb().users.filter((u) => u.role === "admin");
 
   // What a customer may see: no operator notes, no sourcing data (T223/T224 add more operator-only fields).
-  const OPERATOR_ONLY = ["operatorNote", "suggestions", "bidId", "operatorId"];
+  const OPERATOR_ONLY = ["operatorNote", "suggestions", "bidId", "operatorId", "leakHints"];
   function view(user, r) {
     if (user.role === "admin") return { ...r, sourcing: sourcingView(r) };
     const out = { ...r };
@@ -328,6 +328,8 @@ module.exports = function createRequests(ctx) {
       r.projectName = p.name;
       r.taskId = task.id;
     }
+    // T226: the operator stays in this project's conversations
+    Object.assign(p, { brokered: true, operatorId: p.operatorId || r.operatorId || null });
     Object.assign(task, {
       assignedSupplierId: supplier.id,
       acceptanceStatus: "Accepted",

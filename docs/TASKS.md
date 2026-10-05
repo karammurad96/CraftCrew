@@ -338,7 +338,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T223 Automatic supplier suggestions for the operator, and invitations from a request · M
 - [x] T224 Anonymised options for the customer: fastest, cheapest, best quality · M · **price model needs Karam's decision**
 - [x] T225 The customer chooses: platform contract with the non-circumvention clause, then the supplier is revealed · M
-- [ ] T226 Messages through the platform: no direct contact before the contract, contact details hidden, leak hints · M
+- [x] T226 Messages through the platform: no direct contact before the contract, contact details hidden, leak hints · M
 - [x] T227 Non-circumvention clause: text, acceptance records, facts for the lawyer · S · **the clause needs a lawyer's review**
 - [ ] T228 Rollback: back to the marketplace with one switch, all data kept, tested both ways · S · last task of the wave
 
@@ -4529,9 +4529,32 @@ place.
    - Messages are not blocked or edited.
 
 **Done when.**
-- [ ] Tests cover the refused chat before the contract, the operator in a brokered project chat, contact fields
+- [x] Tests cover the refused chat before the contract, the operator in a brokered project chat, contact fields
       missing from the customer's and supplier's answers, the invoice still carrying the legal details, and
       the leak hint.
+
+**As built (5 October 2026).**
+- **Before the contract.**
+  - Customer and supplier write to the platform only: the request thread (T224) and the bid's questions
+    (T223).
+  - A project chat with the supplier is refused, because the supplier is not on the project before the
+    contract.
+- **After the contract.**
+  - T225 marks the project `brokered` with its operator, and `POST /api/chats` adds the operator to every new
+    conversation there.
+  - The other side appears in chat member lists with name, role, company and picture only: no email, no
+    company profile.
+- **Invoices.** For an introduced pair (`introductions`), `invoiceParties()` and the e-invoice data
+  (`xrechnungData()`) show the platform's support email as contact and no phone number. Legal name, address
+  and VAT ID stay (§ 14 UStG). The tax adviser should confirm the platform as XRechnung contact point.
+- **Leak hints.**
+  - A message in a brokered project's chat, or the notes of an offer on a brokered bid, that contains an
+    email address, a phone number or a web address (`CONTACT_RE`) is sent normally.
+  - The answer carries `contactHint: true`, and the page shows a friendly reminder of the platform terms
+    (`common.contactHint`).
+  - The request records `leakHints` (time, role, where; the newest 50), shown only on the operator's request
+    page.
+- **Tests.** `test/brokered-messages.test.js`.
 
 ### T227 · Non-circumvention clause
 `P1 · S · the clause text needs a lawyer's review before launch`
