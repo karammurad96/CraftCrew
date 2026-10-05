@@ -3629,8 +3629,10 @@ function xrechnungDataRaw(inv) {
 }
 // T226: customer and supplier who met through the platform (T225) reach each other through it: their invoices
 // show the platform's email and no phone number. Name, address and VAT ID stay (§ 14 UStG).
-const introduced = (customerId, supplierId) =>
-  (db.introductions || []).some((x) => x.customerId === customerId && x.supplierId === supplierId);
+// Function declarations, not constants: the deletion job uses them while the server starts (T122).
+function introduced(customerId, supplierId) {
+  return (db.introductions || []).some((x) => x.customerId === customerId && x.supplierId === supplierId);
+}
 // Records a leak hint on the request behind a project or bid, for the operator's request page
 function leakHint(projectId, user, where, requestId = null) {
   const r = (db.requests || []).find((x) => (requestId ? x.id === requestId : x.projectId === projectId));
@@ -3639,7 +3641,9 @@ function leakHint(projectId, user, where, requestId = null) {
   r.leakHints.push({ at: now(), role: user.role, userId: user.id, where });
   r.leakHints = r.leakHints.slice(-50);
 }
-const platformEmail = () => db.settings?.supportEmail || "support@craftcrew.local";
+function platformEmail() {
+  return db.settings?.supportEmail || "support@craftcrew.local";
+}
 // Contact details in a text: an email address, a phone number or a web address (T226 leak hints)
 const CONTACT_RE = /[\w.+-]+@[\w-]+\.[\w.-]+|(?:\+|00)\d[\d\s/()-]{6,}\d|\b0\d{2,5}[\s/-]?\d{4,}|https?:\/\/\S+|\bwww\.\S+/i;
 function invoiceParties(inv) {
