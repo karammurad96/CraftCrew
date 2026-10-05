@@ -321,6 +321,16 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T204 Contracts pages: waiting for you, compare versions, accept or ask for changes · M
 - [ ] T205 Existing contracts: from one-sided "Active" to the new acceptance · S
 
+**Wave 14 — AI features (planned with Karam on 5 October 2026: all four features, task list first; switched off until launch, so no cost before then; details under "Wave 14")**
+- [ ] T210 AI foundation: one module, off by default, cost limits, recorded answers in tests · M · **needs Karam's OK for `@anthropic-ai/sdk` and the provider choice (data location)**
+- [ ] T211 Project assistant: a plain-language description or spec PDF becomes a draft plan · M
+- [ ] T212 Supplier matching: the best-fitting suppliers for a task, with reasons, and a drafted quote request · M · after T190
+- [ ] T213 Offer review: a plain-language comparison of the offers on a quote request · S
+- [ ] T214 Contract review: missing or one-sided clauses in a draft, before it is proposed · S · after T200
+- [ ] T215 Document reading: certificates and evidence fill in their type, holder and expiry date · M
+- [ ] T216 Invoice check: an invoice against the order, contract, hours and earlier invoices · M
+- [ ] T217 Before switching on: test sets per feature, measured cost, admin usage page · S
+
 ---
 
 ## Wave 0 — preparation
@@ -3898,6 +3908,203 @@ contracts yet, so this mainly affects the demo data.
 
 **Tests.** Each old status maps as described; a migrated contract is not counted as active until the supplier
 accepts.
+
+---
+
+## Wave 14 — AI features
+
+Planned with Karam on 5 October 2026:
+- Four features: the project assistant, supplier matching, offer and contract review, and document and invoice
+  checks.
+- Task list first. The features stay **switched off until launch**, so they cost nothing before then.
+  Normal tests and CI use recorded answers and never call the AI.
+
+### Rules for every Wave 14 task
+1. **The AI suggests, people decide.**
+   - Every AI result is a draft that the user reads, changes and confirms.
+   - Nothing is saved, sent, approved or paid by the AI on its own.
+   - Every suggestion is labelled "AI suggestion", and the audit log records who confirmed it.
+2. **One module:** `ai.js`. It uses Anthropic's Claude through the official SDK `@anthropic-ai/sdk`, the second
+   runtime dependency after `pg` (CLAUDE.md rule 3).
+   - Model `claude-opus-5-5`, with the `effort` set per feature (`low` for extraction, `medium` or `high` for
+     reviews).
+   - Answers come back as structured JSON (`output_config: { format: { type: "json_schema", schema } }`), which
+     the server validates again before using.
+   - Handle `stop_reason: "refusal"` and `"max_tokens"`, and the SDK's typed errors (rate limit, overload,
+     timeout). Each gives a friendly "The AI is not available right now" without breaking the page.
+3. **Off by default.**
+   - `AI_PROVIDER=off` (default), `anthropic` or `vertex`.
+   - Each feature can be switched on or off by an admin.
+   - When it is off, the buttons are not shown, and the API answers 404 so the code paths are not reachable.
+4. **Cost limits.**
+   - Every call is logged with its tokens and estimated cost (feature, company, user; no content).
+   - A monthly budget for the platform (`AI_MONTHLY_BUDGET_EUR`) and a per-company limit per day.
+   - Calls stop at the limit with a clear message, and the admin gets a notification at 80 %.
+   - Rate limits per user.
+   - Prompt caching for the fixed part of each prompt.
+5. **Data protection.**
+   - Send only what the feature needs; leave out email addresses, phone numbers, bank details and passwords.
+   - The AI provider becomes a processor in `docs/LEGAL-FACTS.md`, with a data-processing agreement.
+   - **Karam decides the data location:** Anthropic's own API (served in the US or globally, under Anthropic's
+     DPA with standard contractual clauses), or Claude on Google Cloud Vertex AI in an EU region, if customers
+     require EU processing.
+   - Users are told in the privacy policy, and a company can switch the AI off for its own data.
+6. **Safe with untrusted text.** Supplier profiles, offers, PDFs and messages are written by other users. They
+   are passed to the AI as data, clearly marked, never as instructions. The AI only chooses from what the server
+   offers it (for example supplier ids from the candidate list), and anything else in the answer is dropped.
+7. **Tests** use answers recorded in `test/fixtures/ai/`, run through a fake client. A separate, manual
+   `npm run test:ai-live` (never in CI) checks the real API with a small budget.
+
+### T210 · AI foundation
+`P1 · M · needs Karam's OK for @anthropic-ai/sdk and the provider (data location) · do first`
+
+**Do.**
+1. `ai.js`:
+   - `ai.enabled(feature)`;
+   - `ai.run(feature, { system, input, schema, effort, files })`, which returns the validated object or a
+     typed error;
+   - the usage log (`db.aiUsage`, kept 13 months);
+   - the budget checks.
+2. The provider client. Anthropic: `new Anthropic()` with `ANTHROPIC_API_KEY`. Vertex: the SDK's Vertex client,
+   with `project` and an EU `region`. The server never logs the key or prompt contents.
+3. **Admin page "AI":**
+   - provider and status;
+   - the features switched on;
+   - the budget and this month's use per feature and per company;
+   - a test call.
+4. **Company setting** "Use AI features with our data" (default on once AI is switched on; can be turned off).
+5. `.env.example`, README and DEPLOY: `AI_PROVIDER`, `ANTHROPIC_API_KEY` or the Vertex settings,
+   `AI_MONTHLY_BUDGET_EUR`.
+6. `docs/LEGAL-FACTS.md`: the AI provider as a processor, what is sent, and where it is processed.
+
+**Tests.**
+- Off by default: no buttons, 404 on the routes.
+- Schema validation of answers.
+- Refusal, max-tokens, rate-limit and timeout each give the friendly message.
+- The budget stop and the 80 % notification.
+- The company opt-out.
+- The key never appears in logs.
+
+### T211 · Project assistant
+`P2 · M · depends on T210`
+
+**Do.** On "New project" there is a second way in: **"Describe your project"**.
+1. The customer writes a few sentences, or uploads a spec PDF (up to 30 pages, sent as a document).
+2. The AI returns a draft:
+   - name;
+   - phases in order, each with tasks, durations, dependencies and the supplier categories (T146) it needs;
+   - budget ranges only if the customer gave figures;
+   - open questions ("Is the existing control cabinet reused?").
+3. The draft opens in the normal project form. Nothing is created until the customer saves.
+4. Limits: at most 12 phases and 12 tasks per phase (as the server allows); dates start from the given start date.
+
+**Tests.** A recorded answer becomes a valid form prefill; an answer with an unknown category or too many tasks
+is cut to the limits; nothing is saved without the customer's save; the uploaded PDF must be the customer's
+own upload.
+
+### T212 · Supplier matching
+`P2 · M · depends on T210 and T190`
+
+**Do.**
+1. On a task or quote request: **"Suggest suppliers"**.
+2. The server first picks the candidates by hard rules, so the AI cannot invent anyone:
+   - category;
+   - region and distance;
+   - level (Listed, Registered, Vetted, T190);
+   - availability and certificates.
+3. The AI ranks up to 30 candidates and gives one reason each ("Robot cells for automotive, 12 completed
+   projects, 40 km away").
+4. Only ids from the candidate list are accepted. Listed suppliers keep their "Ask to quote" path (T194).
+5. **"Draft the quote request":** the AI writes the request text from the task, which the customer edits
+   before sending.
+6. Reasons use only data the customer may see: no other customers' projects, and no internal vetting notes.
+
+**Tests.**
+- An id outside the candidates is dropped.
+- A Listed supplier is never sent a request.
+- The reasons don't contain fields the customer may not see.
+- Without AI the list is the normal search, sorted by the existing rules.
+
+### T213 · Offer review
+`P2 · S · depends on T210`
+
+**Do.** On the offer comparison (T100), **"Summarise the offers"** shows:
+- price, time and terms side by side in plain language;
+- what each offer leaves out compared with the request (for example "no commissioning on site");
+- questions worth asking each supplier.
+
+It never picks a winner on its own. The weights and the ranking stay the customer's (T149). The supplier sees
+nothing of the review.
+
+**Tests.** A recorded answer is shown for the right offers only; a supplier cannot call it; an offer's text that
+tries to give the AI instructions is treated as text.
+
+### T214 · Contract review
+`P2 · S · depends on T210 and T200`
+
+**Do.**
+1. On a contract draft (Wave 13), **"Check this draft"** lists:
+   - missing sections;
+   - unusual or one-sided clauses (for example "no liability cap", "warranty 6 months");
+   - inconsistencies (for example "payment plan adds up to 90 %").
+
+   Each item links to its section.
+2. Both sides can use it on their own view.
+3. A clear note: **"Not legal advice."**
+
+**Tests.** Each finding points to an existing section; the note is always shown; both parties see only their
+own review.
+
+### T215 · Document reading
+`P2 · M · depends on T210`
+
+**Do.** On upload of a certificate or evidence (compliance documents, supplier applications, worker documents),
+the AI reads the PDF or image and suggests:
+- the document type;
+- the holder (company or worker);
+- the issuer;
+- the valid-from and valid-until dates;
+- for insurance, the sum insured.
+
+The form is filled with the suggestion, and the user confirms or corrects it. A date the AI could not read stays
+empty; it is never guessed. In vetting, the admin sees the AI's reading next to the file.
+
+**Tests.** A recorded answer fills the form; an unreadable date stays empty; a holder that doesn't match the
+company is flagged; nothing is stored before the user confirms.
+
+### T216 · Invoice check
+`P2 · M · depends on T210 (and T201 for contracts)`
+
+**Do.** When a customer opens a submitted invoice, the server first runs the hard checks:
+- sums;
+- VAT;
+- above the order or contract value;
+- hours above the approved time entries;
+- the same number or amount already invoiced.
+
+The AI then adds a short plain-language review of the line items against the order, the contract and the
+documented work, for example "40 h commissioning invoiced, 32 h approved in time sheets".
+
+The findings appear above the approve button. Approval stays the customer's decision, with the confirmation
+from T142.
+
+**Tests.** The hard checks work without AI; a recorded answer appears for the right invoice; the supplier never
+sees the customer's review; a failing AI call never blocks approval.
+
+### T217 · Before switching on
+`P1 · S · depends on T211–T216 · just before or right after launch`
+
+**Do.**
+1. A small test set per feature: 20 to 30 real-looking cases from the demo and pilot data, with the expected
+   result.
+2. One measured run, which costs a few euros and is approved by Karam first. The result goes into
+   `docs/AI-REVIEW.md`: quality per feature, cost per call and per month at the expected use, and the effort
+   chosen per feature.
+3. Switch on only the features that pass, and set the budget in `.env`.
+4. The admin AI page shows the use against the budget.
+
+**Done when.**
+- [ ] `docs/AI-REVIEW.md` shows quality and cost per feature, and Karam has chosen which to switch on.
 
 ---
 
