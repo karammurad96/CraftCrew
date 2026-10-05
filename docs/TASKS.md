@@ -334,7 +334,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 **Wave 15 — Stufe 1: brokering with control (decided with Karam on 5 October 2026: the marketplace is switched off for now; customers send requests to the platform and see no supplier before they choose; the last task is the way back; details under "Wave 15")**
 - [x] T220 Platform mode: "brokered" (default) or "marketplace", one admin setting · S · do first
 - [x] T221 Brokered mode hides the marketplace from customers: directory, profiles, quote requests, invitations · M
-- [ ] T222 Customer requests to the platform and the operator's request queue · M
+- [x] T222 Customer requests to the platform and the operator's request queue · M
 - [ ] T223 Automatic supplier suggestions for the operator, and invitations from a request · M
 - [ ] T224 Anonymised options for the customer: fastest, cheapest, best quality · M · **price model needs Karam's decision**
 - [ ] T225 The customer chooses: platform contract with the non-circumvention clause, then the supplier is revealed · M
@@ -4268,10 +4268,41 @@ Decided with Karam on 5 October 2026.
    - to the customer on every status change.
 
 **Done when.**
-- [ ] A customer sees only their own requests; another customer gets 404.
-- [ ] A supplier gets 403 on every request route.
-- [ ] The status can only move along the allowed steps.
-- [ ] Uploads must be the customer's own (`ownUpload`).
+- [x] A customer sees only their own requests; another customer gets 404.
+- [x] A supplier gets 403 on every request route.
+- [x] The status can only move along the allowed steps.
+- [x] Uploads must be the customer's own (`ownUpload`).
+
+**As built (5 October 2026).**
+- **API.** The module `requests.js` holds:
+  - `GET /api/requests` and `POST /api/requests`;
+  - `GET /api/requests/:id`;
+  - `PATCH /api/requests/:id` with the actions `withdraw` (customer), `take` with `optionsBy` (default in five
+    days), `close` with a reason, and `note` (operator only).
+  - `move()` writes each step to `history`, with `by` set to "platform" or "customer".
+  - The customer's answer has no `operatorNote`, suggestions or bid id, and no `byId` in the history.
+  - Requests work in both modes.
+- **Files and data export.**
+  - Request files open for the customer and for admins.
+  - The data export (`gdpr.js`) holds `platformRequests`, without the operator's notes.
+- **Pages.** `public/areas/requests.js`:
+  - customer: *Requests* list, *New request* (`/customer/requests/new`, filled from `?project=&phase=&task=&title=`),
+    request with history and *Withdraw*;
+  - admin: *Requests* queue (new first, then oldest; filters Open / New / Sourcing / Options ready / Contracted /
+    All), request with *Take request* and its date, *Close request*, and the operator note.
+- **Menus and links.**
+  - *Requests* is in the daily menu of customers and admins.
+  - In brokered mode the customer menu also hides *Sourcing* and *Offers* (the customer's own bid tools), and
+    the marketplace pages lead to *Requests*.
+  - An open task without a supplier shows "Find a supplier through the platform".
+  - The getting-started step links to a new request.
+- **Notifications** (server texts): `requestNew`, `requestWithdrawn` (operators), `requestTaken`,
+  `requestClosed` (customer).
+- **New status values:** Sourcing, Options ready, Chosen, Contracted.
+- **Tests and checks.**
+  - `test/requests.test.js` covers the checks on what a customer sends, who sees what, every step, and the
+    export.
+  - A browser check on the demo server ran: send, list, queue, take, with no page errors.
 
 ### T223 · Automatic supplier suggestions and invitations
 `P1 · M · depends on T222`

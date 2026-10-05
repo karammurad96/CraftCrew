@@ -162,6 +162,10 @@ module.exports = function createGdpr(ctx) {
           invoices: mine(db.invoices, (i) => i.customerId === user.id),
           quoteRequests: mine(db.bids, (b) => b.customerId === user.id),
           directRequests: mine(db.rfqs, (r) => r.customerId === user.id),
+          // Requests to the platform (T222), without the operators' working notes
+          platformRequests: mine(db.requests, (r) => r.customerId === user.id).map(
+            ({ operatorNote, suggestions, ...r }) => r,
+          ),
           sites: mine(db.sites, (s) => s.customerId === user.id),
           disputes: mine(db.disputes, (d) => d.customerId === user.id || d.raisedBy === user.id),
         });

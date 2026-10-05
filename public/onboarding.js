@@ -19,7 +19,7 @@ async function obSteps(role) {
     return [
       obStep("customer", "profile", filled(cp.legalName, cp.address), "/customer/profile"),
       obStep("customer", "project", projects.length > 0, "/customer/projects/new"),
-      obStep("customer", "source", tasks.some((x) => x.assignedSupplierId) || bids.length > 0, projects[0] ? `/customer/projects/${projects[0].id}` : ccBrokeredNow() ? "/customer/projects/new" : "/customer/suppliers", {
+      obStep("customer", "source", tasks.some((x) => x.assignedSupplierId) || bids.length > 0, projects[0] ? `/customer/projects/${projects[0].id}` : ccBrokeredNow() ? "/customer/requests/new" : "/customer/suppliers", {
         cta: t(projects[0] || ccBrokeredNow() ? "ob.customer.source.cta" : "ob.customer.source.ctaFind"),
       }),
       obStep("customer", "prefs", !!user.notificationPrefsSavedAt || (!!user.notificationPrefs && Object.values(user.notificationPrefs).some(Boolean)), "/customer/profile"),

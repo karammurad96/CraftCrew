@@ -6,7 +6,7 @@
 // Daily pages first, then "More" (board Dashboard / SupplierDash, T93). Keys are the second path segment.
 const SHELL_NAV = {
   customer: {
-    daily: ["dashboard", "projects", "approvals", "sourcing", "invoices", "messages"],
+    daily: ["dashboard", "requests", "projects", "approvals", "sourcing", "invoices", "messages"],
     more: ["analytics", "contracts", "sites", "offers", "suppliers", "preferred", "inbox", "time", "team", "profile"],
   },
   supplier: {
@@ -14,7 +14,7 @@ const SHELL_NAV = {
     more: ["analytics", "requests", "contracts", "suppliers", "inbox", "time", "messages", "team", "profile"],
   },
   admin: {
-    daily: ["dashboard", "applications", "users", "billing", "disputes", "reports"],
+    daily: ["dashboard", "requests", "applications", "users", "billing", "disputes", "reports"],
     more: ["audit", "platform", "profile-changes", "profile"],
   },
 };
@@ -34,7 +34,8 @@ function shellIcon(role, key) {
 }
 // Team members only see the areas their role may open; the Team page is for the main account.
 function shellVisible(role, key) {
-  if (role === "customer" && ["suppliers", "preferred"].includes(key) && typeof ccBrokered === "function" && ccBrokered()) return false; // T221
+  // T221, T222: in brokered mode customers send requests; the directory and their own bid tools are hidden
+  if (role === "customer" && ["suppliers", "preferred", "sourcing", "offers"].includes(key) && typeof ccBrokered === "function" && ccBrokered()) return false;
   if (key === "team") return ["customer", "supplier"].includes(role) && !state.user?.isMember;
   const area = typeof TM_NAV !== "undefined" ? TM_NAV[role]?.[key] : null;
   return !area || typeof tmLevel !== "function" || tmLevel(area) !== "none";

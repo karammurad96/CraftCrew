@@ -37,7 +37,7 @@ async function ccPlatformMode() {
   return ccMode.value;
 }
 const ccBrokered = () => ccMode.value === "brokered";
-// Customer pages of the marketplace; in brokered mode they lead to the dashboard
+// Customer pages of the marketplace; in brokered mode they lead to the customer's requests (T222)
 const CC_MARKETPLACE_PAGES = ["/customer/suppliers", "/customer/preferred"];
 const routerBaseRoute = route;
 window.route = route = async function () {
@@ -49,7 +49,7 @@ window.route = route = async function () {
   const { route: r, params } = found;
   await ccPlatformMode();
   if (state.user?.role === "customer" && ccBrokered() && CC_MARKETPLACE_PAGES.includes(r.pattern))
-    return navigate("/customer/dashboard");
+    return navigate("/customer/requests");
   if (r.role && !state.user) return navigate("/login");
   if (r.role && state.user.role !== r.role) {
     toast(t("errors.wrongAccount"), "error");
