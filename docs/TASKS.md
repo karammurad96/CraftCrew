@@ -342,6 +342,12 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T227 Non-circumvention clause: text, acceptance records, facts for the lawyer · S · **the clause needs a lawyer's review**
 - [x] T228 Rollback: back to the marketplace with one switch, all data kept, tested both ways · S · last task of the wave
 
+**Wave 15b — instant estimates (decided with Karam on 5 October 2026: supplier search and pricing are automated; the customer gets an initial offer at once, an estimate that the chosen supplier confirms after review; split across several suppliers when that makes sense; every request belongs to a project; details under "Wave 15b")**
+- [ ] T230 Every request belongs to a project, and its work packages are the project's tasks · M · do first
+- [ ] T231 Instant estimate: available suitable suppliers priced from their price lists, split when it makes sense · M
+- [ ] T232 Supplier confirmation per part: confirm, adjust the price or decline, automatic replacement · M
+- [ ] T233 Several suppliers in one request: contracts, assignment and reveal per supplier; demo data and rollback · S
+
 ---
 
 ## Wave 0 — preparation
@@ -4705,6 +4711,128 @@ place.
   - T211 (project assistant) helps the customer write the request.
 - **T80.** Real payments become central: the customer pays the platform, and the fee is withheld before the
   payout.
+
+---
+
+## Wave 15b — instant estimates
+
+Decided with Karam on 5 October 2026, after Wave 15: the operator's manual sourcing (T223, T224) becomes the
+fallback.
+
+**What happens normally:**
+1. **Automatic pricing.** The platform finds available, suitable suppliers for each work package and prices
+   them from their own price lists.
+2. **Instant estimate.** The customer gets options at once. Each is marked as an **estimate**.
+3. **Confirmation.** After the customer's choice, every supplier in the option reviews its part. It confirms
+   the price, changes it, or declines.
+
+**Rules:**
+- **Splitting.** A request is split across several suppliers when no single supplier covers all packages, or
+  when the split is clearly cheaper or faster.
+- **Project link.** Every request belongs to a project.
+
+### T230 · Every request belongs to a project
+`P1 · M · do first`
+
+**Do.**
+1. **The project.** A request names one of the customer's projects. Without one, the server creates a project
+   from the request (name, description, dates, site) with a phase "Requested work".
+2. **Work packages.** A request has 1–10 **work packages**, each with:
+   - a name;
+   - a category (T146 list);
+   - the effort in hours.
+   A package is either an unassigned task of the project, or a new task the server adds to the project.
+   Without packages, the request itself is one package.
+3. **Effort not known.** It is estimated from the wished period: one person, eight hours per working day. The
+   estimate shows this as "rough".
+4. **Form.** The request form chooses the project (or "New project"), lists the project's open tasks to tick,
+   and lets the customer add packages, each with category and hours.
+
+**Done when.**
+- [ ] Every new request has a `projectId`, and every package a task in that project.
+- [ ] Packages cannot point to another customer's project or to an assigned task.
+
+### T231 · Instant estimate
+`P1 · M · depends on T230`
+
+**Do.**
+1. **Rate.** A supplier's rate for a category comes from their service catalogue (an hourly rate, or a day
+   rate ÷ 8, for the category or a service of that name). Without one it is their profile hourly rate.
+   Without any rate the supplier is not priced.
+2. **Candidates per package.** Live suppliers that:
+   - offer the category;
+   - are not marked busy;
+   - have fewer than three open tasks in the same weeks.
+   They are ranked with T223's score.
+3. **Price and time.**
+   - Price: rate × hours.
+   - Time: hours ÷ 8 working days, plus 2 days to start.
+   - Parts of different suppliers run in parallel, so an option's time is its slowest part.
+4. **Options**, as in T224 (best / cheapest / fastest), each with parts per supplier:
+   - one supplier for everything, if anyone covers all packages;
+   - the best supplier per package (**split**), if no single supplier covers all, or if the split is at least
+     10 % cheaper or 20 % faster than the best single supplier.
+   Up to three different options are kept.
+5. **Shown at once.** A new request is priced instantly and goes straight to *Options ready*, with the
+   customer price after T224's price model.
+   - Every option is marked "Estimate — confirmed by the supplier after your choice".
+   - A split option names its number of suppliers, never who they are.
+   - If a package has no priced candidate, the request stays *New* for the operator (manual T223 flow) with the
+     reason.
+6. **Setting.** An admin setting turns instant estimates on or off (default on). `INSTANT_ESTIMATES` sets the
+   start value.
+
+**Done when.**
+- [ ] Unit tests cover the rate sources, availability, a split that is cheaper, a split that is needed, no split
+      when it does not pay off, and the fallback when nothing can be priced.
+
+### T232 · Supplier confirmation per part
+`P1 · M · depends on T231, T225`
+
+**Do.**
+1. **Choosing.** The customer's choice (with the clause, T225) creates one **part per supplier**, each with:
+   - its packages;
+   - the estimated price;
+   - a deadline of three working days.
+2. **The supplier's answer.** The supplier sees its part under *Platform orders* and either:
+   - **confirms** the estimate;
+   - **changes the price** with a reason. A lower price applies at once; a higher one waits for the
+     customer's approval;
+   - or **declines**.
+3. **Decline or no answer.** The platform puts the next suitable supplier for those packages on the part,
+   with a new estimate, and tells the customer.
+4. **Nobody left.** If no supplier is left, the operator is told and takes over.
+5. **The customer** sees each part's state and approves or rejects a higher price. A rejection also brings
+   in the next supplier.
+
+**Done when.**
+- [ ] Tests cover confirm, a lower price, a higher price approved and rejected, decline with replacement,
+      expiry, and no supplier left.
+
+### T233 · Several suppliers in one request
+`P1 · S · depends on T232`
+
+**Do.**
+1. **When every part is confirmed:**
+   - each package's task gets its supplier;
+   - each supplier gets a contract (T225: clause, acceptances, fee) and an introduction;
+   - the request is *Contracted*.
+   The customer sees all its suppliers, and each supplier sees the customer.
+2. **Demo data.** Add requests in every new state:
+   - estimate options;
+   - a split option;
+   - parts waiting;
+   - a higher price waiting for the customer;
+   - a replacement;
+   - contracted with two suppliers.
+3. **Rollback.**
+   - Turning instant estimates off returns to the operator's manual flow.
+   - The marketplace switch (T228) works as before.
+   - `docs/LAUNCH.md` names both.
+
+**Done when.**
+- [ ] A test runs a split request from estimate to two contracts, and `test/rollback.test.js` still passes.
+
 
 ---
 
