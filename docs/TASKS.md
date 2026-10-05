@@ -346,7 +346,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T230 Every request belongs to a project, and its work packages are the project's tasks · M · do first
 - [x] T231 Instant estimate: available suitable suppliers priced from their price lists, split when it makes sense · M
 - [x] T232 Supplier confirmation per part: confirm, adjust the price or decline, automatic replacement · M
-- [ ] T233 Several suppliers in one request: contracts, assignment and reveal per supplier; demo data and rollback · S
+- [x] T233 Several suppliers in one request: contracts, assignment and reveal per supplier; demo data and rollback · S
 
 ---
 
@@ -4908,7 +4908,28 @@ fallback.
    - `docs/LAUNCH.md` names both.
 
 **Done when.**
-- [ ] A test runs a split request from estimate to two contracts, and `test/rollback.test.js` still passes.
+- [x] A test runs a split request from estimate to two contracts, and `test/rollback.test.js` still passes.
+
+**As built (5 October 2026).**
+- **When every active part is confirmed**, `finalize()` in `requests.js`:
+  - assigns each package's task to its part's supplier, with the order amount shared by hours;
+  - awards the operator's bid round for an offer part;
+  - writes one active brokered contract per supplier (clause, both acceptances, supplier amount, fee);
+  - records the introductions;
+  - sets `request.suppliers` (company and packages), plus `supplier` when there is only one, and
+    `contractIds`.
+  The customer and the operator see the list of suppliers, and each supplier sees the customer.
+- **Demo data** (`demo-brokered.js`, second step `instantJourneys`, run once):
+  - *Line 6 retrofit*: estimate options with a split;
+  - *Packaging line upgrade*: one part confirmed, a higher price waiting;
+  - *Hall C conveyor extension*: contracted with two suppliers.
+  Mechanical plus electrical engineering is a pair no demo supplier covers alone. The README lists them.
+- **Rollback.** `docs/LAUNCH.md` section 6 explains turning instant estimates off (back to the operator's
+  manual flow), separate from the marketplace switch.
+- **Tests.**
+  - The last case of `test/part-confirmation.test.js` runs a split request to two contracts.
+  - `test/demo-brokered.test.js` checks the new demo stages.
+  - `test/rollback.test.js` passes unchanged.
 
 
 ---

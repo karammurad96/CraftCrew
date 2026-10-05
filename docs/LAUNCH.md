@@ -154,6 +154,11 @@ question for the lawyer, `docs/LEGAL-FACTS.md` section 8.
 >
 > Viele Grüße, Ihr {brand}-Team
 
+**Turning off only the automatic pricing (Wave 15b).** Untick *Platform management → Instant estimates*.
+- New requests then wait for an operator, who sources them by hand (T223, T224).
+- Requests already estimated or chosen continue as they are.
+- The marketplace switch above is independent of this.
+
 **Removing the code itself (only if Wave 15 should go for good, not for a mode change).**
 1. Revert the pull requests in reverse order with `git revert -m 1 <merge commit>`: T228, T226, T225, T227,
    T224, T223, T222, T221, T220. The merge commits are listed under "Wave 15 pull requests" below.

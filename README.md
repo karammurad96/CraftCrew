@@ -44,6 +44,15 @@ accounts and drives eight requests through the real API, so every stage can be t
 | Supplier | `supplier3.demo@craftcrew.local` (Nordwind Robotics) | A confirmed platform order, its project and chat, an invoice; an open invitation (washdown cell) |
 | Supplier | `supplier4.demo@craftcrew.local` (Alpen Steuerungstechnik) | Offers and an open invitation |
 
+**Instant estimates (Wave 15b).** New requests are priced at once from the suppliers' price lists. The demo has:
+- *Line 6 retrofit* (Lena): estimate options, split across two suppliers. Choose one.
+- *Packaging line upgrade* (Tobias): one part confirmed, the other supplier asks for a higher price. Approve or
+  reject it.
+- *Hall C conveyor extension* (Maya): contracted with two suppliers, each with its own contract.
+
+The generated demo suppliers sign in as `sup_0NN@craftcrew.demo` / `demo123`. Send a new request as any
+customer to see the estimate appear at once.
+
 To see the marketplace instead, switch *Platform management → How customers find suppliers → Marketplace*.
 
 Seeded data lives in `data/db.json`; uploaded files live under `data/uploads`. For a fresh local demo, stop the server and remove `data/db.json` and `data/uploads`. The server recreates demo data at startup.

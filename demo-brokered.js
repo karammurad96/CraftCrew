@@ -165,9 +165,8 @@ function accounts(db, { hashPassword, now, initials }) {
   db.meta.brokeredDemoAccountsV1 = true;
 }
 
-// Step 2: the requests at every stage, through the API
-async function journeys(base, { getDb, saveNow, log = console.log }) {
-  if (getDb().meta?.brokeredDemoV1) return;
+// The API as a client: call(method, path, body, token) and login(email, password)
+function client(base) {
   const call = async (method, path, body, token) => {
     const r = await fetch(base + "/api" + path, {
       method,
@@ -184,7 +183,21 @@ async function journeys(base, { getDb, saveNow, log = console.log }) {
   };
   const login = async (email, password = PASSWORD) =>
     (await call("POST", "/auth/login", { email, password })).token;
-  const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+  return { call, login };
+}
+const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+
+// Step 2: the requests at every stage, through the API (Wave 15, then Wave 15b)
+async function journeys(base, ctx) {
+  await manualJourneys(base, ctx);
+  await instantJourneys(base, ctx);
+  (ctx.log || console.log)("Demo: brokered requests seeded at every stage (Wave 15, 15b).");
+}
+
+// Wave 15: the operator's manual flow, stage by stage
+async function manualJourneys(base, { getDb, saveNow }) {
+  if (getDb().meta?.brokeredDemoV1) return;
+  const { call, login } = client(base);
   const t = {
     operator: await login(OPERATOR.email),
     maya: await login("customer.demo@craftcrew.local"),
@@ -406,10 +419,88 @@ async function journeys(base, { getDb, saveNow, log = console.log }) {
     t.operator,
   );
 
-  await call("PUT", "/admin/settings", { ...settingsBefore, instantEstimates: settingsBefore.instantEstimates !== false }, t.operator);
+  await call(
+    "PUT",
+    "/admin/settings",
+    { ...settingsBefore, instantEstimates: settingsBefore.instantEstimates !== false },
+    t.operator,
+  );
   getDb().meta.brokeredDemoV1 = true;
   saveNow();
-  log("Demo: brokered requests seeded at every stage (Wave 15).");
+}
+
+// Wave 15b: instant estimates. Mechanical plus electrical engineering is a pair no demo supplier covers alone,
+// so these requests are split across two suppliers.
+async function instantJourneys(base, { getDb, saveNow }) {
+  if (getDb().meta?.brokeredDemoV2) return;
+  const { call, login } = client(base);
+  const customer = {
+    maya: await login("customer.demo@craftcrew.local"),
+    lena: await login(CUSTOMERS[0].email),
+    tobias: await login(CUSTOMERS[1].email),
+  };
+  const hash = async () => (await call("GET", "/clause", undefined, customer.maya)).clause.hash;
+  // A supplier's account: the generated demo suppliers use demo123, the named ones CraftCrew2026!
+  const supplierToken = async (supplierId) => {
+    const u = getDb().users.find((x) => x.supplierId === supplierId && x.role === "supplier");
+    return login(u.email, u.email.endsWith("@craftcrew.demo") ? "demo123" : PASSWORD);
+  };
+  const split = async (who, title, extra = {}) => {
+    const { request } = await call(
+      "POST",
+      "/requests",
+      {
+        title,
+        description: `${title}: mechanical rework and new electrical installation, documentation included.`,
+        sitePostcode: who === "tobias" ? "20457" : who === "lena" ? "90449" : "93053",
+        startDate: day(14),
+        dueDate: day(40),
+        packages: [
+          { name: "Mechanical rework", category: "Mechanical Engineering", hours: 60 },
+          { name: "Electrical installation", category: "Electrical Engineering", hours: 80 },
+        ],
+        ...extra,
+      },
+      customer[who],
+    );
+    return request;
+  };
+  const choose = async (who, request) => {
+    const opt = request.options.find((o) => o.split) || request.options[0];
+    return (
+      await call(
+        "POST",
+        `/requests/${request.id}/choose`,
+        { optionId: opt.id, acceptClause: true, clauseHash: await hash() },
+        customer[who],
+      )
+    ).request;
+  };
+  const parts = (request) => getDb().requests.find((x) => x.id === request.id).award.parts;
+  const confirm = async (part, extra = {}) =>
+    call(
+      "POST",
+      `/brokered-orders/${part.requestId}/accept`,
+      { acceptClause: true, clauseHash: await hash(), ...extra },
+      await supplierToken(part.supplierId),
+    );
+
+  // 1. Estimate options ready at once: Lena (customer2.demo) can compare, choose, and see the split
+  await split("lena", "Line 6 retrofit");
+  // 2. Chosen: one supplier confirmed, the other asks for more; Tobias (customer3.demo) approves or rejects
+  const upgrade = await choose("tobias", await split("tobias", "Packaging line upgrade"));
+  const [first, second] = parts(upgrade);
+  await confirm({ ...first, requestId: upgrade.id });
+  await confirm(
+    { ...second, requestId: upgrade.id },
+    { price: Math.round(second.supplierAmount * 1.12), note: "Cable trays must be replaced as well." },
+  );
+  // 3. Contracted with two suppliers: Maya (customer.demo) sees both, each with its own contract
+  const hall = await choose("maya", await split("maya", "Hall C conveyor extension"));
+  for (const p of parts(hall)) await confirm({ ...p, requestId: hall.id });
+
+  getDb().meta.brokeredDemoV2 = true;
+  saveNow();
 }
 
 module.exports = { accounts, journeys, PASSWORD, CUSTOMERS, SUPPLIERS, OPERATOR };
