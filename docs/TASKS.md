@@ -339,7 +339,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T224 Anonymised options for the customer: fastest, cheapest, best quality · M · **price model needs Karam's decision**
 - [ ] T225 The customer chooses: platform contract with the non-circumvention clause, then the supplier is revealed · M
 - [ ] T226 Messages through the platform: no direct contact before the contract, contact details hidden, leak hints · M
-- [ ] T227 Non-circumvention clause: text, acceptance records, facts for the lawyer · S · **the clause needs a lawyer's review**
+- [x] T227 Non-circumvention clause: text, acceptance records, facts for the lawyer · S · **the clause needs a lawyer's review**
 - [ ] T228 Rollback: back to the marketplace with one switch, all data kept, tested both ways · S · last task of the wave
 
 ---
@@ -4555,9 +4555,30 @@ place.
 > Vermittlung bestanden. Weitergehende Ansprüche bleiben unberührt.
 
 **Done when.**
-- [ ] The clause version and hash are stored with each acceptance.
-- [ ] Changing the text creates a new version, and earlier acceptances keep theirs.
-- [ ] `docs/LEGAL-FACTS.md` holds the points above, marked for the lawyer.
+- [x] The clause version and hash are stored with each acceptance.
+- [x] Changing the text creates a new version, and earlier acceptances keep theirs.
+- [x] `docs/LEGAL-FACTS.md` holds the points above, marked for the lawyer.
+
+**As built (5 October 2026).** Built before T225, which uses it.
+- **Module `clause.js`.**
+  - The draft above ships as version 0. It is marked "Draft — lawyer to review" until an admin publishes a
+    text.
+  - `PUT /api/admin/clause {text, months, penaltyCap}` checks the length (50–20,000 characters), the
+    protection period (1–24 months) and the penalty cap (0–100,000 €). A changed text becomes the next version
+    with its SHA-256 hash; earlier versions stay in `settings.clause.versions`.
+  - `GET /api/clause` (signed in) and `GET /api/platform-config` show the clause in force.
+  - `GET /api/admin/introductions` lists the introduced pairs with "protected until" (last order plus the
+    period).
+  - `recordIntroduction()` is called by T225.
+- **Acceptance at sign-up.** A sign-up with the terms accepted stores `clauseAcceptances: [{userId, at,
+  context: "signup", version, hash}]` on the account. It shows in the data export.
+- **Admin page.** *Platform management* has the panel "Platform contract: non-circumvention clause": text,
+  period, penalty cap, a confirmation before publishing, and the introductions table.
+- **Legal facts.** `docs/LEGAL-FACTS.md` section 8 holds the points for the lawyer, the draft, and an open box
+  for the review.
+- **Data.** `introductions` is a new collection (`store-postgres.js`); `clause.js` is in the Dockerfile.
+- **Tests.** `test/clause.test.js` covers the draft, the checks, the versions, acceptances keeping their
+  version, and admin-only access.
 
 ### T228 · Rollback to the marketplace
 `P1 · S · last task of Wave 15`

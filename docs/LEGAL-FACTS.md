@@ -104,3 +104,58 @@ From `DEPLOY.md` ("Security built in") and the code; to be completed with the ho
   - Health check of the app and the database; monitoring and alerts from launch (T182).
 - **Review**
   - Security review before launch (`docs/SECURITY-REVIEW.md`, T173) and a monthly maintenance routine (T183).
+
+## 8. Brokered mode and the non-circumvention clause (Wave 15, for the lawyer)
+
+Since Wave 15 the platform runs in *brokered* mode by default (`docs/TASKS.md`, T220–T228). It works like this:
+- The customer sends a request to the platform, not to a supplier.
+- The platform invites suppliers whose identity the customer does not see, and offers anonymised options.
+- The supplier is named only after the customer chooses an option and both sides accept the contract with the
+  **non-circumvention clause**.
+- Payments run through the platform with its fee: tracked today, collected with T80.
+
+**What the software stores (T227):**
+- The clause text, versioned. Each version keeps its number, text, SHA-256 hash, time and the admin who
+  published it.
+- Each acceptance, on the account (`clauseAcceptances`) at sign-up and on each brokered contract (T225). It
+  holds the user, the time, the context, the version and the hash.
+- The introduced customer–supplier pairs (`introductions`): first contact, last brokered order, the requests.
+  The protection period runs from the last order.
+- Settings: protection period (default 12 months, at most 24), an optional penalty cap (default none).
+
+**Points to review (research of 5 October 2026, not legal advice):**
+- **Duration.** Customer-protection clauses between businesses are generally valid only for **up to two years**
+  (BGH, 20 January 2015, II ZR 369/13; § 138 BGB, Art. 12 GG). The software refuses more than 24 months; the
+  default is 12.
+- **Scope.** The clause must be limited in time, place and subject matter: only the party introduced through
+  the platform, only the same or similar work, no general ban on working.
+- **Penalty.**
+  - A flat contractual penalty in B2B standard terms is invalid if it is disproportionate for minor breaches
+    (§ 307 BGB).
+  - Between merchants a court cannot reduce it (§ 348 HGB).
+  - The draft therefore uses a **commission owed on a deal made around the platform** (the platform fee on its
+    net value), plus a duty to report such a deal.
+  - A penalty, if wanted, should be capped "up to" a sum and set case by case (*neuer Hamburger Brauch*).
+- **Transparency** (§ 307 (1) sentence 2 BGB). The customer sees and accepts the clause before the choice
+  becomes binding (T225), and the supplier before accepting the order.
+- **Exceptions.** The draft excludes relationships that demonstrably existed before the introduction. The
+  lawyer may add work the platform declined to source.
+- **Competition law.** Both sides are bound. Check that the clause is a reasonable ancillary restraint of the
+  brokerage (§ 1 GWB, Art. 101 TFEU).
+- **Price model.**
+  - Model A, the default: the customer pays the supplier's price and the platform's fee comes from the payout.
+    This is brokerage.
+  - Model B: a markup, where the platform resells the work. It needs its own contract structure (platform as
+    seller, VAT, liability, § 13b UStG) and is not used until decided.
+
+**Draft text shipped as version 0 (German, to be reviewed):**
+> Umgehungsschutz. Kunde und Auftragnehmer verpflichten sich, für die Dauer von zwölf (12) Monaten nach dem
+> letzten über die Plattform vermittelten Auftrag zwischen ihnen keine Aufträge gleicher oder ähnlicher Art
+> unmittelbar oder über Dritte unter Umgehung der Plattform zu vergeben oder anzunehmen. Kommt ein solcher
+> Auftrag dennoch zustande, schuldet die Partei, die ihn vergibt, der Plattform eine Vermittlungsprovision in
+> Höhe der jeweils geltenden Plattformgebühr auf den Nettoauftragswert; beide Parteien teilen der Plattform
+> einen solchen Auftrag unverzüglich mit. Ausgenommen sind Geschäftsbeziehungen, die nachweislich vor der
+> Vermittlung bestanden. Weitergehende Ansprüche bleiben unberührt.
+
+- [ ] Lawyer reviewed the clause, the terms of use mention it, and the reviewed text is published as version 1
+      under *Platform management → Platform contract*.

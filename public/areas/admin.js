@@ -636,7 +636,13 @@ actions.on("adm.auditFilter", (form) => {
 
 /* ---------- Platform management: settings, email outbox and test email, legal pages ---------- */
 async function adminPlatform() {
-  const [{ settings: s }, { emails = [] }, legal] = await Promise.all([api("/admin/settings"), api("/admin/outbox").catch(() => ({})), legalContent()]),
+  const [{ settings: s }, { emails = [] }, legal, cl = {}, { introductions = [] }] = await Promise.all([
+      api("/admin/settings"),
+      api("/admin/outbox").catch(() => ({})),
+      legalContent(),
+      api("/admin/clause").catch(() => ({})),
+      api("/admin/introductions").catch(() => ({})),
+    ]),
     f = (key, params) => adk("platform." + key, params),
     num = (v, fallback = 0) => Number(v) || fallback;
   const tier = (k) =>
@@ -674,6 +680,21 @@ async function adminPlatform() {
   const modePanel = `<section class="panel cc-platform-mode"><div class="panel-title"><h3>${f("mode.title")}</h3><small>${f("mode.hint")}</small></div><form id="ccPlatformMode" data-action="adm.saveMode">${["brokered", "marketplace"]
     .map(modeChoice)
     .join("")}<div class="cc-actions"><button class="btn outline">${f("mode.switch")}</button></div></form></section>`;
+  // T227: the non-circumvention clause of brokered contracts, with versions, and the introduced pairs
+  const c = cl.clause || {};
+  const clausePanel = `<section class="panel cc-clause"><div class="panel-title"><h3>${f("clause.title")}</h3>${
+    c.draft ? `<span class="status rejected">${f("clause.draft")}</span>` : `<span class="status completed">${f("clause.version", { n: c.version })}</span>`
+  }</div><p class="subtle">${f("clause.lead")}</p><form class="modal-form" data-action="adm.saveClause"><textarea name="text" rows="8" minlength="50" maxlength="20000" required aria-label="${f("clause.title")}">${esc(
+    c.text || "",
+  )}</textarea><div class="cc-platform-grid"><label>${f("clause.months")}<input type="number" name="months" min="1" max="24" required value="${num(c.months, 12)}"></label><label>${f("clause.penaltyCap")}<input type="number" name="penaltyCap" min="0" max="100000" step="100" value="${num(
+    c.penaltyCap,
+  )}"></label></div><p class="subtle">${f("clause.hint")}</p><div class="cc-actions"><button class="btn primary">${f("clause.save")}</button></div></form><h4>${f("clause.introductions")}</h4><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>${f(
+    "clause.customer",
+  )}</th><th>${f("clause.supplier")}</th><th>${f("clause.lastOrder")}</th><th>${f("clause.until")}</th></tr></thead><tbody>${
+    introductions
+      .map((x) => `<tr><td><bdi>${esc(x.customerCompany)}</bdi></td><td><bdi>${esc(x.supplierCompany)}</bdi></td><td>${esc(fmt.date(x.lastOrderAt))}</td><td>${esc(fmt.date(x.protectedUntil))}</td></tr>`)
+      .join("") || `<tr><td colspan="4">${f("clause.noIntroductions")}</td></tr>`
+  }</tbody></table></div></section>`;
   const mailStatus = (m) => `<span class="status ${m.status === "Sent" ? "completed" : m.status === "Failed" ? "rejected" : "submitted"}">${adValue("mailStatus", m.status)}</span>`;
   const outbox = `<details class="panel pa-outbox"><summary><h3>${f("outbox")}</h3><small>${f("outboxCount", {
     messages: t.plural("adm.platform.messages", emails.length),
@@ -697,7 +718,7 @@ async function adminPlatform() {
   app.innerHTML = dashboardShell(
     "admin",
     "platform",
-    [`<div class="dash-top"><div><div class="eyebrow">${f("eyebrow")}</div><h1>${f("title")}</h1><p>${f("lead")}</p></div></div>`, modePanel, settings, outbox, legalPanel].join(""),
+    [`<div class="dash-top"><div><div class="eyebrow">${f("eyebrow")}</div><h1>${f("title")}</h1><p>${f("lead")}</p></div></div>`, modePanel, settings, clausePanel, outbox, legalPanel].join(""),
   );
 }
 actions.on("adm.saveSettings", async (form) => {
@@ -736,6 +757,17 @@ actions.on("adm.saveMode", async (form) => {
   try {
     await api("/admin/platform-mode", { method: "PUT", body: { mode } });
     tToast(t("adm.platform.mode.switched", { mode: name }));
+    adminPlatform();
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
+actions.on("adm.saveClause", async (form) => {
+  const ok = await uiDialog({ title: t("adm.platform.clause.confirmTitle"), message: t("adm.platform.clause.confirmText"), confirmLabel: t("adm.platform.clause.save") });
+  if (!ok) return;
+  try {
+    await api("/admin/clause", { method: "PUT", body: Object.fromEntries(new FormData(form)) });
+    tToast(t("adm.platform.clause.saved"));
     adminPlatform();
   } catch (x) {
     toast(x.message, "error");

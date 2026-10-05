@@ -401,6 +401,14 @@ const preferred = require("./preferred")({
   normEmail: (e) => normEmail(e),
   rateLimited: (...a) => rateLimited(...a),
 });
+const clause = require("./clause")({
+  getDb: () => db,
+  save: () => save(),
+  send: (...a) => send(...a),
+  body: (r) => body(r),
+  now: () => now(),
+  activity: (...a) => activity(...a),
+});
 const requests = require("./requests")({
   getDb: () => db,
   save: () => save(),
@@ -3915,6 +3923,8 @@ async function api(req, res, url) {
         ...(b.legalConsent ? { termsAcceptedAt: now() } : {}),
         ...(mailer.enabled ? { emailVerified: false } : {}),
       };
+      // T227: the terms of use include the non-circumvention clause; keep which version was accepted
+      if (b.legalConsent) u.clauseAcceptances = [clause.acceptance(u, "signup")];
       if (b.role === "supplier") {
         const supplier = {
           id: id("sup"),
@@ -4345,6 +4355,7 @@ async function api(req, res, url) {
           faqContent: db.settings?.faqContent || "",
           mailEnabled: mailer.enabled,
           platformMode: platformMode(),
+          clause: clause.current(),
           legal: {
             imprint: db.settings?.legal?.imprint || "",
             privacy: db.settings?.legal?.privacy || "",
@@ -7986,6 +7997,7 @@ async function api(req, res, url) {
     if (await twoFactor.handle(req, res, url, parts, user)) return true;
     if (await preferred.handle(req, res, url, parts, user)) return true;
     if (await requests.handle(req, res, url, parts, user)) return true;
+    if (await clause.handle(req, res, url, parts, user)) return true;
     if (await benchmarks.handle(req, res, url, parts, user)) return true;
     if (await siteReports.handle(req, res, url, parts, user)) return true;
     if (await punchList.handle(req, res, url, parts, user)) return true;
