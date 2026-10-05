@@ -10,7 +10,7 @@ const SHELL_NAV = {
     more: ["analytics", "contracts", "sites", "offers", "suppliers", "preferred", "inbox", "time", "team", "profile"],
   },
   supplier: {
-    daily: ["dashboard", "projects", "planning", "bids", "invoices", "compliance"],
+    daily: ["dashboard", "projects", "planning", "orders", "bids", "invoices", "compliance"],
     more: ["analytics", "requests", "contracts", "suppliers", "inbox", "time", "messages", "team", "profile"],
   },
   admin: {

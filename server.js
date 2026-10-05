@@ -423,6 +423,8 @@ const requests = require("./requests")({
   categories: () => db.settings?.serviceCategories || services,
   suggest: (r) => sourcing.suggestSuppliers(r),
   scorecard: (sid) => sourcing.scorecard(sid),
+  clause,
+  contractFromAward: (...a) => sourcing.contractFromAward(...a),
   cleanWeights: (w) => sourcing.cleanWeights(w),
 });
 const benchmarks = require("./benchmarks")({
