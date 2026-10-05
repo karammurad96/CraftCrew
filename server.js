@@ -401,6 +401,19 @@ const preferred = require("./preferred")({
   normEmail: (e) => normEmail(e),
   rateLimited: (...a) => rateLimited(...a),
 });
+const requests = require("./requests")({
+  getDb: () => db,
+  save: () => save(),
+  send: (...a) => send(...a),
+  body: (r) => body(r),
+  id: (p) => id(p),
+  now: () => now(),
+  notify: (...a) => notify(...a),
+  activity: (...a) => activity(...a),
+  projectFor: (...a) => projectFor(...a),
+  ownUpload: (...a) => ownUpload(...a),
+  categories: () => db.settings?.serviceCategories || services,
+});
 const benchmarks = require("./benchmarks")({
   getDb: () => db,
   send: (...a) => send(...a),
@@ -7947,6 +7960,7 @@ async function api(req, res, url) {
     if (await calendar.handle(req, res, url, parts, user)) return true;
     if (await twoFactor.handle(req, res, url, parts, user)) return true;
     if (await preferred.handle(req, res, url, parts, user)) return true;
+    if (await requests.handle(req, res, url, parts, user)) return true;
     if (await benchmarks.handle(req, res, url, parts, user)) return true;
     if (await siteReports.handle(req, res, url, parts, user)) return true;
     if (await punchList.handle(req, res, url, parts, user)) return true;
@@ -8288,6 +8302,10 @@ const server = http.createServer(async (req, res) => {
         (r) =>
           JSON.stringify(r).includes(fileUrl) &&
           (user.role === "admin" || r.customerId === user.id || r.supplierId === user.supplierId),
+      ) ||
+      // Request files (T222): the customer and the platform's operators
+      (db.requests || []).some(
+        (r) => (r.attachments || []).includes(fileUrl) && (user.role === "admin" || r.customerId === user.id),
       );
     if (
       !related &&

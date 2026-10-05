@@ -973,3 +973,48 @@
 .cc-rel-panel .cc-rel {
   font-size: var(--fs-md);
 }
+
+/* Requests to the platform (T222) */
+.rq-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px 16px;
+  margin: 0 0 12px;
+}
+.rq-facts dt {
+  font-size: 11px;
+  font-weight: 700;
+  color: #526174;
+}
+.rq-facts dd {
+  margin: 2px 0 0;
+}
+.rq-description {
+  white-space: pre-wrap;
+}
+.rq-timeline {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-inline-start: 18px;
+}
+.rq-timeline p {
+  margin: 4px 0 0;
+}
+.rq-filters {
+  flex-wrap: wrap;
+  margin-block-end: 12px;
+}
+.rq-take {
+  align-items: end;
+  margin-block-end: 12px;
+}
+.rq-take label {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+}
+.rq-files {
+  margin: 0;
+  padding-inline-start: 18px;
+}

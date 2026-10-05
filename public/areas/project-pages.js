@@ -45,7 +45,12 @@ async function ppItemPage(role, pid, type, id) {
     `<div class="cc-page">${ppJoin([
       `<a class="breadcrumb" href="#/${role}/projects/${esc(p.id)}">← ${esc(p.name)}</a>`,
       `<div class="dash-top"><div><div class="eyebrow">${item(type === "phase" ? "phaseEyebrow" : "taskEyebrow")}</div><h1>${type === "phase" ? ppDom(ph.name) : esc(task.name)}</h1><p>${esc(p.name)}${task ? " · " + ppDom(ph.name) : ""}</p></div>${
-        role === "supplier" ? `<button class="btn primary" data-action="sub.logTime">${item("logTime")}</button>` : ""
+        role === "supplier"
+          ? `<button class="btn primary" data-action="sub.logTime">${item("logTime")}</button>`
+          : task && !task.assignedSupplierId
+            ? // T222: the platform finds a supplier for an open task
+              `<a class="btn primary" href="#/customer/requests/new?${esc(q)}&amp;title=${esc(encodeURIComponent(task.name))}">${item("sendRequest")}</a>`
+            : ""
       }</div>`,
       `<div class="wf-stat-grid">${stat(item("status"), statusHtml(type === "phase" ? ph.status : task.status))}${stat(item("order"), esc(fmt.money(cap)))}${stat(item("approved"), item("hours", { n: fmt.number(sum, 1) }))}${stat(
         item("estimate"),
