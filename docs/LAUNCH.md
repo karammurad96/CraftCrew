@@ -169,8 +169,8 @@ question for the lawyer, `docs/LEGAL-FACTS.md` section 8.
 | T221 marketplace hidden | #147 |
 | T222 requests | #148 |
 | T223 suggestions and invitations | #149 |
-| T224 anonymised options | PR_T224 |
-| T227 non-circumvention clause | PR_T227 |
-| T225 choice, contract, reveal | PR_T225 |
-| T226 messages through the platform | PR_T226 |
-| T228 rollback | this one, the last |
+| T224 anonymised options | #150 |
+| T227 non-circumvention clause | #151 |
+| T225 choice, contract, reveal | #152 |
+| T226 messages through the platform | #153 |
+| T228 rollback | #154 |
