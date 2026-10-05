@@ -409,6 +409,8 @@ const clause = require("./clause")({
   now: () => now(),
   activity: (...a) => activity(...a),
 });
+// T231: instant estimates from the suppliers' own price lists
+const estimates = require("./estimate")({ getDb: () => db, scorecard: (sid) => sourcing.scorecard(sid) });
 const requests = require("./requests")({
   getDb: () => db,
   save: () => save(),
@@ -422,6 +424,7 @@ const requests = require("./requests")({
   ownUpload: (...a) => ownUpload(...a),
   categories: () => db.settings?.serviceCategories || services,
   suggest: (r) => sourcing.suggestSuppliers(r),
+  estimate: (r) => estimates.build(r),
   scorecard: (sid) => sourcing.scorecard(sid),
   clause,
   contractFromAward: (...a) => sourcing.contractFromAward(...a),
@@ -6678,14 +6681,8 @@ async function api(req, res, url) {
     if (parts[1] === "admin" && parts[2] === "settings" && method === "GET") {
       if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
       const defaults = {
-        serviceCategories: [
-          "Automation",
-          "Electrical engineering",
-          "Mechanical engineering",
-          "Commissioning",
-          "Manufacturing",
-          "Quality & acceptance",
-        ],
+        // The same default list as everywhere else, so saving the settings unchanged keeps the categories (T231)
+        serviceCategories: services,
         badgeCriteria: {
           bronze: { projects: 1, rating: 3.5 },
           silver: { projects: 10, rating: 4.2 },
@@ -6761,6 +6758,9 @@ async function api(req, res, url) {
         faqContent: String(b.faqContent || "").slice(0, 10000),
         // T224: a markup on the supplier's price for brokered options (0 = price model A, the default)
         brokerMarkupPercent: Math.max(0, Math.min(30, Number(b.brokerMarkupPercent) || 0)),
+        // T231: price a request instantly (on unless switched off; INSTANT_ESTIMATES sets the start value)
+        instantEstimates:
+          b.instantEstimates === undefined ? db.settings?.instantEstimates : !!b.instantEstimates,
         // T223: suggest suppliers as soon as a request arrives (on unless switched off)
         autoSuggest: b.autoSuggest === undefined ? db.settings?.autoSuggest !== false : !!b.autoSuggest,
         emailTemplates: Object.fromEntries(

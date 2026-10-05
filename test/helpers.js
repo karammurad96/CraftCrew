@@ -136,6 +136,8 @@ async function startApp({ smtp, env = {}, dataDir: keepDir } = {}) {
         VIES_URL: "http://127.0.0.1:9/check-vat-number",
         // The suites written before Wave 15 test the marketplace; Wave 15 suites pass PLATFORM_MODE: "brokered".
         PLATFORM_MODE: "marketplace",
+        // The Wave 15 suites test the operator's manual flow; Wave 15b suites pass INSTANT_ESTIMATES: "on".
+        INSTANT_ESTIMATES: "off",
         ...(smtp
           ? {
               SMTP_HOST: "localhost",

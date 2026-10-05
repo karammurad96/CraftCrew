@@ -195,6 +195,10 @@ async function journeys(base, { getDb, saveNow, log = console.log }) {
     nordwind: await login(SUPPLIERS[1].email),
     alpen: await login(SUPPLIERS[2].email),
   };
+  // The scripted stages below follow the operator's manual flow (Wave 15); instant estimates (Wave 15b) are
+  // switched off meanwhile and back on at the end
+  const settingsBefore = (await call("GET", "/admin/settings", undefined, t.operator)).settings;
+  await call("PUT", "/admin/settings", { ...settingsBefore, instantEstimates: false }, t.operator);
   const sid = {
     keller: "sup_showcase",
     donau: SUPPLIERS[0].id,
@@ -402,6 +406,7 @@ async function journeys(base, { getDb, saveNow, log = console.log }) {
     t.operator,
   );
 
+  await call("PUT", "/admin/settings", { ...settingsBefore, instantEstimates: settingsBefore.instantEstimates !== false }, t.operator);
   getDb().meta.brokeredDemoV1 = true;
   saveNow();
   log("Demo: brokered requests seeded at every stage (Wave 15).");

@@ -27,12 +27,14 @@ async function demo(dataDir) {
     stdio: ["ignore", "pipe", "pipe"],
   });
   let out = "";
+  // A failed start is stopped, so the test ends instead of waiting for the server
   await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("demo data not created in time:\n" + out)), 30000);
+    const fail = (message) => (clearTimeout(timer), proc.kill(), reject(new Error(message)));
+    const timer = setTimeout(() => fail("demo data not created in time:\n" + out), 30000);
     const check = (d) => {
       out += d;
       if (/brokered requests seeded/.test(out)) (clearTimeout(timer), resolve());
-      else if (/could not be created|Error/.test(out)) (clearTimeout(timer), reject(new Error(out)));
+      else if (/could not be created|Error/.test(out)) fail(out);
     };
     proc.stdout.on("data", check);
     proc.stderr.on("data", check);

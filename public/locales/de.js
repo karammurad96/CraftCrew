@@ -424,6 +424,7 @@ LOCALES.de = {
       anotherRoundCanBeAsked: "Eine weitere Runde kann angefragt werden, sobald Optionen bereit sind.",
       setAFutureDeadlineFor: "Setzen Sie eine Frist in der Zukunft für die Angebote.",
       theCustomerChoosesAmongThe: "Der Kunde wählt unter den Optionen; die Vergabe folgt seiner Wahl.",
+      thisEstimateCannotBeChosen: "Diese Schätzung kann noch nicht gewählt werden.",
       aRequestCanHaveUp: "Eine Anfrage kann bis zu zehn Arbeitspakete haben.",
       enterTheEffortInHours: "Geben Sie den Aufwand in Stunden an (1 bis 5.000), oder lassen Sie ihn leer.",
       chooseOpenTasksOfThe: "Wählen Sie offene Aufgaben des gewählten Projekts als Arbeitspakete.",
@@ -3573,6 +3574,16 @@ LOCALES.de = {
     "hours": "{n} h · {name}"
   },
   req: {
+    "estimate": {
+      "badge": "Schätzung",
+      "split": "{n} Lieferanten",
+      "note": "Eine Schätzung aus den Preislisten der Lieferanten. Nach Ihrer Wahl bestätigt jeder Lieferant seinen Teil; steigt ein Preis, entscheiden Sie erneut.",
+      "gap": "Keine Sofortschätzung: kein Lieferant mit Preis für {list}. Suchen Sie unten Lieferanten."
+    },
+    "part": {
+      "title": "Teil {n}:",
+      "facts": "{hours} Std. · {price} · {days} Tage"
+    },
     "pkg": {
       "hoursN": "{n} Std.",
       "hoursRough": "ca. {n} Std. (aus den Terminen geschätzt)",
@@ -4019,6 +4030,7 @@ LOCALES.de = {
       "preview": "Vorschau",
       "legalSaved": "Rechtstexte veröffentlicht",
       "autoSuggest": "Lieferanten automatisch vorschlagen, sobald eine Anfrage eingeht",
+      "instantEstimates": "Sofortschätzung: neue Anfragen sofort aus den Preislisten der Lieferanten bepreisen",
       "markup": "Aufschlag auf vermittelte Optionen (%)",
       "markupHint": "0 = der Kunde zahlt den Preis des Lieferanten, die Plattformgebühr wird von der Auszahlung abgezogen. Ein Aufschlag bedeutet, dass die Plattform die Leistung weiterverkauft: vorher mit dem Steuerberater klären.",
       "clause": {

@@ -1116,3 +1116,19 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Estimate options and their parts (T231) */
+.rq-parts {
+  display: grid;
+  gap: 6px;
+  margin: 4px 0;
+  padding-inline-start: 18px;
+  font-size: 13px;
+}
+.rq-parts small {
+  display: block;
+  color: #526174;
+}
+.rq-option .status + .status {
+  margin-inline-start: 6px;
+}

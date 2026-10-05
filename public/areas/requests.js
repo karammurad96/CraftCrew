@@ -364,7 +364,25 @@ function rqAwardNote(r, role = "customer") {
 function rqOptionCard(o, chooseFor = "") {
   const p = o.profile || {},
     fact = (k, params) => `<li>${rqk("profile." + k, params)}</li>`;
-  return `<article class="cc-card rq-option${o.chosen ? " chosen" : ""}"><span class="status ${o.label === "recommended" ? "completed" : "submitted"}">${rqk("opt." + o.label)}</span><b class="rq-price">${esc(fmt.money(o.price))}</b><small>${rqk("daysN", { n: o.deliveryDays })}</small><ul class="rq-profile">${[
+  // T231: an estimate shows its parts; a split names how many suppliers, never who (the operator sees the company)
+  const parts =
+    (o.parts || []).length > 1 || o.estimate
+      ? `<ul class="rq-parts">${(o.parts || [])
+          .map(
+            (x, n) =>
+              `<li><b>${rqk("part.title", { n: n + 1 })}</b> <bdi>${esc((x.packages || []).join(", "))}</bdi>${x.company ? ` · <bdi>${esc(x.company)}</bdi>` : ""}<small>${rqk(
+                "part.facts",
+                {
+                  hours: x.hours,
+                  price: fmt.money(x.price),
+                  days: x.days,
+                },
+              )}${x.profile?.badge ? " · " + esc(t("common.badge." + x.profile.badge)) : ""}${x.profile?.rating ? " · " + rqk("profile.rating", { rating: fmt.number(x.profile.rating, 1) }) : ""}</small></li>`,
+          )
+          .join("")}</ul>`
+      : "";
+  const flags = `${o.estimate ? `<span class="status submitted rq-estimate">${rqk("estimate.badge")}</span>` : ""}${o.split ? `<span class="status">${rqk("estimate.split", { n: o.parts.length })}</span>` : ""}`;
+  return `<article class="cc-card rq-option${o.chosen ? " chosen" : ""}"><span class="status ${o.label === "recommended" ? "completed" : "submitted"}">${rqk("opt." + o.label)}</span>${flags}<b class="rq-price">${esc(fmt.money(o.price))}</b><small>${rqk("daysN", { n: o.deliveryDays })}</small>${parts}${o.estimate ? `<small class="subtle">${rqk("estimate.note")}</small>` : ""}<ul class="rq-profile">${[
     p.badge ? fact("badge", { badge: t("common.badge." + p.badge) }) : "",
     p.rating ? fact("rating", { rating: fmt.number(p.rating, 1) }) : "",
     p.completedOrders ? fact("completed", { n: p.completedOrders }) : "",
@@ -504,7 +522,7 @@ async function rqAdminDetail(params) {
         : ""
     }</div>${take}
 <section class="panel"><h3>${rqk("details")}</h3>${rqFacts(r)}${rqPackages(r)}<p class="rq-description"><bdi>${esc(r.description)}</bdi></p></section>
-${rqAwardNote(r, "admin")}${
+${rqAwardNote(r, "admin")}${(r.estimateGap || []).length ? `<div class="notice warn">${rqk("estimate.gap", { list: r.estimateGap.join(", ") })}</div>` : ""}${
       (r.leakHints || []).length
         ? `<div class="notice warn"><b>${rqk("leak.title", { n: r.leakHints.length })}</b> ${r.leakHints
             .slice(-5)
