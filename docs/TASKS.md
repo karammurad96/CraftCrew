@@ -332,7 +332,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T217 Before switching on: test sets per feature, measured cost, admin usage page · S
 
 **Wave 15 — Stufe 1: brokering with control (decided with Karam on 5 October 2026: the marketplace is switched off for now; customers send requests to the platform and see no supplier before they choose; the last task is the way back; details under "Wave 15")**
-- [ ] T220 Platform mode: "brokered" (default) or "marketplace", one admin setting · S · do first
+- [x] T220 Platform mode: "brokered" (default) or "marketplace", one admin setting · S · do first
 - [ ] T221 Brokered mode hides the marketplace from customers: directory, profiles, quote requests, invitations · M
 - [ ] T222 Customer requests to the platform and the operator's request queue · M
 - [ ] T223 Automatic supplier suggestions for the operator, and invitations from a request · M
@@ -4176,8 +4176,19 @@ Decided with Karam on 5 October 2026.
 4. `.env.example` and the README configuration table: `PLATFORM_MODE`.
 
 **Done when.**
-- [ ] Brokered is the default; the setting wins over the environment; an invalid value counts as brokered.
-- [ ] Only an admin can change it; the change is in the audit log.
+- [x] Brokered is the default; the setting wins over the environment; an invalid value counts as brokered.
+- [x] Only an admin can change it; the change is in the audit log.
+
+**As built (5 October 2026).**
+- `platformMode()` and `PLATFORM_MODES` sit near the top of `server.js`.
+- `PUT /api/admin/platform-mode {mode}` is a route of its own, so saving the other platform settings never
+  changes the mode. It stores who switched and when (`platformModeChangedAt`, `platformModeChangedBy`).
+- The mode is shown in `GET /api/platform-config` and `GET /api/admin/settings`.
+- *Platform management* starts with the panel "How customers find suppliers": two choices, each explained, and
+  a confirmation dialog.
+- `test/helpers.js` starts the earlier suites with `PLATFORM_MODE=marketplace`.
+- `test/platform-mode.test.js` covers the default, the environment, invalid values, admin-only access, the audit
+  entry, the other admins' notification, and that saving the other settings keeps the mode.
 
 ### T221 · Brokered mode hides the marketplace from customers
 `P1 · M · depends on T220`

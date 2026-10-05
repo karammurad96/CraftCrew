@@ -398,6 +398,7 @@ LOCALES.de = {
       thisInvoiceWasAlreadyDecided: "Über diese Rechnung wurde bereits entschieden (Status: {status}).",
       invoiceCannotBeResubmitted: "Die Rechnung kann nicht erneut eingereicht werden",
       enterAValidInvoiceAmount: "Geben Sie einen gültigen Rechnungsbetrag ein",
+      chooseBrokeredOrMarketplace: "Wählen Sie Vermittlung oder Marktplatz",
       adminOnly: "Nur für Admins",
       aRefundReasonIsRequired: "Ein Erstattungsgrund ist erforderlich",
       invoiceIsNotEligibleFor: "Für diese Rechnung ist diese Aktion nicht möglich",
@@ -3730,7 +3731,20 @@ LOCALES.de = {
       },
       "saveLegal": "Rechtstexte speichern",
       "preview": "Vorschau",
-      "legalSaved": "Rechtstexte veröffentlicht"
+      "legalSaved": "Rechtstexte veröffentlicht",
+      "mode": {
+        "title": "Wie Kunden Lieferanten finden",
+        "hint": "Ein Wechsel ändert sofort, was Kunden sehen. Es wird nichts gelöscht, und Sie können jederzeit zurückwechseln.",
+        "brokered": "Vermittlung durch die Plattform",
+        "brokeredHint": "Kunden senden Anfragen an die Plattform und erhalten anonymisierte Optionen. Sie sehen das Lieferantenverzeichnis nicht und kontaktieren Lieferanten nicht, bevor sie gewählt haben.",
+        "marketplace": "Marktplatz",
+        "marketplaceHint": "Kunden durchsuchen das Lieferantenverzeichnis, öffnen Profile, fragen Lieferanten selbst nach Angeboten und laden sie zu Ausschreibungen ein.",
+        "current": "Derzeit aktiv",
+        "switch": "Modus wechseln",
+        "confirmTitle": "Zu „{mode}“ wechseln?",
+        "confirmText": "Kunden sehen die Änderung sofort. Offene Anfragen, Angebote und Verträge bleiben erhalten. Die anderen Admins werden benachrichtigt.",
+        "switched": "Modus gewechselt zu „{mode}“"
+      }
     },
     "stage": {
       "New": "Neu",
@@ -4915,6 +4929,8 @@ LOCALES.de = {
       timeSubmitted: "{name} hat {hours} h für {task} eingereicht",
       timeReviewed: "Zeiteintrag über {hours} h für {task}: {status}",
       applicationNew: "Neue Lieferantenbewerbung: {company}",
+      platformModeBrokered: "{name} hat die Plattform auf Vermittlung umgestellt: Kunden sehen Lieferanten erst nach ihrer Wahl",
+      platformModeMarketplace: "{name} hat die Plattform auf Marktplatz umgestellt: Kunden können Lieferanten wieder suchen und kontaktieren",
       applicationApproved: "Ihre Lieferantenbewerbung wurde freigegeben. Melden Sie sich an, um Ihren Leistungskatalog zu pflegen.",
       escalationOpened: "Eskalation eröffnet für {project}: {type}",
       escalationStatus: "Eskalation für {project} ist jetzt {status}",

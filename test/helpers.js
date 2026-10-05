@@ -134,6 +134,8 @@ async function startApp({ smtp, env = {}, dataDir: keepDir } = {}) {
         BOOTSTRAP_ADMIN_PASSWORD: "Admin-Password-2026!",
         // Tests never call the real EU VIES service; a closed port makes it "not reachable" at once.
         VIES_URL: "http://127.0.0.1:9/check-vat-number",
+        // The suites written before Wave 15 test the marketplace; Wave 15 suites pass PLATFORM_MODE: "brokered".
+        PLATFORM_MODE: "marketplace",
         ...(smtp
           ? {
               SMTP_HOST: "localhost",

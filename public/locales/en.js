@@ -400,6 +400,7 @@ LOCALES.en = {
       invoiceCannotBeResubmitted: "Invoice cannot be resubmitted",
       enterAValidInvoiceAmount: "Enter a valid invoice amount",
       adminOnly: "Admin only",
+      chooseBrokeredOrMarketplace: "Choose brokered or marketplace",
       aRefundReasonIsRequired: "A refund reason is required",
       invoiceIsNotEligibleFor: "Invoice is not eligible for this action",
       noPendingChangeForThis: "No pending change for this supplier",
@@ -3731,7 +3732,20 @@ LOCALES.en = {
       },
       "saveLegal": "Save legal pages",
       "preview": "Preview",
-      "legalSaved": "Legal pages published"
+      "legalSaved": "Legal pages published",
+      "mode": {
+        "title": "How customers find suppliers",
+        "hint": "Switching changes what customers see at once. Nothing is deleted, and you can switch back at any time.",
+        "brokered": "Brokered by the platform",
+        "brokeredHint": "Customers send requests to the platform and get anonymised options. They do not see the supplier directory or contact suppliers before they choose.",
+        "marketplace": "Marketplace",
+        "marketplaceHint": "Customers search the supplier directory, open profiles, ask suppliers for quotes and invite them to bids themselves.",
+        "current": "Active now",
+        "switch": "Switch mode",
+        "confirmTitle": "Switch to “{mode}”?",
+        "confirmText": "Customers see the change at once. Open requests, offers and contracts are kept. The other admins are notified.",
+        "switched": "Mode switched to “{mode}”"
+      }
     },
     "stage": {
       "New": "New",
@@ -4916,6 +4930,8 @@ LOCALES.en = {
       timeSubmitted: "{name} submitted {hours}h for {task}",
       timeReviewed: "{hours}h time entry for {task}: {status}",
       applicationNew: "New supplier application: {company}",
+      platformModeBrokered: "{name} switched the platform to brokered mode: customers no longer see suppliers before they choose",
+      platformModeMarketplace: "{name} switched the platform to marketplace mode: customers can search and contact suppliers again",
       applicationApproved: "Your supplier application was approved. Sign in to manage your service catalog.",
       escalationOpened: "Escalation opened for {project}: {type}",
       escalationStatus: "Escalation for {project} is now {status}",
