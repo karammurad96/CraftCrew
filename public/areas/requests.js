@@ -33,7 +33,7 @@ function rqTimeline(r) {
   return `<ol class="rq-timeline">${(r.history || [])
     .map(
       (h) =>
-        `<li>${rqChip(h.status)} <span>${esc(fmt.date(h.at))}</span> <small>${rqk("by." + (h.by === "platform" ? "platform" : state.user?.role === "admin" ? "theCustomer" : "customer"))}</small>${h.note ? `<p><bdi>${esc(h.note)}</bdi></p>` : ""}</li>`,
+        `<li>${rqChip(h.status)} <span>${esc(fmt.date(h.at))}</span> <small>${rqk("by." + (h.by === "platform" || h.by === "supplier" ? h.by : state.user?.role === "admin" ? "theCustomer" : "customer"))}</small>${h.note ? `<p><bdi>${esc(h.note)}</bdi></p>` : ""}</li>`,
     )
     .join("")}</ol>`;
 }
@@ -104,7 +104,9 @@ async function rqCustomerDetail(params) {
 <section class="panel"><h3>${rqk("details")}</h3>${rqFacts(r)}<p class="rq-description"><bdi>${esc(r.description)}</bdi></p>${r.closeReason ? `<p class="rq-closed"><b>${rqk("closedReason")}</b> <bdi>${esc(r.closeReason)}</bdi></p>` : ""}</section>
 ${
   (r.options || []).length
-    ? `<section class="panel"><h3>${rqk("optionsTitle")}</h3><p class="subtle">${rqk("optionsLead")}</p><div class="rq-options">${r.options.map(rqOptionCard).join("")}</div></section>`
+    ? `<section class="panel"><h3>${rqk("optionsTitle")}</h3><p class="subtle">${rqk("optionsLead")}</p>${rqAwardNote(r)}<div class="rq-options">${r.options
+        .map((o) => rqOptionCard(o, r.status === "Options ready" && !o.declined ? r.id : ""))
+        .join("")}</div></section>`
     : ""
 }${rqThread(r, "customer")}
 <section class="panel"><h3>${rqk("files")}</h3>${rqFiles(r)}</section>
@@ -269,7 +271,19 @@ actions.on("req.publish", async (el) => {
   }
 });
 // One option as the customer sees it (and as the operator previews it): no supplier name anywhere
-function rqOptionCard(o) {
+// T225: what happened to the choice: waiting for the supplier, or the contract with the supplier named
+function rqAwardNote(r, role = "customer") {
+  if (r.status === "Chosen")
+    return `<div class="notice">${rqk("awardWaiting", { date: fmt.date(r.award?.expiresAt) })}</div>`;
+  if (r.status === "Contracted" && r.supplier)
+    return `<div class="notice success">${rqk("awardDone", { company: r.supplier.company })}${
+      role === "customer"
+        ? ` <a href="#/customer/projects/${esc(r.projectId)}">${rqk("openProject")}</a>`
+        : ""
+    }</div>`;
+  return "";
+}
+function rqOptionCard(o, chooseFor = "") {
   const p = o.profile || {},
     fact = (k, params) => `<li>${rqk("profile." + k, params)}</li>`;
   return `<article class="cc-card rq-option${o.chosen ? " chosen" : ""}"><span class="status ${o.label === "recommended" ? "completed" : "submitted"}">${rqk("opt." + o.label)}</span><b class="rq-price">${esc(fmt.money(o.price))}</b><small>${rqk("daysN", { n: o.deliveryDays })}</small><ul class="rq-profile">${[
@@ -282,8 +296,42 @@ function rqOptionCard(o) {
     (p.certifications || []).length ? fact("certs", { list: p.certifications.join(", ") }) : "",
   ].join(
     "",
-  )}</ul>${o.note ? `<p><bdi>${esc(o.note)}</bdi></p>` : ""}${(o.attachments || []).map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">${rqk("offerFile")}</a>`).join(" ")}<div class="rq-choose" data-option="${esc(o.id)}"></div></article>`;
+  )}</ul>${o.note ? `<p><bdi>${esc(o.note)}</bdi></p>` : ""}${(o.attachments || []).map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">${rqk("offerFile")}</a>`).join(" ")}${
+    o.declined ? `<small class="subtle">${rqk("optionGone")}</small>` : ""
+  }${chooseFor ? `<button class="btn primary" data-action="req.chooseDialog" data-id="${esc(chooseFor)}" data-option="${esc(o.id)}">${rqk("choose")}</button>` : ""}</article>`;
 }
+// T225: the platform contract with the non-circumvention clause, accepted before the choice becomes binding
+actions.on("req.chooseDialog", async (el) => {
+  const { clause: c } = await api("/clause");
+  modal(
+    t("req.chooseTitle"),
+    `<form class="modal-form" data-action="req.choose" data-id="${esc(el.dataset.id)}" data-option="${esc(el.dataset.option)}" data-hash="${esc(c.hash)}"><p>${rqk("chooseLead")}</p><div class="rq-clause"><bdi>${esc(c.text)}</bdi></div><small class="subtle">${rqk(
+      "clauseVersion",
+      {
+        n: c.version,
+        months: c.months,
+      },
+    )}</small><label class="cc-check-label"><input type="checkbox" name="accept" required> ${rqk("acceptClause")}</label><div class="cc-actions"><button type="button" class="btn outline" data-action="req.closeModal">${rqk("cancel")}</button><button class="btn primary">${rqk("chooseConfirm")}</button></div></form>`,
+  );
+});
+actions.on("req.closeModal", () => closeModal());
+actions.on("req.choose", async (form) => {
+  try {
+    await api(`/requests/${encodeURIComponent(form.dataset.id)}/choose`, {
+      method: "POST",
+      body: {
+        optionId: form.dataset.option,
+        acceptClause: form.elements.accept.checked,
+        clauseHash: form.dataset.hash,
+      },
+    });
+    closeModal();
+    tToast(t("req.chosen"));
+    route();
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
 /* T224: messages between the customer and the platform on one request */
 function rqThread(r, role) {
   const from = (m) =>
@@ -378,7 +426,7 @@ async function rqAdminDetail(params) {
         : ""
     }</div>${take}
 <section class="panel"><h3>${rqk("details")}</h3>${rqFacts(r)}<p class="rq-description"><bdi>${esc(r.description)}</bdi></p></section>
-<section class="panel"><h3>${rqk("files")}</h3>${rqFiles(r)}</section>${rqSourcingPanel(r)}${rqThread(r, "admin")}
+${rqAwardNote(r, "admin")}<section class="panel"><h3>${rqk("files")}</h3>${rqFiles(r)}</section>${rqSourcingPanel(r)}${rqThread(r, "admin")}
 <section class="panel"><h3>${rqk("note")}</h3><form class="modal-form" data-action="req.note" data-id="${esc(r.id)}"><textarea name="note" rows="4" maxlength="5000" placeholder="${rqk("notePlaceholder")}">${esc(r.operatorNote || "")}</textarea><div class="cc-actions"><button class="btn outline">${rqk("saveNote")}</button></div></form></section>
 <section class="panel"><h3>${rqk("timeline")}</h3>${rqTimeline(r)}</section>`,
   );
@@ -411,6 +459,71 @@ actions.on("req.close", async (el) => {
   rqPatch(el.dataset.id, { action: "close", reason }, "req.closed");
 });
 
+/* ---------- T225: the supplier confirms a platform order ---------- */
+async function rqSupplierOrders() {
+  const { orders = [] } = await api("/brokered-orders");
+  const card = (o) => {
+    const waiting = o.status === "Waiting for supplier";
+    return `<article class="panel rq-order"><div class="panel-title"><div><span class="eyebrow">${rqk(o.region ? "order.eyebrow" : "order.eyebrowNoRegion", { region: o.region })}</span><h3><bdi>${esc(o.title)}</bdi></h3></div><span class="status ${
+      waiting ? "submitted" : "completed"
+    }">${rqk("order.status." + (waiting ? "waiting" : "accepted"))}</span></div><p class="rq-description"><bdi>${esc(o.description)}</bdi></p><dl class="rq-facts"><div><dt>${rqk("field.category")}</dt><dd><bdi>${esc(o.category)}</bdi></dd></div><div><dt>${rqk(
+      "order.amount",
+    )}</dt><dd>${esc(fmt.money(o.amount))}</dd></div><div><dt>${rqk("order.days")}</dt><dd>${rqk("daysN", { n: o.deliveryDays })}</dd></div>${
+      waiting
+        ? `<div><dt>${rqk("order.answerBy")}</dt><dd>${esc(fmt.date(o.expiresAt))}</dd></div>`
+        : `<div><dt>${rqk("order.customer")}</dt><dd><bdi>${esc(o.customerCompany || "")}</bdi></dd></div>`
+    }</dl>${
+      waiting
+        ? `<form class="modal-form" data-action="req.acceptOrder" data-id="${esc(o.requestId)}" data-hash="${esc(o.clause.hash)}"><div class="rq-clause"><bdi>${esc(o.clause.text)}</bdi></div><small class="subtle">${rqk(
+            "clauseVersion",
+            {
+              n: o.clause.version,
+              months: o.clause.months,
+            },
+          )}</small><label class="cc-check-label"><input type="checkbox" name="accept" required> ${rqk("acceptClauseSupplier")}</label><div class="cc-actions"><button class="btn primary">${rqk("order.accept")}</button><button type="button" class="btn outline danger" data-action="req.declineOrder" data-id="${esc(
+            o.requestId,
+          )}">${rqk("order.decline")}</button></div></form>`
+        : `<a class="btn outline" href="#/supplier/projects/${esc(o.projectId)}">${rqk("openProject")}</a>`
+    }</article>`;
+  };
+  app.innerHTML = dashboardShell(
+    "supplier",
+    "orders",
+    `<div class="dash-top"><div><h1>${rqk("order.title")}</h1><p>${rqk("order.lead")}</p></div></div>${
+      orders.map(card).join("") ||
+      `<div class="empty"><h2>${rqk("order.empty")}</h2><p>${rqk("order.emptyText")}</p></div>`
+    }`,
+  );
+}
+actions.on("req.acceptOrder", async (form) => {
+  try {
+    await api(`/brokered-orders/${encodeURIComponent(form.dataset.id)}/accept`, {
+      method: "POST",
+      body: { acceptClause: form.elements.accept.checked, clauseHash: form.dataset.hash },
+    });
+    tToast(t("req.order.accepted"));
+    route();
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
+actions.on("req.declineOrder", async (el) => {
+  const ok = await uiDialog({
+    title: t("req.order.declineTitle"),
+    message: t("req.order.declineText"),
+    confirmLabel: t("req.order.decline"),
+    danger: true,
+  });
+  if (!ok) return;
+  try {
+    await api(`/brokered-orders/${encodeURIComponent(el.dataset.id)}/decline`, { method: "POST", body: {} });
+    tToast(t("req.order.declined"));
+    route();
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
+routes.add("/supplier/orders", rqSupplierOrders);
 routes.add("/customer/requests", rqCustomerList);
 routes.add("/customer/requests/new", rqNewPage);
 routes.add("/customer/requests/:id", rqCustomerDetail);

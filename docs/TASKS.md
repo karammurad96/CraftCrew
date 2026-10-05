@@ -337,7 +337,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T222 Customer requests to the platform and the operator's request queue · M
 - [x] T223 Automatic supplier suggestions for the operator, and invitations from a request · M
 - [x] T224 Anonymised options for the customer: fastest, cheapest, best quality · M · **price model needs Karam's decision**
-- [ ] T225 The customer chooses: platform contract with the non-circumvention clause, then the supplier is revealed · M
+- [x] T225 The customer chooses: platform contract with the non-circumvention clause, then the supplier is revealed · M
 - [ ] T226 Messages through the platform: no direct contact before the contract, contact details hidden, leak hints · M
 - [x] T227 Non-circumvention clause: text, acceptance records, facts for the lawyer · S · **the clause needs a lawyer's review**
 - [ ] T228 Rollback: back to the marketplace with one switch, all data kept, tested both ways · S · last task of the wave
@@ -4471,9 +4471,41 @@ place.
    back to *Options ready* and the operator is notified.
 
 **Done when.**
-- [ ] Before both acceptances, no customer answer names the supplier and no supplier answer names the customer.
-- [ ] After them, both names are visible.
-- [ ] The acceptance records contain the clause version and hash, and cannot be changed afterwards.
+- [x] Before both acceptances, no customer answer names the supplier and no supplier answer names the customer.
+- [x] After them, both names are visible.
+- [x] The acceptance records contain the clause version and hash, and cannot be changed afterwards.
+
+**As built (5 October 2026).**
+- **Choosing.** `POST /api/requests/:id/choose {optionId, acceptClause: true, clauseHash}`:
+  - The customer must send the hash of the clause in force, so a changed text must be read again.
+  - It stores `request.award` with the customer's acceptance (`clause.acceptance(user, "brokered-contract")`)
+    and a deadline three working days ahead.
+  - The request becomes *Chosen*; the supplier is notified (`brokeredOrderNew`), and so are the operators.
+- **The supplier's answer.**
+  - `GET /api/brokered-orders` shows the work, the supplier's own price, the deadline and the clause.
+  - `POST /api/brokered-orders/:requestId/accept {acceptClause, clauseHash}` or `/decline`.
+  - A decline, or no answer by the deadline (checked when requests or orders are read), marks the option "no
+    longer available", returns the request to *Options ready* and tells customer and operators.
+- **When both have accepted** (`contract()` in `requests.js`):
+  - The customer's task gets the supplier. A request without a task gets a new phase, or a new project, for
+    the work.
+  - The bid is *Awarded*, the other offers *Not selected*.
+  - `contractFromAward` writes the contract, made *Active* with `brokered`, the customer price, the supplier
+    amount, the platform fee, `clause {version, hash, months}` and both `acceptances`. The contract form cannot
+    change these.
+  - `clause.recordIntroduction()` adds the pair, and the request becomes *Contracted*.
+  - Only now does the customer's answer carry `supplier {id, company}` and the supplier's order carry
+    `customerCompany`.
+- **Pages.**
+  - Customer: *Choose this option* on each card opens the clause, with a checkbox to accept. Then a notice
+    shows "waiting for the supplier", later the supplier's name with a link to the project.
+  - Supplier: *Platform orders* (`/supplier/orders`, in the daily menu) with the clause, *Accept order* and
+    *Decline*; after acceptance, the customer and the project.
+- **Tests and checks.**
+  - `test/choose.test.js` covers no names before both acceptances, the clause hash, the assignment, the active
+    contract with unchangeable acceptances, the introduction, decline, and expiry after three working days.
+  - A browser check on the demo data ran: choice with the clause, the supplier's confirmation, both names
+    shown, no page errors.
 
 ### T226 · Messages through the platform
 `P1 · M · depends on T222, T225`
