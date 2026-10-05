@@ -350,9 +350,56 @@ actions.on("req.publish", async (el) => {
 });
 // One option as the customer sees it (and as the operator previews it): no supplier name anywhere
 // T225: what happened to the choice: waiting for the supplier, or the contract with the supplier named
+// T232: each supplier part of the choice: packages, price, state; a higher price waits for the customer
+function rqAwardParts(r, role) {
+  const parts =
+    role === "admin"
+      ? (r.award?.parts || []).filter((p) =>
+          ["Waiting for supplier", "Price changed", "Confirmed"].includes(p.status),
+        )
+      : r.award?.parts || [];
+  if (!parts.length || (parts.length === 1 && !r.award.estimate)) return "";
+  return `<ul class="rq-award-parts">${parts
+    .map((p) => {
+      const names = p.packages || [],
+        changed = p.status === "Price changed",
+        price = changed ? (p.proposedPrice ?? p.proposed?.price) : p.price;
+      return `<li><span class="status ${p.status === "Confirmed" ? "completed" : changed ? "rejected" : "submitted"}">${statusHtml(p.status)}</span> <b><bdi>${esc(names.join(", "))}</bdi></b>${
+        p.company ? ` · <bdi>${esc(p.company)}</bdi>` : ""
+      } · ${esc(fmt.money(price))}${p.replacement || p.replaces ? ` · ${rqk("part.replacement")}` : ""}${changed ? `<small>${rqk("part.changed", { was: fmt.money(p.price) })} <bdi>${esc(p.note || p.proposed?.note || "")}</bdi></small>` : ""}${
+        changed && role === "customer"
+          ? `<span class="cc-actions"><button class="btn small primary" data-action="req.partPrice" data-id="${esc(r.id)}" data-part="${esc(p.id)}" data-do="approve">${rqk("part.approve")}</button><button class="btn small outline" data-action="req.partPrice" data-id="${esc(r.id)}" data-part="${esc(p.id)}" data-do="reject">${rqk("part.reject")}</button></span>`
+          : ""
+      }</li>`;
+    })
+    .join(
+      "",
+    )}</ul>${(r.award.gap || []).length ? `<div class="notice warn">${rqk("part.gap", { list: r.award.gap.join(", ") })}</div>` : ""}`;
+}
+actions.on("req.partPrice", async (el) => {
+  try {
+    await api(`/requests/${encodeURIComponent(el.dataset.id)}/parts/${encodeURIComponent(el.dataset.part)}`, {
+      method: "POST",
+      body: { action: el.dataset.do },
+    });
+    tToast(t(el.dataset.do === "approve" ? "req.part.approved" : "req.part.rejected"));
+    route();
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
 function rqAwardNote(r, role = "customer") {
   if (r.status === "Chosen")
-    return `<div class="notice">${rqk("awardWaiting", { date: fmt.date(r.award?.expiresAt) })}</div>`;
+    return `<div class="notice">${rqk("awardWaiting", { date: fmt.date(r.award?.expiresAt) })}${rqAwardParts(r, role)}</div>`;
+  if (r.status === "Contracted" && (r.suppliers || []).length > 1)
+    return `<div class="notice success">${rqk("awardDoneMany")}<ul class="rq-award-parts">${r.suppliers
+      .map(
+        (s) =>
+          `<li><b><bdi>${esc(s.company)}</bdi></b>: <bdi>${esc((s.packages || []).join(", "))}</bdi></li>`,
+      )
+      .join(
+        "",
+      )}</ul>${role === "customer" ? `<a href="#/customer/projects/${esc(r.projectId)}">${rqk("openProject")}</a>` : ""}</div>`;
   if (r.status === "Contracted" && r.supplier)
     return `<div class="notice success">${rqk("awardDone", { company: r.supplier.company })}${
       role === "customer"
@@ -572,10 +619,15 @@ actions.on("req.close", async (el) => {
 async function rqSupplierOrders() {
   const { orders = [] } = await api("/brokered-orders");
   const card = (o) => {
-    const waiting = o.status === "Waiting for supplier";
+    const waiting = o.status === "Waiting for supplier",
+      pending = o.status === "Price changed";
     return `<article class="panel rq-order"><div class="panel-title"><div><span class="eyebrow">${rqk(o.region ? "order.eyebrow" : "order.eyebrowNoRegion", { region: o.region })}</span><h3><bdi>${esc(o.title)}</bdi></h3></div><span class="status ${
       waiting ? "submitted" : "completed"
-    }">${rqk("order.status." + (waiting ? "waiting" : "accepted"))}</span></div><p class="rq-description"><bdi>${esc(o.description)}</bdi></p><dl class="rq-facts"><div><dt>${rqk("field.category")}</dt><dd><bdi>${esc(o.category)}</bdi></dd></div><div><dt>${rqk(
+    }">${rqk("order.status." + (waiting ? "waiting" : pending ? "priceChanged" : "accepted"))}</span></div><p class="rq-description"><bdi>${esc(o.description)}</bdi></p>${
+      (o.packages || []).length
+        ? `<ul class="rq-pkg-list">${o.packages.map((x) => `<li><b><bdi>${esc(x.name)}</bdi></b> · <bdi>${esc(x.category)}</bdi> · ${rqk("pkg.hoursN", { n: x.hours })}</li>`).join("")}</ul>`
+        : ""
+    }${o.estimate && waiting ? `<p class="subtle">${rqk("order.estimateNote")}</p>` : ""}${pending ? `<p class="subtle">${rqk("order.priceWaiting", { price: fmt.money(o.proposedAmount) })}</p>` : ""}<dl class="rq-facts"><div><dt>${rqk("field.category")}</dt><dd><bdi>${esc(o.category)}</bdi></dd></div><div><dt>${rqk(
       "order.amount",
     )}</dt><dd>${esc(fmt.money(o.amount))}</dd></div><div><dt>${rqk("order.days")}</dt><dd>${rqk("daysN", { n: o.deliveryDays })}</dd></div>${
       waiting
@@ -589,10 +641,16 @@ async function rqSupplierOrders() {
               n: o.clause.version,
               months: o.clause.months,
             },
-          )}</small><label class="cc-check-label"><input type="checkbox" name="accept" required> ${rqk("acceptClauseSupplier")}</label><div class="cc-actions"><button class="btn primary">${rqk("order.accept")}</button><button type="button" class="btn outline danger" data-action="req.declineOrder" data-id="${esc(
+          )}</small>${
+            o.estimate
+              ? `<div class="cc-platform-grid"><label>${rqk("order.yourPrice")}<input type="number" name="price" min="1" step="1" value="${esc(o.amount)}"></label><label>${rqk("order.priceReason")}<input name="note" maxlength="1000" placeholder="${rqk("order.priceReasonPh")}"></label></div>`
+              : ""
+          }<label class="cc-check-label"><input type="checkbox" name="accept" required> ${rqk("acceptClauseSupplier")}</label><div class="cc-actions"><button class="btn primary">${rqk("order.accept")}</button><button type="button" class="btn outline danger" data-action="req.declineOrder" data-id="${esc(
             o.requestId,
           )}">${rqk("order.decline")}</button></div></form>`
-        : `<a class="btn outline" href="#/supplier/projects/${esc(o.projectId)}">${rqk("openProject")}</a>`
+        : o.projectId
+          ? `<a class="btn outline" href="#/supplier/projects/${esc(o.projectId)}">${rqk("openProject")}</a>`
+          : ""
     }</article>`;
   };
   app.innerHTML = dashboardShell(
@@ -608,7 +666,12 @@ actions.on("req.acceptOrder", async (form) => {
   try {
     await api(`/brokered-orders/${encodeURIComponent(form.dataset.id)}/accept`, {
       method: "POST",
-      body: { acceptClause: form.elements.accept.checked, clauseHash: form.dataset.hash },
+      body: {
+        acceptClause: form.elements.accept.checked,
+        clauseHash: form.dataset.hash,
+        // T232: a changed price needs a reason; the same price confirms the estimate
+        ...(form.elements.price ? { price: form.elements.price.value, note: form.elements.note.value } : {}),
+      },
     });
     tToast(t("req.order.accepted"));
     route();

@@ -11,7 +11,7 @@ const DAY = 86400000;
 
 module.exports = function createRequests(ctx) {
   const { getDb, save, send, body, id, now, notify, activity, projectFor, ownUpload, categories } = ctx;
-  const { suggest, cleanWeights, scorecard, clause, contractFromAward, estimate } = ctx;
+  const { suggest, cleanWeights, scorecard, clause, estimate, estimates } = ctx;
   // T231: the admin setting wins over INSTANT_ESTIMATES; on by default
   const instantOn = () => getDb().settings?.instantEstimates ?? process.env.INSTANT_ESTIMATES !== "off";
   const OPTION_LABELS = ["fastest", "cheapest", "best", "recommended"];
@@ -41,7 +41,15 @@ module.exports = function createRequests(ctx) {
             }
           : o,
       );
-      return { ...r, options, sourcing: sourcingView(r) };
+      const award = r.award && {
+        ...r.award,
+        parts: r.award.parts.map((p) => ({
+          ...p,
+          company: company(p.supplierId),
+          packages: packageNames(r, p.packageIds),
+        })),
+      };
+      return { ...r, options, award, sourcing: sourcingView(r) };
     }
     const out = { ...r };
     for (const k of OPERATOR_ONLY) delete out[k];
@@ -54,7 +62,25 @@ module.exports = function createRequests(ctx) {
     delete out.estimateGap;
     // T225: the supplier is named only once both sides have accepted the contract
     delete out.award;
-    if (r.award) out.award = { status: r.award.status, expiresAt: r.award.expiresAt };
+    // T232: each part's state, packages and price, never its supplier; a higher price waits for the customer
+    if (r.award)
+      out.award = {
+        status: r.award.status,
+        expiresAt: r.award.expiresAt,
+        estimate: !!r.award.estimate,
+        gap: r.award.gap || [],
+        parts: activeParts(r).map((p) => ({
+          id: p.id,
+          packages: packageNames(r, p.packageIds),
+          hours: p.hours,
+          price: p.price,
+          days: p.days,
+          status: p.status,
+          replacement: !!p.replaces,
+          ...(p.proposed ? { proposedPrice: p.proposed.price, note: p.proposed.note } : {}),
+          ...(p.note ? { note: p.note } : {}),
+        })),
+      };
     if (r.status !== "Contracted") delete out.supplier;
     return out;
   }
@@ -414,8 +440,9 @@ module.exports = function createRequests(ctx) {
     );
   }
 
-  /* ---------- T225: the customer's choice, the supplier's confirmation, the reveal ---------- */
-  const SUPPLIER_DAYS = 3; // working days the supplier has to accept a chosen option
+  /* ---------- T225, T232: the customer's choice, each supplier's confirmation, the reveal ---------- */
+  const SUPPLIER_DAYS = 3; // working days a supplier has to answer
+  const ACTIVE = ["Waiting for supplier", "Price changed", "Confirmed"];
   function workingDaysFrom(start, n) {
     const d = new Date(start);
     while (n > 0) {
@@ -425,7 +452,42 @@ module.exports = function createRequests(ctx) {
     return d.toISOString();
   }
   const supplierUsers = (sid) => getDb().users.filter((u) => u.supplierId === sid);
-  // The chosen option goes back: declined by the supplier, or no answer in time
+  const activeParts = (r) => (r.award?.parts || []).filter((p) => ACTIVE.includes(p.status));
+  const packageNames = (r, ids) => ids.map((pid) => r.packages.find((x) => x.id === pid)?.name || "");
+  function newPart(fields) {
+    return {
+      id: id("prt"),
+      status: "Waiting for supplier",
+      offeredAt: now(),
+      expiresAt: workingDaysFrom(Date.now(), SUPPLIER_DAYS),
+      ...fields,
+    };
+  }
+  // The award's own status and deadline, and (one supplier) its supplier and price, as T225 showed them
+  function summarize(r) {
+    const a = r.award,
+      act = activeParts(r);
+    if (a.status !== "Accepted")
+      a.status =
+        act.length && act.every((p) => p.status === "Confirmed") ? "Confirmed" : "Waiting for supplier";
+    a.expiresAt =
+      act
+        .filter((p) => p.status === "Waiting for supplier")
+        .map((p) => p.expiresAt)
+        .sort()[0] || a.expiresAt;
+    if (act.length === 1)
+      Object.assign(a, {
+        supplierId: act[0].supplierId,
+        supplierAmount: act[0].supplierAmount,
+        price: act[0].price,
+        deliveryDays: act[0].days,
+      });
+  }
+  function offerPart(r, part) {
+    for (const u of supplierUsers(part.supplierId))
+      notify(u.id, { key: "brokeredOrderNew", params: { title: r.title } }, "/supplier/orders");
+  }
+  // T225: a chosen offer from the operator's round goes back as a whole: the customer chooses again
   function releaseAward(r, reason) {
     const opt = (r.options || []).find((o) => o.id === r.award.optionId);
     if (opt) Object.assign(opt, { chosen: false, declined: true });
@@ -443,174 +505,225 @@ module.exports = function createRequests(ctx) {
     for (const a of admins())
       notify(a.id, { key: "requestOptionReleased", params: { title: r.title } }, `/admin/requests/${r.id}`);
   }
+  // T232: an estimate part that a supplier declines, lets expire or prices too high is given to the next suitable
+  // supplier: one for all its packages if possible, else one per package. Nobody left: the operator takes over.
+  function replacePart(r, part, reason) {
+    Object.assign(part, { status: "Declined", endedAt: now(), reason });
+    const pkgs = part.packageIds.map((pid) => r.packages.find((x) => x.id === pid)),
+      taken = new Set(
+        r.award.parts
+          .filter(
+            (p) => ACTIVE.includes(p.status) || p.packageIds.some((pid) => part.packageIds.includes(pid)),
+          )
+          .map((p) => p.supplierId),
+      ),
+      per = pkgs.map((pkg) => estimates.candidates(r, pkg).filter((c) => !taken.has(c.supplierId)));
+    if (per.some((l) => !l.length)) {
+      r.award.gap = [...new Set([...(r.award.gap || []), ...packageNames(r, part.packageIds)])];
+      for (const a of admins())
+        notify(a.id, { key: "requestNoSupplier", params: { title: r.title } }, `/admin/requests/${r.id}`);
+      notify(
+        r.customerId,
+        { key: "requestPartReplaced", params: { title: r.title } },
+        `/customer/requests/${r.id}`,
+      );
+      return;
+    }
+    const common = per[0].filter((c) => per.every((l) => l.some((x) => x.supplierId === c.supplierId))),
+      groups = common.length
+        ? [{ supplierId: common[0].supplierId, idx: pkgs.map((_, i) => i) }]
+        : pkgs.map((_, i) => ({ supplierId: per[i][0].supplierId, idx: [i] }));
+    for (const g of groups) {
+      const amount = g.idx.reduce((n, i) => n + per[i].find((c) => c.supplierId === g.supplierId).amount, 0),
+        hours = g.idx.reduce((n, i) => n + pkgs[i].hours, 0),
+        next = newPart({
+          supplierId: g.supplierId,
+          packageIds: g.idx.map((i) => pkgs[i].id),
+          hours,
+          estimate: amount,
+          supplierAmount: amount,
+          price: customerPrice(amount),
+          days: estimates.daysFor(hours),
+          replaces: part.id,
+        });
+      r.award.parts.push(next);
+      offerPart(r, next);
+    }
+    notify(
+      r.customerId,
+      { key: "requestPartReplaced", params: { title: r.title } },
+      `/customer/requests/${r.id}`,
+    );
+  }
+  // A supplier said no (or nothing in time)
+  function supplierOut(r, part, reason) {
+    if (r.award.estimate) replacePart(r, part, reason);
+    else releaseAward(r, reason);
+    if (r.award) summarize(r);
+  }
   function expireAwards() {
     let changed = false;
     for (const r of list())
-      if (r.award?.status === "Waiting for supplier" && r.award.expiresAt < now()) {
-        releaseAward(r, "Expired");
-        changed = true;
-      }
+      if (r.award && r.award.status !== "Accepted")
+        for (const p of activeParts(r))
+          if (p.status === "Waiting for supplier" && p.expiresAt < now() && r.award) {
+            supplierOut(r, p, "Expired");
+            changed = true;
+          }
     if (changed) save();
   }
-  // Both sides accepted: award the round, put the supplier on the work, write the contract, reveal both sides
-  function contract(r) {
+  // Every part confirmed: each supplier gets its tasks and a contract, both sides are named to each other
+  function finalize(r) {
     const db = getDb(),
       a = r.award,
-      bid = (db.bids || []).find((b) => b.id === r.bidId),
-      offer = bid?.offers?.find((o) => o.id === a.offerId),
-      supplier = db.suppliers.find((s) => s.id === a.supplierId),
-      customer = db.users.find((u) => u.id === r.customerId);
-    if (!bid || !offer || !supplier) return "The offer behind this option no longer exists.";
-    // The work: the customer's task if the request came from one, else a new project for it
-    let p = r.projectId && db.projects.find((x) => x.id === r.projectId),
-      task = p && r.taskId && p.phases.flatMap((ph) => ph.tasks || []).find((x) => x.id === r.taskId);
-    if (task?.assignedSupplierId && task.assignedSupplierId !== supplier.id) task = null;
-    if (!task) {
-      const start = r.startDate || now().slice(0, 10),
-        due =
-          r.dueDate ||
-          new Date(Date.parse(start) + Math.max(1, a.deliveryDays) * 86400000).toISOString().slice(0, 10),
-        phase = {
-          id: id("ph"),
-          name: r.category,
-          description: "",
-          startDate: start,
-          dueDate: due,
-          status: "In Progress",
-          dependencies: [],
-          supplierId: null,
-          acceptanceStatus: "Unassigned",
-          orderAmount: null,
-          subtasks: [],
-          assignmentHistory: [],
-          deliverables: [],
-          tasks: [],
-        };
-      task = {
-        id: id("tsk"),
-        name: r.title,
-        description: r.description,
-        startDate: start,
-        dueDate: due,
-        dependencies: [],
-        progress: 0,
-        subtasks: [],
-        assignmentHistory: [],
-        offers: [],
-      };
-      phase.tasks.push(task);
-      if (!p) {
-        p = {
-          id: id("prj"),
-          customerId: r.customerId,
-          name: r.title,
-          description: r.description,
-          requirements: "",
-          location: [r.sitePostcode, r.siteCity].filter(Boolean).join(" "),
-          buyerReference: "",
-          budget: a.price,
-          startDate: start,
-          dueDate: due,
-          status: "In Progress",
-          template: "",
-          phases: [],
-          createdAt: now(),
-          updatedAt: now(),
-        };
-        db.projects.unshift(p);
-      }
-      p.phases.push(phase);
-      r.projectId = p.id;
-      r.projectName = p.name;
-      r.taskId = task.id;
-    }
+      act = activeParts(r),
+      customer = db.users.find((u) => u.id === r.customerId),
+      p = db.projects.find((x) => x.id === r.projectId);
+    if (!p) return "The offer behind this option no longer exists.";
+    const tasks = p.phases.flatMap((ph) => ph.tasks || []);
     // T226: the operator stays in this project's conversations
     Object.assign(p, { brokered: true, operatorId: p.operatorId || r.operatorId || null });
-    Object.assign(task, {
-      assignedSupplierId: supplier.id,
-      acceptanceStatus: "Accepted",
-      status: "In Progress",
-      orderAmount: a.price,
-    });
-    task.assignmentHistory ||= [];
-    task.assignmentHistory.push({
-      supplierId: supplier.id,
-      company: supplier.company,
-      status: "Accepted via platform",
-      at: now(),
-    });
-    offer.status = "Accepted";
-    for (const o of bid.offers) if (o.id !== offer.id && o.status !== "Declined") o.status = "Not selected";
-    Object.assign(bid, {
-      status: "Awarded",
-      awardedOfferId: offer.id,
-      awardedAt: now(),
-      awardedAmount: offer.amount,
-      projectId: p.id,
-      projectName: p.name,
-      taskId: task.id,
-      updatedAt: now(),
-    });
-    contractFromAward(bid, offer, customer || { id: r.customerId });
-    const c = (db.contracts || []).find((x) => x.bidId === bid.id);
-    if (c)
-      Object.assign(c, {
-        brokered: true,
+    const suppliers = [],
+      contractIds = [];
+    for (const part of act) {
+      const supplier = db.suppliers.find((s) => s.id === part.supplierId);
+      if (!supplier) return "The offer behind this option no longer exists.";
+      const pkgs = part.packageIds.map((pid) => r.packages.find((x) => x.id === pid));
+      for (const pkg of pkgs) {
+        const task = tasks.find((x) => x.id === pkg.taskId);
+        if (!task) continue;
+        Object.assign(task, {
+          assignedSupplierId: supplier.id,
+          acceptanceStatus: "Accepted",
+          status: "In Progress",
+          orderAmount: Math.round((part.price * pkg.hours) / part.hours),
+        });
+        task.assignmentHistory ||= [];
+        task.assignmentHistory.push({
+          supplierId: supplier.id,
+          company: supplier.company,
+          status: "Accepted via platform",
+          at: now(),
+        });
+      }
+      // T225: a part from the operator's bid round awards that round
+      const bid = part.offerId && (db.bids || []).find((b) => b.id === r.bidId),
+        offer = bid?.offers?.find((o) => o.id === part.offerId);
+      if (offer) {
+        offer.status = "Accepted";
+        for (const o of bid.offers)
+          if (o.id !== offer.id && o.status !== "Declined") o.status = "Not selected";
+        Object.assign(bid, {
+          status: "Awarded",
+          awardedOfferId: offer.id,
+          awardedAt: now(),
+          awardedAmount: offer.amount,
+          projectId: p.id,
+          projectName: p.name,
+          taskId: pkgs[0]?.taskId || null,
+          updatedAt: now(),
+        });
+      }
+      const names = pkgs.map((x) => x.name),
+        due =
+          pkgs
+            .map((x) => tasks.find((t) => t.id === x.taskId)?.dueDate)
+            .filter(Boolean)
+            .sort()
+            .at(-1) ||
+          r.dueDate ||
+          "";
+      const c = {
+        id: id("ctr"),
+        customerId: r.customerId,
+        supplierId: supplier.id,
+        supplierCompany: supplier.company,
+        projectId: p.id,
+        projectName: p.name,
+        bidId: offer ? bid.id : null,
         requestId: r.id,
+        title: act.length > 1 ? `${r.title} — ${names.join(", ")}` : r.title,
+        category: pkgs[0]?.category || r.category,
+        value: part.price,
+        currency: "EUR",
+        startDate: now().slice(0, 10),
+        endDate: due,
+        noticeDays: 30,
+        autoRenew: false,
         status: "Active",
-        value: a.price,
-        supplierAmount: offer.amount,
+        terms: `Brokered by the platform for "${r.title}": ${names.join(", ")}, about ${part.hours} h, delivery within ${part.days} days.`,
+        brokered: true,
+        supplierAmount: part.supplierAmount,
         platformFeePercent: Number(db.settings?.platformFeePercent ?? 3),
-        endDate: task.dueDate,
         clause: {
           version: a.customerAcceptance.version,
           hash: a.customerAcceptance.hash,
           months: clause.current().months,
         },
-        acceptances: { customer: a.customerAcceptance, supplier: a.supplierAcceptance },
+        acceptances: { customer: a.customerAcceptance, supplier: part.supplierAcceptance },
+        createdAt: now(),
         updatedAt: now(),
-      });
-    clause.recordIntroduction(r.customerId, supplier.id, r.id);
+      };
+      db.contracts ||= [];
+      db.contracts.unshift(c);
+      contractIds.push(c.id);
+      clause.recordIntroduction(r.customerId, supplier.id, r.id);
+      suppliers.push({ id: supplier.id, company: supplier.company, packages: names });
+      for (const u of supplierUsers(supplier.id))
+        notify(
+          u.id,
+          { key: "brokeredOrderConfirmed", params: { title: r.title, company: customer?.company || "" } },
+          `/supplier/projects/${p.id}`,
+        );
+    }
     a.status = "Accepted";
-    r.supplier = { id: supplier.id, company: supplier.company };
-    r.contractId = c?.id || null;
-    move(r, "Contracted", { role: "admin", id: a.supplierAcceptance.userId });
+    Object.assign(r, { suppliers, contractIds, contractId: contractIds[0] || null });
+    if (suppliers.length === 1) r.supplier = { id: suppliers[0].id, company: suppliers[0].company };
+    move(r, "Contracted", { role: "admin", id: null });
     r.history.at(-1).by = "supplier";
+    const companies = suppliers.map((s) => s.company).join(", ");
     notify(
       r.customerId,
-      { key: "requestContracted", params: { title: r.title, company: supplier.company } },
+      { key: "requestContracted", params: { title: r.title, company: companies } },
       `/customer/requests/${r.id}`,
     );
-    for (const u of supplierUsers(supplier.id))
-      notify(
-        u.id,
-        { key: "brokeredOrderConfirmed", params: { title: r.title, company: customer?.company || "" } },
-        `/supplier/projects/${p.id}`,
-      );
     for (const ad of admins())
       notify(
         ad.id,
-        { key: "requestContracted", params: { title: r.title, company: supplier.company } },
+        { key: "requestContracted", params: { title: r.title, company: companies } },
         `/admin/requests/${r.id}`,
       );
     return null;
   }
-  // What a supplier sees of an order offered to them: the work and their own price; the customer once contracted
-  function supplierOrder(r) {
+  function settle(r) {
+    summarize(r);
+    if (r.award.status === "Confirmed") return finalize(r);
+    return null;
+  }
+  // What a supplier sees of its part: the work, its own price (an estimate to confirm), the customer once contracted
+  function supplierOrder(r, part) {
     const db = getDb(),
       contracted = r.status === "Contracted";
     return {
       requestId: r.id,
+      partId: part.id,
       title: r.title,
       description: r.description,
       category: r.category,
       region: r.sitePostcode ? r.sitePostcode.slice(0, 2) : "",
       startDate: r.startDate,
       dueDate: r.dueDate,
-      amount: r.award.supplierAmount,
-      deliveryDays: r.award.deliveryDays,
-      status: r.award.status,
-      expiresAt: r.award.expiresAt,
+      estimate: !!r.award.estimate,
+      packages: part.packageIds.map((pid) => {
+        const x = r.packages.find((y) => y.id === pid);
+        return { name: x?.name || "", category: x?.category || "", hours: x?.hours || 0 };
+      }),
+      hours: part.hours,
+      amount: part.supplierAmount,
+      proposedAmount: part.proposed?.supplierAmount ?? null,
+      deliveryDays: part.days,
+      status: contracted ? "Accepted" : part.status,
+      expiresAt: part.expiresAt,
       clause: clause.current(),
       ...(contracted
         ? {
@@ -625,16 +738,21 @@ module.exports = function createRequests(ctx) {
     if (user.role !== "supplier" || !user.supplierId)
       return (send(res, 403, { error: "Only suppliers confirm platform orders." }), true);
     expireAwards();
-    const mine = list().filter((r) => r.award?.supplierId === user.supplierId);
-    if (!parts[2] && method === "GET") return (send(res, 200, { orders: mine.map(supplierOrder) }), true);
-    const r = mine.find((x) => x.id === parts[2]);
-    if (!r || parts.length !== 4 || method !== "POST")
+    const mine = list()
+      .map((r) => ({ r, part: activeParts(r).find((p) => p.supplierId === user.supplierId) }))
+      .filter((x) => x.part);
+    if (!parts[2] && method === "GET")
+      return (send(res, 200, { orders: mine.map(({ r, part }) => supplierOrder(r, part)) }), true);
+    const found = mine.find((x) => x.r.id === parts[2]);
+    if (!found || parts.length !== 4 || method !== "POST")
       return (send(res, 404, { error: "Order not found" }), true);
-    if (r.award.status !== "Waiting for supplier")
+    const { r, part } = found;
+    if (part.status !== "Waiting for supplier")
       return (send(res, 409, { error: "This order was already answered." }), true);
     const b = await body(req);
     if (parts[3] === "decline") {
-      releaseAward(r, "Declined by the supplier");
+      supplierOut(r, part, "Declined by the supplier");
+      activity(user, `Declined platform order ${r.title}`);
       save();
       return (send(res, 200, { ok: true }), true);
     }
@@ -646,12 +764,39 @@ module.exports = function createRequests(ctx) {
         send(res, 409, { error: "The contract terms changed. Read them again and accept them." }),
         true
       );
-    r.award.supplierAcceptance = clause.acceptance(user, "brokered-contract");
-    const failed = contract(r);
+    // T232: the supplier may confirm the estimate or name its own price, with a reason
+    let price = null;
+    if (b.price !== undefined && b.price !== null && b.price !== "") {
+      price = Math.round(Number(b.price) * 100) / 100;
+      if (!Number.isFinite(price) || price <= 0 || price > 100000000)
+        return (send(res, 400, { error: "Enter your price in euros." }), true);
+      if (price !== part.supplierAmount && !text(b.note, 1000))
+        return (send(res, 400, { error: "Tell the customer why the price changes." }), true);
+    }
+    part.supplierAcceptance = clause.acceptance(user, "brokered-contract");
+    if (price === null || price <= part.supplierAmount) {
+      if (price !== null && price < part.supplierAmount)
+        Object.assign(part, { supplierAmount: price, price: customerPrice(price), note: text(b.note, 1000) });
+      Object.assign(part, { status: "Confirmed", confirmedAt: now() });
+    } else {
+      part.proposed = {
+        supplierAmount: price,
+        price: customerPrice(price),
+        note: text(b.note, 1000),
+        at: now(),
+      };
+      part.status = "Price changed";
+      notify(
+        r.customerId,
+        { key: "requestPriceChanged", params: { title: r.title } },
+        `/customer/requests/${r.id}`,
+      );
+    }
+    const failed = settle(r);
     if (failed) return (send(res, 409, { error: failed }), true);
-    activity(user, `Accepted platform order ${r.title}`);
+    activity(user, `Answered platform order ${r.title}`);
     save();
-    return (send(res, 200, { order: supplierOrder(r) }), true);
+    return (send(res, 200, { order: supplierOrder(r, part) }), true);
   }
 
   async function handle(req, res, url, parts, user) {
@@ -740,7 +885,6 @@ module.exports = function createRequests(ctx) {
         opt = (r.options || []).find((o) => o.id === b.optionId && !o.declined);
       if (r.status !== "Options ready" || !opt)
         return (send(res, 409, { error: "This option can no longer be chosen." }), true);
-      if (opt.estimate) return (send(res, 409, { error: "This estimate cannot be chosen yet." }), true);
       if (b.acceptClause !== true)
         return (send(res, 400, { error: "Accept the platform contract to confirm." }), true);
       if (b.clauseHash !== clause.current().hash)
@@ -749,24 +893,70 @@ module.exports = function createRequests(ctx) {
           true
         );
       opt.chosen = true;
+      // T232: one part per supplier; an operator's offer (T224) is one part for the whole request
+      const allIds = r.packages.map((x) => x.id),
+        parts = (
+          opt.parts || [
+            {
+              supplierId: opt.supplierId,
+              offerId: opt.offerId,
+              packageIds: allIds,
+              hours: r.packages.reduce((n, x) => n + x.hours, 0),
+              supplierAmount: opt.supplierAmount,
+              price: opt.price,
+              days: opt.deliveryDays,
+            },
+          ]
+        ).map((p) =>
+          newPart({
+            supplierId: p.supplierId,
+            offerId: p.offerId || null,
+            packageIds: p.packageIds,
+            hours: p.hours,
+            estimate: p.supplierAmount,
+            supplierAmount: p.supplierAmount,
+            price: p.price,
+            days: p.days,
+          }),
+        );
       r.award = {
         optionId: opt.id,
-        offerId: opt.offerId,
-        supplierId: opt.supplierId,
-        price: opt.price,
-        supplierAmount: opt.supplierAmount,
-        deliveryDays: opt.deliveryDays,
+        estimate: !!opt.estimate,
         customerAcceptance: clause.acceptance(user, "brokered-contract"),
         status: "Waiting for supplier",
         offeredAt: now(),
-        expiresAt: workingDaysFrom(Date.now(), SUPPLIER_DAYS),
+        parts,
       };
+      summarize(r);
       move(r, "Chosen", user);
-      for (const u of supplierUsers(opt.supplierId))
-        notify(u.id, { key: "brokeredOrderNew", params: { title: r.title } }, "/supplier/orders");
+      for (const p of parts) offerPart(r, p);
       for (const a of admins())
         notify(a.id, { key: "requestChosen", params: { title: r.title } }, `/admin/requests/${r.id}`);
       activity(user, `Chose an option for request ${r.title}`);
+      save();
+      return (send(res, 200, { request: view(user, r) }), true);
+    }
+    // T232: the customer approves or rejects a higher price a supplier named for its part
+    if (parts[3] === "parts" && parts[4] && !parts[5] && method === "POST") {
+      if (user.role !== "customer")
+        return (send(res, 403, { error: "Only the customer chooses an option." }), true);
+      const part = activeParts(r).find((p) => p.id === parts[4]),
+        b = await body(req);
+      if (!part || part.status !== "Price changed")
+        return (send(res, 409, { error: "This price is no longer waiting for you." }), true);
+      if (b.action === "approve") {
+        Object.assign(part, {
+          supplierAmount: part.proposed.supplierAmount,
+          price: part.proposed.price,
+          note: part.proposed.note,
+          status: "Confirmed",
+          confirmedAt: now(),
+        });
+        delete part.proposed;
+      } else if (b.action === "reject") supplierOut(r, part, "Price not accepted");
+      else return (send(res, 400, { error: "Choose a valid action for this request." }), true);
+      const failed = r.award ? settle(r) : null;
+      if (failed) return (send(res, 409, { error: failed }), true);
       save();
       return (send(res, 200, { request: view(user, r) }), true);
     }

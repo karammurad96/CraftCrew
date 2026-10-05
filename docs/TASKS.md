@@ -345,7 +345,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 **Wave 15b — instant estimates (decided with Karam on 5 October 2026: supplier search and pricing are automated; the customer gets an initial offer at once, an estimate that the chosen supplier confirms after review; split across several suppliers when that makes sense; every request belongs to a project; details under "Wave 15b")**
 - [x] T230 Every request belongs to a project, and its work packages are the project's tasks · M · do first
 - [x] T231 Instant estimate: available suitable suppliers priced from their price lists, split when it makes sense · M
-- [ ] T232 Supplier confirmation per part: confirm, adjust the price or decline, automatic replacement · M
+- [x] T232 Supplier confirmation per part: confirm, adjust the price or decline, automatic replacement · M
 - [ ] T233 Several suppliers in one request: contracts, assignment and reveal per supplier; demo data and rollback · S
 
 ---
@@ -4854,8 +4854,37 @@ fallback.
    in the next supplier.
 
 **Done when.**
-- [ ] Tests cover confirm, a lower price, a higher price approved and rejected, decline with replacement,
+- [x] Tests cover confirm, a lower price, a higher price approved and rejected, decline with replacement,
       expiry, and no supplier left.
+
+**As built (5 October 2026).**
+- **Parts.** `request.award.parts` holds one part per supplier, each with:
+  - `packageIds`, hours, `estimate`, `supplierAmount`, customer `price` and days;
+  - a status: *Waiting for supplier*, *Price changed*, *Confirmed* or *Declined*;
+  - a deadline three working days ahead.
+  An operator's offer (T224) is one part for the whole request. The award keeps T225's fields for one
+  supplier.
+- **The supplier's answer.** `POST /api/brokered-orders/:requestId/accept {acceptClause, clauseHash, price?,
+  note?}`:
+  - the same price confirms the estimate;
+  - a lower price confirms at once;
+  - a higher one needs a reason and waits as `proposed`, and the customer is notified (`requestPriceChanged`).
+  `/decline` declines.
+- **The customer's answer.** `POST /api/requests/:id/parts/:partId {action: approve|reject}`.
+- **Replacement** (`replacePart()`). A decline, a rejected price or a missed deadline gives the packages to
+  the next candidate from `estimate.js`, not yet tried and not already on the request: one supplier for all of
+  them if possible, else one per package. Nobody left: `award.gap` and the operators are notified
+  (`requestNoSupplier`).
+  - A declined operator offer still returns the whole request to *Options ready*, as in T225.
+- **What each side sees.**
+  - The customer sees each part's packages, price, days, state, a proposed price with its reason, and whether
+    it is a replacement, never the supplier.
+  - The operator sees the companies.
+- **Pages.**
+  - Customer: the parts with *Approve price* or *Reject, find another supplier*.
+  - Supplier, *Platform orders*: the packages, an estimate note, "Your price" with a reason, and "Waiting for
+    the customer".
+- **Tests.** `test/part-confirmation.test.js`.
 
 ### T233 · Several suppliers in one request
 `P1 · S · depends on T232`

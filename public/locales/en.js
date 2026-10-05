@@ -133,6 +133,8 @@ LOCALES.en = {
       optionsReady: "Options ready",
       chosen: "Chosen",
       contracted: "Contracted",
+      confirmed: "Confirmed",
+      priceChanged: "Price changed",
       waitingForSupplier: "Waiting for supplier",
       acceptedViaPlatform: "Accepted via platform",
       references: "References",
@@ -426,7 +428,9 @@ LOCALES.en = {
       anotherRoundCanBeAsked: "Another round can be asked for once options are ready.",
       setAFutureDeadlineFor: "Set a future deadline for the offers.",
       theCustomerChoosesAmongThe: "The customer chooses among the options; the award follows their choice.",
-      thisEstimateCannotBeChosen: "This estimate cannot be chosen yet.",
+      enterYourPriceInEuros: "Enter your price in euros.",
+      tellTheCustomerWhyThe2: "Tell the customer why the price changes.",
+      thisPriceIsNoLonger: "This price is no longer waiting for you.",
       aRequestCanHaveUp: "A request can have up to ten work packages.",
       enterTheEffortInHours: "Enter the effort in hours (1 to 5,000), or leave it empty.",
       chooseOpenTasksOfThe: "Choose open tasks of the selected project as work packages.",
@@ -3575,6 +3579,7 @@ LOCALES.en = {
     "hours": "{n} h · {name}"
   },
   req: {
+    "awardDoneMany": "Contracts in place with your suppliers:",
     "estimate": {
       "badge": "Estimate",
       "split": "{n} suppliers",
@@ -3582,6 +3587,13 @@ LOCALES.en = {
       "gap": "No instant estimate: no supplier with a price for {list}. Find suppliers below."
     },
     "part": {
+      "replacement": "new supplier",
+      "changed": "was {was}. Reason:",
+      "approve": "Approve price",
+      "reject": "Reject, find another supplier",
+      "approved": "Price approved",
+      "rejected": "Another supplier is asked",
+      "gap": "No supplier found for: {list}. The platform takes over.",
       "title": "Part {n}:",
       "facts": "{hours} h · {price} · {days} days"
     },
@@ -3628,11 +3640,17 @@ LOCALES.en = {
     "chooseConfirm": "Choose and order",
     "chosen": "Option chosen. The supplier now confirms the order.",
     "order": {
+      "estimateNote": "This price is an estimate from your price list. Confirm it, or enter your own price with a reason; a higher price goes to the customer for approval.",
+      "priceWaiting": "Your price of {price} waits for the customer's approval.",
+      "yourPrice": "Your price (€)",
+      "priceReason": "Reason for a different price",
+      "priceReasonPh": "e.g. extra cabling found in the drawings",
       "title": "Platform orders",
       "lead": "Customers chose your offer through the platform. Confirm within three working days; the customer is named once you accept.",
       "eyebrow": "Platform order · region {region}",
       "eyebrowNoRegion": "Platform order",
       "status": {
+        "priceChanged": "Waiting for the customer",
         "waiting": "Waiting for you",
         "accepted": "Confirmed"
       },
@@ -5255,6 +5273,9 @@ LOCALES.en = {
       requestChosen: "The customer chose an option for {title}; waiting for the supplier",
       requestContracted: "Contract in place for {title}: your supplier is {company}",
       requestOptionReleased: "The chosen option for {title} is no longer available. Choose another option.",
+      requestPriceChanged: "A supplier changed the price of a part of {title}. Please approve or reject it.",
+      requestPartReplaced: "A part of {title} goes to another supplier. See the request for the new estimate.",
+      requestNoSupplier: "No supplier left for a part of {title}; please take over",
       requestOptionsReady: "Your options for {title} are ready ({n})",
       requestMessage: "New message on the request {title}",
       bidInvitationPlatform: "The platform invites you to quote: {title}",
