@@ -344,7 +344,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 
 **Wave 15b — instant estimates (decided with Karam on 5 October 2026: supplier search and pricing are automated; the customer gets an initial offer at once, an estimate that the chosen supplier confirms after review; split across several suppliers when that makes sense; every request belongs to a project; details under "Wave 15b")**
 - [x] T230 Every request belongs to a project, and its work packages are the project's tasks · M · do first
-- [ ] T231 Instant estimate: available suitable suppliers priced from their price lists, split when it makes sense · M
+- [x] T231 Instant estimate: available suitable suppliers priced from their price lists, split when it makes sense · M
 - [ ] T232 Supplier confirmation per part: confirm, adjust the price or decline, automatic replacement · M
 - [ ] T233 Several suppliers in one request: contracts, assignment and reveal per supplier; demo data and rollback · S
 
@@ -4802,8 +4802,37 @@ fallback.
    start value.
 
 **Done when.**
-- [ ] Unit tests cover the rate sources, availability, a split that is cheaper, a split that is needed, no split
+- [x] Unit tests cover the rate sources, availability, a split that is cheaper, a split that is needed, no split
       when it does not pay off, and the fallback when nothing can be priced.
+
+**As built (5 October 2026).**
+- **Engine (`estimate.js`).**
+  - `rateFor()`: a catalogue entry for the category or of that name, not paused (hour, or day ÷ 8), else the
+    profile's hourly rate, else no price.
+  - `candidates()`: live suppliers offering the category, not *Busy* or *Unavailable*, with fewer than three
+    open tasks in the request's weeks. Ranked by quality (scorecard, else rating; plus badge), minus a little
+    for distance.
+  - `build()`: one supplier for everything versus the best or cheapest supplier per package; split thresholds
+    10 % cheaper or 20 % faster; parts run in parallel. Up to three different options, or `missing` packages.
+- **Instant options.** `POST /api/requests` runs `instantEstimate()` when the setting is on.
+  - The options carry `estimate`, `split` and `parts` (supplier, packages, hours, supplier amount, customer
+    price, days, anonymised profile).
+  - The request goes to *Options ready* (history note "Instant estimate") and the customer is notified.
+  - When something cannot be priced, the request stays *New* with `estimateGap` (the package names) for the
+    operator.
+- **What the customer sees.** Parts with package names, hours, price, days and profile, never the supplier;
+  no `estimateGap`. The operator sees each part's company.
+- **Setting.** *Instant estimates* in the platform settings (`settings.instantEstimates`), else
+  `INSTANT_ESTIMATES` (off = `off`); on by default.
+  - `test/helpers.js` starts the Wave 15 suites with it off.
+  - The demo seed switches it off while it scripts the manual stages, then on again.
+- **Bug fixed on the way.** The admin settings page offered a different default category list than the rest of
+  the platform, so saving the settings once unchanged switched the categories (and broke requests). It now uses
+  the same list; there is a test in `test/platform-mode.test.js`.
+- **Pages.** Option cards show "Estimate", "2 suppliers", the parts and a note that suppliers confirm after the
+  choice. The operator's request page names a pricing gap.
+- **Not yet.** Choosing an estimate option answers "This estimate cannot be chosen yet." until T232.
+- **Tests.** `test/estimate.test.js` (engine, fixed data) and `test/instant-estimate.test.js` (API).
 
 ### T232 · Supplier confirmation per part
 `P1 · M · depends on T231, T225`

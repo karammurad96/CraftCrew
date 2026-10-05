@@ -426,6 +426,7 @@ LOCALES.en = {
       anotherRoundCanBeAsked: "Another round can be asked for once options are ready.",
       setAFutureDeadlineFor: "Set a future deadline for the offers.",
       theCustomerChoosesAmongThe: "The customer chooses among the options; the award follows their choice.",
+      thisEstimateCannotBeChosen: "This estimate cannot be chosen yet.",
       aRequestCanHaveUp: "A request can have up to ten work packages.",
       enterTheEffortInHours: "Enter the effort in hours (1 to 5,000), or leave it empty.",
       chooseOpenTasksOfThe: "Choose open tasks of the selected project as work packages.",
@@ -3574,6 +3575,16 @@ LOCALES.en = {
     "hours": "{n} h · {name}"
   },
   req: {
+    "estimate": {
+      "badge": "Estimate",
+      "split": "{n} suppliers",
+      "note": "An estimate from the suppliers' price lists. After your choice each supplier confirms its part; if a price changes upward, you decide again.",
+      "gap": "No instant estimate: no supplier with a price for {list}. Find suppliers below."
+    },
+    "part": {
+      "title": "Part {n}:",
+      "facts": "{hours} h · {price} · {days} days"
+    },
     "pkg": {
       "hoursN": "{n} h",
       "hoursRough": "about {n} h (estimated from the dates)",
@@ -4020,6 +4031,7 @@ LOCALES.en = {
       "preview": "Preview",
       "legalSaved": "Legal pages published",
       "autoSuggest": "Suggest suppliers automatically when a request arrives",
+      "instantEstimates": "Instant estimates: price new requests at once from the suppliers' price lists",
       "markup": "Markup on brokered options (%)",
       "markupHint": "0 = the customer pays the supplier's price and the platform fee is taken from the payout. A markup means the platform resells the work: decide with your tax adviser first.",
       "clause": {

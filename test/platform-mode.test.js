@@ -91,3 +91,19 @@ describe("platform mode from the environment", () => {
     }
   });
 });
+
+describe("platform settings defaults", () => {
+  it("keeps the service categories when the settings are saved unchanged (T231)", async () => {
+    const app = await startApp();
+    try {
+      const admin = await app.login(...ADMIN);
+      const before = (await app.call("GET", "/platform-config")).serviceCategories;
+      const { settings } = await app.call("GET", "/admin/settings", undefined, admin);
+      assert.deepEqual(settings.serviceCategories, before);
+      assert.equal((await app.call("PUT", "/admin/settings", settings, admin)).status, 200);
+      assert.deepEqual((await app.call("GET", "/platform-config")).serviceCategories, before);
+    } finally {
+      await app.stop();
+    }
+  });
+});

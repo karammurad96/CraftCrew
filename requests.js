@@ -11,7 +11,9 @@ const DAY = 86400000;
 
 module.exports = function createRequests(ctx) {
   const { getDb, save, send, body, id, now, notify, activity, projectFor, ownUpload, categories } = ctx;
-  const { suggest, cleanWeights, scorecard, clause, contractFromAward } = ctx;
+  const { suggest, cleanWeights, scorecard, clause, contractFromAward, estimate } = ctx;
+  // T231: the admin setting wins over INSTANT_ESTIMATES; on by default
+  const instantOn = () => getDb().settings?.instantEstimates ?? process.env.INSTANT_ESTIMATES !== "off";
   const OPTION_LABELS = ["fastest", "cheapest", "best", "recommended"];
   const text = (v, max) =>
     String(v ?? "")
@@ -24,15 +26,32 @@ module.exports = function createRequests(ctx) {
   // What a customer may see: no operator notes, no sourcing data (T223/T224 add more operator-only fields).
   const OPERATOR_ONLY = ["operatorNote", "suggestions", "bidId", "operatorId", "leakHints"];
   function view(user, r) {
-    if (user.role === "admin") return { ...r, sourcing: sourcingView(r) };
+    if (user.role === "admin") {
+      // The operator sees who is behind each estimate part, and each part's packages by name
+      const company = (sid) => getDb().suppliers.find((s) => s.id === sid)?.company || "";
+      const options = (r.options || []).map((o) =>
+        o.parts
+          ? {
+              ...o,
+              parts: o.parts.map((p) => ({
+                ...p,
+                company: company(p.supplierId),
+                packages: p.packageIds.map((pid) => r.packages.find((x) => x.id === pid)?.name || ""),
+              })),
+            }
+          : o,
+      );
+      return { ...r, options, sourcing: sourcingView(r) };
+    }
     const out = { ...r };
     for (const k of OPERATOR_ONLY) delete out[k];
     out.history = (r.history || []).map(({ byId, ...h }) => h);
     // T224: the customer sees options only once they are published, and never who is behind them
     out.options = ["Options ready", "Chosen", "Contracted"].includes(r.status)
-      ? (r.options || []).map(customerOption)
+      ? (r.options || []).map((o) => customerOption(o, r))
       : [];
     out.thread = (r.thread || []).map(({ byId, ...m }) => m);
+    delete out.estimateGap;
     // T225: the supplier is named only once both sides have accepted the contract
     delete out.award;
     if (r.award) out.award = { status: r.award.status, expiresAt: r.award.expiresAt };
@@ -41,7 +60,7 @@ module.exports = function createRequests(ctx) {
   }
   // T224: an option as the customer sees it. Only fields picked here leave the server: no supplier id, name,
   // contact details or the supplier's own amount.
-  function customerOption(o) {
+  function customerOption(o, r) {
     return {
       id: o.id,
       label: o.label,
@@ -52,6 +71,17 @@ module.exports = function createRequests(ctx) {
       attachments: o.attachments || [],
       chosen: !!o.chosen,
       declined: !!o.declined,
+      // T231: an estimate, maybe split across suppliers; each part shows its packages, never its supplier
+      estimate: !!o.estimate,
+      split: !!o.split,
+      parts: (o.parts || []).map((p) => ({
+        id: p.id,
+        packages: p.packageIds.map((pid) => r.packages.find((x) => x.id === pid)?.name || ""),
+        hours: p.hours,
+        price: p.price,
+        days: p.days,
+        profile: p.profile,
+      })),
     };
   }
   // The anonymised profile of a supplier: level, track record and certificate types, never who they are
@@ -341,6 +371,49 @@ module.exports = function createRequests(ctx) {
     } else Object.assign(r, { phaseId: null, taskId: null, taskName: "" });
   }
 
+  /* ---------- T231: the instant estimate ---------- */
+  // Options from the estimate engine: per supplier a part with its packages; the customer price after T224's model
+  function instantEstimate(r) {
+    const { options, missing } = estimate(r);
+    if (!options.length) {
+      r.estimateGap = r.packages.filter((x) => missing.includes(x.id)).map((x) => x.name);
+      return;
+    }
+    r.options = options.map((o) => {
+      const parts = o.parts.map((p) => ({
+        id: id("prt"),
+        supplierId: p.supplierId,
+        packageIds: p.packageIds,
+        hours: p.hours,
+        supplierAmount: p.supplierAmount,
+        price: customerPrice(p.supplierAmount),
+        days: p.days,
+        profile: anonymousProfile(p.supplierId),
+      }));
+      return {
+        id: id("opt"),
+        estimate: true,
+        label: o.label,
+        note: "",
+        split: o.split,
+        parts,
+        supplierId: parts.length === 1 ? parts[0].supplierId : null,
+        supplierAmount: o.supplierAmount,
+        price: parts.reduce((n, p) => n + p.price, 0),
+        deliveryDays: o.days,
+        profile: parts.length === 1 ? parts[0].profile : null,
+        attachments: [],
+      };
+    });
+    r.estimatedAt = now();
+    move(r, "Options ready", { role: "admin", id: null }, "Instant estimate");
+    notify(
+      r.customerId,
+      { key: "requestOptionsReady", params: { title: r.title, n: r.options.length } },
+      `/customer/requests/${r.id}`,
+    );
+  }
+
   /* ---------- T225: the customer's choice, the supplier's confirmation, the reveal ---------- */
   const SUPPLIER_DAYS = 3; // working days the supplier has to accept a chosen option
   function workingDaysFrom(start, n) {
@@ -609,6 +682,7 @@ module.exports = function createRequests(ctx) {
       };
       linkProject(user, r);
       move(r, "New", user);
+      if (instantOn()) instantEstimate(r);
       if (getDb().settings?.autoSuggest !== false) refreshSuggestions(r);
       list().unshift(r);
       for (const a of admins())
@@ -666,6 +740,7 @@ module.exports = function createRequests(ctx) {
         opt = (r.options || []).find((o) => o.id === b.optionId && !o.declined);
       if (r.status !== "Options ready" || !opt)
         return (send(res, 409, { error: "This option can no longer be chosen." }), true);
+      if (opt.estimate) return (send(res, 409, { error: "This estimate cannot be chosen yet." }), true);
       if (b.acceptClause !== true)
         return (send(res, 400, { error: "Accept the platform contract to confirm." }), true);
       if (b.clauseHash !== clause.current().hash)
