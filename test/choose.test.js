@@ -188,7 +188,8 @@ describe("choosing an option", () => {
     assert.ok(days > 2.99 && days <= 5, `three working days (${days.toFixed(1)} calendar days)`);
     await app.stop();
     await editDb(dataDir, (data) => {
-      data.requests.find((r) => r.id === req.id).award.expiresAt = "2020-01-01T00:00:00.000Z";
+      // The deadline is kept per supplier part (T232)
+      for (const part of data.requests.find((r) => r.id === req.id).award.parts) part.expiresAt = "2020-01-01T00:00:00.000Z";
     });
     app = await startApp({ dataDir, env: { PLATFORM_MODE: "brokered" } });
     await login();

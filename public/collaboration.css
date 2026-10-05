@@ -1132,3 +1132,15 @@
 .rq-option .status + .status {
   margin-inline-start: 6px;
 }
+
+/* Supplier parts after the choice (T232) */
+.rq-award-parts {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding-inline-start: 18px;
+}
+.rq-award-parts small {
+  display: block;
+  color: #526174;
+}

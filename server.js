@@ -425,6 +425,7 @@ const requests = require("./requests")({
   categories: () => db.settings?.serviceCategories || services,
   suggest: (r) => sourcing.suggestSuppliers(r),
   estimate: (r) => estimates.build(r),
+  estimates,
   scorecard: (sid) => sourcing.scorecard(sid),
   clause,
   contractFromAward: (...a) => sourcing.contractFromAward(...a),

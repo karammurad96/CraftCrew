@@ -132,6 +132,8 @@ LOCALES.de = {
       optionsReady: "Optionen bereit",
       chosen: "Gewählt",
       contracted: "Beauftragt",
+      confirmed: "Bestätigt",
+      priceChanged: "Preis geändert",
       waitingForSupplier: "Wartet auf Lieferanten",
       acceptedViaPlatform: "Über die Plattform angenommen",
       references: "Referenzen",
@@ -424,7 +426,9 @@ LOCALES.de = {
       anotherRoundCanBeAsked: "Eine weitere Runde kann angefragt werden, sobald Optionen bereit sind.",
       setAFutureDeadlineFor: "Setzen Sie eine Frist in der Zukunft für die Angebote.",
       theCustomerChoosesAmongThe: "Der Kunde wählt unter den Optionen; die Vergabe folgt seiner Wahl.",
-      thisEstimateCannotBeChosen: "Diese Schätzung kann noch nicht gewählt werden.",
+      enterYourPriceInEuros: "Geben Sie Ihren Preis in Euro an.",
+      tellTheCustomerWhyThe2: "Sagen Sie dem Kunden, warum sich der Preis ändert.",
+      thisPriceIsNoLonger: "Dieser Preis wartet nicht mehr auf Sie.",
       aRequestCanHaveUp: "Eine Anfrage kann bis zu zehn Arbeitspakete haben.",
       enterTheEffortInHours: "Geben Sie den Aufwand in Stunden an (1 bis 5.000), oder lassen Sie ihn leer.",
       chooseOpenTasksOfThe: "Wählen Sie offene Aufgaben des gewählten Projekts als Arbeitspakete.",
@@ -3574,6 +3578,7 @@ LOCALES.de = {
     "hours": "{n} h · {name}"
   },
   req: {
+    "awardDoneMany": "Verträge mit Ihren Lieferanten geschlossen:",
     "estimate": {
       "badge": "Schätzung",
       "split": "{n} Lieferanten",
@@ -3581,6 +3586,13 @@ LOCALES.de = {
       "gap": "Keine Sofortschätzung: kein Lieferant mit Preis für {list}. Suchen Sie unten Lieferanten."
     },
     "part": {
+      "replacement": "neuer Lieferant",
+      "changed": "vorher {was}. Grund:",
+      "approve": "Preis annehmen",
+      "reject": "Ablehnen, anderen Lieferanten suchen",
+      "approved": "Preis angenommen",
+      "rejected": "Ein anderer Lieferant wird angefragt",
+      "gap": "Kein Lieferant gefunden für: {list}. Die Plattform übernimmt.",
       "title": "Teil {n}:",
       "facts": "{hours} Std. · {price} · {days} Tage"
     },
@@ -3627,11 +3639,17 @@ LOCALES.de = {
     "chooseConfirm": "Wählen und beauftragen",
     "chosen": "Option gewählt. Der Lieferant bestätigt jetzt den Auftrag.",
     "order": {
+      "estimateNote": "Dieser Preis ist eine Schätzung aus Ihrer Preisliste. Bestätigen Sie ihn oder nennen Sie Ihren Preis mit Begründung; ein höherer Preis geht dem Kunden zur Zustimmung.",
+      "priceWaiting": "Ihr Preis von {price} wartet auf die Zustimmung des Kunden.",
+      "yourPrice": "Ihr Preis (€)",
+      "priceReason": "Grund für einen anderen Preis",
+      "priceReasonPh": "z. B. zusätzliche Verkabelung laut Zeichnungen",
       "title": "Plattformaufträge",
       "lead": "Kunden haben Ihr Angebot über die Plattform gewählt. Bestätigen Sie innerhalb von drei Werktagen; der Kunde wird genannt, sobald Sie annehmen.",
       "eyebrow": "Plattformauftrag · Region {region}",
       "eyebrowNoRegion": "Plattformauftrag",
       "status": {
+        "priceChanged": "Wartet auf den Kunden",
         "waiting": "Wartet auf Sie",
         "accepted": "Bestätigt"
       },
@@ -5254,6 +5272,9 @@ LOCALES.de = {
       requestChosen: "Der Kunde hat eine Option für {title} gewählt; der Lieferant muss noch bestätigen",
       requestContracted: "Vertrag geschlossen für {title}: Ihr Lieferant ist {company}",
       requestOptionReleased: "Die gewählte Option für {title} ist nicht mehr verfügbar. Wählen Sie eine andere Option.",
+      requestPriceChanged: "Ein Lieferant hat den Preis eines Teils von {title} geändert. Bitte stimmen Sie zu oder lehnen Sie ab.",
+      requestPartReplaced: "Ein Teil von {title} geht an einen anderen Lieferanten. Die neue Schätzung steht in der Anfrage.",
+      requestNoSupplier: "Kein Lieferant mehr für einen Teil von {title}; bitte übernehmen Sie",
       requestOptionsReady: "Ihre Optionen für {title} sind bereit ({n})",
       requestMessage: "Neue Nachricht zur Anfrage {title}",
       bidInvitationPlatform: "Die Plattform lädt Sie zu einem Angebot ein: {title}",
