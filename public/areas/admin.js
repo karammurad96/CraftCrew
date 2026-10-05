@@ -654,7 +654,7 @@ async function adminPlatform() {
     "feePercent",
   )}<input type="number" name="platformFeePercent" min="0" max="25" step="0.1" value="${num(s.platformFeePercent)}" required></label><label>${f("paymentDays")}<input type="number" name="defaultPaymentTermsDays" min="0" max="180" value="${num(
     s.defaultPaymentTermsDays,
-  )}" required></label><label>${f("uploadLimit")}<input type="number" name="uploadLimitMb" min="1" max="5" value="${num(s.uploadLimitMb, 5)}" required></label><label class="cc-check-label"><input type="checkbox" name="autoSuggest"${
+  )}" required></label><label>${f("uploadLimit")}<input type="number" name="uploadLimitMb" min="1" max="5" value="${num(s.uploadLimitMb, 5)}" required></label><label>${f("markup")}<input type="number" name="brokerMarkupPercent" min="0" max="30" step="0.5" value="${num(s.brokerMarkupPercent)}"><small>${f("markupHint")}</small></label><label class="cc-check-label"><input type="checkbox" name="autoSuggest"${
     s.autoSuggest === false ? "" : " checked"
   }> ${f("autoSuggest")}</label></div></section><section class="panel"><div class="panel-title"><h3>${f(
     "faq",
@@ -717,6 +717,7 @@ actions.on("adm.saveSettings", async (form) => {
     uploadLimitMb: f.get("uploadLimitMb"),
     faqContent: f.get("faqContent"),
     autoSuggest: f.get("autoSuggest") === "on",
+    brokerMarkupPercent: f.get("brokerMarkupPercent"),
     emailTemplates,
   };
   try {
