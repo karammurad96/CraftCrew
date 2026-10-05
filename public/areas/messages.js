@@ -55,7 +55,8 @@ actions.on("msg.search", (input) => {
 });
 actions.on("msg.send", async (form) => {
   try {
-    await api(`/chats/${encodeURIComponent(form.dataset.chat)}/messages`, { method: "POST", body: { text: new FormData(form).get("text") } });
+    const sent = await api(`/chats/${encodeURIComponent(form.dataset.chat)}/messages`, { method: "POST", body: { text: new FormData(form).get("text") } });
+    if (sent?.contactHint) toast(t("common.contactHint"), "warn"); // T226
     await route();
   } catch (x) {
     toast(x.message, "error");

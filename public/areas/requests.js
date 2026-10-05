@@ -426,7 +426,20 @@ async function rqAdminDetail(params) {
         : ""
     }</div>${take}
 <section class="panel"><h3>${rqk("details")}</h3>${rqFacts(r)}<p class="rq-description"><bdi>${esc(r.description)}</bdi></p></section>
-${rqAwardNote(r, "admin")}<section class="panel"><h3>${rqk("files")}</h3>${rqFiles(r)}</section>${rqSourcingPanel(r)}${rqThread(r, "admin")}
+${rqAwardNote(r, "admin")}${
+      (r.leakHints || []).length
+        ? `<div class="notice warn"><b>${rqk("leak.title", { n: r.leakHints.length })}</b> ${r.leakHints
+            .slice(-5)
+            .map((h) =>
+              rqk("leak.item", {
+                date: fmt.date(h.at),
+                who: rqk("leak.role." + (h.role === "supplier" ? "supplier" : "customer")),
+                where: rqk("leak.where." + (h.where === "offer" ? "offer" : "chat")),
+              }),
+            )
+            .join(" · ")}</div>`
+        : ""
+    }<section class="panel"><h3>${rqk("files")}</h3>${rqFiles(r)}</section>${rqSourcingPanel(r)}${rqThread(r, "admin")}
 <section class="panel"><h3>${rqk("note")}</h3><form class="modal-form" data-action="req.note" data-id="${esc(r.id)}"><textarea name="note" rows="4" maxlength="5000" placeholder="${rqk("notePlaceholder")}">${esc(r.operatorNote || "")}</textarea><div class="cc-actions"><button class="btn outline">${rqk("saveNote")}</button></div></form></section>
 <section class="panel"><h3>${rqk("timeline")}</h3>${rqTimeline(r)}</section>`,
   );
