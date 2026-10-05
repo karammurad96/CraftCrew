@@ -91,3 +91,86 @@ The site is new, so rolling back means taking it offline cleanly, not restoring 
 ### Load test results (T184)
 
 *Not run yet.*
+
+## 6. Rollback: from brokered mode back to the marketplace (T228)
+
+Since Wave 15 the platform runs in **brokered mode** (Stufe 1):
+- customers send requests to the platform and see no supplier before they choose;
+- the supplier is named once both sides accept the platform contract with the non-circumvention clause.
+
+The marketplace is not deleted. It can come back at any time, and go away again.
+
+**When to roll back, and who decides.** Karam decides. Typical reasons:
+- not enough operator time to answer requests quickly;
+- customers insist on choosing suppliers themselves;
+- the lawyer advises against the clause in its form.
+
+**The switch (one minute, no restart, no deployment):**
+1. Sign in as an admin, open *Platform management*.
+2. Under *How customers find suppliers*, choose *Marketplace* and confirm. The other admins are notified, and
+   the audit log records the change.
+3. Check it: as a test customer, *Find suppliers* is back in the menu and opens the directory.
+
+`PLATFORM_MODE` in `.env` is only the starting value; the admin setting wins over it.
+
+**What customers and suppliers see afterwards:**
+- **Customers** can search the directory, open profiles, keep a preferred list, ask suppliers for quotes,
+  publish bids and invite suppliers themselves. The landing page shows the marketplace texts again.
+- **Open requests stay open.** Customers still find them under *Requests*, and the operators finish them
+  (options, choice, confirmation) as before.
+- **Contracts, acceptances and introductions stay unchanged**, and the protection periods of the
+  non-circumvention clause keep running for the pairs the platform introduced.
+- **Options that were not chosen stay anonymous**, and suppliers already revealed stay revealed.
+- **Suppliers** see no difference in their platform orders. They receive direct quote requests and public bids
+  again.
+
+**Switching back** to *Brokered by the platform* hides the marketplace again. Nothing is lost either way
+(`test/rollback.test.js` runs the whole journey and both switches).
+
+**The terms of use change too.** The clause applies only to introductions through brokered requests. When the
+marketplace is back, the terms must say how direct contacts from the directory are treated. That is a
+question for the lawyer, `docs/LEGAL-FACTS.md` section 8.
+
+**Email to customers and suppliers (template):**
+
+> Subject: {brand}: you can now choose suppliers yourself again
+>
+> Hello {name},
+>
+> from today you can search our supplier directory again, ask suppliers for quotes directly and invite them to
+> your bids. Your open requests to the platform continue as before, and your contracts are unchanged. If you
+> prefer us to find the supplier for you, simply send a request as before.
+>
+> Kind regards, the {brand} team
+
+> Betreff: {brand}: Sie können Lieferanten wieder selbst auswählen
+>
+> Hallo {name},
+>
+> ab heute können Sie unser Lieferantenverzeichnis wieder durchsuchen, Lieferanten direkt um Angebote bitten
+> und zu Ihren Ausschreibungen einladen. Ihre offenen Anfragen an die Plattform laufen weiter wie bisher, Ihre
+> Verträge bleiben unverändert. Wenn Sie möchten, dass wir den Lieferanten für Sie finden, senden Sie einfach
+> wie bisher eine Anfrage.
+>
+> Viele Grüße, Ihr {brand}-Team
+
+**Removing the code itself (only if Wave 15 should go for good, not for a mode change).**
+1. Revert the pull requests in reverse order with `git revert -m 1 <merge commit>`: T228, T226, T225, T227,
+   T224, T223, T222, T221, T220. The merge commits are listed under "Wave 15 pull requests" below.
+2. Data written by Wave 15 stays in the database: requests, introductions, clause versions, and brokered
+   fields on bids, projects and contracts. Older code ignores it, because a migration never deletes data.
+3. Run the full test suite and the e2e tests before deploying.
+
+### Wave 15 pull requests
+
+| Task | Pull request |
+| --- | --- |
+| T220 platform mode | #146 |
+| T221 marketplace hidden | #147 |
+| T222 requests | #148 |
+| T223 suggestions and invitations | #149 |
+| T224 anonymised options | #150 |
+| T227 non-circumvention clause | #151 |
+| T225 choice, contract, reveal | #152 |
+| T226 messages through the platform | #153 |
+| T228 rollback | #154 |

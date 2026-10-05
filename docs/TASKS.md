@@ -340,7 +340,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T225 The customer chooses: platform contract with the non-circumvention clause, then the supplier is revealed · M
 - [x] T226 Messages through the platform: no direct contact before the contract, contact details hidden, leak hints · M
 - [x] T227 Non-circumvention clause: text, acceptance records, facts for the lawyer · S · **the clause needs a lawyer's review**
-- [ ] T228 Rollback: back to the marketplace with one switch, all data kept, tested both ways · S · last task of the wave
+- [x] T228 Rollback: back to the marketplace with one switch, all data kept, tested both ways · S · last task of the wave
 
 ---
 
@@ -4659,15 +4659,38 @@ place.
    reverted in order if it ever had to go. This is not needed for a mode change.
 
 **Done when.**
-- [ ] A test runs the whole journey in brokered mode:
+- [x] A test runs the whole journey in brokered mode:
       request → suggestions → offers → options → choice → contract → reveal.
-- [ ] The test then switches to marketplace mode and checks:
+- [x] The test then switches to marketplace mode and checks:
   - the directory and quote requests work;
   - the request, the contract and the introduction are unchanged;
   - the hidden supplier ids stay hidden.
-- [ ] The test switches back to brokered mode and checks that the marketplace routes answer 403 again and that
+- [x] The test switches back to brokered mode and checks that the marketplace routes answer 403 again and that
       nothing was lost.
-- [ ] The crawl passes in both modes.
+- [x] The crawl passes in both modes.
+
+**As built (5 October 2026).**
+- **The rollback is the T220 switch.** No code path depends on deleting or moving data. In marketplace mode:
+  - customers get the directory, profiles, preferred suppliers, quote requests and bids back (T221 gate open);
+  - *Requests* stays in the menu, so open requests are finished as before;
+  - brokered bids stay hidden from customers, and options that were not chosen stay anonymous, because both
+    are marked on the records themselves and do not depend on the mode.
+- **Tests.** `test/rollback.test.js` runs the whole journey:
+  - request, suggestions, invitations, two offers, options, choice, the supplier's acceptance, contract and
+    reveal;
+  - then marketplace mode: the whole directory, a direct quote request, preferred suppliers, request, contract,
+    introduction and projects unchanged, and the hidden supplier still hidden;
+  - then brokered again: the routes are refused, the known supplier stays visible, the quote request from
+    marketplace mode is kept, nothing changed.
+- **Crawl** of the demo data in both modes: brokered 38 customer pages, no directory page; marketplace 65
+  customer pages, directory and *Requests*. No error screen in either.
+- **Runbook.** `docs/LAUNCH.md` section 6 covers:
+  - when and who decides;
+  - the switch;
+  - what everyone sees afterwards;
+  - the terms of use;
+  - an email template (en/de);
+  - removing the code with the list of Wave 15 pull requests, as a last resort.
 
 ### Changes to Waves 12–14 in brokered mode
 - **Wave 12.**
