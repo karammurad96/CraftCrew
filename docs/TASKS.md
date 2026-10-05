@@ -4097,7 +4097,7 @@ sees the customer's review; a failing AI call never blocks approval.
 **Do.**
 1. A small test set per feature: 20 to 30 real-looking cases from the demo and pilot data, with the expected
    result.
-2. One measured run, which costs a few euros and is approved by Karam first. The result goes into
+2. One measured run, approved by Karam first: about €25–30 for 30 cases × 6 features, €50–60 with one round of tuning (estimate of 5 October 2026). The result goes into
    `docs/AI-REVIEW.md`: quality per feature, cost per call and per month at the expected use, and the effort
    chosen per feature.
 3. Switch on only the features that pass, and set the budget in `.env`.
