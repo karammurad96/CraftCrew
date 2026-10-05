@@ -331,6 +331,17 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T216 Invoice check: an invoice against the order, contract, hours and earlier invoices · M
 - [ ] T217 Before switching on: test sets per feature, measured cost, admin usage page · S
 
+**Wave 15 — Stufe 1: brokering with control (decided with Karam on 5 October 2026: the marketplace is switched off for now; customers send requests to the platform and see no supplier before they choose; the last task is the way back; details under "Wave 15")**
+- [ ] T220 Platform mode: "brokered" (default) or "marketplace", one admin setting · S · do first
+- [ ] T221 Brokered mode hides the marketplace from customers: directory, profiles, quote requests, invitations · M
+- [ ] T222 Customer requests to the platform and the operator's request queue · M
+- [ ] T223 Automatic supplier suggestions for the operator, and invitations from a request · M
+- [ ] T224 Anonymised options for the customer: fastest, cheapest, best quality · M · **price model needs Karam's decision**
+- [ ] T225 The customer chooses: platform contract with the non-circumvention clause, then the supplier is revealed · M
+- [ ] T226 Messages through the platform: no direct contact before the contract, contact details hidden, leak hints · M
+- [ ] T227 Non-circumvention clause: text, acceptance records, facts for the lawyer · S · **the clause needs a lawyer's review**
+- [ ] T228 Rollback: back to the marketplace with one switch, all data kept, tested both ways · S · last task of the wave
+
 ---
 
 ## Wave 0 — preparation
@@ -4108,6 +4119,359 @@ sees the customer's review; a failing AI call never blocks approval.
 
 ---
 
+## Wave 15 — Stufe 1: brokering with control
+
+Decided with Karam on 5 October 2026.
+
+**What changes:**
+- **Requests go to the platform.** Customers send their request to the platform (Karam's company), not to a
+  supplier. They do not browse, search or contact suppliers.
+- **The operator sources the offers.** An admin, called the *operator* below, runs the sourcing:
+  - automatic supplier suggestions from the existing search, categories (T146) and scorecards;
+  - invitations and offers through the existing bid board.
+- **Anonymised options.** The customer gets two or three options labelled *fastest*, *cheapest* and *best
+  quality*. Each option shows the price, the time and an anonymised profile.
+- **Reveal after the choice.** The supplier is named only after the customer chooses an option and accepts the
+  platform contract.
+- **Non-circumvention clause.** The contract includes a clause that keeps both sides from working around the
+  platform for a limited time (legal notes below).
+- **Payments.** Payments run through the platform with its fee included: today as tracked invoices, later with
+  T80.
+- **The way back.** The marketplace is not deleted. One admin setting switches it back on, and T228 is the
+  tested rollback.
+
+### Rules for every Wave 15 task
+1. **One switch.** Every difference between the two modes depends on `platformMode()` from T220.
+   - Nothing is deleted when the mode changes.
+   - Marketplace code stays and stays tested.
+2. **The server enforces it.** Hiding a button is not enough. In brokered mode the API refuses customers what
+   the page no longer shows (403 with a friendly message), and anonymised answers never contain:
+   - supplier ids;
+   - names;
+   - email addresses;
+   - phone numbers;
+   - websites;
+   - file names that carry a name.
+3. **Suppliers do not see the customer either** before the contract. A brokered bid shows the work, the
+   category, the region (first two digits of the post code), the dates and the files, without the customer's
+   name or company.
+4. **Tests.**
+   - `startApp()` keeps the marketplace for the existing suites (`PLATFORM_MODE=marketplace` in
+     `test/helpers.js`), so their meaning does not change.
+   - Each Wave 15 suite starts in brokered mode.
+5. **Texts.** Every new text goes in `en.js` and `de.js` (rule 7); errors in `errors.api` (rule 9).
+
+### T220 · Platform mode
+`P1 · S · do first`
+
+**Do.**
+1. `platformMode()` in `server.js`:
+   - `db.settings.platformMode` if set;
+   - otherwise the environment variable `PLATFORM_MODE`;
+   - otherwise `"brokered"`.
+   Only `"brokered"` and `"marketplace"` are valid; anything else counts as brokered.
+2. `GET /api/platform-config` returns `platformMode`, so pages can follow it.
+3. Admin *Platform settings*: a "How customers find suppliers" choice with both modes explained. A change asks
+   for confirmation, is written to the audit log, and notifies the other admins.
+4. `.env.example` and the README configuration table: `PLATFORM_MODE`.
+
+**Done when.**
+- [ ] Brokered is the default; the setting wins over the environment; an invalid value counts as brokered.
+- [ ] Only an admin can change it; the change is in the audit log.
+
+### T221 · Brokered mode hides the marketplace from customers
+`P1 · M · depends on T220`
+
+**Do.** In brokered mode, for customers:
+1. **API.** These answer 403 "Suppliers are chosen for you by the platform. Send a request instead.":
+   - `GET /api/suppliers`, `GET /api/suppliers/:id` and the scorecard;
+   - `POST /api/rfqs`;
+   - preferred suppliers (`preferred.js`);
+   - supplier invitations to a bid (`POST /api/bids/:id/invitations`, `invitedSupplierIds` on a new bid).
+   Admins and suppliers are not affected.
+2. **Pages.**
+   - The customer menu loses *Find suppliers* and *Preferred suppliers*.
+   - Those routes redirect to *Requests* (T222).
+   - The search box (`ui-refresh.js`), the getting-started checklist and the dashboard links no longer point to
+     the directory.
+3. **Landing page.** The landing page and the sign-up texts describe the service ("Tell us what you need, we
+   find the right supplier") in brokered mode, and the marketplace texts in marketplace mode.
+
+**Done when.**
+- [ ] Every route above answers 403 to a customer in brokered mode and works as before in marketplace mode
+      (one test per route).
+- [ ] The crawl (`tools/audit/crawl.js`) as a customer finds no link to `/customer/suppliers` in brokered mode.
+
+### T222 · Customer requests to the platform
+`P1 · M · depends on T221`
+
+**Do.**
+1. **Data.** `db.requests` holds:
+   - `customerId`, and optionally `projectId`, `phaseId` and `taskId`;
+   - `title`, `description`, `category` (from the T146 list);
+   - site region and post code;
+   - wished start and finish dates;
+   - an optional budget;
+   - up to 10 own uploads;
+   - `status`.
+   The status moves *New → Sourcing → Options ready → Chosen → Contracted*, or ends as *Withdrawn* (customer)
+   or *Closed* (operator, with a reason).
+2. **Customer.**
+   - *Requests* page: list, new request, detail with status and timeline.
+   - *Send to the platform* on a project task fills the request from the task.
+   - The customer can withdraw a request until an option is chosen.
+3. **Operator.**
+   - Admin *Requests* queue: new first, with age and status filters.
+   - Taking a request sets *Sourcing* and the operator's name; this is the T224 "options promised by" date.
+   - The operator can close a request with a reason the customer sees.
+4. **Notifications** (server texts):
+   - to the operators on a new request;
+   - to the customer on every status change.
+
+**Done when.**
+- [ ] A customer sees only their own requests; another customer gets 404.
+- [ ] A supplier gets 403 on every request route.
+- [ ] The status can only move along the allowed steps.
+- [ ] Uploads must be the customer's own (`ownUpload`).
+
+### T223 · Automatic supplier suggestions and invitations
+`P1 · M · depends on T222`
+
+**Do.**
+1. `suggestSuppliers(request)` in `sourcing.js` ranks live suppliers with the existing data:
+   - category match (T146);
+   - distance from the site (built-in post-code table);
+   - scorecard (on time, quality, response time);
+   - vetting level (T190 once built);
+   - open workload (assigned tasks in the same weeks);
+   - earlier work for the same customer.
+   Each suggestion has a score and short reasons ("Category match, 42 km, on time 96 %"). The function is pure
+   and tested with fixed data.
+2. **Operator view.**
+   - The request shows the top 10 suggestions with reasons, plus a manual search over all suppliers.
+   - *Invite selected* creates a brokered bid from the request (`bid.requestId`, `bid.brokered = true`) and
+     invites the chosen suppliers through the existing bid board.
+3. **Suppliers.**
+   - The brokered bid hides the customer (rule 3).
+   - Offers, revisions and clarifications work as today, with the operator in the customer's place.
+4. **Settings and suggestions.**
+   - An admin setting "Suggest automatically when a request arrives" (default on) stores the suggestions on
+     the request, so the operator sees them when opening it.
+   - When Wave 14 is switched on, T212 (AI supplier matching) can re-rank this list. It never replaces it.
+
+**Done when.**
+- [ ] The ranking test covers category, distance, scorecard, workload and a supplier who is not live (never
+      suggested).
+- [ ] No customer and no supplier can read the suggestions.
+- [ ] The brokered bid shows neither the customer's name nor their company to suppliers.
+
+### T224 · Anonymised options for the customer
+`P1 · M · depends on T223 · price model needs Karam's decision`
+
+**Do.**
+1. **Building options.** From the offers on the brokered bid, the operator builds up to three options. Each
+   option has:
+   - a label: *Fastest*, *Cheapest*, *Best quality* or *Recommended*;
+   - an optional note.
+   The labels are suggested automatically (shortest delivery, lowest amount, best scorecard) and the operator
+   can change them.
+2. **Customer price.** The customer price is set by the price model (decision below).
+3. **What the customer sees** per option:
+   - price, delivery time and validity;
+   - the operator's note;
+   - an **anonymised profile**: vetting level, rating and number of completed orders, years in business, team
+     size band, certificates by type (no holder names), region, and the offer's line items.
+   Attachments are passed on only if the operator marks them "free of names".
+   The customer answer never contains:
+   - the supplier id;
+   - the company name;
+   - the supplier's own amount.
+4. **Publishing.** *Publish options* sets the request to *Options ready* and notifies the customer.
+5. **Changes.** The customer can ask the operator a question or ask for another round. Options can be
+   withdrawn and rebuilt until one is chosen.
+
+**Decision for Karam: the price model.**
+- **A (recommended for Stufe 1):** a commission from the supplier.
+  - The customer pays the supplier's price.
+  - The platform fee (`platformFeePercent`, today 3 %) is taken from the supplier's payout.
+  - This stays brokering: the supplier invoices the customer, the platform invoices its fee.
+  - With T80, the customer pays into the platform's payment account and the fee is withheld before the payout,
+    so "payments run through the platform with the fee included".
+- **B:** a markup for the customer.
+  - The customer price is the offer plus `brokerMarkupPercent`.
+  - The supplier's price must not reach the customer.
+  - The platform then sells the work in its own name (customer → platform → supplier). That is already
+    Stufe 2, with its own contract, tax and liability questions, and needs T80 first.
+
+The code supports both, with A as the default. B only works while `brokerMarkupPercent > 0` and T80 is in
+place.
+
+**Done when.**
+- [ ] The customer answer contains none of: supplier id, company, email, phone, website, the supplier's amount
+      (checked by a test that searches the whole JSON).
+- [ ] A supplier never sees the options or another supplier's offer.
+
+### T225 · The customer chooses: contract, then reveal
+`P1 · M · depends on T224, T227`
+
+**Do.**
+1. **Choosing.**
+   - *Choose this option* shows the platform contract summary and the non-circumvention clause (T227).
+   - The customer accepts it with a checkbox; the record keeps who, when, the clause version and its hash.
+2. **The supplier accepts too.**
+   - The supplier gets the order with the same clause and accepts it.
+   - Only then is the contract active. With Wave 13, this is T201's acceptance by both sides.
+3. **When both have accepted:**
+   - The task is assigned as with *Accept offer* today. The bid is *Awarded*, the other offers *Not selected*.
+   - The contract comes from `contractFromAward` with `brokered: true`, the customer price, the fee and the
+     clause.
+   - The request is *Contracted*.
+4. **Reveal.**
+   - The customer now sees the supplier's company name and profile.
+   - The supplier sees the customer's company and the project.
+   - Contact details stay hidden (T226).
+5. **Supplier declines.** If the supplier declines or does not answer within 3 working days, the request goes
+   back to *Options ready* and the operator is notified.
+
+**Done when.**
+- [ ] Before both acceptances, no customer answer names the supplier and no supplier answer names the customer.
+- [ ] After them, both names are visible.
+- [ ] The acceptance records contain the clause version and hash, and cannot be changed afterwards.
+
+### T226 · Messages through the platform
+`P1 · M · depends on T222, T225`
+
+**Do.**
+1. **Before the contract.** Customer and supplier have no common chat.
+   - The customer talks to the operator in the request's thread.
+   - The supplier talks to the operator in the bid's clarifications.
+   - In brokered mode, `POST /api/chats` refuses a chat between a customer and a supplier of a project
+     without a contract between them.
+2. **After the contract.**
+   - Project chats work as today, and the operator joins every chat of a brokered project automatically.
+   - Customers and suppliers do not see each other's email address, phone number, website or address, in the
+     project, the contract, the PDF or the invoice header. The platform's contact details appear instead.
+   - Invoices need the supplier's legal details (§ 14 UStG): name, address and VAT ID stay on the invoice
+     itself.
+3. **Leak hints.**
+   - A message or offer note that contains an email address, a phone number or a web address is still sent.
+   - The sender sees a friendly reminder of the platform terms, and the operator gets a hint in the request
+     view.
+   - Messages are not blocked or edited.
+
+**Done when.**
+- [ ] Tests cover the refused chat before the contract, the operator in a brokered project chat, contact fields
+      missing from the customer's and supplier's answers, the invoice still carrying the legal details, and
+      the leak hint.
+
+### T227 · Non-circumvention clause
+`P1 · S · the clause text needs a lawyer's review before launch`
+
+**Do.**
+1. **Clause text.**
+   - The clause text is an admin-editable legal text (*Legal pages → Platform contract*), versioned. Every
+     change creates a new version with a hash.
+   - The draft below is the default and is marked "Draft — lawyer to review".
+2. **Settings.**
+   - Duration in months (default 12, at most 24).
+   - The commission for a deal made around the platform (default: the platform fee on that deal's value).
+   - An optional capped penalty (default off).
+3. **Acceptance.** The clause is accepted twice:
+   - in the terms of use at sign-up (both roles);
+   - on each brokered contract (T225).
+   The record keeps the user, the time, the version and the hash.
+4. **Introduced pairs.** `db.introductions` records each customer–supplier pair that met through the platform,
+   with the date of the last brokered order. The admin *Introductions* view shows each pair's protection
+   period.
+5. **Legal facts.** `docs/LEGAL-FACTS.md` gets a section for the lawyer with the points below.
+
+**Legal notes for the lawyer (research of 5 October 2026; not legal advice):**
+- **Duration.** A customer-protection or non-circumvention clause between businesses is generally valid only
+  for **up to two years**. A longer clause may be cut back or invalid (BGH, 20 January 2015, II ZR 369/13;
+  § 138 BGB, Art. 12 GG).
+- **Scope.** The clause must be limited in time, place and subject matter:
+  - only the party introduced through the platform;
+  - only the same kind of work;
+  - no general ban on working.
+- **Penalty.** A flat contractual penalty in B2B standard terms is invalid (§ 307 BGB) if it is
+  disproportionate for minor breaches. Safer choices:
+  - a **commission owed for a deal made around the platform**, at the normal platform fee, with a duty to
+    report such a deal;
+  - if a penalty is wanted, one capped "up to" a sum and set in each case (*neuer Hamburger Brauch*).
+  Between merchants a court cannot reduce an excessive penalty (§ 348 HGB), so it must be moderate from the
+  start.
+- **Transparency.** The clause must be clear and understandable (§ 307 (1) sentence 2 BGB). The customer must
+  see and accept it **before** choosing, which T225 does.
+- **Exceptions to write in:**
+  - a relationship that existed before the introduction, which the party must show when choosing;
+  - work the platform declined to source.
+- **Competition law.** Because both sides are bound, check that the clause is a reasonable ancillary
+  restraint of the brokerage (§ 1 GWB, Art. 101 TFEU).
+
+**Default draft, to be reviewed (German, as it will be used):**
+> *Umgehungsschutz.* Kunde und Auftragnehmer verpflichten sich, für die Dauer von zwölf (12) Monaten nach
+> dem letzten über die Plattform vermittelten Auftrag zwischen ihnen keine Aufträge gleicher oder ähnlicher Art
+> unmittelbar oder über Dritte unter Umgehung der Plattform zu vergeben oder anzunehmen. Kommt ein solcher
+> Auftrag dennoch zustande, schuldet die Partei, die ihn vergibt, der Plattform eine Vermittlungsprovision in
+> Höhe der jeweils geltenden Plattformgebühr auf den Nettoauftragswert; beide Parteien teilen der Plattform
+> einen solchen Auftrag unverzüglich mit. Ausgenommen sind Geschäftsbeziehungen, die nachweislich vor der
+> Vermittlung bestanden. Weitergehende Ansprüche bleiben unberührt.
+
+**Done when.**
+- [ ] The clause version and hash are stored with each acceptance.
+- [ ] Changing the text creates a new version, and earlier acceptances keep theirs.
+- [ ] `docs/LEGAL-FACTS.md` holds the points above, marked for the lawyer.
+
+### T228 · Rollback to the marketplace
+`P1 · S · last task of Wave 15`
+
+**Do.**
+1. **The switch.** *Platform settings → How customers find suppliers → Marketplace* is the rollback. With it:
+   - the directory, profiles, preferred suppliers, quote requests and invitations work again for customers;
+   - the landing page shows the marketplace texts.
+   Nothing is deleted.
+2. **What stays after a rollback:**
+   - Open requests stay open. The operator finishes them, and customers can still see them under *Requests*.
+   - Contracts and their clause records stay unchanged, and the protection periods keep running.
+   - Options that were not chosen stay anonymised.
+   - Revealed suppliers stay revealed.
+3. **Switching back** to brokered hides the marketplace again, and no data is lost either way.
+4. **Rollback section** in `docs/LAUNCH.md`. It explains:
+   - when to roll back and who decides;
+   - the switch;
+   - what customers and suppliers see afterwards;
+   - an email template to tell them;
+   - that the terms of use must change too, because the clause applies only to brokered introductions.
+5. **Code rollback.** The Wave 15 pull requests are listed with their merge commits, so the code itself can be
+   reverted in order if it ever had to go. This is not needed for a mode change.
+
+**Done when.**
+- [ ] A test runs the whole journey in brokered mode:
+      request → suggestions → offers → options → choice → contract → reveal.
+- [ ] The test then switches to marketplace mode and checks:
+  - the directory and quote requests work;
+  - the request, the contract and the introduction are unchanged;
+  - the hidden supplier ids stay hidden.
+- [ ] The test switches back to brokered mode and checks that the marketplace routes answer 403 again and that
+      nothing was lost.
+- [ ] The crawl passes in both modes.
+
+### Changes to Waves 12–14 in brokered mode
+- **Wave 12.**
+  - Listed, Registered and Vetted suppliers are the operator's sourcing pool. Customers do not see them in
+    brokered mode; "Listed shown to customers" applies only in marketplace mode.
+  - T194 (customers ask a Listed supplier to quote) becomes an operator action.
+- **Wave 13.** The contract gets the platform as a party or broker, and the T227 clause. T201's acceptance by
+  both sides is T225's step 2.
+- **Wave 14.**
+  - T212 (supplier matching) works for the operator on T223's list.
+  - T213 (offer review) helps the operator build the options.
+  - T211 (project assistant) helps the customer write the request.
+- **T80.** Real payments become central: the customer pays the platform, and the fee is withheld before the
+  payout.
+
+---
+
 ## Sources
 
 - Wave 12 registers: [TED reuse under Decision 2011/833/EU](https://apify.com/publicdata/ted-tenders-eu-procurement),
@@ -4115,6 +4479,11 @@ sees the customer's review; a failing AI call never blocks approval.
   [GLEIF open data](https://www.gleif.org/en/about/open-data),
   [Handelsregisterverordnung §§ 52–53, automated retrieval](https://www.haufe.de/id/norm/handelsregisterverordnung-52-53-3-automatisierter-abruf-von-daten-HI1622457.html),
   [Registerportal FAQ](https://www.handelsregister.de/rp_web/faq.do)
+- Wave 15 non-circumvention clause: [BGH II ZR 369/13 (two years)](https://medien-internet-und-recht.de/volltext.php?mir_dok_id=2698),
+  [Haufe: Kundenschutzklausel in der Regel höchstens zwei Jahre](https://www.haufe.de/recht/weitere-rechtsgebiete/wirtschaftsrecht/hoechstdauer-einer-kundenschutzklausel-im-regelfall-zwei-jahre_210_297424.html),
+  [Ferner Alsdorf on customer-protection clauses](https://www.ferner-alsdorf.de/kundenschutzklauseln-bgh-zur-wirksamkeit-einer-kundenschutzklausel/),
+  [BGH: flat penalty in B2B terms invalid](https://www.ra-himburg-berlin.de/wettbewerbsrecht/urteile/1248-bgh-pauschale-vertragsstrafe-in-b2b-agb-unwirksam.html),
+  [IT-Recht Kanzlei: invalid penalties in standard terms](https://www.it-recht-kanzlei.de/unwirksame-vertragsstrafe-agb.html)
 - Wave 12 outreach rules (§ 7 UWG): [IT-Recht Kanzlei](https://www.it-recht-kanzlei.de/werbung-email-social-media-telefon-fax-was-ist-erlaubt.html),
   [Kaltakquise B2B nach § 7 UWG](https://www.yagemi.de/blog/recht-compliance/kaltakquise-b2b-uwg/)
 
