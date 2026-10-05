@@ -131,6 +131,8 @@ LOCALES.de = {
       optionsReady: "Optionen bereit",
       chosen: "Gewählt",
       contracted: "Beauftragt",
+      waitingForSupplier: "Wartet auf Lieferanten",
+      acceptedViaPlatform: "Über die Plattform angenommen",
       references: "Referenzen",
       available: "Verfügbar",
       busy: "Ausgelastet",

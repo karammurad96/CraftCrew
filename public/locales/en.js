@@ -132,6 +132,8 @@ LOCALES.en = {
       optionsReady: "Options ready",
       chosen: "Chosen",
       contracted: "Contracted",
+      waitingForSupplier: "Waiting for supplier",
+      acceptedViaPlatform: "Accepted via platform",
       references: "References",
       available: "Available",
       busy: "Busy",
