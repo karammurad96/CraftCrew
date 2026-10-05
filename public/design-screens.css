@@ -3741,3 +3741,13 @@ html body .sidebar .help .ds-side-data {
 html body .dashboard-content > :is(.breadcrumb, .ds-ws-tabs, .ds-approve-filter, .inv-work-title) {
   margin-inline-start: max(0px, calc((100% - 1400px) / 2)) !important;
 }
+/* The new-project form is a white card (design-2026.css) inside the page column; ui-refresh.css removes the
+   padding of page wrappers, which left its fields on the card's edge. A card keeps its inner padding. */
+html body .dashboard-content > .form-card {
+  padding: 32px 36px !important;
+}
+@media (max-width: 650px) {
+  html body .dashboard-content > .form-card {
+    padding: 20px 16px !important;
+  }
+}
