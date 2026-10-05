@@ -29,6 +29,16 @@ function rqFacts(r) {
     row("optionsBy", r.optionsBy ? esc(fmt.date(r.optionsBy)) : ""),
   ].join("")}</dl>`;
 }
+// T230: the work packages of a request
+function rqPackages(r) {
+  if (!(r.packages || []).length) return "";
+  return `<ul class="rq-pkg-list">${r.packages
+    .map(
+      (x) =>
+        `<li><b><bdi>${esc(x.name)}</bdi></b> · <bdi>${esc(x.category)}</bdi> · ${rqk(x.rough ? "pkg.hoursRough" : "pkg.hoursN", { n: x.hours })}</li>`,
+    )
+    .join("")}</ul>`;
+}
 function rqTimeline(r) {
   return `<ol class="rq-timeline">${(r.history || [])
     .map(
@@ -57,19 +67,56 @@ async function rqCustomerList() {
     }`,
   );
 }
+// T230: the request belongs to a project; its work packages are open tasks of it, or new ones
+let rqCats = [],
+  rqProjects = [];
+const rqCatSelect = (name, value = "") =>
+  `<select name="${name}" aria-label="${rqk("field.category")}"><option value="">${rqk("chooseCategory")}</option>${rqCats
+    .map((c) => `<option${c === value ? " selected" : ""}>${esc(c)}</option>`)
+    .join("")}</select>`;
+const rqNewRow = (name = "") =>
+  `<div class="rq-pkg rq-pkg-new"><input name="pkgName" maxlength="140" value="${esc(name)}" placeholder="${rqk("pkg.namePh")}" aria-label="${rqk("pkg.name")}">${rqCatSelect(
+    "pkgCat",
+  )}<input name="pkgHours" type="number" min="1" max="5000" placeholder="${rqk("pkg.hoursPh")}" aria-label="${rqk("pkg.hours")}"><button type="button" class="btn small ghost" data-action="req.removePackage" aria-label="${rqk("pkg.remove")}">×</button></div>`;
+// The open tasks of the chosen project, to tick as packages
+function rqTaskRows(projectId, ticked = "") {
+  const p = rqProjects.find((x) => x.id === projectId);
+  if (!p) return "";
+  const open = p.phases.flatMap((ph) =>
+    (ph.tasks || [])
+      .filter((x) => !x.assignedSupplierId || x.acceptanceStatus === "Declined")
+      .map((x) => ({ ph, x })),
+  );
+  if (!open.length) return `<p class="subtle">${rqk("pkg.noOpenTasks")}</p>`;
+  return open
+    .map(
+      ({ ph, x }) =>
+        `<label class="rq-pkg rq-pkg-task"><input type="checkbox" name="task" value="${esc(x.id)}"${x.id === ticked ? " checked" : ""}><span><b><bdi>${esc(x.name)}</bdi></b><small><bdi>${esc(ph.name)}</bdi></small></span>${rqCatSelect("cat_" + x.id)}<input name="hours_${esc(x.id)}" type="number" min="1" max="5000" value="${esc(x.estimatedHours || "")}" placeholder="${rqk("pkg.hoursPh")}" aria-label="${rqk("pkg.hours")}"></label>`,
+    )
+    .join("");
+}
 async function rqNewPage(params, query) {
-  const cfg = await api("/platform-config").catch(() => ({})),
-    cats = cfg.serviceCategories || [],
-    pre = (k) => esc(query?.get(k) || "");
+  const [cfg, { projects = [] }] = await Promise.all([
+      api("/platform-config").catch(() => ({})),
+      api("/projects").catch(() => ({})),
+    ]),
+    pre = (k) => esc(query?.get(k) || ""),
+    chosen = query?.get("project") || "";
+  rqCats = cfg.serviceCategories || [];
+  rqProjects = projects.filter((p) => p.status !== "Archived" && p.customerId === state.user.id);
   app.innerHTML = dashboardShell(
     "customer",
     "requests",
     `<div class="breadcrumb"><a href="#/customer/requests">${rqk("back")}</a></div><div class="dash-top"><div><h1>${rqk("newTitle")}</h1><p>${rqk("newLead")}</p></div></div>
 <form class="panel modal-form rq-form" data-action="req.create">
-<input type="hidden" name="projectId" value="${pre("project")}"><input type="hidden" name="phaseId" value="${pre("phase")}"><input type="hidden" name="taskId" value="${pre("task")}">
 <label>${rqk("field.title")}<input name="title" required minlength="3" maxlength="160" value="${pre("title")}" placeholder="${rqk("ph.title")}"></label>
-<label>${rqk("field.category")}<select name="category" required><option value="">${rqk("chooseCategory")}</option>${cats.map((c) => `<option>${esc(c)}</option>`).join("")}</select></label>
-<label>${rqk("field.description")}<textarea name="description" rows="7" required minlength="10" maxlength="5000" placeholder="${rqk("ph.description")}"></textarea></label>
+<label>${rqk("field.description")}<textarea name="description" rows="6" required minlength="10" maxlength="5000" placeholder="${rqk("ph.description")}"></textarea></label>
+<fieldset class="rq-project"><legend>${rqk("pkg.projectTitle")}</legend><label>${rqk("field.project")}<select name="projectId" data-action="req.project"><option value="">${rqk("pkg.newProject")}</option>${rqProjects
+      .map((p) => `<option value="${esc(p.id)}"${p.id === chosen ? " selected" : ""}>${esc(p.name)}</option>`)
+      .join("")}</select></label><small class="subtle">${rqk("pkg.projectHint")}</small></fieldset>
+<fieldset class="rq-packages"><legend>${rqk("pkg.title")}</legend><p class="subtle">${rqk("pkg.lead")}</p><div id="rqTaskRows">${rqTaskRows(chosen, query?.get("task") || "")}</div><div id="rqNewRows">${
+      query?.get("task") ? "" : rqNewRow()
+    }</div><button type="button" class="btn small outline" data-action="req.addPackage">${rqk("pkg.add")}</button></fieldset>
 <div class="cc-platform-grid"><label>${rqk("field.postcode")}<input name="sitePostcode" maxlength="10"></label><label>${rqk("field.city")}<input name="siteCity" maxlength="80"></label>
 <label>${rqk("field.start")}<input type="date" name="startDate"></label><label>${rqk("field.due")}<input type="date" name="dueDate"></label>
 <label>${rqk("field.budgetOptional")}<input type="number" name="budget" min="0" step="100"></label></div>
@@ -78,9 +125,40 @@ async function rqNewPage(params, query) {
 <div class="cc-actions"><button class="btn primary">${rqk("send")}</button><a class="btn outline" href="#/customer/requests">${rqk("cancel")}</a></div></form>`,
   );
 }
+actions.on("req.project", (el) => {
+  document.getElementById("rqTaskRows").innerHTML = rqTaskRows(el.value);
+});
+actions.on("req.addPackage", () =>
+  document.getElementById("rqNewRows").insertAdjacentHTML("beforeend", rqNewRow()),
+);
+actions.on("req.removePackage", (el) => el.closest(".rq-pkg").remove());
 actions.on("req.create", async (form) => {
   const f = new FormData(form),
-    body = Object.fromEntries([...f.entries()].filter(([k]) => k !== "files"));
+    keep = [
+      "title",
+      "description",
+      "projectId",
+      "sitePostcode",
+      "siteCity",
+      "startDate",
+      "dueDate",
+      "budget",
+    ],
+    body = Object.fromEntries(keep.map((k) => [k, f.get(k) || ""]));
+  const names = f.getAll("pkgName"),
+    cats = f.getAll("pkgCat"),
+    hours = f.getAll("pkgHours");
+  body.packages = [
+    ...f
+      .getAll("task")
+      .map((taskId) => ({ taskId, category: f.get("cat_" + taskId), hours: f.get("hours_" + taskId) })),
+    // An untouched extra row is left out
+    ...names
+      .map((name, i) => ({ name: name.trim(), category: cats[i], hours: hours[i] }))
+      .filter((x) => x.name || x.category || x.hours),
+  ];
+  if (!body.packages.length) return toast(t("req.pkg.none"), "error");
+  if (body.packages.some((x) => !x.category)) return toast(t("req.pkg.chooseCategory"), "error");
   try {
     body.attachments = [];
     for (const file of form.elements.files.files) body.attachments.push((await uploadFile(file)).url);
@@ -101,7 +179,7 @@ async function rqCustomerDetail(params) {
         ? `<button class="btn outline danger" data-action="req.withdraw" data-id="${esc(r.id)}">${rqk("withdraw")}</button>`
         : ""
     }</div>
-<section class="panel"><h3>${rqk("details")}</h3>${rqFacts(r)}<p class="rq-description"><bdi>${esc(r.description)}</bdi></p>${r.closeReason ? `<p class="rq-closed"><b>${rqk("closedReason")}</b> <bdi>${esc(r.closeReason)}</bdi></p>` : ""}</section>
+<section class="panel"><h3>${rqk("details")}</h3>${rqFacts(r)}${rqPackages(r)}<p class="rq-description"><bdi>${esc(r.description)}</bdi></p>${r.closeReason ? `<p class="rq-closed"><b>${rqk("closedReason")}</b> <bdi>${esc(r.closeReason)}</bdi></p>` : ""}</section>
 ${
   (r.options || []).length
     ? `<section class="panel"><h3>${rqk("optionsTitle")}</h3><p class="subtle">${rqk("optionsLead")}</p>${rqAwardNote(r)}<div class="rq-options">${r.options
@@ -425,7 +503,7 @@ async function rqAdminDetail(params) {
         ? `<button class="btn outline danger" data-action="req.close" data-id="${esc(r.id)}">${rqk("close")}</button>`
         : ""
     }</div>${take}
-<section class="panel"><h3>${rqk("details")}</h3>${rqFacts(r)}<p class="rq-description"><bdi>${esc(r.description)}</bdi></p></section>
+<section class="panel"><h3>${rqk("details")}</h3>${rqFacts(r)}${rqPackages(r)}<p class="rq-description"><bdi>${esc(r.description)}</bdi></p></section>
 ${rqAwardNote(r, "admin")}${
       (r.leakHints || []).length
         ? `<div class="notice warn"><b>${rqk("leak.title", { n: r.leakHints.length })}</b> ${r.leakHints

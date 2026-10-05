@@ -343,7 +343,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T228 Rollback: back to the marketplace with one switch, all data kept, tested both ways · S · last task of the wave
 
 **Wave 15b — instant estimates (decided with Karam on 5 October 2026: supplier search and pricing are automated; the customer gets an initial offer at once, an estimate that the chosen supplier confirms after review; split across several suppliers when that makes sense; every request belongs to a project; details under "Wave 15b")**
-- [ ] T230 Every request belongs to a project, and its work packages are the project's tasks · M · do first
+- [x] T230 Every request belongs to a project, and its work packages are the project's tasks · M · do first
 - [ ] T231 Instant estimate: available suitable suppliers priced from their price lists, split when it makes sense · M
 - [ ] T232 Supplier confirmation per part: confirm, adjust the price or decline, automatic replacement · M
 - [ ] T233 Several suppliers in one request: contracts, assignment and reveal per supplier; demo data and rollback · S
@@ -4749,8 +4749,27 @@ fallback.
    and lets the customer add packages, each with category and hours.
 
 **Done when.**
-- [ ] Every new request has a `projectId`, and every package a task in that project.
-- [ ] Packages cannot point to another customer's project or to an assigned task.
+- [x] Every new request has a `projectId`, and every package a task in that project.
+- [x] Packages cannot point to another customer's project or to an assigned task.
+
+**As built (5 October 2026).**
+- **API.** `POST /api/requests` takes `projectId` and `packages: [{taskId} | {name}, category, hours]`, up to
+  10.
+  - The old fields (`category`, `taskId`) still make one package.
+  - `linkProject()` in `requests.js` creates the project if none is named (status *In Progress*,
+    `fromRequestId`). New packages become tasks of a phase "Requested work", with `estimatedHours`.
+  - A request with one package keeps `taskId`, which T225 assigns.
+  - Hours come from the package, else the task's `estimatedHours`, else working days × 8 (`rough: true`, five
+    days without dates).
+- **Pages.**
+  - The request form chooses the project ("New project from this request" or one of the customer's open
+    projects).
+  - The project's open tasks can be ticked, each with category and hours, and packages can be added.
+  - The request pages list the packages with hours (or "about … h").
+  - The task page's "Find a supplier through the platform" fills project and task.
+- **Tests and checks.**
+  - `test/request-packages.test.js` covers the new project, existing tasks plus new packages, and every check.
+  - A browser check ran on the demo data.
 
 ### T231 · Instant estimate
 `P1 · M · depends on T230`
