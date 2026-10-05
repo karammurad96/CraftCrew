@@ -333,7 +333,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 
 **Wave 15 — Stufe 1: brokering with control (decided with Karam on 5 October 2026: the marketplace is switched off for now; customers send requests to the platform and see no supplier before they choose; the last task is the way back; details under "Wave 15")**
 - [x] T220 Platform mode: "brokered" (default) or "marketplace", one admin setting · S · do first
-- [ ] T221 Brokered mode hides the marketplace from customers: directory, profiles, quote requests, invitations · M
+- [x] T221 Brokered mode hides the marketplace from customers: directory, profiles, quote requests, invitations · M
 - [ ] T222 Customer requests to the platform and the operator's request queue · M
 - [ ] T223 Automatic supplier suggestions for the operator, and invitations from a request · M
 - [ ] T224 Anonymised options for the customer: fastest, cheapest, best quality · M · **price model needs Karam's decision**
@@ -4209,9 +4209,37 @@ Decided with Karam on 5 October 2026.
    find the right supplier") in brokered mode, and the marketplace texts in marketplace mode.
 
 **Done when.**
-- [ ] Every route above answers 403 to a customer in brokered mode and works as before in marketplace mode
+- [x] Every route above answers 403 to a customer in brokered mode and works as before in marketplace mode
       (one test per route).
-- [ ] The crawl (`tools/audit/crawl.js`) as a customer finds no link to `/customer/suppliers` in brokered mode.
+- [x] The crawl (`tools/audit/crawl.js`) as a customer finds no link to `/customer/suppliers` in brokered mode.
+
+**As built (5 October 2026).**
+- **One gate in `server.js`.** `marketplaceRefusal()` runs right after the team check and refuses customers in
+  brokered mode with "Suppliers are chosen for you by the platform. Send a request instead." The refused routes:
+  - a supplier's profile, scorecard and documents;
+  - the shortlist and preferred suppliers;
+  - `POST /api/rfqs`;
+  - `POST /api/bids` and bid invitations.
+  The public supplier routes answer before sign-in is checked, so they check `auth(req)` themselves.
+- **Suppliers the customer already works with stay visible.** This is a change from the plan, so that
+  contracts, projects and invoices keep their names.
+  - `knownSupplierIds()` holds the suppliers with a phase or task in one of the customer's projects, or an
+    active contract.
+  - `GET /api/suppliers` lists only those, and their profiles stay open.
+  - Assigning a task or phase directly is allowed only for them; others are refused with "You can assign
+    suppliers who already work with you. For a new supplier, send a request to the platform."
+- **Pages.**
+  - `core/router.js` asks `/api/platform-config` at most once a minute (`ccPlatformMode()`, `ccBrokered()`;
+    brokered until it answers) and sends `/customer/suppliers` and `/customer/preferred` to the dashboard.
+  - The menu hides both pages.
+  - The getting-started step links to a new project instead of the directory.
+  - The landing page uses `public.home.brokered.*` texts where they exist.
+  - Until T222, the *Requests* page does not exist yet; the redirect goes to the dashboard.
+- **Tests and checks.**
+  - `test/brokered-marketplace.test.js` covers each refused route, the filtered list, assigning, suppliers and
+    admins, and marketplace mode.
+  - The crawl in brokered demo mode found no link to `/customer/suppliers` and no failing page; the e2e tests
+    pass.
 
 ### T222 · Customer requests to the platform
 `P1 · M · depends on T221`

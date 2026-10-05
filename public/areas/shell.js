@@ -34,6 +34,7 @@ function shellIcon(role, key) {
 }
 // Team members only see the areas their role may open; the Team page is for the main account.
 function shellVisible(role, key) {
+  if (role === "customer" && ["suppliers", "preferred"].includes(key) && typeof ccBrokered === "function" && ccBrokered()) return false; // T221
   if (key === "team") return ["customer", "supplier"].includes(role) && !state.user?.isMember;
   const area = typeof TM_NAV !== "undefined" ? TM_NAV[role]?.[key] : null;
   return !area || typeof tmLevel !== "function" || tmLevel(area) !== "none";

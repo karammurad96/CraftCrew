@@ -25,6 +25,20 @@ const routes = (() => {
   }
   return { add, match, list: () => table.map((r) => r.pattern) };
 })();
+// T221: the platform mode decides which customer pages exist. Asked from the server at most once a minute;
+// brokered until it answers, so a customer never sees the directory by mistake.
+let ccMode = { at: 0, value: "brokered" };
+async function ccPlatformMode() {
+  if (Date.now() - ccMode.at > 60000)
+    try {
+      const cfg = await api("/platform-config");
+      ccMode = { at: Date.now(), value: cfg.platformMode === "marketplace" ? "marketplace" : "brokered" };
+    } catch {}
+  return ccMode.value;
+}
+const ccBrokered = () => ccMode.value === "brokered";
+// Customer pages of the marketplace; in brokered mode they lead to the dashboard
+const CC_MARKETPLACE_PAGES = ["/customer/suppliers", "/customer/preferred"];
 const routerBaseRoute = route;
 window.route = route = async function () {
   const full = location.hash.replace(/^#/, "") || "/",
@@ -33,6 +47,9 @@ window.route = route = async function () {
   if (!found) return routerBaseRoute();
   topActions();
   const { route: r, params } = found;
+  await ccPlatformMode();
+  if (state.user?.role === "customer" && ccBrokered() && CC_MARKETPLACE_PAGES.includes(r.pattern))
+    return navigate("/customer/dashboard");
   if (r.role && !state.user) return navigate("/login");
   if (r.role && state.user.role !== r.role) {
     toast(t("errors.wrongAccount"), "error");

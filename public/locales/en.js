@@ -401,6 +401,8 @@ LOCALES.en = {
       enterAValidInvoiceAmount: "Enter a valid invoice amount",
       adminOnly: "Admin only",
       chooseBrokeredOrMarketplace: "Choose brokered or marketplace",
+      suppliersAreChosenForYou: "Suppliers are chosen for you by the platform. Send a request instead.",
+      youCanAssignSuppliersWho: "You can assign suppliers who already work with you. For a new supplier, send a request to the platform.",
       aRefundReasonIsRequired: "A refund reason is required",
       invoiceIsNotEligibleFor: "Invoice is not eligible for this action",
       noPendingChangeForThis: "No pending change for this supplier",
@@ -599,6 +601,15 @@ LOCALES.en = {
   // Public pages (T126)
   public: {
     "home": {
+      "brokered": {
+        "sub": "Tell us what you need. We find vetted industrial specialists, prepare the best options — fastest, cheapest or best quality — and you run the whole job, from site safety to the final invoice, in one place.",
+        "compareLead": "Options prepared for you.",
+        "compareText": "Fastest, cheapest or best quality — you choose, we handle the sourcing.",
+        "tiles": {
+          "smesText": "Send a request, choose from prepared options, coordinate phases, approve invoices and close projects with reviews.",
+          "operationsText": "Use vetting stages, scorecards and automatic suggestions to find the right supplier for every request."
+        }
+      },
       "kicker": "Industrial services, coordinated.",
       "title": "Every crew. One project. Zero chaos.",
       "sub": "Find vetted industrial specialists, compare their offers side by side and run the whole job — from site safety to the final invoice — in one place.",
