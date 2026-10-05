@@ -50,17 +50,25 @@ describe("brokered demo data", () => {
       let app = await demo(dataDir);
       await stop(app.proc);
       const db = JSON.parse(readFileSync(path.join(dataDir, "db.json"), "utf8"));
+      // Wave 15: eight manual stages; Wave 15b: an estimate, a split waiting on a price, a split contracted
       assert.deepEqual(db.requests.map((r) => r.status).sort(), [
+        "Chosen",
         "Chosen",
         "Closed",
         "Contracted",
+        "Contracted",
         "New",
+        "Options ready",
         "Options ready",
         "Sourcing",
         "Sourcing",
         "Withdrawn",
       ]);
-      assert.equal(db.introductions.length, 1);
+      const hall = db.requests.find((r) => r.title === "Hall C conveyor extension");
+      assert.equal(hall.suppliers.length, 2, "a split request contracted with two suppliers");
+      const upgrade = db.requests.find((r) => r.title === "Packaging line upgrade");
+      assert.deepEqual(upgrade.award.parts.map((p) => p.status).sort(), ["Confirmed", "Price changed"]);
+      assert.equal(db.introductions.length, 3);
       assert.ok(db.contracts.some((c) => c.brokered && c.status === "Active"));
       for (const email of [
         "operator.demo@craftcrew.local",
@@ -83,7 +91,7 @@ describe("brokered demo data", () => {
       await new Promise((r) => setTimeout(r, 3000));
       await stop(proc);
       const again = JSON.parse(readFileSync(path.join(dataDir, "db.json"), "utf8"));
-      assert.equal(again.requests.length, 8);
+      assert.equal(again.requests.length, 11);
       assert.equal(again.users.length, db.users.length);
     } finally {
       rmSync(dataDir, { recursive: true, force: true });
