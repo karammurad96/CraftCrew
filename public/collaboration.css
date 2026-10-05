@@ -1018,3 +1018,40 @@
   margin: 0;
   padding-inline-start: 18px;
 }
+
+/* Anonymised options and the request thread (T224) */
+.rq-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-block-start: 12px;
+}
+.rq-option {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+.rq-option.chosen {
+  outline: 2px solid var(--cc-blue, #1d5bd8);
+}
+.rq-price {
+  font-size: 22px;
+}
+.rq-profile {
+  margin: 0;
+  padding-inline-start: 18px;
+  font-size: 13px;
+}
+.rq-msg {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #f3f6fa;
+  margin-block-end: 8px;
+}
+.rq-msg.platform {
+  background: #eaf1ff;
+}
+.rq-msg p {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+}

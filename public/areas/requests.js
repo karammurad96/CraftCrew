@@ -102,6 +102,11 @@ async function rqCustomerDetail(params) {
         : ""
     }</div>
 <section class="panel"><h3>${rqk("details")}</h3>${rqFacts(r)}<p class="rq-description"><bdi>${esc(r.description)}</bdi></p>${r.closeReason ? `<p class="rq-closed"><b>${rqk("closedReason")}</b> <bdi>${esc(r.closeReason)}</bdi></p>` : ""}</section>
+${
+  (r.options || []).length
+    ? `<section class="panel"><h3>${rqk("optionsTitle")}</h3><p class="subtle">${rqk("optionsLead")}</p><div class="rq-options">${r.options.map(rqOptionCard).join("")}</div></section>`
+    : ""
+}${rqThread(r, "customer")}
 <section class="panel"><h3>${rqk("files")}</h3>${rqFiles(r)}</section>
 <section class="panel"><h3>${rqk("timeline")}</h3>${rqTimeline(r)}</section>`,
   );
@@ -178,7 +183,9 @@ function rqSourcingPanel(r) {
         .join("")}</tbody></table></div>`
     : "";
   if (!RQ_OPEN.includes(r.status))
-    return s ? `<section class="panel"><h3>${rqk("sourcingTitle")}</h3>${offers}</section>` : "";
+    return s
+      ? `<section class="panel"><h3>${rqk("sourcingTitle")}</h3>${offers}${rqOptionsBuilder(r)}</section>`
+      : "";
   return `<section class="panel rq-sourcing"><div class="panel-title"><h3>${rqk("sourcingTitle")}</h3><button type="button" class="btn small outline" data-action="req.suggest" data-id="${esc(r.id)}">${rqk("refresh")}</button></div>
 <p class="subtle">${r.suggestions ? rqk("suggestedAt", { date: fmt.date(r.suggestions.at) }) : rqk("noSuggestions")}</p>
 <form data-action="req.invite" data-id="${esc(r.id)}"><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th></th><th>${rqk("col.supplier")}</th><th>${rqk("col.score")}</th><th>${rqk("col.reasons")}</th></tr></thead><tbody id="rqPickRows">${
@@ -189,8 +196,131 @@ function rqSourcingPanel(r) {
     s
       ? ""
       : `<label>${rqk("offersDue")}<input type="date" name="dueDate" required value="${new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10)}"></label>`
-  }<button class="btn primary">${rqk("invite")}</button></div></form>${offers}</section>`;
+  }<button class="btn primary">${rqk("invite")}</button></div></form>${offers}${rqOptionsBuilder(r)}</section>`;
 }
+/* T224: the operator picks up to three offers as anonymised options, labels them and publishes them */
+const RQ_LABELS = ["fastest", "cheapest", "best", "recommended"];
+function rqOptionsBuilder(r) {
+  const offered = (r.sourcing?.invited || []).filter(
+      (x) => x.offer && ["Submitted", "Changes requested"].includes(x.offer.status),
+    ),
+    saved = new Map((r.options || []).map((o) => [o.offerId, o])),
+    editable = ["Sourcing", "Options ready"].includes(r.status);
+  if (!offered.length && !(r.options || []).length) return "";
+  const rows = offered
+    .map(({ company, offer: o }) => {
+      const s = saved.get(o.id),
+        label = s?.label || o.suggestedLabel || "recommended";
+      return `<tr><td><input type="checkbox" name="offerIds" value="${esc(o.id)}" aria-label="${esc(company)}"${s ? " checked" : ""}${editable ? "" : " disabled"}></td><td><bdi>${esc(company)}</bdi><small>${esc(fmt.money(o.amount))} · ${rqk("daysN", { n: o.deliveryDays })}</small></td><td><select name="label_${esc(o.id)}" aria-label="${rqk("col.label")}">${RQ_LABELS.map(
+        (l) => `<option value="${l}"${l === label ? " selected" : ""}>${rqk("opt." + l)}</option>`,
+      ).join(
+        "",
+      )}</select></td><td><input name="note_${esc(o.id)}" maxlength="1000" value="${esc(s?.note || "")}" aria-label="${rqk("col.note")}"></td><td>${
+        o.attachment
+          ? `<label class="cc-check-label"><input type="checkbox" name="share_${esc(o.id)}"${s?.attachments?.length ? " checked" : ""}> ${rqk("shareFile")}</label>`
+          : "—"
+      }</td></tr>`;
+    })
+    .join("");
+  const publish =
+    r.status === "Sourcing" && (r.options || []).length
+      ? `<button type="button" class="btn primary" data-action="req.publish" data-id="${esc(r.id)}">${rqk("publish")}</button>`
+      : "";
+  return `<h4>${rqk("optionsBuilder")}</h4><p class="subtle">${rqk("optionsBuilderLead")}</p><form data-action="req.saveOptions" data-id="${esc(r.id)}"><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th></th><th>${rqk("col.offer")}</th><th>${rqk(
+    "col.label",
+  )}</th><th>${rqk("col.note")}</th><th>${rqk("col.files")}</th></tr></thead><tbody>${rows}</tbody></table></div>${
+    editable
+      ? `<div class="cc-actions"><button class="btn outline">${rqk("saveOptions")}</button>${publish}</div>`
+      : ""
+  }</form>${(r.options || []).length ? `<div class="rq-options">${r.options.map(rqOptionCard).join("")}</div>` : ""}`;
+}
+actions.on("req.saveOptions", async (form) => {
+  const f = new FormData(form),
+    options = f.getAll("offerIds").map((offerId) => ({
+      offerId,
+      label: f.get("label_" + offerId),
+      note: f.get("note_" + offerId) || "",
+      shareAttachment: f.get("share_" + offerId) === "on",
+    }));
+  try {
+    await api(`/requests/${encodeURIComponent(form.dataset.id)}/options`, {
+      method: "PUT",
+      body: { options },
+    });
+    tToast(t("req.optionsSaved"));
+    route();
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
+actions.on("req.publish", async (el) => {
+  const ok = await uiDialog({
+    title: t("req.publishTitle"),
+    message: t("req.publishText"),
+    confirmLabel: t("req.publish"),
+  });
+  if (!ok) return;
+  try {
+    await api(`/requests/${encodeURIComponent(el.dataset.id)}/publish`, { method: "POST", body: {} });
+    tToast(t("req.published"));
+    route();
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
+// One option as the customer sees it (and as the operator previews it): no supplier name anywhere
+function rqOptionCard(o) {
+  const p = o.profile || {},
+    fact = (k, params) => `<li>${rqk("profile." + k, params)}</li>`;
+  return `<article class="cc-card rq-option${o.chosen ? " chosen" : ""}"><span class="status ${o.label === "recommended" ? "completed" : "submitted"}">${rqk("opt." + o.label)}</span><b class="rq-price">${esc(fmt.money(o.price))}</b><small>${rqk("daysN", { n: o.deliveryDays })}</small><ul class="rq-profile">${[
+    p.badge ? fact("badge", { badge: t("common.badge." + p.badge) }) : "",
+    p.rating ? fact("rating", { rating: fmt.number(p.rating, 1) }) : "",
+    p.completedOrders ? fact("completed", { n: p.completedOrders }) : "",
+    p.onTimeRate !== null && p.onTimeRate !== undefined ? fact("onTime", { pct: p.onTimeRate }) : "",
+    p.yearsInBusiness ? fact("years", { n: p.yearsInBusiness }) : "",
+    p.country ? fact("country", { country: p.country }) : "",
+    (p.certifications || []).length ? fact("certs", { list: p.certifications.join(", ") }) : "",
+  ].join(
+    "",
+  )}</ul>${o.note ? `<p><bdi>${esc(o.note)}</bdi></p>` : ""}${(o.attachments || []).map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">${rqk("offerFile")}</a>`).join(" ")}<div class="rq-choose" data-option="${esc(o.id)}"></div></article>`;
+}
+/* T224: messages between the customer and the platform on one request */
+function rqThread(r, role) {
+  const from = (m) =>
+    rqk("from." + (m.by === "platform" ? "platform" : role === "admin" ? "customer" : "you"));
+  const open = !["Withdrawn", "Closed"].includes(r.status);
+  return `<section class="panel"><h3>${rqk("threadTitle")}</h3>${
+    (r.thread || [])
+      .map(
+        (m) =>
+          `<div class="rq-msg ${m.by}"><small>${from(m)} · ${esc(fmt.date(m.at))}</small><p><bdi>${esc(m.text)}</bdi></p></div>`,
+      )
+      .join("") || `<p class="subtle">${rqk("threadEmpty")}</p>`
+  }${
+    open
+      ? `<form class="modal-form" data-action="req.message" data-id="${esc(r.id)}"><textarea name="text" rows="3" maxlength="3000" required aria-label="${rqk("threadTitle")}" placeholder="${rqk(
+          role === "admin" ? "replyPlaceholder" : "askPlaceholder",
+        )}"></textarea>${
+          role === "customer" && r.status === "Options ready"
+            ? `<label class="cc-check-label"><input type="checkbox" name="anotherRound"> ${rqk("anotherRound")}</label>`
+            : ""
+        }<div class="cc-actions"><button class="btn outline">${rqk("sendMessage")}</button></div></form>`
+      : ""
+  }</section>`;
+}
+actions.on("req.message", async (form) => {
+  const f = new FormData(form);
+  try {
+    await api(`/requests/${encodeURIComponent(form.dataset.id)}/messages`, {
+      method: "POST",
+      body: { text: f.get("text"), anotherRound: f.get("anotherRound") === "on" },
+    });
+    tToast(t("req.messageSent"));
+    route();
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
 actions.on("req.suggest", async (el) => {
   try {
     await api(`/requests/${encodeURIComponent(el.dataset.id)}/suggestions`);
@@ -248,7 +378,7 @@ async function rqAdminDetail(params) {
         : ""
     }</div>${take}
 <section class="panel"><h3>${rqk("details")}</h3>${rqFacts(r)}<p class="rq-description"><bdi>${esc(r.description)}</bdi></p></section>
-<section class="panel"><h3>${rqk("files")}</h3>${rqFiles(r)}</section>${rqSourcingPanel(r)}
+<section class="panel"><h3>${rqk("files")}</h3>${rqFiles(r)}</section>${rqSourcingPanel(r)}${rqThread(r, "admin")}
 <section class="panel"><h3>${rqk("note")}</h3><form class="modal-form" data-action="req.note" data-id="${esc(r.id)}"><textarea name="note" rows="4" maxlength="5000" placeholder="${rqk("notePlaceholder")}">${esc(r.operatorNote || "")}</textarea><div class="cc-actions"><button class="btn outline">${rqk("saveNote")}</button></div></form></section>
 <section class="panel"><h3>${rqk("timeline")}</h3>${rqTimeline(r)}</section>`,
   );

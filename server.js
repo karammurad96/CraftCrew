@@ -414,6 +414,7 @@ const requests = require("./requests")({
   ownUpload: (...a) => ownUpload(...a),
   categories: () => db.settings?.serviceCategories || services,
   suggest: (r) => sourcing.suggestSuppliers(r),
+  scorecard: (sid) => sourcing.scorecard(sid),
   cleanWeights: (w) => sourcing.cleanWeights(w),
 });
 const benchmarks = require("./benchmarks")({
@@ -6707,6 +6708,8 @@ async function api(req, res, url) {
         defaultPaymentTermsDays: terms,
         uploadLimitMb: limit,
         faqContent: String(b.faqContent || "").slice(0, 10000),
+        // T224: a markup on the supplier's price for brokered options (0 = price model A, the default)
+        brokerMarkupPercent: Math.max(0, Math.min(30, Number(b.brokerMarkupPercent) || 0)),
         // T223: suggest suppliers as soon as a request arrives (on unless switched off)
         autoSuggest: b.autoSuggest === undefined ? db.settings?.autoSuggest !== false : !!b.autoSuggest,
         emailTemplates: Object.fromEntries(
@@ -8327,7 +8330,13 @@ const server = http.createServer(async (req, res) => {
       ) ||
       // Request files (T222): the customer and the platform's operators
       (db.requests || []).some(
-        (r) => (r.attachments || []).includes(fileUrl) && (user.role === "admin" || r.customerId === user.id),
+        (r) =>
+          (user.role === "admin" || r.customerId === user.id) &&
+          ((r.attachments || []).includes(fileUrl) ||
+            // T224: an offer file the operator shared with an option, once the options are published
+            (r.customerId === user.id &&
+              ["Options ready", "Chosen", "Contracted"].includes(r.status) &&
+              (r.options || []).some((o) => (o.attachments || []).includes(fileUrl)))),
       );
     if (
       !related &&

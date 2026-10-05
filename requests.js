@@ -11,7 +11,8 @@ const DAY = 86400000;
 
 module.exports = function createRequests(ctx) {
   const { getDb, save, send, body, id, now, notify, activity, projectFor, ownUpload, categories } = ctx;
-  const { suggest, cleanWeights } = ctx;
+  const { suggest, cleanWeights, scorecard } = ctx;
+  const OPTION_LABELS = ["fastest", "cheapest", "best", "recommended"];
   const text = (v, max) =>
     String(v ?? "")
       .trim()
@@ -21,20 +22,76 @@ module.exports = function createRequests(ctx) {
   const admins = () => getDb().users.filter((u) => u.role === "admin");
 
   // What a customer may see: no operator notes, no sourcing data (T223/T224 add more operator-only fields).
-  const OPERATOR_ONLY = ["operatorNote", "suggestions", "bidId"];
+  const OPERATOR_ONLY = ["operatorNote", "suggestions", "bidId", "operatorId"];
   function view(user, r) {
     if (user.role === "admin") return { ...r, sourcing: sourcingView(r) };
     const out = { ...r };
     for (const k of OPERATOR_ONLY) delete out[k];
     out.history = (r.history || []).map(({ byId, ...h }) => h);
+    // T224: the customer sees options only once they are published, and never who is behind them
+    out.options = ["Options ready", "Chosen", "Contracted"].includes(r.status)
+      ? (r.options || []).map(customerOption)
+      : [];
+    out.thread = (r.thread || []).map(({ byId, ...m }) => m);
     return out;
+  }
+  // T224: an option as the customer sees it. Only fields picked here leave the server: no supplier id, name,
+  // contact details or the supplier's own amount.
+  function customerOption(o) {
+    return {
+      id: o.id,
+      label: o.label,
+      note: o.note,
+      price: o.price,
+      deliveryDays: o.deliveryDays,
+      profile: o.profile,
+      attachments: o.attachments || [],
+      chosen: !!o.chosen,
+    };
+  }
+  // The anonymised profile of a supplier: level, track record and certificate types, never who they are
+  function anonymousProfile(supplierId) {
+    const s = getDb().suppliers.find((x) => x.id === supplierId) || {},
+      card = scorecard(supplierId);
+    return {
+      badge: s.badge || "",
+      rating: s.rating || null,
+      completedOrders: card?.metrics?.completed || s.projectsCompleted || 0,
+      onTimeRate: card?.metrics?.onTimeRate ?? null,
+      score: card?.score ?? null,
+      yearsInBusiness: s.experience || null,
+      certifications: [...new Set(s.certifications || [])].slice(0, 10),
+      country: String(s.location || "")
+        .split(",")
+        .pop()
+        .trim(),
+    };
+  }
+  // T224: labels suggested for the offers of a round: the cheapest, the fastest and the best scorecard
+  function suggestedLabels(offers) {
+    const live = offers.filter((o) => o.status === "Submitted" || o.status === "Changes requested");
+    if (!live.length) return {};
+    const by = (f) => [...live].sort(f)[0].id,
+      out = {};
+    out[by((a, b) => (scorecard(b.supplierId)?.score ?? -1) - (scorecard(a.supplierId)?.score ?? -1))] =
+      "best";
+    out[by((a, b) => a.deliveryDays - b.deliveryDays)] = "fastest";
+    out[by((a, b) => a.amount - b.amount)] = "cheapest";
+    return out;
+  }
+  // The price the customer pays (T224). Model A, the default: the supplier's price, with the platform fee taken
+  // from the payout. Model B: a markup on top (brokerMarkupPercent > 0), which needs Karam's decision and T80.
+  function customerPrice(amount) {
+    const markup = Math.max(0, Math.min(30, Number(getDb().settings?.brokerMarkupPercent) || 0));
+    return Math.round(amount * (1 + markup / 100) * 100) / 100;
   }
   // The operator's view of the brokered bid (T223): who was invited and what each one offered
   function sourcingView(r) {
     const db = getDb(),
       bid = r.bidId && (db.bids || []).find((b) => b.id === r.bidId);
     if (!bid) return null;
-    const company = (sid) => db.suppliers.find((s) => s.id === sid)?.company || "";
+    const company = (sid) => db.suppliers.find((s) => s.id === sid)?.company || "",
+      labels = suggestedLabels(bid.offers || []);
     return {
       bidId: bid.id,
       status: bid.status,
@@ -45,15 +102,19 @@ module.exports = function createRequests(ctx) {
         offer:
           (bid.offers || [])
             .filter((o) => o.supplierId === sid)
-            .map(({ id: offerId, amount, deliveryDays, status, notes, hourlyRate, updatedAt }) => ({
-              id: offerId,
-              amount,
-              deliveryDays,
-              status,
-              notes,
-              hourlyRate,
-              updatedAt,
-            }))[0] || null,
+            .map(
+              ({ id: offerId, amount, deliveryDays, status, notes, hourlyRate, updatedAt, attachment }) => ({
+                id: offerId,
+                suggestedLabel: labels[offerId] || "",
+                attachment: attachment || "",
+                amount,
+                deliveryDays,
+                status,
+                notes,
+                hourlyRate,
+                updatedAt,
+              }),
+            )[0] || null,
       })),
     };
   }
@@ -225,6 +286,95 @@ module.exports = function createRequests(ctx) {
       } else return (send(res, 400, { error: "Choose a valid action for this request." }), true);
       save();
       return (send(res, 200, { request: view(user, r) }), true);
+    }
+    // T224: the operator builds up to three options from the offers of the round
+    if (parts[3] === "options" && !parts[4] && method === "PUT") {
+      if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
+      if (!["Sourcing", "Options ready"].includes(r.status))
+        return (
+          send(res, 409, { error: "Options can be prepared while the request is being sourced." }),
+          true
+        );
+      const b = await body(req),
+        bid = r.bidId && (getDb().bids || []).find((x) => x.id === r.bidId),
+        picks = Array.isArray(b.options) ? b.options : [];
+      if (!bid || !picks.length || picks.length > 3)
+        return (send(res, 400, { error: "Choose one to three offers as options." }), true);
+      const seen = new Set(),
+        options = [];
+      for (const pick of picks) {
+        const offer = (bid.offers || []).find((o) => o.id === pick.offerId);
+        if (!offer || !["Submitted", "Changes requested"].includes(offer.status) || seen.has(offer.id))
+          return (send(res, 400, { error: "Choose one to three offers as options." }), true);
+        seen.add(offer.id);
+        if (!OPTION_LABELS.includes(pick.label))
+          return (
+            send(res, 400, { error: "Label each option as fastest, cheapest, best quality or recommended." }),
+            true
+          );
+        options.push({
+          id: id("opt"),
+          offerId: offer.id,
+          supplierId: offer.supplierId,
+          supplierAmount: offer.amount,
+          label: pick.label,
+          note: text(pick.note, 1000),
+          price: customerPrice(offer.amount),
+          deliveryDays: offer.deliveryDays,
+          profile: anonymousProfile(offer.supplierId),
+          // An offer file goes to the customer only when the operator marks it free of names
+          attachments: pick.shareAttachment && offer.attachment ? [offer.attachment] : [],
+        });
+      }
+      r.options = options;
+      r.updatedAt = now();
+      save();
+      return (send(res, 200, { request: view(user, r) }), true);
+    }
+    if (parts[3] === "publish" && !parts[4] && method === "POST") {
+      if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
+      if (r.status !== "Sourcing" || !(r.options || []).length)
+        return (send(res, 409, { error: "Prepare at least one option before publishing." }), true);
+      move(r, "Options ready", user);
+      notify(
+        r.customerId,
+        { key: "requestOptionsReady", params: { title: r.title, n: r.options.length } },
+        `/customer/requests/${r.id}`,
+      );
+      save();
+      return (send(res, 200, { request: view(user, r) }), true);
+    }
+    // T224: customer and platform write to each other on the request; the customer can ask for another round
+    if (parts[3] === "messages" && !parts[4] && method === "POST") {
+      const b = await body(req),
+        message = text(b.text, 3000);
+      if (!message) return (send(res, 400, { error: "Write a message first." }), true);
+      if (["Withdrawn", "Closed"].includes(r.status))
+        return (send(res, 409, { error: "This request is already finished." }), true);
+      const anotherRound = !!b.anotherRound && user.role === "customer";
+      if (anotherRound && r.status !== "Options ready")
+        return (send(res, 409, { error: "Another round can be asked for once options are ready." }), true);
+      r.thread ||= [];
+      r.thread.push({
+        id: id("rqm"),
+        at: now(),
+        by: user.role === "admin" ? "platform" : "customer",
+        byId: user.id,
+        text: message,
+      });
+      if (user.role === "admin")
+        notify(
+          r.customerId,
+          { key: "requestMessage", params: { title: r.title } },
+          `/customer/requests/${r.id}`,
+        );
+      else
+        for (const a of admins())
+          notify(a.id, { key: "requestMessage", params: { title: r.title } }, `/admin/requests/${r.id}`);
+      if (anotherRound) move(r, "Sourcing", user, message);
+      r.updatedAt = now();
+      save();
+      return (send(res, 201, { request: view(user, r) }), true);
     }
     // T223: the operator's supplier suggestions, made again on request
     if (parts[3] === "suggestions" && !parts[4] && method === "GET") {

@@ -336,7 +336,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T221 Brokered mode hides the marketplace from customers: directory, profiles, quote requests, invitations · M
 - [x] T222 Customer requests to the platform and the operator's request queue · M
 - [x] T223 Automatic supplier suggestions for the operator, and invitations from a request · M
-- [ ] T224 Anonymised options for the customer: fastest, cheapest, best quality · M · **price model needs Karam's decision**
+- [x] T224 Anonymised options for the customer: fastest, cheapest, best quality · M · **price model needs Karam's decision**
 - [ ] T225 The customer chooses: platform contract with the non-circumvention clause, then the supplier is revealed · M
 - [ ] T226 Messages through the platform: no direct contact before the contract, contact details hidden, leak hints · M
 - [ ] T227 Non-circumvention clause: text, acceptance records, facts for the lawyer · S · **the clause needs a lawyer's review**
@@ -4411,9 +4411,42 @@ The code supports both, with A as the default. B only works while `brokerMarkupP
 place.
 
 **Done when.**
-- [ ] The customer answer contains none of: supplier id, company, email, phone, website, the supplier's amount
+- [x] The customer answer contains none of: supplier id, company, email, phone, website, the supplier's amount
       (checked by a test that searches the whole JSON).
-- [ ] A supplier never sees the options or another supplier's offer.
+- [x] A supplier never sees the options or another supplier's offer.
+
+**As built (5 October 2026).**
+- **Building options.**
+  - `PUT /api/requests/:id/options {options: [{offerId, label, note, shareAttachment}]}` (admin, one to three
+    submitted offers of the request's round) stores the options with the supplier, the supplier's amount, the
+    customer price and `anonymousProfile()`.
+  - The profile holds badge, rating, completed orders, on-time rate, scorecard score, years in business,
+    certificate types and the country only.
+  - Suggested labels per offer (`suggestedLabel` in the operator's `sourcing` view): the lowest amount
+    "cheapest", the shortest time "fastest", the best scorecard "best".
+- **Publishing.** `POST /api/requests/:id/publish` sets *Options ready* and notifies the customer
+  (`requestOptionsReady`).
+- **What the customer sees.** Options only from *Options ready* on, each through `customerOption()`: id,
+  label, note, price, days, profile, shared files and `chosen`. An offer file opens for the customer only when
+  the operator shared it.
+- **Messages.** `POST /api/requests/:id/messages {text, anotherRound}` is the thread between customer and
+  platform (`requestMessage` notifications). *Ask for another round* sets the request back to *Sourcing*, which
+  hides the options until they are published again.
+- **Price model.**
+  - Model A is the default: the customer price is the supplier's price.
+  - The admin setting *Markup on brokered options* (`brokerMarkupPercent`, 0–30 %) switches to model B; its
+    hint says to decide with the tax adviser first.
+  - **Karam's decision is still open.**
+- **Data export.** It lists the options without supplier id, the supplier's amount and offer id.
+- **Pages.**
+  - Admin: under *Find suppliers*, "Options for the customer" (pick, label, note, share file, save, publish,
+    preview cards) and the message thread.
+  - Customer: *Your options* as cards, and the message thread with *Ask for another round*.
+- **Tests and checks.**
+  - `test/options.test.js` covers the labels, the checks, nothing before publishing, a search of the whole
+    customer JSON and the export for supplier data, a 10 % markup, the messages and another round.
+  - A browser check on the demo data ran: the supplier's card shows "Platform request · region 93", and the
+    customer's card has no name.
 
 ### T225 · The customer chooses: contract, then reveal
 `P1 · M · depends on T224, T227`
