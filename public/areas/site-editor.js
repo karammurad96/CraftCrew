@@ -505,3 +505,93 @@ actions.on("se.saveBanner", async (form) => {
     toast(x.message, "error");
   }
 });
+
+/* ---------- Admin: history, undo, export and import (T267) ---------- */
+function seWhat(h) {
+  if (h.area === "text") return t("se.history.text", { key: h.target.key, lang: h.target.lang.toUpperCase() });
+  if (h.area === "page") return t(h.before && h.after ? "se.history.pageChanged" : h.after ? "se.history.pageAdded" : "se.history.pageDeleted", { slug: h.target.slug });
+  return t("se.history.area." + h.area);
+}
+const seShort = (v) => {
+  if (v === null || v === undefined) return t("se.history.none");
+  const s = typeof v === "string" ? v : Array.isArray(v) ? v.join(" · ") : v.title ? seLangText(v.title) : JSON.stringify(v);
+  return s.length > 120 ? s.slice(0, 117) + "…" : s;
+};
+let seImport = null;
+function seTab_history() {
+  const rows = (seData.history || [])
+    .map(
+      (h) =>
+        `<li class="se-change"><div><b>${esc(seWhat(h))}</b>${h.note === "undo" ? ` <span class="status submitted">${sek("history.undone")}</span>` : ""}<small>${esc(fmt.date(h.at))} · ${esc(
+          new Date(h.at).toLocaleTimeString(fmt.locale(), { hour: "2-digit", minute: "2-digit" }),
+        )} · <bdi>${esc(h.byName || "")}</bdi></small>${
+          h.area === "text" ? `<small class="se-diff"><span>${sek("history.before")}</span> <bdi>${esc(seShort(h.before))}</bdi> <span>${sek("history.after")}</span> <bdi>${esc(seShort(h.after))}</bdi></small>` : ""
+        }</div><button class="btn small outline" data-action="se.undo" data-id="${esc(h.id)}">${sek("history.undo")}</button></li>`,
+    )
+    .join("");
+  document.getElementById("seBody").innerHTML = `<section class="panel"><div class="panel-title"><div><h3>${sek("history.title")}</h3><small>${sek("history.lead")}</small></div></div>${
+    rows ? `<ul class="se-changes">${rows}</ul>` : `<p class="subtle">${sek("history.empty")}</p>`
+  }</section><section class="panel"><h3>${sek("transfer.title")}</h3><p class="subtle">${sek("transfer.lead")}</p><div class="cc-actions"><button class="btn outline" data-action="se.export">${sek("transfer.export")}</button><label class="btn outline se-file">${sek("transfer.import")}<input type="file" accept="application/json,.json" data-action="se.importFile" hidden></label></div><div id="seImport"></div></section>`;
+}
+actions.on("se.undo", async (el) => {
+  const ok = await uiDialog({ title: t("se.history.undoTitle"), message: t("se.history.undoText"), confirmLabel: t("se.history.undo") });
+  if (!ok) return;
+  try {
+    await api(`/admin/site/history/${encodeURIComponent(el.dataset.id)}/undo`, { method: "POST", body: {} });
+    await seRefreshSite();
+    tToast(t("se.history.undoDone"));
+    route();
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
+actions.on("se.export", async () => {
+  try {
+    const data = await api("/admin/site/export"),
+      a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+    a.download = `website-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => (URL.revokeObjectURL(a.href), a.remove()), 1000);
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
+actions.on("se.importFile", async (input) => {
+  const file = input.files?.[0];
+  if (!file) return;
+  const box = document.getElementById("seImport");
+  try {
+    seImport = JSON.parse(await file.text());
+  } catch {
+    seImport = null;
+    box.innerHTML = `<p class="form-error">${sek("transfer.notJson")}</p>`;
+    return;
+  }
+  try {
+    const { preview: p } = await api("/admin/site/import", { method: "POST", body: { data: seImport, apply: false } }),
+      yes = (b) => sek(b ? "transfer.changes" : "transfer.same");
+    box.innerHTML = `<div class="notice"><b>${sek("transfer.previewTitle")}</b><ul><li>${sek("transfer.texts", { n: p.texts, changed: p.changedTexts })}</li><li>${sek("transfer.pages", {
+      n: p.pages,
+      added: p.newPages,
+      removed: p.removedPages,
+    })}</li><li>${sek("transfer.nav")}: ${yes(p.nav)}</li><li>${sek("transfer.builtins")}: ${yes(p.builtins)}</li><li>${sek("transfer.details")}: ${yes(p.details)}</li><li>${sek("transfer.banner")}: ${yes(p.banner)}</li></ul><p>${sek("transfer.replaceNote")}</p><div class="cc-actions"><button class="btn primary" data-action="se.importApply">${sek("transfer.apply")}</button></div></div>`;
+  } catch (x) {
+    seImport = null;
+    box.innerHTML = `<p class="form-error">${esc(x.message)}</p>`;
+  }
+  input.value = "";
+});
+actions.on("se.importApply", async () => {
+  if (!seImport) return;
+  try {
+    await api("/admin/site/import", { method: "POST", body: { data: seImport, apply: true } });
+    seImport = null;
+    await seRefreshSite();
+    tToast(t("se.transfer.done"));
+    route();
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
