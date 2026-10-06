@@ -367,7 +367,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T254 Quarterly price index for industrial services · S · after T243
 
 **Wave 17 — packages, organigram and the site editor (asked for by Karam on 6 October 2026; details under "Wave 17")**
-- [ ] T260 Service packages: suppliers offer ready-made, fixed-price packages ("one team, one week on site") · M · do first
+- [x] T260 Service packages: suppliers offer ready-made, fixed-price packages ("one team, one week on site") · M · do first
 - [ ] T261 Package shop: customers browse and filter the packages (anonymised in brokered mode) · M
 - [ ] T262 Booking a package: project, start date, supplier confirmation or instant booking, contract · M
 - [ ] T263 Project organigram: the customer at the top, the platform, each supplier with its people, tasks and categories · M
@@ -5418,9 +5418,24 @@ Asked for by Karam on 6 October 2026:
    reason the supplier sees.
 
 **Done when.**
-- [ ] The API checks every field, ownership and the vetting rule.
-- [ ] Pause, activate and archive work; an archived package stays on its bookings.
-- [ ] The pages are in English and German.
+- [x] The API checks every field, ownership and the vetting rule.
+- [x] Pause, activate and archive work; an archived package stays on its bookings.
+- [x] The pages are in English and German.
+
+**As built (6 October 2026).**
+- **Server (`servicepackages.js`).** `db.servicePackages` (PostgreSQL collection `servicePackages`).
+  - `/api/service-packages`: a supplier lists, creates (always *Draft*), changes and deletes its own packages;
+    `POST …/:id/status` sets *Active*, *Paused* or *Archived*.
+  - *Active* needs a live (vetted) supplier and no admin pause. Archiving waits for open bookings. A package
+    with bookings cannot be deleted.
+  - The admin lists every package with its company, and `POST …/:id/moderate` pauses one with a reason (the
+    supplier is notified: `server.notify.packagePaused`) or releases the pause.
+  - Team members need the *sourcing* area.
+- **Pages (`public/areas/packages.js`).** *My packages* (`/supplier/packages`, supplier nav after *Platform
+  orders*) with cards, the create and edit form, publish, pause, archive and delete. *Packages*
+  (`/admin/packages`, admin "More") with pause and "Allow again".
+- **Tests.** `test/service-packages.test.js`: field checks, the vetting rule, ownership, archive and delete, the
+  admin pause. `test/area-shell.test.js` has the new nav items.
 
 ### T261 · Package shop
 `P1 · M · depends on T260`

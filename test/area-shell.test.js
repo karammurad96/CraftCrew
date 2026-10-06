@@ -72,8 +72,8 @@ describe("app shell", () => {
       "Today", "Requests", "Projects", "Approvals", "Sourcing", "Invoices", "Messages", "[More]",
       "Analytics", "Contracts", "Sites &amp; safety", "Offers overview", "Find Suppliers", "Preferred suppliers", "Inbox", "Time approvals", "Team", "Profile / Settings",
     ]);
-    assert.deepEqual(navLabels(shell("en", owner("supplier"), "#/supplier/dashboard").render("supplier", "dashboard")).slice(0, 8), ["Today", "Work", "Team planner", "Platform orders", "Opportunities", "Invoices", "Compliance", "[More]"]);
-    assert.deepEqual(navLabels(shell("en", { role: "admin", name: "Admin" }, "#/admin/dashboard").render("admin", "dashboard")), ["Today", "Requests", "Vetting", "Users", "Payments", "Escalations", "Reports", "[More]", "Audit log", "Platform Management", "Profile changes", "Settings"]);
+    assert.deepEqual(navLabels(shell("en", owner("supplier"), "#/supplier/dashboard").render("supplier", "dashboard")).slice(0, 9), ["Today", "Work", "Team planner", "Platform orders", "My packages", "Opportunities", "Invoices", "Compliance", "[More]"]);
+    assert.deepEqual(navLabels(shell("en", { role: "admin", name: "Admin" }, "#/admin/dashboard").render("admin", "dashboard")), ["Today", "Requests", "Vetting", "Users", "Payments", "Escalations", "Reports", "[More]", "Packages", "Audit log", "Platform Management", "Profile changes", "Settings"]);
   });
 
   for (const lang of ["en", "de"])

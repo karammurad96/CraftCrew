@@ -431,6 +431,18 @@ const requests = require("./requests")({
   contractFromAward: (...a) => sourcing.contractFromAward(...a),
   cleanWeights: (w) => sourcing.cleanWeights(w),
 });
+// T260: ready-made, fixed-price packages of the suppliers
+const servicePackages = require("./servicepackages")({
+  getDb: () => db,
+  save: () => save(),
+  send: (...a) => send(...a),
+  body: (r) => body(r),
+  id: (p) => id(p),
+  now: () => now(),
+  notify: (...a) => notify(...a),
+  activity: (...a) => activity(...a),
+  categories: () => db.settings?.serviceCategories || services,
+});
 const benchmarks = require("./benchmarks")({
   getDb: () => db,
   send: (...a) => send(...a),
@@ -8053,6 +8065,7 @@ async function api(req, res, url) {
     if (await twoFactor.handle(req, res, url, parts, user)) return true;
     if (await preferred.handle(req, res, url, parts, user)) return true;
     if (await requests.handle(req, res, url, parts, user)) return true;
+    if (await servicePackages.handle(req, res, url, parts, user)) return true;
     if (await clause.handle(req, res, url, parts, user)) return true;
     if (await benchmarks.handle(req, res, url, parts, user)) return true;
     if (await siteReports.handle(req, res, url, parts, user)) return true;

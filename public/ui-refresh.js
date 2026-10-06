@@ -49,6 +49,7 @@ const UI_NAV_ICONS = {
   profile: "settings",
   requests: "requests",
   orders: "offers",
+  packages: "catalog",
   applications: "vetting",
   users: "users",
   billing: "billing",
