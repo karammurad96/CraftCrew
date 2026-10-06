@@ -448,6 +448,14 @@ const servicePackages = require("./servicepackages")({
   clause: () => clause,
   book: (...a) => requests.bookPackage(...a),
 });
+// T263: the project organigram
+const organigram = require("./organigram")({
+  getDb: () => db,
+  send: (...a) => send(...a),
+  projectFor: (...a) => projectFor(...a),
+  projectSupplierIds: (p) => projectSupplierIds(p),
+  platformEmail: () => platformEmail(),
+});
 const benchmarks = require("./benchmarks")({
   getDb: () => db,
   send: (...a) => send(...a),
@@ -4455,6 +4463,7 @@ async function api(req, res, url) {
     if (closed) return (send(res, 403, { error: closed }), true);
     if (await team.handle(req, res, url, parts, user)) return true;
     if (await gdpr.handle(req, res, url, parts, user)) return true;
+    if (await organigram.handle(req, res, url, parts, user)) return true;
     // Archived projects are read-only for everyone who can see them.
     if (method !== "GET" && parts[1] === "projects" && parts[2]) {
       const p = projectFor(user, parts[2]);

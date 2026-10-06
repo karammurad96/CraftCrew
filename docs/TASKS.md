@@ -370,7 +370,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T260 Service packages: suppliers offer ready-made, fixed-price packages ("one team, one week on site") · M · do first
 - [x] T261 Package shop: customers browse and filter the packages (anonymised in brokered mode) · M
 - [x] T262 Booking a package: project, start date, supplier confirmation or instant booking, contract · M
-- [ ] T263 Project organigram: the customer at the top, the platform, each supplier with its people, tasks and categories · M
+- [x] T263 Project organigram: the customer at the top, the platform, each supplier with its people, tasks and categories · M
 - [ ] T264 Site editor: every text of the website and the app, per language, changed by an admin · M
 - [ ] T265 Site editor: own pages, built-in pages on or off, menu and footer links, search engine texts · M
 - [ ] T266 Site editor: an announcement banner · S
@@ -5559,8 +5559,29 @@ Asked for by Karam on 6 October 2026:
 3. **Layout.** Lines between the boxes on a wide screen; an indented list on a phone. Each task links to its page.
 
 **Done when.**
-- [ ] Tests cover the tree for each role, the hidden supplier and the people from the planner and site visits.
-- [ ] The page is in English and German and mirrors in right-to-left languages.
+- [x] Tests cover the tree for each role, the hidden supplier and the people from the planner and site visits.
+- [x] The page is in English and German and mirrors in right-to-left languages.
+
+**As built (6 October 2026).**
+- **API (`organigram.js`).** `GET /api/projects/:id/organigram` with `projectFor()`'s access rules. It returns:
+  - **`customer`**: the owner (company, name, job title), team members with project access (job title, view
+    or full), and the people the project is shared with (`participantIds`);
+  - **`platform`**: in a brokered project, the operator's name and the platform email;
+  - **`suppliers`**: the companies of `projectSupplierIds()` (accepted tasks or phases, so a brokered supplier
+    shows only once contracted). Each has its contact (the main account), categories (from the request
+    packages or quote requests of its tasks, else its first services), tasks with status, and people:
+    - team members or workers planned on the project in the team planner (`planEntries`, with their tasks);
+    - workers of a site visit to the project's site that was not rejected (marked "on site").
+  - A supplier gets only its own company in `suppliers`.
+- **Page.** A tab *Organisation* on the project workspace, loaded when opened.
+  - On a wide screen: boxes joined by lines, with the platform between the customer and the suppliers in a
+    brokered project. The tree scrolls inside its card when it is wider.
+  - Under 700 px: an indented list.
+  - Logical CSS properties, so it mirrors in right-to-left languages.
+  - Admins have no project workspace; they can read the organigram through the API.
+- **Tests.** `test/organigram.test.js`: the full tree for the customer and the admin, the planner and site
+  visit people (a rejected visit brings nobody), a supplier's limited view, an outsider's 404, and the
+  platform node.
 
 ### T264 · Site editor: texts
 `P1 · M · do first in the editor`
