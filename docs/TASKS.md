@@ -177,7 +177,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T69 Price benchmarks per service · S
 
 **Wave 6 — strategic (P3, needs a human decision or a stronger model)**
-- [ ] T80 Real payments: escrow-like milestones, payment terms, early payout
+- [ ] T80 Real payments: escrow-like milestones, payment terms, early payout → replaced by Wave 18 (Stripe), 7 October 2026
 - [ ] T81 Move data to PostgreSQL (split into T160–T168 on 4 October 2026, see Wave 9)
 - [x] T82 Replace DOM-based translation with translation keys (done by T125–T137)
 - [x] T83 Merge the frontend add-on layers; cookie sessions; strict CSP (done by T124–T136)
@@ -302,7 +302,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T184 Load test before the first marketing push · S
 - [ ] T185 Managed database with standby and point-in-time restore, when customers depend on it daily · S
 - [ ] T176 Rate limit for chat messages · S · from the security review (T173)
-- [ ] T80 Real payments (Wave 6): only after T165, needs Karam's provider decision
+- [ ] T80 Real payments (Wave 6): → replaced by Wave 18 (Stripe), 7 October 2026
 
 **Wave 12 — a large supplier base before launch (decided with Karam on 5 October 2026: source = an existing register that is legal to reuse; "Listed" suppliers are shown to signed-in customers, clearly marked; details under "Wave 12")**
 - [ ] T190 Three supplier levels: Listed, Registered, Vetted · M · do first
@@ -377,6 +377,19 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T266 Site editor: an announcement banner · S
 - [x] T267 Site editor: history, undo, export and import · S
 - [x] T268 Demo data for packages and the organigram · S · last task of the wave
+
+**Wave 18 — payments with Stripe, test version (asked for by Karam on 7 October 2026: Connect, Payments, Billing, Invoicing, Tax, Identity, Radar and Issuing; sandbox keys only; replaces T80; details under "Wave 18")**
+- [ ] T270 Stripe foundation: SDK, keys from the environment only, test mode only, webhooks with signature check, a fake Stripe for tests · M · do first, **first test version**
+- [ ] T271 Supplier payout accounts: Stripe Connect (Accounts v2), embedded onboarding, payouts page · M · **first test version**
+- [ ] T272 The customer pays an approved invoice through Stripe Checkout · M · **first test version**
+- [ ] T273 Payout to the supplier minus the platform fee; refunds and disputes reverse it · M · **first test version**
+- [ ] T274 Milestone deposits: the customer pays before the work, the money is released on acceptance · M
+- [ ] T275 Radar: fraud rules, early fraud warnings and the admin's review list · S
+- [ ] T276 Stripe Invoicing and Stripe Tax for the platform's own invoices (fee statements) · M · **needs the tax registration in Stripe**
+- [ ] T277 Billing: platform plans for customers and suppliers, with the customer portal · M · **needs Karam's prices**
+- [ ] T278 Identity: ID check of the person behind a supplier and of "Is this your company?" claims · S
+- [ ] T279 Issuing: virtual cards for site expenses, charged to the project budget · M · **exploration; needs Stripe's approval for Issuing in the EU**
+- [ ] T280 Go-live checklist for payments: restricted keys, secret store, webhooks, legal and tax checks · S · last task of the wave
 
 ---
 
@@ -5879,6 +5892,288 @@ Asked for by Karam on 6 October 2026:
   team member and the site editor content. A restart adds nothing. The demo start may take up to 60 s.
 - **Found on the way.** A contracted single-supplier request showed its "Open project" link in a notice
   without an underline (axe `link-in-text-block`). Links in notices are now underlined.
+
+---
+
+## Wave 18 — payments with Stripe, test version
+
+Asked for by Karam on 7 October 2026. The Stripe products: Connect, Payments, Billing, Invoicing, Tax, Identity,
+Radar and Issuing. Karam has a Stripe sandbox. Wave 18 replaces T80.
+
+**How the plan was made.** The Stripe plugin (`stripe@anthropic-plugin-directory`) was installed in the build
+environment. Its implementation planner runs on the Stripe MCP server (`mcp.stripe.com`). That server, the Stripe
+API and the Stripe docs are blocked by this environment's network policy, so the plan follows the plugin's own
+best-practice guides (`stripe-best-practices`: Connect, Payments, Billing, Tax, Security). Once `api.stripe.com`
+is allowed and the keys are stored as environment secrets, run the planner and compare it with this plan
+(see T270).
+
+**The test version is T270–T273.** With these four tasks:
+1. A supplier sets up payouts.
+2. The customer pays an approved invoice through Stripe.
+3. The supplier receives the amount minus the platform fee.
+4. Refunds and disputes reverse the payout.
+
+T274–T279 add the other products. T280 is the go-live check.
+
+**Design decisions (from the Stripe guides; change them with Karam if needed).**
+- **Charges: "separate charges and transfers".**
+  - The customer pays the platform account.
+  - The platform transfers the supplier's share when the money may go out: at once for an approved invoice, or
+    on acceptance for a milestone deposit (T274).
+  - The fee is kept by transferring less, never with `application_fee_amount`.
+  - This is Stripe's pattern for a marketplace that holds and releases money.
+  - The platform is then the merchant of record. The lawyer and the tax adviser check what this means for price
+    model A (see T280).
+- **Suppliers are connected accounts** created with Accounts v2 (`/v2/core/accounts`), never the old
+  `type: express/custom/standard`:
+  - `configuration.recipient` with `stripe_transfers`, and no card payments;
+  - `dashboard: "express"`, with `fees_collector: "application"` and `losses_collector: "application"`;
+  - onboarding through Stripe's embedded components (`account_onboarding`, `notification_banner`,
+    `account_management`).
+  - Before a transfer, check `configuration.recipient.capabilities.stripe_balance.stripe_transfers.status ===
+    "active"`, never `payouts_enabled`.
+- **Customers pay with Checkout Sessions**, not the Charges API or the old Card Element.
+  - No `payment_method_types`: Stripe shows the right methods (card, SEPA Direct Debit, bank transfer …) from
+    the Dashboard settings.
+  - `integration_identifier` tags each session.
+- **Webhooks are not optional.**
+  - Fulfilment happens in the webhook handler for `checkout.session.completed` and
+    `checkout.session.async_payment_succeeded` (only when `payment_status` is not `unpaid`), never on the success
+    page.
+  - Every event is checked with the webhook signing secret and handled once.
+- **Keys.** Never in the code, the repository or the chat.
+  - `STRIPE_SECRET_KEY` (a restricted key `rk_test_…` is preferred over `sk_test_…`),
+    `STRIPE_PUBLISHABLE_KEY` and `STRIPE_WEBHOOK_SECRET` come from the environment (Render: secret environment
+    variables; cloud sessions: environment secrets).
+  - The keys Karam pasted in the chat on 7 October 2026 are test keys. Roll them in the Stripe Dashboard (API
+    keys → Roll key) and store the new ones only as secrets.
+- **Test mode only in this wave.** The server refuses a live key (`sk_live_`, `rk_live_`) until T280 is done
+  and `PAYMENTS_LIVE=1` is set.
+- **Stripe SDK.** `stripe` (Node, latest version) is the second runtime dependency after `pg`. It is loaded only
+  when payments are switched on, like `pg`. Use a `StripeClient` instance, never the deprecated global key.
+  API version: the latest (`2026-08-26.dahlia` when planned).
+
+### T270 · Stripe foundation
+`P1 · M · do first`
+
+**Do.**
+1. **Module `payments.js`.** Loaded only when `STRIPE_SECRET_KEY` is set (`PAYMENTS=stripe` and off by default).
+   - A `StripeClient` with the pinned API version; `stripe` as an optional dependency.
+   - `STRIPE_API_BASE` lets tests point it at a fake server.
+2. **Key safety.**
+   - Refuse to start with a live key unless `PAYMENTS_LIVE=1`.
+   - Never log a key or put it in an error.
+   - A test fails if any file in the repository contains `sk_live_`, `rk_live_`, `sk_test_` or `rk_test_`
+     followed by key characters, and a pre-commit hook (`tools/hooks/pre-commit`, installed with
+     `npm run hooks`) does the same.
+3. **Webhook endpoint `POST /api/stripe/webhook`.**
+   - Raw body, signature check with `STRIPE_WEBHOOK_SECRET`.
+   - Each event stored once in `db.stripeEvents` (id, type, received, handled); a repeated event is answered
+     200 and not handled again.
+   - Handlers are registered by the later tasks.
+4. **Fake Stripe for tests (`test/fake-stripe.js`).** A small HTTP server with the few endpoints the wave uses,
+   and signed test webhooks. CI never calls Stripe.
+5. **CSP.** When payments are on, `https://*.stripe.com` in `script-src`, `frame-src` and `connect-src`, for
+   Stripe.js and the Connect embedded components. Unchanged when off.
+6. **Admin page "Payments".** Mode (off, test or live), the Stripe account id, the webhook state (last event, last
+   error) and the key type (restricted or secret, never the key).
+7. **For Karam (outside the code).**
+   - Allow `api.stripe.com`, `files.stripe.com`, `connect.stripe.com` and `mcp.stripe.com` in the cloud
+     environment's network settings.
+   - Store `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY` and `STRIPE_WEBHOOK_SECRET` as environment secrets.
+   - Then run the Stripe planner (`stripe_implementation_planner`) and compare its plan with this wave.
+
+**Done when.**
+- [ ] Without keys the app runs as before; all tests pass without network access to Stripe.
+- [ ] A live key is refused; the key test catches a key in a file.
+- [ ] A webhook with a wrong signature is refused; the same event twice is handled once.
+
+### T271 · Supplier payout accounts
+`P1 · M · depends on T270`
+
+**Do.**
+1. **A supplier sets up payouts** on a new page *Payouts* (`/supplier/payouts`).
+   - The platform creates its connected account with Accounts v2, as decided above.
+   - The page shows Stripe's embedded `account_onboarding`, then `notification_banner` and
+     `account_management`, through an Account Session made by the server.
+   - It also shows a link to the Express dashboard (login link).
+2. **Status.** The account's `stripe_transfers` capability is stored on the supplier (`stripeAccount: {id,
+   transfers: "active" | "pending" | "restricted"}`). It is updated from the account webhooks
+   (`v2.core.account[...]` events) and checked again before every transfer.
+3. **Vetting.** The admin sees the payout status on the supplier. A supplier without active transfers can work,
+   but its invoices cannot be paid through Stripe yet: the customer sees "Pay by bank transfer" as today.
+4. **The old payout details.** The IBAN fields stay for invoices (§ 14 UStG) and for paying outside Stripe.
+
+**Done when.**
+- [ ] Creating the account sends the v2 fields above (tested against the fake Stripe), never `type`.
+- [ ] Capability changes from a webhook update the supplier; a transfer to a restricted account is refused.
+
+### T272 · The customer pays an approved invoice
+`P1 · M · depends on T271`
+
+**Do.**
+1. **"Pay now"** on an approved invoice (customer) creates a Checkout Session:
+   - on the platform account, `mode: "payment"`, amount = the invoice gross, `currency: "eur"`;
+   - `customer` = the customer's Stripe customer, created once with the company and VAT ID;
+   - `payment_intent_data.transfer_group` = the invoice id, and metadata with the invoice, project and supplier;
+   - `integration_identifier`, success and cancel pages back to the invoice;
+   - no `payment_method_types`.
+   Bank transfer (`customer_balance`) and SEPA Direct Debit suit large B2B amounts; Karam switches the methods
+   on in the Dashboard.
+2. **Fulfilment in the webhook.**
+   - `checkout.session.completed` and `…async_payment_succeeded` with `payment_status` not `unpaid` mark the
+     payment *Paid* (`method: "stripe"`, the PaymentIntent and charge ids) and notify both sides.
+   - `…async_payment_failed` resets it and tells the customer.
+   - The success page only shows "We are confirming your payment".
+3. **The payment record** keeps the existing statuses (*Scheduled*, *Paid*, *Refunded*), so the billing pages
+   and the admin's payment list need no second model.
+
+**Done when.**
+- [ ] A test session paid through the fake Stripe's webhook marks the invoice paid, once, even when the event
+      comes twice.
+- [ ] An unpaid completed session (bank transfer still open) does not mark it paid; the async success later does.
+- [ ] The success page alone changes nothing.
+
+### T273 · Payout to the supplier, refunds and disputes
+`P1 · M · depends on T272`
+
+**Do.**
+1. **Transfer.** After a payment is paid, transfer to the supplier's connected account:
+   - `transfer_group` = the invoice id, `source_transaction` = the charge, so the transfer waits for the funds;
+   - amount = gross − platform fee (and, only if Karam decides so, an estimate of Stripe's fee);
+   - only when the account's `stripe_transfers` is active, else the payment waits as *Payout pending* and the
+     admin sees why.
+2. **The fee is settled.** The payment keeps the transfer id. T240's monthly statement still lists the fee (it
+   is an invoice the supplier needs), marked "settled by deduction" and *Paid* at once.
+3. **Refunds.** The admin's refund (existing route) refunds the charge through Stripe and reverses the transfer
+   (`reverse_transfer`), and T240 credits the fee.
+4. **Disputes.** `charge.dispute.created` reverses the transfer, sets the invoice to *Disputed* and opens an
+   escalation for the admin. `charge.dispute.closed` follows the outcome.
+
+**Done when.**
+- [ ] Tests with the fake Stripe cover: transfer amount, waiting for a restricted account, refund with reversal,
+      and dispute with reversal and escalation.
+
+### T274 · Milestone deposits
+`P2 · M · depends on T273`
+
+**Do.**
+1. **A contract with milestones** (or a booked package, T262) can require a deposit: the customer pays the
+   milestone amount before the work starts (Checkout as in T272).
+2. **The money stays on the platform account** until the customer accepts the milestone (T63 acceptance, or the
+   invoice approval). Then T273 transfers it.
+3. **No answer within 14 days after the supplier reports the milestone done**: the money is released, as on
+   Upwork. Both sides are warned 3 days before.
+4. **Cancelled before the work:** refund. **A dispute** keeps the money until the admin decides.
+5. Stripe can hold money for up to 90 days. Longer milestones are paid in parts.
+
+**Done when.**
+- [ ] Deposit, release on acceptance, automatic release, and refund on cancellation are tested.
+
+### T275 · Radar
+`P2 · S · depends on T272`
+
+**Do.**
+1. **Radar runs on every Checkout payment** (nothing to switch on).
+2. **Admin page:**
+   - payments marked for review (`review.opened`) and early fraud warnings
+     (`radar.early_fraud_warning.created`, which suggest a refund before a dispute);
+   - links to the Stripe Dashboard;
+   - the risk level shown on each payment.
+3. **Suggested rules in `docs/PAYMENTS.md`**, for Karam to set in the Dashboard: for example, review payments
+   over a limit from a new customer, and block a card country that differs from the company's country for large
+   amounts.
+
+**Done when.**
+- [ ] Review and early fraud warning events show for the admin (tested with the fake Stripe).
+
+### T276 · Stripe Invoicing and Stripe Tax for the platform's own invoices
+`P2 · M · needs Karam's tax registration in Stripe`
+
+**Do.**
+1. **T240's fee statements as Stripe invoices**, for a supplier that pays outside a deduction:
+   - one invoice item per line;
+   - a hosted invoice page with bank transfer and SEPA Direct Debit;
+   - Stripe's reminders.
+   Our number range and PDF stay the legal invoice; the Stripe invoice carries our number in its memo.
+2. **Stripe Tax on these invoices.**
+   - `automatic_tax: { enabled: true }` only after the platform's German registration is active in Stripe
+     (Dashboard → Tax → Registrations).
+   - The supplier's VAT ID is on its Stripe customer, so EU suppliers get reverse charge.
+   - Test with a tax calculation first. Stripe collects nothing (and gives no error) without a registration.
+3. **Payments of these invoices** (`invoice.paid`) mark the statement paid.
+
+**Done when.**
+- [ ] A statement creates a Stripe invoice with the right lines, tax setting and customer VAT ID (fake Stripe);
+      `invoice.paid` marks it paid.
+
+### T277 · Billing: platform plans
+`P2 · M · needs Karam's prices`
+
+**Do.**
+1. **Plans as Stripe products**, one product per plan with monthly and yearly prices. For example: customer
+   *Managed* with the operator's full service, and supplier *Pro* with more packages and a higher ranking weight
+   (to be decided, and disclosed under T253).
+2. **Subscribe** with Checkout in `mode: "subscription"`; change and cancel in the Stripe customer portal.
+3. **Webhooks** `customer.subscription.*`, `invoice.paid` and `invoice.payment_failed` keep the plan on the
+   account; the features follow it.
+4. **Tax** as in T276.
+
+**Done when.**
+- [ ] Subscribe, renew, payment failed and cancel are tested with the fake Stripe; the features follow the plan.
+
+### T278 · Identity
+`P2 · S`
+
+**Do.**
+1. **During vetting**, the admin can ask the supplier's contact person to verify their ID with a Stripe Identity
+   VerificationSession (document plus selfie).
+   - The supplier does it from a link.
+   - Only the result is stored (verified, name and date), never the document. Stripe keeps the images under its
+     own retention.
+2. **The same check** can confirm a "This is my company" claim (T193) before a listing is handed over.
+3. **The privacy policy** (T172) names Stripe Identity as a processor. Facts go into `docs/LEGAL-FACTS.md`.
+
+**Done when.**
+- [ ] A verified webhook (`identity.verification_session.verified`) marks the person verified; `requires_input`
+      asks again; no document data is stored.
+
+### T279 · Issuing (exploration)
+`P3 · M · needs Stripe's approval for Issuing in the EU`
+
+**Do.**
+1. **Check first.** Ask Stripe whether Issuing is available for the platform in Germany, and on which terms.
+   Write the answer in `docs/PAYMENTS.md`.
+2. **If yes, build behind a setting.** A project can give a supplier's crew a virtual card for site expenses
+   (materials, rentals), with a limit from the project budget.
+   - Each authorisation is checked in real time (`issuing_authorization.request`): the merchant category and
+     the remaining budget.
+   - Every spend shows on the project and is invoiced to the customer at cost.
+3. **If no,** note it and close the task.
+
+**Done when.**
+- [ ] The answer is documented; if built, the authorisation check is tested with the fake Stripe.
+
+### T280 · Go-live checklist for payments
+`P1 · S · last task of the wave`
+
+**Do.**
+1. **Keys.**
+   - A restricted key per service with only the permissions it needs, and an access policy (IP).
+   - Live keys only in the hosting's secret store; rotation tried once.
+   - The webhook endpoint registered with a live signing secret.
+2. **Lawyer and tax adviser.**
+   - The platform as merchant of record with separate charges and transfers, under price model A: is the platform
+     an agent collecting for the supplier (and is that covered by Stripe's licence)? What do the invoices and
+     the terms need to say?
+   - The payment terms and deposits in the terms (AGB).
+   - DAC7 reporting for payouts.
+3. **Stripe's go-live checklist** (docs.stripe.com/get-started/checklist/go-live) worked through and noted in
+   `docs/LAUNCH.md`.
+4. **`PAYMENTS_LIVE=1`** only after all of the above, by Karam.
+
+**Done when.**
+- [ ] `docs/LAUNCH.md` has the payments section with every point ticked by Karam.
 
 ---
 
