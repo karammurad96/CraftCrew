@@ -1151,3 +1151,17 @@
 .pk-price b { font-size: 1.35rem; }
 .pk-included { margin-block: 8px; }
 .pk-form textarea { resize: vertical; }
+.pk-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; align-items: end; }
+.pk-filters .cc-actions { grid-column: 1 / -1; }
+.pk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.pk-card { display: flex; flex-direction: column; gap: 8px; }
+.pk-card h3 { margin: 0; }
+.pk-card h3 a { color: inherit; text-decoration: none; }
+.pk-card .btn.full { margin-block-start: auto; }
+.pk-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 0; list-style: none; }
+.pk-chips li { background: var(--surface-2, #f1f4f9); border-radius: 999px; padding: 2px 10px; font-size: 0.85rem; }
+.pk-who { font-size: 0.9rem; }
+.pk-detail { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .pk-detail { grid-template-columns: 1fr; } }
+ul.ff-check-list.pk-included { min-height: 0; gap: 4px; }
+.pk-who.rq-profile { margin: 0; padding-inline-start: 18px; font-size: 0.85rem; color: var(--muted, #506178); }

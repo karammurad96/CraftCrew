@@ -172,5 +172,82 @@ actions.on("pk.moderate", async (el) => {
   }
 });
 
+/* ---------- Customer: the package shop (T261) ---------- */
+// The anonymised profile (brokered mode) or the company (marketplace mode)
+function pkWho(p) {
+  if (p.company) return `<p class="pk-who"><b><bdi>${esc(p.company)}</bdi></b></p>`;
+  const f = p.profile || {},
+    fact = (k, params) => `<li>${esc(t("req.profile." + k, params))}</li>`;
+  return `<ul class="rq-profile pk-who">${[
+    f.badge ? fact("badge", { badge: t("common.badge." + f.badge) }) : "",
+    f.rating ? fact("rating", { rating: fmt.number(f.rating, 1) }) : "",
+    f.completedOrders ? fact("completed", { n: f.completedOrders }) : "",
+    f.yearsInBusiness ? fact("years", { n: f.yearsInBusiness }) : "",
+    f.country ? fact("country", { country: f.country }) : "",
+    (f.certifications || []).length ? fact("certs", { list: f.certifications.join(", ") }) : "",
+  ].join("")}</ul>`;
+}
+function pkShopCard(p) {
+  return `<article class="cc-card pk-card"><span class="eyebrow"><bdi>${esc(p.category)}</bdi></span><h3><a href="#/customer/packages/${esc(p.id)}"><bdi>${esc(p.title)}</bdi></a></h3><p class="pk-price"><b>${esc(fmt.money(p.price))}</b> <small>${pkk("net")}</small></p><ul class="pk-chips"><li>${pkk("teamN", { n: p.teamSize })}</li><li>${pkk("daysN", { n: p.days })}</li><li>${pkk("startFrom", { date: fmt.date(p.earliestStart) })}</li></ul>${pkIncluded({ included: (p.included || []).slice(0, 3) })}${pkWho(p)}<a class="btn outline full" href="#/customer/packages/${esc(p.id)}">${pkk("shop.view")}</a></article>`;
+}
+async function pkShop(params, query) {
+  const q = new URLSearchParams();
+  for (const k of ["category", "start", "postcode", "maxPrice", "q", "sort"]) if (query?.get(k)) q.set(k, query.get(k));
+  const { packages = [], categories = [] } = await api("/service-packages?" + q.toString()),
+    v = (k) => esc(query?.get(k) || ""),
+    sel = (name, options, label) =>
+      `<label>${pkk("filter." + label)}<select name="${name}">${options
+        .map(([value, text]) => `<option value="${esc(value)}"${(query?.get(name) || "") === value ? " selected" : ""}>${esc(text)}</option>`)
+        .join("")}</select></label>`;
+  app.innerHTML = dashboardShell(
+    "customer",
+    "packages",
+    `<div class="dash-top"><div><h1>${pkk("shop.title")}</h1><p>${pkk(ccBrokered() ? "shop.leadBrokered" : "shop.lead")}</p></div></div>
+<form class="panel pk-filters" data-action="pk.filter">${sel("category", [["", t("pk.filter.allCategories")], ...categories.map((c) => [c, c])], "category")}${sel(
+      "start",
+      [
+        ["", t("pk.filter.anyStart")],
+        ["next", t("pk.filter.next")],
+        ["week", t("pk.filter.week")],
+        ["2weeks", t("pk.filter.twoWeeks")],
+      ],
+      "start",
+    )}<label>${pkk("filter.postcode")}<input name="postcode" maxlength="10" value="${v("postcode")}" inputmode="numeric"></label><label>${pkk("filter.maxPrice")}<input name="maxPrice" type="number" min="0" step="100" value="${v("maxPrice")}"></label><label>${pkk("filter.search")}<input name="q" type="search" maxlength="100" value="${v("q")}"></label>${sel(
+      "sort",
+      [
+        ["start", t("pk.filter.sortStart")],
+        ["price", t("pk.filter.sortPrice")],
+        ["rating", t("pk.filter.sortRating")],
+      ],
+      "sort",
+    )}<div class="cc-actions"><button class="btn primary">${pkk("filter.apply")}</button><a class="btn ghost" href="#/customer/packages">${pkk("filter.reset")}</a></div></form>
+<p class="subtle">${esc(t.plural("pk.shop.count", packages.length))}</p>${
+      packages.length
+        ? `<div class="pk-grid">${packages.map(pkShopCard).join("")}</div>`
+        : `<div class="empty"><h2>${pkk("shop.empty")}</h2><p>${pkk("shop.emptyText")}</p><a class="btn outline" href="#/customer/requests/new">${pkk("shop.request")}</a></div>`
+    }`,
+  );
+}
+actions.on("pk.filter", (form) => {
+  const f = new FormData(form),
+    q = new URLSearchParams();
+  for (const [k, value] of f.entries()) if (String(value).trim()) q.set(k, String(value).trim());
+  navigate("/customer/packages" + (q.toString() ? "?" + q.toString() : ""));
+});
+async function pkShopDetail(params) {
+  const { package: p } = await api("/service-packages/" + encodeURIComponent(params.id));
+  app.innerHTML = dashboardShell(
+    "customer",
+    "packages",
+    `<div class="breadcrumb"><a href="#/customer/packages">${pkk("shop.back")}</a></div><div class="dash-top"><div><span class="eyebrow"><bdi>${esc(p.category)}</bdi></span><h1><bdi>${esc(p.title)}</bdi></h1></div><p class="pk-price"><b>${esc(fmt.money(p.price))}</b> <small>${pkk("net")}</small></p></div>
+<div class="pk-detail"><section class="panel"><h3>${pkk("shop.about")}</h3><p class="rq-description"><bdi>${esc(p.description)}</bdi></p>${pkIncluded(p)}${
+      p.exclusions ? `<p class="subtle"><b>${pkk("field.exclusions")}:</b> <bdi>${esc(p.exclusions)}</bdi></p>` : ""
+    }${pkFacts(p)}</section><aside class="panel"><h3>${pkk(p.company ? "shop.supplier" : "shop.supplierAnon")}</h3>${pkWho(p)}${p.company ? "" : `<p class="subtle">${pkk("shop.anonNote")}</p>`}<div id="pkBook"></div></aside></div>`,
+  );
+  if (typeof pkBookingForm === "function") pkBookingForm(p);
+}
+
+routes.add("/customer/packages", pkShop);
+routes.add("/customer/packages/:id", pkShopDetail);
 routes.add("/supplier/packages", pkSupplierList);
 routes.add("/admin/packages", pkAdminList);

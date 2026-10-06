@@ -5,10 +5,13 @@
  *
  * Status: Draft → Active ⇄ Paused → Archived. Only vetted, live suppliers activate a package.
  */
+const geo = require("./geo");
 const STATUSES = ["Draft", "Active", "Paused", "Archived"];
+const DAY = 86400000;
 
 module.exports = function createServicePackages(ctx) {
   const { getDb, save, send, body, id, now, notify, activity, categories } = ctx;
+  const { customerPrice, anonymousProfile, platformMode } = ctx;
   const text = (v, max) =>
     String(v ?? "")
       .trim()
@@ -96,6 +99,111 @@ module.exports = function createServicePackages(ctx) {
     return list().find((p) => p.id === pid);
   }
 
+  /* ---------- T261: the shop ---------- */
+  const isoDay = (d) => d.toISOString().slice(0, 10);
+  const weekend = (d) => d.getUTCDay() === 0 || d.getUTCDay() === 6;
+  function addWorkingDays(from, n) {
+    const d = new Date(from);
+    while (n > 0) {
+      d.setUTCDate(d.getUTCDate() + 1);
+      if (!weekend(d)) n--;
+    }
+    return d;
+  }
+  // The Monday of a date's week (YYYY-MM-DD)
+  function weekOf(day) {
+    const d = new Date(day + "T00:00:00Z");
+    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+    return isoDay(d);
+  }
+  // Bookings that hold a slot: waiting for the supplier or contracted
+  const holding = (pkg) =>
+    bookings(pkg).filter((r) => ["Chosen", "Contracted"].includes(r.status) && r.servicePackageId === pkg.id);
+  function weekFull(pkg, day) {
+    const w = weekOf(day);
+    return holding(pkg).filter((r) => weekOf(r.startDate) === w).length >= pkg.perWeek;
+  }
+  // The earliest start: the lead time in working days, then the first week with a free slot (T261)
+  function earliestStart(pkg, today = new Date()) {
+    let d = addWorkingDays(new Date(isoDay(today) + "T00:00:00Z"), pkg.leadDays);
+    for (let i = 0; i < 60 && weekFull(pkg, isoDay(d)); i++) {
+      d = new Date(weekOf(isoDay(d)) + "T00:00:00Z");
+      d.setUTCDate(d.getUTCDate() + 7);
+    }
+    return isoDay(d);
+  }
+  const supplierAvailable = (s) => !!s?.live && !["Busy", "Unavailable"].includes(s.availability);
+  // Does the package's supplier work at this postcode? Unknown places are not excluded.
+  function serves(pkg, postcode) {
+    const pc = String(postcode || "").trim();
+    if (!pc) return true;
+    if (pkg.regions?.length) return pkg.regions.some((r) => pc.startsWith(r));
+    if (!pkg.radiusKm) return true;
+    const s = getDb().suppliers.find((x) => x.id === pkg.supplierId),
+      site = geo.geocode(pc),
+      home = geo.geocode(s?.location || "");
+    return !site || !home || geo.distanceKm(site, home) <= pkg.radiusKm;
+  }
+  function shopList() {
+    const db = getDb();
+    return list().filter(
+      (p) => p.status === "Active" && supplierAvailable(db.suppliers.find((s) => s.id === p.supplierId)),
+    );
+  }
+  // What a customer sees: in brokered mode the anonymised profile, never the company (T224)
+  function shopView(pkg) {
+    const out = {
+      id: pkg.id,
+      title: pkg.title,
+      description: pkg.description,
+      category: pkg.category,
+      included: pkg.included || [],
+      teamSize: pkg.teamSize,
+      days: pkg.days,
+      leadDays: pkg.leadDays,
+      regions: pkg.regions || [],
+      radiusKm: pkg.radiusKm || null,
+      travelIncluded: !!pkg.travelIncluded,
+      exclusions: pkg.exclusions || "",
+      price: customerPrice(pkg.price),
+      earliestStart: earliestStart(pkg),
+      profile: anonymousProfile(pkg.supplierId),
+    };
+    if (platformMode() === "marketplace") {
+      const s = getDb().suppliers.find((x) => x.id === pkg.supplierId);
+      Object.assign(out, { supplierId: pkg.supplierId, company: s?.company || "" });
+    }
+    return out;
+  }
+  const START_WITHIN = { next: 1, week: 7, "2weeks": 14 };
+  function shop(q) {
+    const today = new Date(),
+      cat = q.get("category") || "",
+      start = q.get("start") || "",
+      postcode = q.get("postcode") || "",
+      maxPrice = Number(q.get("maxPrice")) || 0,
+      text = String(q.get("q") || "")
+        .trim()
+        .toLowerCase(),
+      sort = q.get("sort") || "start";
+    const limit =
+      start === "next" ? isoDay(addWorkingDays(today, 1)) : START_WITHIN[start] ? isoDay(new Date(Date.now() + START_WITHIN[start] * DAY)) : null;
+    return shopList()
+      .filter((p) => !cat || p.category === cat)
+      .filter((p) => serves(p, postcode))
+      .filter((p) => !text || (p.title + " " + p.description + " " + (p.included || []).join(" ")).toLowerCase().includes(text))
+      .map(shopView)
+      .filter((v) => !maxPrice || v.price <= maxPrice)
+      .filter((v) => !limit || v.earliestStart <= limit)
+      .sort((a, b) =>
+        sort === "price"
+          ? a.price - b.price
+          : sort === "rating"
+            ? (b.profile.rating || 0) - (a.profile.rating || 0) || a.price - b.price
+            : a.earliestStart.localeCompare(b.earliestStart) || a.price - b.price,
+      );
+  }
+
   async function handle(req, res, url, parts, user) {
     if (parts[1] !== "service-packages") return false;
     const method = req.method;
@@ -175,6 +283,16 @@ module.exports = function createServicePackages(ctx) {
       return (send(res, 404, { error: "Package not found" }), true);
     }
 
+    // ---- customer: the shop (T261) ----
+    if (user.role === "customer") {
+      if (!parts[2] && method === "GET")
+        return (send(res, 200, { packages: shop(url.searchParams), categories: categories() }), true);
+      const live = pkg && shopList().includes(pkg);
+      if (!live || parts.length !== 3 || method !== "GET")
+        return (send(res, 404, { error: "Package not found" }), true);
+      return (send(res, 200, { package: shopView(pkg) }), true);
+    }
+
     // ---- admin: every package; pause with a reason, or release the pause ----
     if (user.role === "admin") {
       const db = getDb(),
@@ -203,5 +321,5 @@ module.exports = function createServicePackages(ctx) {
     return false;
   }
 
-  return { handle, list, find, STATUSES };
+  return { handle, list, find, earliestStart, weekFull, serves, shopList, addWorkingDays, STATUSES };
 };

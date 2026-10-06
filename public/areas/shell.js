@@ -6,7 +6,7 @@
 // Daily pages first, then "More" (board Dashboard / SupplierDash, T93). Keys are the second path segment.
 const SHELL_NAV = {
   customer: {
-    daily: ["dashboard", "requests", "projects", "approvals", "sourcing", "invoices", "messages"],
+    daily: ["dashboard", "requests", "packages", "projects", "approvals", "sourcing", "invoices", "messages"],
     more: ["analytics", "contracts", "sites", "offers", "suppliers", "preferred", "inbox", "time", "team", "profile"],
   },
   supplier: {

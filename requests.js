@@ -1124,5 +1124,5 @@ module.exports = function createRequests(ctx) {
     return false;
   }
 
-  return { handle, view, move, REQUEST_STATUSES };
+  return { handle, view, move, customerPrice, anonymousProfile, REQUEST_STATUSES };
 };

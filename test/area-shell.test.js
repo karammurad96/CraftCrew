@@ -69,7 +69,7 @@ describe("app shell", () => {
   it("shows the daily pages first and the rest under More, for each role (T93)", () => {
     const owner = (role) => ({ role, name: "Ann Example", company: "Example GmbH" });
     assert.deepEqual(navLabels(shell("en", owner("customer")).render("customer", "dashboard")), [
-      "Today", "Requests", "Projects", "Approvals", "Sourcing", "Invoices", "Messages", "[More]",
+      "Today", "Requests", "Packages", "Projects", "Approvals", "Sourcing", "Invoices", "Messages", "[More]",
       "Analytics", "Contracts", "Sites &amp; safety", "Offers overview", "Find Suppliers", "Preferred suppliers", "Inbox", "Time approvals", "Team", "Profile / Settings",
     ]);
     assert.deepEqual(navLabels(shell("en", owner("supplier"), "#/supplier/dashboard").render("supplier", "dashboard")).slice(0, 9), ["Today", "Work", "Team planner", "Platform orders", "My packages", "Opportunities", "Invoices", "Compliance", "[More]"]);

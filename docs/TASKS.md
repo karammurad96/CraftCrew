@@ -368,7 +368,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 
 **Wave 17 — packages, organigram and the site editor (asked for by Karam on 6 October 2026; details under "Wave 17")**
 - [x] T260 Service packages: suppliers offer ready-made, fixed-price packages ("one team, one week on site") · M · do first
-- [ ] T261 Package shop: customers browse and filter the packages (anonymised in brokered mode) · M
+- [x] T261 Package shop: customers browse and filter the packages (anonymised in brokered mode) · M
 - [ ] T262 Booking a package: project, start date, supplier confirmation or instant booking, contract · M
 - [ ] T263 Project organigram: the customer at the top, the platform, each supplier with its people, tasks and categories · M
 - [ ] T264 Site editor: every text of the website and the app, per language, changed by an admin · M
@@ -5459,8 +5459,26 @@ Asked for by Karam on 6 October 2026:
    date to the next week.
 
 **Done when.**
-- [ ] No company name, email or phone of a supplier leaves the server in brokered mode (tested).
-- [ ] Every filter and the earliest-start rule have tests.
+- [x] No company name, email or phone of a supplier leaves the server in brokered mode (tested).
+- [x] Every filter and the earliest-start rule have tests.
+
+**As built (6 October 2026).**
+- **Server.** A customer's `GET /api/service-packages` lists the active packages of live suppliers that are not
+  *Busy* or *Unavailable*.
+  - Query filters: `category`, `start` (`next`, `week`, `2weeks`), `postcode`, `maxPrice`, `q`. Sort: `sort`
+    (`start` by default, `price`, `rating`).
+  - A postcode matches the package's regions (postcode beginnings); else its radius around the supplier's
+    location (`geo.js`). An unknown place is not excluded.
+  - The earliest start is the lead time in working days. A week already holding `perWeek` bookings (requests
+    *Chosen* or *Contracted* starting that week) moves it to the next Monday.
+  - What a customer gets: the package fields, the customer price (T224's model) and T224's anonymised
+    profile. The company and supplier id are added only in marketplace mode.
+  - `GET /api/service-packages/:id` answers only for a package in the shop.
+- **Pages.** *Packages* (`/customer/packages`, customer nav after *Requests*) with the filter form (kept in the
+  address), the count and cards. The detail page `/customer/packages/:id` has a side panel for the supplier,
+  where T262 puts the booking form.
+- **Tests.** `test/package-shop.test.js`: anonymity, each filter and the sort, the full week, busy suppliers,
+  paused packages and marketplace mode.
 
 ### T262 · Booking a package
 `P1 · M · depends on T261, T230, T232`

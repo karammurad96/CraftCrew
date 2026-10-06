@@ -983,6 +983,7 @@ LOCALES.de = {
   shell: {
     "nav": {
       "customer": {
+        packages: "Pakete",
         "dashboard": "Heute",
         "projects": "Projekte",
         "approvals": "Freigaben",
@@ -5267,6 +5268,43 @@ LOCALES.de = {
   },
   // Texts the server sends (T137): notifications, emails and PDFs, in the recipient's language (see locales.js)
   pk: {
+    startFrom: "Start ab {date}",
+    shop: {
+      title: "Pakete",
+      lead: "Fertige Leistungen zum Festpreis von geprüften Lieferanten. Direkt in eines Ihrer Projekte buchen.",
+      leadBrokered: "Fertige Leistungen zum Festpreis von geprüften Lieferanten. Direkt in eines Ihrer Projekte buchen; die Plattform nennt den Lieferanten, sobald die Buchung bestätigt ist.",
+      count: {
+        one: "{n} Paket",
+        other: "{n} Pakete",
+      },
+      empty: "Kein Paket passt zu diesen Filtern",
+      emptyText: "Ändern Sie die Filter oder senden Sie eine Anfrage, und die Plattform findet Lieferanten für Sie.",
+      request: "Stattdessen eine Anfrage senden",
+      view: "Paket ansehen",
+      back: "← Alle Pakete",
+      about: "Was Sie bekommen",
+      supplier: "Lieferant",
+      supplierAnon: "Ihr Lieferant",
+      anonNote: "Ein geprüfter Lieferant der Plattform. Sie sehen das Unternehmen, sobald die Buchung bestätigt ist.",
+    },
+    filter: {
+      category: "Kategorie",
+      allCategories: "Alle Kategorien",
+      start: "Start",
+      anyStart: "Jederzeit",
+      next: "Ab dem nächsten Werktag",
+      week: "Innerhalb einer Woche",
+      twoWeeks: "Innerhalb von zwei Wochen",
+      postcode: "PLZ des Einsatzorts",
+      maxPrice: "Höchstpreis (EUR)",
+      search: "Suche",
+      sort: "Sortieren nach",
+      sortStart: "Frühester Start",
+      sortPrice: "Niedrigster Preis",
+      sortRating: "Beste Bewertung",
+      apply: "Pakete anzeigen",
+      reset: "Zurücksetzen",
+    },
     field: {
       title: "Titel",
       category: "Kategorie",

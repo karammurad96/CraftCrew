@@ -984,6 +984,7 @@ LOCALES.en = {
   shell: {
     "nav": {
       "customer": {
+        packages: "Packages",
         "dashboard": "Today",
         "projects": "Projects",
         "approvals": "Approvals",
@@ -5268,6 +5269,43 @@ LOCALES.en = {
   },
   // Texts the server sends (T137): notifications, emails and PDFs, in the recipient's language (see locales.js)
   pk: {
+    startFrom: "Start from {date}",
+    shop: {
+      title: "Packages",
+      lead: "Ready-made work at a fixed price from vetted suppliers. Book directly into one of your projects.",
+      leadBrokered: "Ready-made work at a fixed price from vetted suppliers. Book directly into one of your projects; the platform names the supplier once the booking is confirmed.",
+      count: {
+        one: "{n} package",
+        other: "{n} packages",
+      },
+      empty: "No package fits these filters",
+      emptyText: "Change the filters, or send a request and the platform finds suppliers for you.",
+      request: "Send a request instead",
+      view: "View package",
+      back: "← All packages",
+      about: "What you get",
+      supplier: "Supplier",
+      supplierAnon: "Your supplier",
+      anonNote: "A vetted supplier of the platform. You see the company once the booking is confirmed.",
+    },
+    filter: {
+      category: "Category",
+      allCategories: "All categories",
+      start: "Start",
+      anyStart: "Any time",
+      next: "From the next working day",
+      week: "Within a week",
+      twoWeeks: "Within two weeks",
+      postcode: "Site postcode",
+      maxPrice: "Highest price (EUR)",
+      search: "Search",
+      sort: "Sort by",
+      sortStart: "Earliest start",
+      sortPrice: "Lowest price",
+      sortRating: "Best rating",
+      apply: "Show packages",
+      reset: "Reset",
+    },
     field: {
       title: "Title",
       category: "Category",
