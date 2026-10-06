@@ -365,6 +365,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T251 One-vendor mode: the platform is the customer's only contracting party (price model B, Stufe 2) · L · **needs the lawyer, tax adviser and insurance first**
 - [ ] T252 Procurement integration: punch-out (OCI and cXML) for SAP, Ariba and Coupa customers · M · after T251
 - [ ] T254 Quarterly price index for industrial services · S · after T243
+- [x] T256 Team members: the action queue and the navigation counts without 403, filtered by the member's areas · S · bug found while building T268
 
 **Wave 17 — packages, organigram and the site editor (asked for by Karam on 6 October 2026; details under "Wave 17")**
 - [x] T260 Service packages: suppliers offer ready-made, fixed-price packages ("one team, one week on site") · M · do first
@@ -5032,6 +5033,20 @@ Karam at the start of each phase.
 6. **Tax adviser.** Whether DAC7 reporting (PStTG) applies, the platform email on invoices, and later T251.
 7. **Providers.** Payment (T80), AI and its data location (T210), Peppol access point (T248).
 8. **Brand name (T171).**
+
+### T256 · Team members: action queue and counts without 403
+`P0 · S · bug found while building T268`
+
+A team member whose role has no access to "settings" got 403 from `/api/action-queue` and `/api/nav-counts` on
+every page: `moduleFor()` in `team.js` counted both under "settings".
+
+**Done when.**
+- [x] Both answer every signed-in member, and leave out what the member's role cannot open.
+
+**As built (6 October 2026).** `team.js` lets both through. In `server.js` the action queue drops invoice and
+payment items without *invoices*, offers and bids without *sourcing*, time without *time*, compliance without
+*compliance*, and documents, overdue tasks and invitations without *projects*. The counts drop messages, project
+invitations and the approvals of areas the member cannot open. Test: `test/team-summaries.test.js`.
 
 ### T240 · Commission statements
 `P0 · S · do first`

@@ -35,7 +35,8 @@ function moduleFor(parts, method) {
   const p1 = parts[1],
     p2 = parts[2];
   if (
-    ["dashboard", "notifications", "platform-config", "health", "suppliers", "contacts", "upload"].includes(
+    // T256: the action queue and the nav counts are filtered by the member's areas in server.js
+    ["dashboard", "notifications", "platform-config", "health", "suppliers", "contacts", "upload", "action-queue", "nav-counts"].includes(
       p1,
     )
   )

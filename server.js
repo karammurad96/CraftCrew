@@ -4694,6 +4694,18 @@ async function api(req, res, url) {
           ["New", "On Hold"].includes(a.status || "New"),
         ).length;
       }
+      // T256: a team member gets only the counts of the areas their role can open
+      if (user.isMember) {
+        const can = (area) => (user.permissions?.[area] || "none") !== "none";
+        if (!can("messages")) delete counts.messages, delete counts.projectMessages;
+        if (!can("projects")) delete counts.projects;
+        if (counts.approvals !== undefined) {
+          const ids = new Set(db.projects.filter((p) => projectFor(user, p.id)).map((p) => p.id));
+          counts.approvals =
+            (can("invoices") ? db.invoices.filter((i) => i.status === "Submitted" && ids.has(i.projectId)).length : 0) +
+            (can("time") ? (db.timeEntries || []).filter((t) => t.status === "Pending approval" && ids.has(t.projectId)).length : 0);
+        }
+      }
       return (send(res, 200, { counts }), true);
     }
     /* Dashboard action queue: what needs this user now, each with the page that resolves it, plus the next
@@ -4947,11 +4959,27 @@ async function api(req, res, url) {
             { title: ["markPaid", { number: invoiceNo(i) }], ...(i.scheduledPayment ? { sub: ["due", { date: i.scheduledPayment }] } : {}) },
           );
       }
+      // T256: a team member sees only the items of the areas their role can open
+      const AREA_OF = {
+          invoice: "invoices",
+          payment: "invoices",
+          offer: "sourcing",
+          bid: "sourcing",
+          time: "time",
+          compliance: "compliance",
+          document: "projects",
+          overdue: "projects",
+          invitation: "projects",
+        },
+        visible = user.isMember
+          ? items.filter((x) => !AREA_OF[x.kind] || (user.permissions?.[AREA_OF[x.kind]] || "none") !== "none")
+          : items;
+      if (user.isMember && (user.permissions?.projects || "none") === "none") upcoming = [];
       const next = upcoming.sort((a, b) => a.t.dueDate.localeCompare(b.t.dueDate))[0];
       return (
         send(res, 200, {
-          items: items.slice(0, 30),
-          total: items.length,
+          items: visible.slice(0, 30),
+          total: visible.length,
           nextDeadline: next
             ? {
                 name: next.t.name,
