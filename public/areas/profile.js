@@ -457,6 +457,7 @@ async function supplierCatalog() {
       ]
         .map((k) => `<th>${c(k)}</th>`)
         .join("")}</tr></thead><tbody>${items.map(service).join("") || `<tr><td colspan="5">${c("noServices")}</td></tr>`}</tbody></table></div></section>`,
+      pfPricingPanel(s),
       `<section class="panel"><div class="panel-title"><h3>${c("people")}</h3><span>${c("listed", { n: team.length })}</span></div><div class="cc-table-wrap"><table class="cc-table"><thead><tr>${["colName", "colRole", "colExperience", "colCerts", "colAvailability"]
         .map((k) => `<th>${c(k)}</th>`)
         .join("")}</tr></thead><tbody>${team.map(person).join("") || `<tr><td colspan="5">${c("noPeople")}</td></tr>`}</tbody></table></div></section>`,
@@ -466,6 +467,61 @@ async function supplierCatalog() {
   // The supplier's own certificates and proofs (areas/directory.js)
   await dcRefreshOwn().catch((e) => console.error(e));
 }
+// T241: the supplier's pricing rules for instant estimates
+function pfPricingPanel(s) {
+  const pr = s.pricing || {},
+    k = (key, params) => pfk("price." + key, params),
+    fact = (label, value) => `<div><dt>${k(label)}</dt><dd>${value}</dd></div>`;
+  const mats = Object.entries(pr.materials || {});
+  return `<section class="panel"><div class="panel-title"><div><h3>${k("title")}</h3><small>${k("lead")}</small></div><button class="btn small outline" data-action="prof.editPricing">${k("edit")}</button></div><dl class="rq-facts">${[
+    fact("minimum", pr.minimumOrder ? esc(fmt.money(pr.minimumOrder)) : k("none")),
+    fact("travel", pr.travel?.flat || pr.travel?.perKm ? esc(t("prof.price.travelText", { flat: fmt.money(pr.travel.flat || 0), perKm: fmt.money(pr.travel.perKm || 0, 2) })) : k("none")),
+    fact("radius", pr.travel?.radiusKm ? k("radiusText", { n: pr.travel.radiusKm }) : k("anywhere")),
+    fact("surcharges", ["night", "weekend", "shift"].filter((x) => pr.surcharges?.[x]).map((x) => k("surcharge." + x, { pct: pr.surcharges[x] })).join(" · ") || k("none")),
+    fact("materials", mats.map(([cat, pct]) => `${esc(cat)} ${esc(pct)} %`).join(" · ") || k("none")),
+  ].join("")}</dl></section>`;
+}
+actions.on("prof.editPricing", async () => {
+  const d = await api("/profile"),
+    pr = d.supplier?.pricing || {},
+    cats = d.supplier?.services || [],
+    k = (key) => pfk("price." + key),
+    num = (name, value, max, step = "1") => `<input type="number" name="${name}" min="0" max="${max}" step="${step}" value="${esc(value || "")}">`;
+  modal(
+    t("prof.price.title"),
+    `<form class="modal-form" data-action="prof.savePricing"><p class="subtle">${k("lead")}</p><div class="cc-platform-grid"><label>${k("minimum")} (EUR)${num("minimumOrder", pr.minimumOrder, 1000000)}</label><label>${k("flat")} (EUR)${num("flat", pr.travel?.flat, 10000)}</label><label>${k(
+      "perKm",
+    )} (EUR)${num("perKm", pr.travel?.perKm, 20, "0.01")}</label><label>${k("radius")} (km)${num("radiusKm", pr.travel?.radiusKm, 3000)}</label>${["night", "weekend", "shift"]
+      .map((x) => `<label>${k("surchargeLabel." + x)} (%)${num("s_" + x, pr.surcharges?.[x], 200)}</label>`)
+      .join("")}</div><fieldset><legend>${k("materials")}</legend><p class="subtle">${k("materialsHint")}</p><div class="cc-platform-grid">${cats
+      .map((c) => `<label><bdi>${esc(c)}</bdi> (%)<input type="number" name="m_${esc(c)}" data-cat="${esc(c)}" min="0" max="100" value="${esc(pr.materials?.[c] || "")}"></label>`)
+      .join("")}</div></fieldset><div id="pfPriceError" class="form-error"></div><div class="cc-actions"><button type="button" class="btn outline" data-action="prof.closeModal">${k("cancel")}</button><button class="btn primary">${k("save")}</button></div></form>`,
+  );
+});
+actions.on("prof.closeModal", () => closeModal());
+actions.on("prof.savePricing", async (form) => {
+  const f = new FormData(form),
+    v = (name) => f.get(name) || 0;
+  const materials = Object.fromEntries([...form.querySelectorAll("[data-cat]")].map((el) => [el.dataset.cat, el.value || 0]));
+  try {
+    await api("/profile", {
+      method: "PUT",
+      body: {
+        pricing: {
+          minimumOrder: v("minimumOrder"),
+          travel: { flat: v("flat"), perKm: v("perKm"), radiusKm: v("radiusKm") },
+          surcharges: { night: v("s_night"), weekend: v("s_weekend"), shift: v("s_shift") },
+          materials,
+        },
+      },
+    });
+    closeModal();
+    tToast(t("prof.price.saved"));
+    route();
+  } catch (x) {
+    document.getElementById("pfPriceError").textContent = x.message;
+  }
+});
 const PF_UNITS = ["hour", "day", "project", "unit", "fixed"];
 function pfServiceRow(x = {}) {
   const f = (key) => pfk("row." + key);

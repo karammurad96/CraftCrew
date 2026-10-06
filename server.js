@@ -214,6 +214,32 @@ function cleanSupplierProfile(b) {
     }
     out.teamMembers = team;
   }
+  // T241: the supplier's pricing rules for instant estimates
+  if (b.pricing !== undefined) {
+    const p = b.pricing && typeof b.pricing === "object" ? b.pricing : {},
+      num = (v, max) => {
+        if (v === undefined || v === null || v === "") return 0;
+        const n = Number(v);
+        return Number.isFinite(n) && n >= 0 && n <= max ? Math.round(n * 100) / 100 : null;
+      },
+      pricing = {
+        minimumOrder: num(p.minimumOrder, 1000000),
+        travel: { flat: num(p.travel?.flat, 10000), perKm: num(p.travel?.perKm, 20), radiusKm: num(p.travel?.radiusKm, 3000) },
+        surcharges: { night: num(p.surcharges?.night, 200), weekend: num(p.surcharges?.weekend, 200), shift: num(p.surcharges?.shift, 200) },
+        materials: {},
+      };
+    const nums = [pricing.minimumOrder, ...Object.values(pricing.travel), ...Object.values(pricing.surcharges)];
+    if (nums.some((n) => n === null))
+      return { error: "Pricing rules: enter numbers of at least 0 (surcharges up to 200 %, travel up to 20 € per km)." };
+    const mat = p.materials && typeof p.materials === "object" ? p.materials : {};
+    if (Object.keys(mat).length > 30) return { error: "Pricing rules: materials for up to 30 categories." };
+    for (const [cat, v] of Object.entries(mat)) {
+      const n = num(v, 100);
+      if (n === null) return { error: "Pricing rules: a materials share is 0 to 100 %." };
+      if (n > 0) pricing.materials[cleanStr(cat, 80)] = n;
+    }
+    out.pricing = pricing;
+  }
   if (b.serviceCatalog !== undefined) {
     if (!Array.isArray(b.serviceCatalog) || b.serviceCatalog.length > 50)
       return { error: "Service catalog: up to 50 services." };
@@ -410,7 +436,12 @@ const clause = require("./clause")({
   activity: (...a) => activity(...a),
 });
 // T231: instant estimates from the suppliers' own price lists
-const estimates = require("./estimate")({ getDb: () => db, scorecard: (sid) => sourcing.scorecard(sid) });
+const estimates = require("./estimate")({
+  getDb: () => db,
+  scorecard: (sid) => sourcing.scorecard(sid),
+  // T241: the price band of a category
+  benchmark: (category) => benchmarks.benchmark(category),
+});
 const requests = require("./requests")({
   getDb: () => db,
   save: () => save(),

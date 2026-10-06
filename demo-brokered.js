@@ -718,6 +718,19 @@ async function wave16Journeys(base, { getDb, saveNow }) {
     },
     admin,
   );
+  // T241: pricing rules, so instant estimates show travel, surcharges and a minimum order
+  await call(
+    "PUT",
+    "/profile",
+    { pricing: { minimumOrder: 1500, travel: { flat: 80, perKm: 0.6, radiusKm: 400 }, surcharges: { night: 35, weekend: 25, shift: 15 }, materials: { "Electrical Engineering": 8 } } },
+    donau,
+  );
+  await call(
+    "PUT",
+    "/profile",
+    { pricing: { minimumOrder: 2500, travel: { flat: 120, perKm: 0.5 }, surcharges: { weekend: 30 } } },
+    await login(SUPPLIERS[1].email),
+  );
   // Donau invoices its part of "Hall C conveyor extension"; Maya approves it, so the platform fee is due
   const db = getDb(),
     hall = db.requests.find((r) => r.title === "Hall C conveyor extension" && r.status === "Contracted"),

@@ -138,6 +138,6 @@ describe("instant estimate", () => {
         ["Robotics", 40],
       ]),
     );
-    assert.deepEqual(none, { options: [], missing: ["pkg1"] });
+    assert.deepEqual(none, { options: [], missing: ["pkg1"], skipped: [] });
   });
 });
