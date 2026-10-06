@@ -5,7 +5,7 @@ const teamk = (key, params) => esc(t("team." + key, params));
 const TM_LEVELS = ["none", "view", "full"];
 // Sidebar entry → access area. Entries not listed (dashboard, inbox, suppliers, profile) stay visible.
 const TM_NAV = {
-  customer: { projects: "projects", offers: "sourcing", bids: "sourcing", contracts: "sourcing", sourcing: "sourcing", invoices: "invoices", time: "time", sites: "compliance", messages: "messages", analytics: "analytics" },
+  customer: { projects: "projects", packages: "sourcing", offers: "sourcing", bids: "sourcing", contracts: "sourcing", sourcing: "sourcing", invoices: "invoices", time: "time", sites: "compliance", messages: "messages", analytics: "analytics" },
   supplier: { phases: "projects", projects: "projects", planning: "projects", requests: "sourcing", packages: "sourcing", bids: "sourcing", contracts: "sourcing", invoices: "invoices", time: "time", compliance: "compliance", messages: "messages", suppliers: "catalog", catalog: "catalog" },
 };
 // List endpoints a member without access would otherwise hit on shared pages like the dashboard.

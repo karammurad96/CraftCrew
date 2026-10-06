@@ -442,6 +442,9 @@ const servicePackages = require("./servicepackages")({
   notify: (...a) => notify(...a),
   activity: (...a) => activity(...a),
   categories: () => db.settings?.serviceCategories || services,
+  customerPrice: (a) => requests.customerPrice(a),
+  anonymousProfile: (sid) => requests.anonymousProfile(sid),
+  platformMode: () => platformMode(),
 });
 const benchmarks = require("./benchmarks")({
   getDb: () => db,
