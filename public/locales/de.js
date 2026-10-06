@@ -1460,6 +1460,7 @@ LOCALES.de = {
       "you": "Sie"
     },
     "tabs": {
+      team: "Organisation",
       "label": "Projektbereiche",
       "overview": "Übersicht",
       "tasks": "Aufgaben",
@@ -5417,6 +5418,34 @@ LOCALES.de = {
       pauseTitle: "Dieses Paket pausieren?",
       pauseText: "Sagen Sie dem Lieferanten, warum. Er kann das Paket ändern, und Sie können es wieder erlauben.",
     },
+  },
+  org: {
+    title: "Wer an diesem Projekt arbeitet",
+    lead: "Sie ganz oben, dann Ihr Team, die Plattform und jeder Lieferant mit seinen Leuten und den Aufgaben, die sie übernehmen.",
+    leadSupplier: "Der Kunde, die Plattform und Ihr Unternehmen in diesem Projekt, mit Ihren Leuten und deren Aufgaben.",
+    kind: {
+      customer: "Projektinhaber",
+      team: "Team",
+      platform: "Plattform",
+      supplier: "Lieferant",
+      member: "Teammitglied",
+      worker: "Mitarbeiter",
+    },
+    you: "Sie ({name})",
+    owner: "Kontoinhaber",
+    yourTeam: "Team von {company}",
+    member: "Teammitglied",
+    access: {
+      full: "voller Zugriff",
+      view: "kann ansehen",
+    },
+    shared: "Geteilt mit · {company}",
+    platformTeam: "Plattform-Team",
+    platformRole: "Koordiniert das Projekt und die Lieferanten",
+    contact: "Ansprechpartner: {name}",
+    onSite: "vor Ort",
+    noPeople: "Noch keine Personen für dieses Projekt eingeplant.",
+    noSuppliers: "Noch kein Lieferant arbeitet an diesem Projekt.",
   },
   server: {
     notify: {

@@ -1172,3 +1172,41 @@ ul.ff-check-list.pk-included { min-height: 0; gap: 4px; }
 .pk-book .rq-clause { max-height: 160px; overflow: auto; }
 .pk-book .cc-check-label, .pk-instant-box .cc-check-label { display: flex; gap: 8px; align-items: flex-start; white-space: normal; min-width: 0; overflow-wrap: anywhere; }
 .pk-detail > * { min-width: 0; }
+
+/* T263: project organigram. Boxes joined by lines on wide screens, an indented list on a phone. Only the tree's
+   own lists (.org-tree, .org-branch) draw lines; the lists inside a box do not. */
+.org-scroll { overflow-x: auto; padding-block: 8px 16px; }
+.org-tree, .org-branch { list-style: none; margin: 0; padding: 0; display: flex; justify-content: center; }
+.org-tree { min-width: max-content; }
+.org-branch { padding-block-start: 22px; position: relative; }
+.org-tree > li, .org-branch > li { position: relative; padding: 22px 8px 0; display: flex; flex-direction: column; align-items: center; }
+.org-tree > li { padding-block-start: 0; }
+.org-branch > li::before, .org-branch > li::after { content: ""; position: absolute; top: 0; inset-inline-end: 50%; width: 50%; height: 22px; border-block-start: 1px solid var(--line-strong, #b9c3d3); }
+.org-branch > li::after { inset-inline-end: auto; inset-inline-start: 50%; border-inline-start: 1px solid var(--line-strong, #b9c3d3); }
+.org-branch > li:first-child::before, .org-branch > li:last-child::after { border: 0 none; }
+.org-branch > li:last-child::before { border-inline-end: 1px solid var(--line-strong, #b9c3d3); border-start-end-radius: 6px; }
+.org-branch > li:first-child::after { border-start-start-radius: 6px; }
+.org-branch > li:only-child { padding-block-start: 0; }
+.org-branch > li:only-child::before, .org-branch > li:only-child::after { display: none; }
+.org-branch::before { content: ""; position: absolute; top: 0; inset-inline-start: 50%; height: 22px; border-inline-start: 1px solid var(--line-strong, #b9c3d3); }
+.org-node { background: var(--surface, #fff); border: 1px solid var(--line, #dde3ec); border-radius: 12px; padding: 10px 14px; min-width: 180px; max-width: 250px; text-align: start; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05); }
+.org-node b { font-size: 0.95rem; }
+.org-node small { color: var(--muted, #5b6b80); font-size: 0.8rem; }
+.org-kind { font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 700; color: var(--muted, #5b6b80); }
+.org-customer { border-color: #2563eb; border-width: 2px; }
+.org-customer .org-kind { color: #2563eb; }
+.org-platform { border-style: dashed; }
+.org-supplier { border-inline-start: 4px solid #0f766e; }
+.org-worker, .org-member { min-width: 150px; }
+.org-node .org-tasks, .org-node .org-people { list-style: none; padding: 0; margin: 4px 0 0; display: grid; gap: 3px; font-size: 0.8rem; }
+.org-node .org-tasks li { display: flex; flex-wrap: wrap; gap: 4px; align-items: baseline; }
+.org-node .org-people li { display: flex; flex-direction: column; }
+.org-node .org-tasks .status { font-size: 0.7rem; padding: 0 6px; }
+.org-node .org-cats { margin-block: 2px; }
+@media (max-width: 700px) {
+  .org-tree, .org-branch { display: block; min-width: 0; padding: 0; }
+  .org-branch { padding-inline-start: 18px; border-inline-start: 1px solid var(--line-strong, #b9c3d3); margin-inline-start: 10px; }
+  .org-tree > li, .org-branch > li { display: block; padding: 10px 0 0; }
+  .org-branch > li::before, .org-branch > li::after, .org-branch::before { display: none; }
+  .org-node { max-width: none; min-width: 0; }
+}

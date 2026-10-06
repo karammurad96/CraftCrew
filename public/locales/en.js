@@ -1461,6 +1461,7 @@ LOCALES.en = {
       "you": "You"
     },
     "tabs": {
+      team: "Organisation",
       "label": "Project sections",
       "overview": "Overview",
       "tasks": "Tasks",
@@ -5418,6 +5419,34 @@ LOCALES.en = {
       pauseTitle: "Pause this package?",
       pauseText: "Tell the supplier why. They can change the package, and you can allow it again.",
     },
+  },
+  org: {
+    title: "Who works on this project",
+    lead: "You at the top, then your team, the platform and each supplier with its people and the tasks they handle.",
+    leadSupplier: "The customer, the platform and your company on this project, with your people and their tasks.",
+    kind: {
+      customer: "Project owner",
+      team: "Team",
+      platform: "Platform",
+      supplier: "Supplier",
+      member: "Team member",
+      worker: "Worker",
+    },
+    you: "You ({name})",
+    owner: "Account owner",
+    yourTeam: "Team of {company}",
+    member: "Team member",
+    access: {
+      full: "full access",
+      view: "can view",
+    },
+    shared: "Shared with · {company}",
+    platformTeam: "Platform team",
+    platformRole: "Coordinates the project and the suppliers",
+    contact: "Contact: {name}",
+    onSite: "on site",
+    noPeople: "No people planned on this project yet.",
+    noSuppliers: "No supplier works on this project yet.",
   },
   server: {
     notify: {

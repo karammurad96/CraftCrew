@@ -377,7 +377,7 @@ async function wsPage(role, pid, query) {
     const tabs = `<div class="ds-ws-tabs ds-ui" role="tablist" aria-label="${wk("tabs.label")}" data-key="ws.tabkey" data-key-on="ArrowLeft,ArrowRight">${tabBtn("overview")}${tabBtn("tasks")}${tabBtn("files", wk("tabs.files", { n: documents.length }))}${tabBtn(
       "messages",
       unread > 0 ? wk("tabs.messagesCount", { n: unread }) : wk("tabs.messages"),
-    )}${tabBtn("invoices")}${tabBtn("activity")}</div>`;
+    )}${tabBtn("invoices")}${tabBtn("team", wk("tabs.team"))}${tabBtn("activity")}</div>`;
     const overview = `<div class="ds-dash-cols ds-ws-cols"><div class="ds-dash-main"><h2 class="ds-dash-h ds-ui">${wk("next.title")}</h2><div class="ds-card ds-next">${wsUpNext(role, { project: p, invoices, entries, documents })}</div><h2 class="ds-dash-h ds-ui ds-gap">${wk("phases.title")}</h2><div class="ds-card ds-phases">${
       wsPhaseRows({ project: p }) || `<p class="ds-next-none">${wk("phases.none")}</p>`
     }</div></div><div class="ds-dash-side">${wsSide(role, { project: p, invoices, documents, suppliers: sups })}</div></div>`;
@@ -391,11 +391,13 @@ async function wsPage(role, pid, query) {
       pane("files", wsFilesPane(role, p, documents)),
       pane("messages", `<section class="ds-card ws-pane-card ws-chat" data-project="${esc(p.id)}"><p class="ds-next-none">${wk("pane.loading")}</p></section>`),
       pane("invoices", wsInvoicesPane(role, p, invoices)),
+      pane("team", `<section class="ds-card ws-pane-card ws-org" data-project="${esc(p.id)}"><p class="ds-next-none">${wk("pane.loading")}</p></section>`),
       pane("activity", activityPanel),
     ];
   }
   app.innerHTML = dashboardShell(role, "projects", sections.filter(Boolean).join(""));
   if (!invitedOnly && (query.get("tab") || WS_TAB[p.id]) === "messages") wsLoadChat();
+  if (!invitedOnly && (query.get("tab") || WS_TAB[p.id]) === "team") wsLoadOrg();
 }
 
 /* ---------- Files, messages and invoices under the tab bar (T143): a compact view, the full page one click away ---------- */
@@ -465,6 +467,75 @@ actions.on("ws.chatSend", async (form) => {
     toast(x.message, "error");
   }
 });
+/* ---------- T263: the organigram: the customer at the top, the platform, each supplier with its people ---------- */
+const ogk = (key, params) => esc(t("org." + key, params));
+function orgNode(kind, title, sub, body = "") {
+  return `<div class="org-node org-${kind}"><span class="org-kind">${ogk("kind." + kind)}</span><b><bdi>${esc(title)}</bdi></b>${sub ? `<small><bdi>${esc(sub)}</bdi></small>` : ""}${body}</div>`;
+}
+function orgSupplier(o, s) {
+  const role = state.user.role,
+    tasks = s.tasks.length
+      ? `<ul class="org-tasks">${s.tasks
+          .map(
+            (x) =>
+              `<li><a href="#/${role}/projects/${esc(o.project.id)}/tasks/${esc(x.id)}"><bdi>${esc(x.name)}</bdi></a> ${statusHtml(x.status)}</li>`,
+          )
+          .join("")}</ul>`
+      : "";
+  const cats = s.categories.length ? `<ul class="pk-chips org-cats">${s.categories.map((c) => `<li><bdi>${esc(c)}</bdi></li>`).join("")}</ul>` : "",
+    contact = s.contact ? `<small>${ogk("contact", { name: s.contact.name })}${s.contact.role ? " · " + esc(s.contact.role) : ""}</small>` : "";
+  const people = s.people.length
+    ? `<ul class="org-branch">${s.people
+        .map(
+          (x) =>
+            `<li>${orgNode(
+              x.kind === "worker" ? "worker" : "member",
+              x.name,
+              [x.role, x.onSite ? t("org.onSite") : ""].filter(Boolean).join(" · "),
+              x.tasks.length ? `<ul class="org-tasks">${x.tasks.map((n) => `<li><bdi>${esc(n)}</bdi></li>`).join("")}</ul>` : "",
+            )}</li>`,
+        )
+        .join("")}</ul>`
+    : "";
+  return `<li>${orgNode("supplier", s.company, "", contact + cats + tasks + (s.people.length ? "" : `<small class="subtle">${ogk("noPeople")}</small>`))}${people}</li>`;
+}
+function orgTree(o) {
+  const me = state.user,
+    c = o.customer,
+    you = c && c.owner.id === me.id && !me.isMember;
+  const team = c && (c.members.length || c.shared.length)
+    ? `<li>${orgNode(
+        "team",
+        t("org.yourTeam", { company: c.company }),
+        "",
+        `<ul class="org-people">${[
+          ...c.members.map((m) => `<li><b><bdi>${esc(m.name)}</bdi></b><small>${esc(m.role || t("org.member"))} · ${ogk("access." + (m.access === "full" ? "full" : "view"))}</small></li>`),
+          ...c.shared.map((m) => `<li><b><bdi>${esc(m.name)}</bdi></b><small>${ogk("shared", { company: m.company })}</small></li>`),
+        ].join("")}</ul>`,
+      )}</li>`
+    : "";
+  const suppliers = o.suppliers.map((s) => orgSupplier(o, s)).join("");
+  const platform = o.platform
+    ? `<li>${orgNode("platform", o.platform.name || t("org.platformTeam"), o.platform.email, `<small>${ogk("platformRole")}</small>`)}${suppliers ? `<ul class="org-branch">${suppliers}</ul>` : ""}</li>`
+    : "";
+  const children = team + (o.platform ? platform : suppliers);
+  return `<div class="org-scroll"><ul class="org-tree"><li>${orgNode(
+    "customer",
+    c ? (you ? t("org.you", { name: c.owner.name }) : c.owner.name) : "",
+    c ? [c.owner.role || t("org.owner"), c.company].filter(Boolean).join(" · ") : "",
+  )}${children ? `<ul class="org-branch">${children}</ul>` : ""}</li></ul></div>${o.suppliers.length ? "" : `<p class="ds-next-none">${ogk("noSuppliers")}</p>`}`;
+}
+async function wsLoadOrg() {
+  const box = document.querySelector(".ws-org");
+  if (!box) return;
+  try {
+    const { organigram: o } = await api(`/projects/${encodeURIComponent(box.dataset.project)}/organigram`);
+    box.innerHTML = `<header class="ws-pane-head"><h2 class="ds-dash-h ds-ui">${ogk("title")}</h2></header><p class="subtle">${ogk(state.user.role === "supplier" ? "leadSupplier" : "lead")}</p>${orgTree(o)}`;
+  } catch (x) {
+    box.innerHTML = `<p class="form-error">${esc(x.message)}</p>`;
+  }
+}
+
 // Older dialogs re-render the project after a change: draw the current page again (the tab is remembered)
 async function projectDetail() {
   return route();
@@ -484,6 +555,7 @@ function wsShowTab(content, tab) {
     b.tabIndex = on ? 0 : -1;
   });
   if (tab === "messages") wsLoadChat();
+  if (tab === "team") wsLoadOrg();
 }
 actions.on("ws.tab", (el) => wsShowTab(el.closest(".dashboard-content"), el.dataset.tab));
 // Arrow keys move between the tabs
