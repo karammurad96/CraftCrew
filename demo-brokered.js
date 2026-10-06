@@ -191,7 +191,8 @@ const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10
 async function journeys(base, ctx) {
   await manualJourneys(base, ctx);
   await instantJourneys(base, ctx);
-  (ctx.log || console.log)("Demo: brokered requests seeded at every stage (Wave 15, 15b).");
+  await wave17Journeys(base, ctx);
+  (ctx.log || console.log)("Demo: brokered requests seeded at every stage (Wave 15, 15b), packages and the site editor (Wave 17).");
 }
 
 // Wave 15: the operator's manual flow, stage by stage
@@ -503,4 +504,194 @@ async function instantJourneys(base, { getDb, saveNow }) {
   saveNow();
 }
 
-module.exports = { accounts, journeys, PASSWORD, CUSTOMERS, SUPPLIERS, OPERATOR };
+/* ---------- Wave 17: packages, the organigram and the site editor (T268) ---------- */
+// A team member of Maya (customer.demo), so her organigram has a team; once, before the server listens
+const TEAM_MEMBER = { name: "Alex Neumann", email: "team.demo@craftcrew.local", jobTitle: "Maintenance lead" };
+function wave17Accounts(db, { hashPassword, now }) {
+  if (db.meta?.wave17DemoAccountsV1) return;
+  db.meta ||= {};
+  const maya = db.users.find((u) => u.email === "customer.demo@craftcrew.local");
+  if (maya && !db.users.some((u) => u.email === TEAM_MEMBER.email)) {
+    const hp = hashPassword(PASSWORD);
+    db.users.push({
+      id: "u_demo_team_alex",
+      role: "customer",
+      orgOwnerId: maya.id,
+      ...TEAM_MEMBER,
+      company: maya.company,
+      permissions: { projects: "view", messages: "full", sourcing: "view", invoices: "none", time: "view" },
+      status: "Active",
+      salt: hp.salt,
+      passwordHash: hp.hash,
+      emailVerified: true,
+      passwordChangedAt: now(),
+      createdAt: now(),
+    });
+  }
+  db.meta.wave17DemoAccountsV1 = true;
+}
+
+// Packages from four suppliers, bookings at every stage, people on a project and the site editor's content
+async function wave17Journeys(base, { getDb, saveNow }) {
+  if (getDb().meta?.wave17DemoV1) return;
+  const { call, login } = client(base);
+  const token = {
+    keller: await login("supplier.demo@craftcrew.local"),
+    donau: await login(SUPPLIERS[0].email),
+    nordwind: await login(SUPPLIERS[1].email),
+    alpen: await login(SUPPLIERS[2].email),
+    maya: await login("customer.demo@craftcrew.local"),
+    lena: await login(CUSTOMERS[0].email),
+    tobias: await login(CUSTOMERS[1].email),
+  };
+  const hash = async (t) => (await call("GET", "/clause", undefined, t)).clause.hash;
+  const offer = async (who, fields, { instant = false } = {}) => {
+    const { package: p } = await call(
+      "POST",
+      "/service-packages",
+      { ...fields, ...(instant ? { instantBooking: true, acceptClause: true, clauseHash: await hash(token[who]) } : {}) },
+      token[who],
+    );
+    await call("POST", `/service-packages/${p.id}/status`, { status: "Active" }, token[who]);
+    return p;
+  };
+  const book = async (who, p, postcode, city, extra = {}) => {
+    const { package: view } = await call("GET", `/service-packages/${p.id}`, undefined, token[who]);
+    return (
+      await call(
+        "POST",
+        `/service-packages/${p.id}/book`,
+        { startDate: view.earliestStart, units: 1, sitePostcode: postcode, siteCity: city, acceptClause: true, clauseHash: await hash(token[who]), ...extra },
+        token[who],
+      )
+    ).request;
+  };
+  const answer = async (who, request, accept) =>
+    call(
+      "POST",
+      `/brokered-orders/${request.id}/${accept ? "accept" : "decline"}`,
+      accept ? { acceptClause: true, clauseHash: await hash(token[who]) } : {},
+      token[who],
+    );
+
+  const commissioning = await offer(
+    "keller",
+    {
+      title: "Commissioning team, one week on site",
+      description: "Two commissioning engineers start up one robot cell or line section: I/O checks, safety functions, cycle optimisation and a handover with protocol.",
+      category: "Commissioning",
+      included: "2 commissioning engineers\nTravel and hotel\nDaily report\nSigned handover protocol",
+      teamSize: 2,
+      days: 5,
+      leadDays: 3,
+      perWeek: 2,
+      price: 9800,
+      regions: "8, 9",
+      travelIncluded: true,
+      exclusions: "Spare parts and crane hire",
+    },
+    { instant: true },
+  );
+  const plc = await offer("nordwind", {
+    title: "PLC programmer from the next working day",
+    description: "An experienced Siemens and Beckhoff programmer for changes, fault finding or a small extension, on site or remote.",
+    category: "PLC Programming",
+    included: "1 PLC programmer (S7, TIA Portal, TwinCAT)\nBackup before every change\nShort report per day",
+    teamSize: 1,
+    days: 5,
+    leadDays: 1,
+    perWeek: 3,
+    price: 5200,
+    radiusKm: 800,
+    travelIncluded: true,
+  });
+  const electrical = await offer("donau", {
+    title: "Electrical installation crew, two weeks",
+    description: "Three electricians install cable trays, control cabinets and field wiring for a machine or line, with measurements and documentation.",
+    category: "Electrical Engineering",
+    included: "3 electricians\nTools and measuring equipment\nDGUV V3 measurement report\nAs-built wiring plan",
+    teamSize: 3,
+    days: 10,
+    leadDays: 5,
+    perWeek: 1,
+    price: 21500,
+    regions: "8, 9",
+    travelIncluded: true,
+  });
+  const weekend = await offer("alpen", {
+    title: "Maintenance team, weekend shift",
+    description: "Two technicians for planned maintenance during a weekend shutdown: inspection, small repairs and a report with recommendations.",
+    category: "Installation",
+    included: "2 technicians\nSaturday and Sunday on site\nMaintenance report",
+    teamSize: 2,
+    days: 2,
+    leadDays: 4,
+    perWeek: 2,
+    price: 3900,
+    radiusKm: 900,
+    travelIncluded: false,
+    exclusions: "Travel is charged at cost",
+  });
+
+  // Bookings: waiting (Lena), contracted after confirmation (Tobias), contracted at once (Maya), declined (Tobias)
+  await book("lena", electrical, "90449", "Nürnberg", { notes: "Hall 2, gate B. Contact: shift lead Herr Krause." });
+  await answer("nordwind", await book("tobias", plc, "20457", "Hamburg"), true);
+  await book("maya", commissioning, "93053", "Regensburg", { notes: "Robot cell 3 is ready for start-up." });
+  await answer("alpen", await book("tobias", weekend, "20457", "Hamburg"), false);
+
+  // The organigram of "Hall C conveyor extension": Donau's electricians planned on its task
+  const db = getDb(),
+    hall = db.requests.find((r) => r.title === "Hall C conveyor extension" && r.status === "Contracted");
+  const hallTask = hall && db.projects.find((p) => p.id === hall.projectId)?.phases.flatMap((ph) => ph.tasks || []).find((t) => t.assignedSupplierId === "sup_demo_donau");
+  if (hallTask) {
+    for (const [name, role] of [
+      ["Lukas Brandl", "Electrician"],
+      ["Mira Schäfer", "Electrical foreman"],
+    ]) {
+      const { worker } = await call("POST", "/workers", { name, role }, token.donau);
+      await call(
+        "POST",
+        "/planning",
+        { personId: "wrk:" + worker.id, type: "assignment", taskId: hallTask.id, start: day(14), end: day(24) },
+        token.donau,
+      );
+    }
+  }
+
+  // The site editor: an own page in the footer, a banner for visitors and one changed text
+  const admin = await login("admin@craftcrew.demo", "admin123");
+  await call(
+    "POST",
+    "/admin/site/pages",
+    {
+      slug: "about-us",
+      status: "Published",
+      place: "footer",
+      title: { en: "About us", de: "Über uns" },
+      body: {
+        en: "# Who we are\n\nWe connect manufacturers with **vetted industrial service crews**: commissioning, PLC programming, electrical installation and maintenance.\n\n- Instant estimates from real price lists\n- Fixed-price packages you can book directly\n- One platform from request to invoice\n\n[See how it works](#/how-it-works)",
+        de: "# Wer wir sind\n\nWir verbinden Hersteller mit **geprüften Industrie-Dienstleistern**: Inbetriebnahme, SPS-Programmierung, Elektroinstallation und Instandhaltung.\n\n- Sofortige Schätzungen aus echten Preislisten\n- Festpreis-Pakete, direkt buchbar\n- Eine Plattform von der Anfrage bis zur Rechnung\n\n[So funktioniert's](#/how-it-works)",
+      },
+    },
+    admin,
+  );
+  await call(
+    "PUT",
+    "/admin/site/banner",
+    {
+      on: true,
+      text: { en: "New: book fixed-price packages from vetted crews.", de: "Neu: Festpreis-Pakete von geprüften Teams buchen." },
+      kind: "info",
+      audience: "visitors",
+      closable: true,
+      link: { url: "#/signup", label: { en: "Start now", de: "Jetzt starten" } },
+    },
+    admin,
+  );
+  await call("PUT", "/admin/site/texts", { lang: "en", key: "ui.footer.claim", value: "Vetted industrial crews, booked in days." }, admin);
+
+  getDb().meta.wave17DemoV1 = true;
+  saveNow();
+}
+
+module.exports = { accounts, wave17Accounts, journeys, PASSWORD, CUSTOMERS, SUPPLIERS, OPERATOR, TEAM_MEMBER };

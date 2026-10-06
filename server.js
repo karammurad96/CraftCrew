@@ -2821,6 +2821,7 @@ if (DEMO_MODE) repairShowcaseMessagesV1();
 // listens (see demo-brokered.js and the listen call at the end of this file).
 const demoBrokered = require("./demo-brokered");
 if (DEMO_MODE) demoBrokered.accounts(db, { hashPassword, now, initials });
+if (DEMO_MODE) demoBrokered.wave17Accounts(db, { hashPassword, now });
 // Writes are batched: save() marks the data dirty and one write follows within SAVE_DELAY_MS.
 // saveNow() writes at once (start-up, backup import, shutdown).
 // `var`, because start-up repairs call save() before these lines run.
