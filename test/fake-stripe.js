@@ -10,8 +10,40 @@ const KEY = "sk_test_fake",
 
 async function startFakeStripe(routes = {}) {
   const calls = [];
+  // T271: connected accounts (Accounts v2); `transfers` is the stripe_transfers capability's status
+  const accounts = new Map(),
+    transfers = new Map();
+  const notFound = (what) => ({ status: 404, error: { type: "invalid_request_error", message: "No such " + what } });
+  const last = (p) => decodeURIComponent(p.split("/").filter(Boolean).at(-1));
+  const v2Account = (a) => ({
+    id: a.id,
+    object: "v2.core.account",
+    applied_configurations: ["recipient"],
+    closed: !!a.closed,
+    created: a.created,
+    dashboard: a.dashboard,
+    display_name: a.display_name,
+    contact_email: a.contact_email,
+    livemode: false,
+    metadata: a.metadata || {},
+    configuration: { recipient: { applied: true, capabilities: { stripe_balance: { stripe_transfers: { requested: true, status: a.transfers, status_details: [] } } } } },
+    requirements: { entries: [], summary: a.transfers === "active" ? {} : { minimum_deadline: { status: "currently_due" } } },
+  });
   const all = {
     "GET /v1/account": () => ({ id: "acct_platform", object: "account", country: "DE", settings: { dashboard: { display_name: "CraftCrew Test" } } }),
+    "POST /v2/core/accounts": (b) => {
+      const a = { ...b, id: "acct_fake" + (accounts.size + 1), transfers: "pending", created: new Date().toISOString() };
+      accounts.set(a.id, a);
+      return v2Account(a);
+    },
+    "GET /v2/core/accounts/:id": (b, p) => (accounts.has(last(p)) ? v2Account(accounts.get(last(p))) : notFound("account")),
+    "POST /v1/account_sessions": (b) => ({ object: "account_session", account: b.account, client_secret: "accs_fake_" + b.account, expires_at: Math.floor(Date.now() / 1000) + 1800, livemode: false, components: {} }),
+    "POST /v1/accounts/:id/login_links": (b, p) => ({ object: "login_link", created: Math.floor(Date.now() / 1000), url: "https://connect.stripe.com/express/fake/" + p.split("/")[3] }),
+    "POST /v1/transfers": (b) => {
+      const tr = { id: "tr_fake" + (transfers.size + 1), object: "transfer", amount: Number(b.amount), currency: b.currency, destination: b.destination, transfer_group: b.transfer_group || null, source_transaction: b.source_transaction || null, metadata: {}, reversed: false, amount_reversed: 0 };
+      transfers.set(tr.id, tr);
+      return tr;
+    },
     ...routes,
   };
   const server = http.createServer((req, res) => {
@@ -19,8 +51,9 @@ async function startFakeStripe(routes = {}) {
     req.on("data", (c) => (raw += c));
     req.on("end", () => {
       const p = req.url.split("?")[0],
+        query = Object.fromEntries(new URLSearchParams(req.url.split("?")[1] || "")),
         body = req.headers["content-type"]?.includes("json") ? JSON.parse(raw || "{}") : Object.fromEntries(new URLSearchParams(raw));
-      calls.push({ method: req.method, path: p, body, headers: req.headers });
+      calls.push({ method: req.method, path: p, query, body, headers: req.headers });
       const fn = all[`${req.method} ${p}`] || Object.entries(all).find(([k]) => k.includes(":") && new RegExp("^" + k.replace(/:[a-z]+/g, "[^/]+") + "$").test(`${req.method} ${p}`))?.[1];
       const out = fn ? fn(body, p, req) : { status: 404, error: { type: "invalid_request_error", message: "No such route in the fake Stripe: " + p } };
       const status = out?.status || 200;
@@ -34,10 +67,21 @@ async function startFakeStripe(routes = {}) {
   return {
     base,
     calls,
+    accounts,
+    transfers,
+    // T271: Stripe changes a connected account's stripe_transfers capability
+    setTransfers(id, status) {
+      accounts.get(id).transfers = status;
+    },
     env: { STRIPE_SECRET_KEY: KEY, STRIPE_PUBLISHABLE_KEY: "pk_test_fake", STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, STRIPE_API_BASE: base },
     // A signed webhook delivery, as Stripe sends it
     signed(event, secret = WEBHOOK_SECRET) {
       const payload = JSON.stringify({ object: "event", api_version: Stripe.API_VERSION, livemode: false, created: Math.floor(Date.now() / 1000), data: { object: {} }, ...event });
+      return { payload, header: sdk.webhooks.generateTestHeaderString({ payload, secret }) };
+    },
+    // A thin event (Accounts v2): only the related object's id, signed like a snapshot event
+    signedThin(event, secret = WEBHOOK_SECRET) {
+      const payload = JSON.stringify({ object: "v2.core.event", created: new Date().toISOString(), livemode: false, ...event });
       return { payload, header: sdk.webhooks.generateTestHeaderString({ payload, secret }) };
     },
     stop: () => new Promise((r) => server.close(r)),

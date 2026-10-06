@@ -380,7 +380,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 
 **Wave 18 — payments with Stripe, test version (asked for by Karam on 7 October 2026: Connect, Payments, Billing, Invoicing, Tax, Identity, Radar and Issuing; sandbox keys only; replaces T80; details under "Wave 18")**
 - [x] T270 Stripe foundation: SDK, keys from the environment only, test mode only, webhooks with signature check, a fake Stripe for tests · M · do first, **first test version**
-- [ ] T271 Supplier payout accounts: Stripe Connect (Accounts v2), embedded onboarding, payouts page · M · **first test version**
+- [x] T271 Supplier payout accounts: Stripe Connect (Accounts v2), embedded onboarding, payouts page · M · **first test version**
 - [ ] T272 The customer pays an approved invoice through Stripe Checkout · M · **first test version**
 - [ ] T273 Payout to the supplier minus the platform fee; refunds and disputes reverse it · M · **first test version**
 - [ ] T274 Milestone deposits: the customer pays before the work, the money is released on acceptance · M
@@ -6196,8 +6196,35 @@ T274–T279 add the other products. T280 is the go-live check.
 4. **The old payout details.** The IBAN fields stay for invoices (§ 14 UStG) and for paying outside Stripe.
 
 **Done when.**
-- [ ] Creating the account sends the v2 fields above (tested against the fake Stripe), never `type`.
-- [ ] Capability changes from a webhook update the supplier; a transfer to a restricted account is refused.
+- [x] Creating the account sends the v2 fields above (tested against the fake Stripe), never `type`.
+- [x] Capability changes from a webhook update the supplier; a transfer to a restricted account is refused.
+
+**As built (6 October 2026).**
+- **`payouts.js`** (loaded by `payments.js`). `POST /api/payouts/account` creates the connected account with
+  `client.v2.core.accounts.create`: `dashboard: "express"`, `defaults` (EUR, fees and losses collected by the
+  application), `identity` (DE, company, the legal name from the company profile), the recipient configuration
+  with `stripe_transfers` requested, `include` of the recipient configuration and the requirements, and an
+  idempotency key per supplier. Never `type`, no merchant configuration. `POST /api/payouts/session` makes the
+  Account Session (`account_onboarding`, `notification_banner`, `account_management`); `POST /api/payouts/login-link`
+  the Express login link; `POST /api/payouts/refresh` reads the account again. Only the supplier's main account
+  may call them; team members with the settings area see the status (`GET /api/payouts`).
+- **Status.** The supplier keeps `stripeAccount: { id, transfers, requirements, updatedAt }` (`transfers` is
+  `active`, `pending` or `restricted`; Stripe's `rejected`, `unsupported` and a closed account count as
+  restricted). `stripeAccount` is in `PRIVATE_SUPPLIER_FIELDS`. The supplier is notified when payouts become active
+  or are restricted.
+- **Thin events.** The webhook endpoint now also takes Accounts v2 thin events (`v2.core.event`, checked with
+  `parseEventNotification`); their event destination has its own secret, `STRIPE_THIN_WEBHOOK_SECRET`. The
+  `v2.core.account…` events (updated, closed, recipient configuration, capability status, requirements) reload the
+  account with `v2.core.accounts.retrieve(id, { include })`; the event is deduplicated like the others.
+- **Transfers.** `payouts.transfer(supplierId, params)` is the only way money goes to a supplier (T273): it reads
+  the account from Stripe first and refuses unless `stripe_transfers` is active right now.
+- **Pages.** `/supplier/payouts` ("Payouts" under More) loads Connect.js only there and shows onboarding until the
+  account is active, then the notification banner and account management, plus the Express dashboard link. When
+  payments are off it says so. The admin's Users page shows each supplier's payout status. The IBAN fields are
+  unchanged.
+- Tests: `test/payments-payouts.test.js` with the fake Stripe (`/v2/core/accounts`, `/v1/account_sessions`,
+  `/v1/accounts/:id/login_links`, `/v1/transfers`, thin events). The embedded components themselves need a real
+  Stripe sandbox and were not tried here.
 
 ### T272 · The customer pays an approved invoice
 `P1 · M · depends on T271`
