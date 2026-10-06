@@ -468,6 +468,22 @@ const siteContent = require("./sitecontent")({
   locales,
 });
 locales.setOverride((lang, key) => siteContent.override(lang, key));
+// T240: monthly commission statements to the suppliers, until real payments (T80) take the fee from the payout
+const commission = require("./commission")({
+  getDb: () => db,
+  save: () => save(),
+  send: (...a) => send(...a),
+  body: (r) => body(r),
+  id: (p) => id(p),
+  now: () => now(),
+  notify: (...a) => notify(...a),
+  activity: (...a) => activity(...a),
+  locales,
+  ...require("./pdf"),
+  buildXRechnung,
+  xrechnungProblem,
+  invoiceNo: (i) => invoiceNo(i),
+});
 const benchmarks = require("./benchmarks")({
   getDb: () => db,
   send: (...a) => send(...a),
@@ -3472,6 +3488,9 @@ function runInvoiceReminders(at = Date.now()) {
 }
 runInvoiceReminders();
 setInterval(() => runInvoiceReminders(), 3600000).unref();
+// T240: the commission statements of the months before this one, once (it adds only what is not billed yet)
+setTimeout(() => commission.run(), 5000).unref();
+setInterval(() => commission.run(), 6 * 3600000).unref();
 // GDPR: accounts whose 14-day grace period is over are anonymised (T122).
 gdpr.runDeletions();
 setInterval(() => gdpr.runDeletions(), 3600000).unref();
@@ -4480,6 +4499,7 @@ async function api(req, res, url) {
     if (await gdpr.handle(req, res, url, parts, user)) return true;
     if (await organigram.handle(req, res, url, parts, user)) return true;
     if (await siteContent.handle(req, res, url, parts, user)) return true;
+    if (await commission.handle(req, res, url, parts, user)) return true;
     // Archived projects are read-only for everyone who can see them.
     if (method !== "GET" && parts[1] === "projects" && parts[2]) {
       const p = projectFor(user, parts[2]);
@@ -6476,6 +6496,8 @@ async function api(req, res, url) {
           pay.status = "Refunded";
           pay.refundReason = reason;
           pay.refundedAt = now();
+          // T240: a fee already invoiced to the supplier is credited
+          commission.onRefund(pay);
         }
         notify(i.supplierId ? db.users.find((u) => u.supplierId === i.supplierId)?.id : null, {
           key: "invoiceRefunded",
