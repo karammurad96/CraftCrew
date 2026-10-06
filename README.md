@@ -68,6 +68,10 @@ customer to see the estimate appear at once.
 - **Site editor.** *Website* (admin, "More") has a changed footer text, an "About us" page in the footer and a
   banner for visitors. Try the texts, pages, menu, banner and the history with undo.
 
+**Fee statements (Wave 16).** Donau invoiced its part of *Hall C conveyor extension* and Maya approved it, so the
+platform's monthly fee statement exists: `supplier2.demo` sees it under *Platform fees* (PDF and XRechnung); the
+admin sees all statements, the platform's invoice details, "Mark paid" and credit notes under *Fee statements*.
+
 To see the marketplace instead, switch *Platform management → How customers find suppliers → Marketplace*.
 
 Seeded data lives in `data/db.json`; uploaded files live under `data/uploads`. For a fresh local demo, stop the server and remove `data/db.json` and `data/uploads`. The server recreates demo data at startup.

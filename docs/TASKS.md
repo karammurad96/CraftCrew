@@ -349,7 +349,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T233 Several suppliers in one request: contracts, assignment and reveal per supplier; demo data and rollback · S
 
 **Wave 16 — market readiness (from the readiness review of 6 October 2026, asked for by Karam: the tasks to reach the review's goals; three phases, each with a gate; existing tasks are placed into the phases under "Wave 16")**
-- [ ] T240 Commission statements: the platform fee is invoiced to the supplier every month · S · do first, **the platform earns nothing until this is done**
+- [x] T240 Commission statements: the platform fee is invoiced to the supplier every month · S · do first, **the platform earns nothing until this is done**
 - [ ] T241 Estimate guardrails: minimum order, travel costs, surcharges, price band and a confidence level · M
 - [ ] T253 Ranking transparency: the terms and the supplier help say how suppliers are ranked and priced · S · **EU P2B Regulation 2019/1150; the text needs the lawyer**
 - [ ] T255 Served area: instant estimates only in the launch region and categories, a waiting list elsewhere · S · **needs Karam's beachhead decision**
@@ -5071,10 +5071,44 @@ invoices it to the supplier once a month.
    the fee, if any.
 
 **Done when.**
-- [ ] A month with three approved invoices from two suppliers gives two statements with the right sums.
-- [ ] The numbers run without gaps, and running the job twice gives no second statement.
-- [ ] The XRechnung of a statement passes the same checks as a supplier invoice.
-- [ ] A statement cannot be deleted. A reversed payment leads to a credit note.
+- [x] A month with three approved invoices from two suppliers gives two statements with the right sums.
+- [x] The numbers run without gaps, and running the job twice gives no second statement.
+- [x] The XRechnung of a statement passes the same checks as a supplier invoice.
+- [x] A statement cannot be deleted. A reversed payment leads to a credit note.
+
+**As built (6 October 2026).**
+- **Server (`commission.js`).** `db.commissionStatements` (PostgreSQL collection `commissionStatements`).
+  - **The job** runs 5 s after start and every 6 hours. For every month before the current one it bills the
+    payments with a fee that are not refunded and not yet billed: one statement per supplier and month, each
+    line with invoice number, customer, net amount, fee rate and fee. Each payment is marked
+    (`commissionStatementId`), so nothing is billed twice.
+  - `POST /api/admin/commission/run {period}` creates the statements of a month now, including the current one.
+- **Invoice data.**
+  - Numbers `CC-PROV-YYYY-NNNN` and, for credit notes, `CC-GUT-YYYY-NNNN`, from their own counters with no
+    gaps. Payable in 14 days.
+  - VAT is 19 %. A supplier VAT ID of another EU country gives reverse charge (`intraEU`, 0 %). The tax
+    adviser should confirm suppliers outside the EU.
+  - Seller: the platform's details, kept on each statement. `PUT /api/admin/platform-details` sets legal
+    name, address, VAT ID, email, phone, contact, IBAN, BIC and account holder. Buyer: the supplier's company
+    profile.
+- **Documents.** `GET /api/commission/:id/pdf` (labels in `server.pdf.statement`, English and German) and
+  `…/xrechnung`. The XRechnung goes through `xrechnungProblem()`, and `buildXRechnung()` now takes `typeCode`:
+  380 for an invoice, 381 for a credit note.
+- **Never deleted.** `DELETE` answers 405 (`feeNoDelete`).
+  - A refunded payment that was already billed gets a credit note for its fee (`onRefund()` in the admin
+    refund route).
+  - The admin can credit a whole statement with a reason (once) and mark an open statement paid.
+  - Suppliers are notified of new statements and credit notes.
+- **Pages (`public/areas/fees.js`).**
+  - *Platform fees* (`/supplier/fees`, supplier "More"; team area *invoices*): the statements, the open sum,
+    PDF and XRechnung downloads.
+  - *Fee statements* (`/admin/fees`, admin "More"): all statements, "create for a month", "mark paid",
+    "credit note", and the platform's invoice details.
+- **Demo (`wave16Journeys()`).** The platform's details are set. Donau invoices 40 h of its *Hall C conveyor
+  extension* task and Maya approves it, so statement `CC-PROV-…-0001` exists for `supplier2.demo`.
+- **Tests.** `test/commission.test.js`: sums, VAT and reverse charge, numbering, no double billing, the future
+  month refused, visibility, the PDF and XRechnung, no delete, the refund credit note (381), paid, and the admin
+  credit note once. `test/demo-brokered.test.js` checks the demo statement.
 
 ### T241 · Estimate guardrails and confidence
 `P0 · M · depends on T231`

@@ -192,6 +192,7 @@ async function journeys(base, ctx) {
   await manualJourneys(base, ctx);
   await instantJourneys(base, ctx);
   await wave17Journeys(base, ctx);
+  await wave16Journeys(base, ctx).catch((e) => (ctx.log || console.log)("Demo fee statement skipped: " + e.message));
   (ctx.log || console.log)("Demo: brokered requests seeded at every stage (Wave 15, 15b), packages and the site editor (Wave 17).");
 }
 
@@ -691,6 +692,55 @@ async function wave17Journeys(base, { getDb, saveNow }) {
   await call("PUT", "/admin/site/texts", { lang: "en", key: "ui.footer.claim", value: "Vetted industrial crews, booked in days." }, admin);
 
   getDb().meta.wave17DemoV1 = true;
+  saveNow();
+}
+
+/* ---------- Wave 16: the platform's invoice details and a first fee statement (T240) ---------- */
+async function wave16Journeys(base, { getDb, saveNow }) {
+  if (getDb().meta?.wave16DemoV1) return;
+  const { call, login } = client(base);
+  const admin = await login("admin@craftcrew.demo", "admin123"),
+    donau = await login(SUPPLIERS[0].email),
+    maya = await login("customer.demo@craftcrew.local");
+  await call(
+    "PUT",
+    "/admin/platform-details",
+    {
+      legalName: "CraftCrew GmbH (demo)",
+      address: "Domplatz 1, 93047 Regensburg, Germany",
+      taxId: "DE312345678",
+      email: "billing@craftcrew.local",
+      phone: "+49 941 555 0100",
+      contactName: "Accounts team",
+      iban: "DE89370400440532013000",
+      bic: "COBADEFFXXX",
+      accountHolder: "CraftCrew GmbH",
+    },
+    admin,
+  );
+  // Donau invoices its part of "Hall C conveyor extension"; Maya approves it, so the platform fee is due
+  const db = getDb(),
+    hall = db.requests.find((r) => r.title === "Hall C conveyor extension" && r.status === "Contracted"),
+    project = hall && db.projects.find((p) => p.id === hall.projectId);
+  for (const ph of project?.phases || [])
+    for (const t of ph.tasks || [])
+      if (t.assignedSupplierId === "sup_demo_donau") {
+        const { invoice } = await call(
+          "POST",
+          "/invoices",
+          {
+            projectId: project.id,
+            phaseId: ph.id,
+            taskId: t.id,
+            description: `First instalment: ${t.name}`,
+            lineItems: [{ service: "Electrical Engineering", quantity: 40, unit: "hours", unitPrice: 85 }],
+          },
+          donau,
+        );
+        await call("PATCH", `/invoices/${invoice.id}`, { action: "Approve" }, maya);
+      }
+  await call("POST", "/admin/commission/run", { period: new Date().toISOString().slice(0, 7) }, admin);
+  getDb().meta.wave16DemoV1 = true;
   saveNow();
 }
 

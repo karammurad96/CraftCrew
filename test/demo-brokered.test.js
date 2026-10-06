@@ -78,6 +78,10 @@ describe("brokered demo data", () => {
       assert.equal(db.siteContent.pages[0].slug, "about-us");
       assert.equal(db.siteContent.banner.audience, "visitors");
       assert.equal(db.siteContent.texts.en["ui.footer.claim"], "Vetted industrial crews, booked in days.");
+      // Wave 16 (T240): the platform's invoice details and a first fee statement for Donau
+      assert.equal(db.commissionStatements.length, 1);
+      assert.equal(db.commissionStatements[0].supplierId, "sup_demo_donau");
+      assert.ok(db.settings.platformDetails.iban);
       const hall = db.requests.find((r) => r.title === "Hall C conveyor extension");
       assert.equal(hall.suppliers.length, 2, "a split request contracted with two suppliers");
       const upgrade = db.requests.find((r) => r.title === "Packaging line upgrade");
