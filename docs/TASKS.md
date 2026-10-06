@@ -351,7 +351,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 **Wave 16 — market readiness (from the readiness review of 6 October 2026, asked for by Karam: the tasks to reach the review's goals; three phases, each with a gate; existing tasks are placed into the phases under "Wave 16")**
 - [x] T240 Commission statements: the platform fee is invoiced to the supplier every month · S · do first, **the platform earns nothing until this is done**
 - [x] T241 Estimate guardrails: minimum order, travel costs, surcharges, price band and a confidence level · M
-- [ ] T253 Ranking transparency: the terms and the supplier help say how suppliers are ranked and priced · S · **EU P2B Regulation 2019/1150; the text needs the lawyer**
+- [x] T253 Ranking transparency: the terms and the supplier help say how suppliers are ranked and priced · S · **EU P2B Regulation 2019/1150; the text needs the lawyer**
 - [x] T255 Served area: instant estimates only in the launch region and categories, a waiting list elsewhere · S · **needs Karam's beachhead decision**
 - [ ] T242 Operator cockpit: KPIs, the funnel and deadlines for the request queue · M
 - [ ] T243 Estimate calibration: learn from the gap between estimate and confirmed price · M · after T242
@@ -5211,8 +5211,37 @@ for the operator (T223).
 3. **For the lawyer.** `docs/LEGAL-FACTS.md` gets a section with the facts for the terms.
 
 **Done when.**
-- [ ] A test changes a constant and sees the page change.
-- [ ] The page is in English and German. The legal facts section exists.
+- [x] A test changes a constant and sees the page change.
+- [x] The page is in English and German. The legal facts section exists.
+
+**As built (6 October 2026).** **The text is a draft for legal review:** it was written from the code, and the
+lawyer still has to check it.
+- **Constants in one place.**
+  - `estimate.js` exports `RANKING`: hours per day, start days, the open-task limit, the split thresholds (10 %
+    cheaper, 20 % faster, 5 quality points), the neutral quality, the badge bonus, the distance penalty and the
+    price-band factors. The engine reads every value from there.
+  - `sourcing.js` exports `SUGGEST` (the T223 points) and `SCORE_WEIGHTS` (the scorecard blend).
+  - No value changed.
+- **Facts.** `ranking.js` builds the page's facts from these constants, the benchmark minimum (T69) and the fee
+  and markup settings. `GET /api/ranking` serves them without sign-in, like the terms.
+- **Page.** `/#/ranking`, *How suppliers are ranked and priced*, in English and German. It covers:
+  - who is considered;
+  - the order: quality (scorecard, else rating) with the badge, distance, then price;
+  - the three options and the split thresholds;
+  - how the price is formed (price list, markup, fee);
+  - the operator's suggestion points;
+  - what changes a supplier's position;
+  - that there is no paid ranking;
+  - the directory order.
+  It is linked from the terms page, the help page (both the built-in and the operator's FAQ) and *Platform orders*.
+- **Legal facts.** `docs/LEGAL-FACTS.md` section 9 has the facts and the points to review. Among them: Art. 7
+  different treatment (the +5 for having worked for the customer, the badge) and the price band as a restriction.
+- **Tests.** `test/ranking-transparency.test.js` covers:
+  - the page in English and German with the engine's numbers;
+  - changing `RANKING` and `SUGGEST` changes the page, and the engine uses the same badge constant;
+  - the markup;
+  - the links;
+  - the public API, which follows the fee and markup settings.
 
 ### T255 · Served area
 `P0 · S · needs Karam's decision on the region and categories`

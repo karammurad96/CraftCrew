@@ -118,7 +118,7 @@ async function pubFaq() {
     // The operator writes this text in their own language; it is shown as written.
     app.innerHTML = publicLayout(
       pubPage(
-        `<div class="cc-page"><div class="eyebrow">${k("helpEyebrow")}</div><h1>${k("helpTitle")}</h1><div class="panel"><p>${esc(cfg.faqContent).replaceAll("\n", "<br>")}</p><p>${k("moreHelp")} <a href="mailto:${esc(cfg.supportEmail)}">${esc(cfg.supportEmail)}</a>.</p></div></div>`,
+        `<div class="cc-page"><div class="eyebrow">${k("helpEyebrow")}</div><h1>${k("helpTitle")}</h1><div class="panel"><p>${esc(cfg.faqContent).replaceAll("\n", "<br>")}</p><p>${k("moreHelp")} <a href="mailto:${esc(cfg.supportEmail)}">${esc(cfg.supportEmail)}</a>.</p><p><a href="#/ranking">${esc(t("public.ranking.link"))}</a></p></div></div>`,
       ),
     );
     return;
@@ -126,7 +126,7 @@ async function pubFaq() {
   const card = (id) => `<div class="cc-card"><h3>${k(id)}</h3><p>${k(id + "Text")}</p></div>`;
   app.innerHTML = publicLayout(
     pubPage(
-      `<div class="cc-page"><div class="eyebrow">${k("eyebrow")}</div><h1>${k("title")}</h1><div style="margin-top:30px"><div class="cc-grid">${["payment", "vetting", "bid", "documents"].map(card).join("")}</div></div></div>`,
+      `<div class="cc-page"><div class="eyebrow">${k("eyebrow")}</div><h1>${k("title")}</h1><div style="margin-top:30px"><div class="cc-grid">${["payment", "vetting", "bid", "documents"].map(card).join("")}<div class="cc-card"><h3>${esc(t("public.ranking.link"))}</h3><p>${esc(t("public.ranking.paid"))}</p><p><a href="#/ranking">${esc(t("public.ranking.link"))}</a></p></div></div></div></div>`,
     ),
   );
 }
@@ -156,7 +156,64 @@ async function pubLegal(key) {
           : `<div class="panel"><p>${k("notPublished")}</p></div>`
       }${rights}<nav class="legal-links">${PUB_LEGAL.filter((x) => x !== key)
         .map((x) => `<a href="#/${x}">${k(x)}</a>`)
-        .join("")}</nav></div>`,
+        .join("")}${key === "terms" ? `<a href="#/ranking">${esc(t("public.ranking.link"))}</a>` : ""}</nav></div>`,
+    ),
+  );
+  window.scrollTo(0, 0);
+}
+
+/* ---------- T253: how suppliers are ranked and priced (P2B Regulation 2019/1150) ----------
+   Every number comes from /api/ranking, which reads the engine's own constants. */
+async function pubRanking() {
+  const k = (key, params) => esc(t("public.ranking." + key, params));
+  const { ranking: r } = await api("/ranking"),
+    e = r.estimate,
+    sg = r.suggestions;
+  const list = (items) => `<ul>${items.map((x) => `<li>${x}</li>`).join("")}</ul>`;
+  const section = (title, body) => `<h2>${k(title)}</h2>${body}`;
+  app.innerHTML = publicLayout(
+    pubPage(
+      `<div class="cc-page legal-page rk-page"><div class="eyebrow">${k("eyebrow")}</div><h1>${k("title")}</h1><article class="legal-body"><p>${k("intro")}</p>${section(
+        "whoTitle",
+        list([
+          k("who1"),
+          k("who2", { n: e.maxOpenTasks }),
+          k("who3", { hours: e.hoursPerDay }),
+          k("who4"),
+          k("who5", { points: e.benchmarkMinPoints, above: e.bandAbove, below: e.bandBelowPercent }),
+          k("who6"),
+        ]),
+      )}${section(
+        "orderTitle",
+        list([
+          k("quality", { ...e.scoreWeights, neutral: e.neutralQuality }),
+          k("badge", { gold: e.badgeBonus.Gold, silver: e.badgeBonus.Silver, bronze: e.badgeBonus.Bronze }),
+          k("distance", { km: e.kmPerPoint, max: e.maxDistancePenalty, unknown: e.unknownDistancePenalty }),
+          k("tie"),
+        ]),
+      )}${section(
+        "optionsTitle",
+        `<p>${k("options", { hours: e.hoursPerDay, start: e.startDays })}</p><p>${k("split", { cheaper: e.splitCheaperPercent, faster: e.splitFasterPercent, lead: e.splitQualityLead })}</p>`,
+      )}${section(
+        "priceTitle",
+        list([
+          k("priceList"),
+          r.prices.brokerMarkupPercent ? k("priceMarkup", { n: r.prices.brokerMarkupPercent }) : k("priceSame"),
+          k("fee", { n: r.prices.platformFeePercent }),
+          k("confirm"),
+        ]),
+      )}${section(
+        "suggestTitle",
+        `<p>${k("suggestIntro")}</p>${list([
+          k("suggestCategory", { n: sg.category }),
+          ...sg.distance.map((x) => k("suggestDistance", { km: x.km, n: x.points })),
+          k("suggestFar", { n: sg.fartherOrUnknown }),
+          k("suggestScore", { div: sg.scoreDivisor, max: sg.maxScorePoints, none: sg.noScore }),
+          k("suggestBadge", { gold: sg.badge.Gold, silver: sg.badge.Silver, bronze: sg.badge.Bronze }),
+          k("suggestWorked", { n: sg.workedBefore }),
+          k("suggestBusy", { n: sg.perOpenTask, max: sg.maxOpenTasks, busy: sg.busy }),
+        ])}`,
+      )}${section("changesTitle", list([1, 2, 3, 4, 5, 6].map((n) => k("changes" + n))))}${section("paidTitle", `<p>${k("paid")}</p><p>${k("directory")}</p>`)}</article><nav class="legal-links"><a href="#/terms">${esc(t("public.legal.terms"))}</a><a href="#/faq">${esc(t("public.faq.helpTitle"))}</a></nav></div>`,
     ),
   );
   window.scrollTo(0, 0);
@@ -168,3 +225,4 @@ routes.add("/pricing", pubPricing);
 routes.add("/how-it-works", pubHowItWorks);
 routes.add("/faq", pubFaq);
 for (const key of PUB_LEGAL) routes.add("/" + key, () => pubLegal(key));
+routes.add("/ranking", pubRanking);

@@ -159,3 +159,82 @@ Since Wave 15 the platform runs in *brokered* mode by default (`docs/TASKS.md`, 
 
 - [ ] Lawyer reviewed the clause, the terms of use mention it, and the reviewed text is published as version 1
       under *Platform management → Platform contract*.
+
+## 9. Ranking and pricing of suppliers (T253, P2B Regulation 2019/1150, for the lawyer)
+
+**Draft for legal review.** Collected from the code on 6 October 2026. Art. 5 of the P2B Regulation asks the
+terms to name the main parameters that decide the ranking, and why they weigh as they do. Art. 7 asks them to
+describe any different treatment. The public page `/#/ranking` ("How suppliers are ranked and priced") explains this
+to suppliers. It is linked from the terms, the help page and *Platform orders*. Its numbers come from the code:
+`RANKING` in `estimate.js`, `SUGGEST` and `SCORE_WEIGHTS` in `sourcing.js`, and the fee and markup settings. The
+page therefore changes when the code changes. The numbers below are today's values.
+
+**Instant estimates (T231, T241): who is considered.**
+- Suppliers that are vetted and live and offer the work package's category. Their availability is not *Busy* or
+  *Unavailable*.
+- Fewer than 3 open tasks in the weeks of the request.
+- A price for the category:
+  - an hourly catalogue entry;
+  - else a daily entry ÷ 8;
+  - else the profile's hourly rate.
+- The site is within the supplier's own travel radius, if one is set.
+- The rate is not far outside the category's price band. Once at least 5 prices of the category are known, a rate
+  above 2 × the 75th percentile or under 50 % of the 25th percentile is left out, and the operator is told.
+- A supplier who declined a booking is not asked again for the same package.
+
+**Instant estimates: the order (main parameters and weight).**
+1. **Quality**, 0–100:
+   - The scorecard, from what is known: rating 30 %, on-time delivery 30 %, invoices approved without changes
+     20 %, answers to invitations 20 %.
+   - Without a scorecard: the rating (5 stars = 100). Without a rating: 60.
+   - Plus the vetting badge: Gold +6, Silver +4, Bronze +2. Capped at 100.
+2. **Distance** to the site: −1 point per 50 km, at most −15. Unknown distance: −5.
+3. With an equal rank, the **lower price** comes first.
+
+**The three options.**
+- *Best*: the highest quality. *Cheapest*: the lowest price. *Fastest*: the shortest time (hours ÷ 8 per day + 2 days
+  to start).
+- The work is split across several suppliers only when:
+  - no single supplier can take every package; or
+  - the split is at least 10 % cheaper or 20 % faster than the best single supplier; or
+  - for *Best*, the split is more than 5 quality points better.
+
+**Prices.**
+- The supplier's own price list:
+  - hours × rate;
+  - surcharges for night, weekend or shift work;
+  - materials share;
+  - travel per trip (flat fee + km both ways);
+  - minimum order.
+- The customer sees this price, plus the platform markup if one is set (0 % today, model A). The markup is the
+  same for every supplier.
+- The platform fee (`platformFeePercent`, 3 % by default) is taken from the payout. It is the same for every
+  supplier and has no effect on the order.
+- The supplier confirms after the customer's choice. If it raises the price, the customer decides again.
+
+**Operator suggestions (T223).** These are points for the operator's shortlist. A person decides whom to invite.
+- Category 40.
+- Distance: up to 50 km 20, up to 150 km 15, up to 300 km 10, farther or unknown 5.
+- Scorecard score ÷ 5 (no score: 10).
+- Badge: Gold 10, Silver 7, Bronze 4.
+- Worked for this customer before: +5.
+- Open tasks in the same weeks: −3 each, at most −15. Marked busy: −5.
+
+**Directory (marketplace mode).** Listed by rating, highest first. Search and filters only narrow the list.
+
+**No paid ranking.**
+- There are no paid placements. No supplier can pay for a better position.
+- A customer's private list of preferred suppliers (T68) does not change the instant estimate.
+
+**Points to review.**
+- Whether the page and these facts meet Art. 5 (main parameters, their relative importance, plain and
+  intelligible language). Whether the terms should state them in full or refer to the page. Art. 5 (6) does not
+  require disclosing algorithms or information that would allow ranking manipulation.
+- **Different treatment (Art. 7).** The operator's suggestions give +5 to a supplier who has already worked for
+  the same customer. The badge also adds points, and the platform awards it in vetting.
+- **The price band (T241).** It leaves out rates far outside the usual range. Should this be described as a
+  restriction (Art. 3 (1) (c) and Art. 4)?
+- The text is a factual draft written from the code, not legal advice.
+
+- [ ] Lawyer reviewed this section and the page text. The terms of use mention the ranking parameters or link to
+      `/#/ranking`.

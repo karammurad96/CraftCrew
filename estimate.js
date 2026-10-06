@@ -7,11 +7,22 @@
  */
 const geo = require("./geo");
 
-const HOURS_PER_DAY = 8,
-  START_DAYS = 2, // days before work starts
-  MAX_OPEN_TASKS = 3, // more open tasks in the same weeks: not available
-  SPLIT_CHEAPER = 0.1, // a split must be at least 10 % cheaper ...
-  SPLIT_FASTER = 0.2; // ... or 20 % faster than the best single supplier
+// The ranking and pricing constants. T253: the page "How suppliers are ranked and priced" reads them from here.
+const RANKING = {
+  hoursPerDay: 8,
+  startDays: 2, // days before work starts
+  maxOpenTasks: 3, // more open tasks in the same weeks: not available
+  splitCheaper: 0.1, // a split must be at least 10 % cheaper ...
+  splitFaster: 0.2, // ... or 20 % faster than the best single supplier,
+  splitQualityLead: 5, // ... or, for "best", more than 5 quality points better
+  neutralQuality: 60, // quality without a scorecard or a rating
+  badgeBonus: { Gold: 6, Silver: 4, Bronze: 2 }, // quality points for the vetting badge
+  kmPerPoint: 50, // one rank point less per 50 km to the site ...
+  maxDistancePenalty: 15, // ... at most 15
+  unknownDistancePenalty: 5, // distance not known
+  bandAbove: 2, // T241: a rate above 2 × the 75th percentile is skipped ...
+  bandBelow: 0.5, // ... and one under half the 25th percentile
+};
 const key = (s) =>
   String(s || "")
     .trim()
@@ -33,7 +44,7 @@ module.exports = function createEstimate({ getDb, scorecard, benchmark = () => n
     const hour = items.find((c) => c.unit === "hour"),
       day = items.find((c) => c.unit === "day");
     if (hour) return { rate: Number(hour.rate), source: "catalog" };
-    if (day) return { rate: Math.round((Number(day.rate) / HOURS_PER_DAY) * 100) / 100, source: "catalog" };
+    if (day) return { rate: Math.round((Number(day.rate) / RANKING.hoursPerDay) * 100) / 100, source: "catalog" };
     if (Number(s.hourlyRate) > 0) return { rate: Number(s.hourlyRate), source: "profile" };
     return null;
   }
@@ -43,10 +54,10 @@ module.exports = function createEstimate({ getDb, scorecard, benchmark = () => n
   // Quality 0–100: the scorecard, else the rating, else neutral; plus a little for the vetting badge
   function quality(s) {
     const card = scorecard(s.id),
-      base = card?.score ?? (s.rating ? (s.rating / 5) * 100 : 60);
-    return Math.min(100, Math.round(base + ({ Gold: 6, Silver: 4, Bronze: 2 }[s.badge] || 0)));
+      base = card?.score ?? (s.rating ? (s.rating / 5) * 100 : RANKING.neutralQuality);
+    return Math.min(100, Math.round(base + (RANKING.badgeBonus[s.badge] || 0)));
   }
-  const daysFor = (hours) => Math.ceil(hours / HOURS_PER_DAY) + START_DAYS;
+  const daysFor = (hours) => Math.ceil(hours / RANKING.hoursPerDay) + RANKING.startDays;
 
   // T241: the price band of a category from the T69 benchmarks (25th–75th percentile), when there is one
   function band(category) {
@@ -73,7 +84,7 @@ module.exports = function createEstimate({ getDb, scorecard, benchmark = () => n
               t.status !== "Completed" &&
               (t.startDate || "0000-00-00") <= to &&
               (t.dueDate || "9999-12-31") >= from,
-          ).length < MAX_OPEN_TASKS,
+          ).length < RANKING.maxOpenTasks,
       )
       .map((s) => {
         const r = rateFor(s, pkg.category);
@@ -86,7 +97,7 @@ module.exports = function createEstimate({ getDb, scorecard, benchmark = () => n
         const b = band(pkg.category);
         let unusual = false;
         if (b) {
-          if (r.rate > 2 * b.p75 || r.rate < 0.5 * b.p25) {
+          if (r.rate > RANKING.bandAbove * b.p75 || r.rate < RANKING.bandBelow * b.p25) {
             skipped?.push({ supplierId: s.id, package: pkg.name, category: pkg.category, rate: r.rate, p25: b.p25, p75: b.p75 });
             return null;
           }
@@ -98,7 +109,7 @@ module.exports = function createEstimate({ getDb, scorecard, benchmark = () => n
           surcharge = (labour * pct) / 100,
           materials = ((labour + surcharge) * (Number(pr.materials?.[pkg.category]) || 0)) / 100;
         // Ranking: quality first, a little less for long journeys
-        const rank = quality(s) - (km === null ? 5 : Math.min(15, km / 50));
+        const rank = quality(s) - (km === null ? RANKING.unknownDistancePenalty : Math.min(RANKING.maxDistancePenalty, km / RANKING.kmPerPoint));
         return {
           supplierId: s.id,
           rate: r.rate,
@@ -144,7 +155,7 @@ module.exports = function createEstimate({ getDb, scorecard, benchmark = () => n
       lines,
       unusual,
       confidence: rough || profileRate ? "low" : unusual ? "medium" : "high",
-      quality: items[0]?.c.quality ?? 60,
+      quality: items[0]?.c.quality ?? RANKING.neutralQuality,
     };
   }
   // An option from a choice of supplier per package: parts grouped by supplier, running in parallel
@@ -205,15 +216,15 @@ module.exports = function createEstimate({ getDb, scorecard, benchmark = () => n
       const bestSingle = by(singles, (a, b) => b.quality - a.quality || a.supplierAmount - b.supplierAmount),
         cheapSingle = by(singles, (a, b) => a.supplierAmount - b.supplierAmount),
         fastSingle = by(singles, (a, b) => a.days - b.days || a.supplierAmount - b.supplierAmount);
-      best = splitBest.split && splitBest.quality > bestSingle.quality + 5 ? splitBest : bestSingle;
+      best = splitBest.split && splitBest.quality > bestSingle.quality + RANKING.splitQualityLead ? splitBest : bestSingle;
       cheapest =
         splitCheapest.split &&
-        splitCheapest.supplierAmount <= cheapSingle.supplierAmount * (1 - SPLIT_CHEAPER)
+        splitCheapest.supplierAmount <= cheapSingle.supplierAmount * (1 - RANKING.splitCheaper)
           ? splitCheapest
           : cheapSingle;
       const fastSplit = by([splitBest, splitCheapest], (a, b) => a.days - b.days);
       fastest =
-        fastSplit.split && fastSplit.days <= fastSingle.days * (1 - SPLIT_FASTER) ? fastSplit : fastSingle;
+        fastSplit.split && fastSplit.days <= fastSingle.days * (1 - RANKING.splitFaster) ? fastSplit : fastSingle;
     }
     const options = [],
       seen = new Set();
@@ -231,3 +242,4 @@ module.exports = function createEstimate({ getDb, scorecard, benchmark = () => n
 
   return { build, candidates, partOf, rateFor, daysFor };
 };
+module.exports.RANKING = RANKING;

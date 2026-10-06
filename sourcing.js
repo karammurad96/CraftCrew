@@ -6,6 +6,25 @@
 const WEIGHT_KEYS = ["price", "delivery", "quality", "experience"];
 const DEFAULT_WEIGHTS = { price: 50, delivery: 20, quality: 20, experience: 10 };
 const CONTRACT_STATUSES = ["Draft", "Active", "Terminated"];
+// T61 scorecard: the composite 0–100 score blends what is known with these weights
+const SCORE_WEIGHTS = { rating: 30, onTime: 30, firstTimeRight: 20, response: 20 };
+// T223: the points of an operator's supplier suggestion. T253: the ranking page reads them from here.
+const SUGGEST = {
+  category: 40, // offers the request's category
+  distance: [
+    [50, 20], // up to 50 km to the site: 20 points
+    [150, 15],
+    [300, 10],
+  ],
+  fartherOrUnknown: 5, // farther, or no known place
+  scoreDivisor: 5, // scorecard score ÷ 5 (at most 20 points)
+  noScore: 10, // no scorecard score yet
+  badge: { Gold: 10, Silver: 7, Bronze: 4 },
+  perOpenTask: 3, // minus per open task in the same weeks ...
+  maxOpenTasks: 15, // ... at most this many points
+  busy: 5, // minus when marked busy
+  workedBefore: 5, // has worked for this customer before
+};
 const geo = require("./geo");
 
 module.exports = function createSourcing(ctx) {
@@ -145,10 +164,10 @@ module.exports = function createSourcing(ctx) {
     };
     // Composite 0–100: weighted blend of what is known; unknown parts are skipped rather than counted as zero.
     const parts = [
-      [metrics.rating ? (metrics.rating / 5) * 100 : null, 30],
-      [metrics.onTimeRate, 30],
-      [metrics.firstTimeRightRate, 20],
-      [metrics.responseRate, 20],
+      [metrics.rating ? (metrics.rating / 5) * 100 : null, SCORE_WEIGHTS.rating],
+      [metrics.onTimeRate, SCORE_WEIGHTS.onTime],
+      [metrics.firstTimeRightRate, SCORE_WEIGHTS.firstTimeRight],
+      [metrics.responseRate, SCORE_WEIGHTS.response],
     ].filter(([v]) => v !== null);
     const score = parts.length
       ? Math.round(parts.reduce((a, [v, w]) => a + v * w, 0) / parts.reduce((a, [, w]) => a + w, 0))
@@ -333,21 +352,21 @@ module.exports = function createSourcing(ctx) {
         const reasons = [];
         let score = 0;
         if ((s.services || []).includes(request.category)) {
-          score += 40;
+          score += SUGGEST.category;
           reasons.push({ key: "category" });
         }
         const place = geo.geocode(s.location || "");
         if (site && place) {
           const km = Math.round(geo.distanceKm(site, place));
-          score += km <= 50 ? 20 : km <= 150 ? 15 : km <= 300 ? 10 : 5;
+          score += SUGGEST.distance.find(([max]) => km <= max)?.[1] ?? SUGGEST.fartherOrUnknown;
           reasons.push({ key: "distance", params: { km } });
-        } else score += 5;
+        } else score += SUGGEST.fartherOrUnknown;
         const card = scorecard(s.id);
         if (card?.score !== null && card?.score !== undefined) {
-          score += Math.round(card.score / 5);
+          score += Math.round(card.score / SUGGEST.scoreDivisor);
           reasons.push({ key: "score", params: { score: card.score } });
-        } else score += 10;
-        const badge = { Gold: 10, Silver: 7, Bronze: 4 }[s.badge] || 0;
+        } else score += SUGGEST.noScore;
+        const badge = SUGGEST.badge[s.badge] || 0;
         if (badge) {
           score += badge;
           reasons.push({ key: "badge", params: { badge: s.badge } });
@@ -360,12 +379,12 @@ module.exports = function createSourcing(ctx) {
             (t.dueDate || "9999-12-31") >= from,
         ).length;
         if (open) {
-          score -= Math.min(15, open * 3);
+          score -= Math.min(SUGGEST.maxOpenTasks, open * SUGGEST.perOpenTask);
           reasons.push({ key: "busy", params: { n: open } });
         }
-        if (s.availability === "Busy") score -= 5;
+        if (s.availability === "Busy") score -= SUGGEST.busy;
         if (tasks.some(({ p, t }) => p.customerId === request.customerId && t.assignedSupplierId === s.id)) {
-          score += 5;
+          score += SUGGEST.workedBefore;
           reasons.push({ key: "worked" });
         }
         return { supplierId: s.id, company: s.company, location: s.location || "", score, reasons };
@@ -386,3 +405,5 @@ module.exports = function createSourcing(ctx) {
     DEFAULT_WEIGHTS,
   };
 };
+module.exports.SUGGEST = SUGGEST;
+module.exports.SCORE_WEIGHTS = SCORE_WEIGHTS;

@@ -437,6 +437,7 @@ const clause = require("./clause")({
 });
 // T231: instant estimates from the suppliers' own price lists
 const servedArea = require("./servedarea");
+const ranking = require("./ranking");
 const estimates = require("./estimate")({
   getDb: () => db,
   scorecard: (sid) => sourcing.scorecard(sid),
@@ -4510,6 +4511,10 @@ async function api(req, res, url) {
         }),
         true
       );
+
+    // T253: how suppliers are ranked and priced, from the engine's constants (public, like the terms)
+    if (parts[1] === "ranking" && !parts[2] && method === "GET")
+      return (send(res, 200, { ranking: ranking.facts(db.settings) }), true);
 
     const user = requireAuth(req, res);
     if (!user) return true;
