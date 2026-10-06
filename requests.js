@@ -24,7 +24,7 @@ module.exports = function createRequests(ctx) {
   const admins = () => getDb().users.filter((u) => u.role === "admin");
 
   // What a customer may see: no operator notes, no sourcing data (T223/T224 add more operator-only fields).
-  const OPERATOR_ONLY = ["operatorNote", "suggestions", "bidId", "operatorId", "leakHints"];
+  const OPERATOR_ONLY = ["operatorNote", "suggestions", "bidId", "operatorId", "leakHints", "estimateSkipped"];
   function view(user, r) {
     if (user.role === "admin") {
       // The operator sees who is behind each estimate part, and each part's packages by name
@@ -100,6 +100,8 @@ module.exports = function createRequests(ctx) {
       // T231: an estimate, maybe split across suppliers; each part shows its packages, never its supplier
       estimate: !!o.estimate,
       split: !!o.split,
+      // T241: how sure the estimate is, and what each part's price is made of (in customer prices)
+      confidence: o.confidence || null,
       parts: (o.parts || []).map((p) => ({
         id: p.id,
         packages: p.packageIds.map((pid) => r.packages.find((x) => x.id === pid)?.name || ""),
@@ -107,6 +109,7 @@ module.exports = function createRequests(ctx) {
         price: p.price,
         days: p.days,
         profile: p.profile,
+        ...(p.lines ? { lines: Object.fromEntries(Object.entries(p.lines).map(([k, v]) => [k, customerPrice(v)])) } : {}),
       })),
     };
   }
@@ -285,8 +288,19 @@ module.exports = function createRequests(ctx) {
     const rough = workingDays(startDate, dueDate) * 8;
     for (const x of packages) if (!x.hours) Object.assign(x, { hours: rough, rough: true });
     const category = packages[0].category;
+    // T241: night, weekend or shift work, and the number of trips (default: one per week of work)
+    const SHIFTS = ["night", "weekend", "shift"],
+      shifts = [...new Set(Array.isArray(b.shifts) ? b.shifts : [])];
+    if (shifts.some((x) => !SHIFTS.includes(x))) return { error: "Choose night, weekend or shift work from the list." };
+    let trips = null;
+    if (b.trips !== undefined && b.trips !== null && b.trips !== "") {
+      trips = Number(b.trips);
+      if (!Number.isInteger(trips) || trips < 1 || trips > 50) return { error: "Enter the number of trips (1 to 50), or leave it empty." };
+    }
     return {
       fields: {
+        shifts,
+        trips,
         title,
         description,
         category,
@@ -400,7 +414,8 @@ module.exports = function createRequests(ctx) {
   /* ---------- T231: the instant estimate ---------- */
   // Options from the estimate engine: per supplier a part with its packages; the customer price after T224's model
   function instantEstimate(r) {
-    const { options, missing } = estimate(r);
+    const { options, missing, skipped = [] } = estimate(r);
+    if (skipped.length) r.estimateSkipped = skipped;
     if (!options.length) {
       r.estimateGap = r.packages.filter((x) => missing.includes(x.id)).map((x) => x.name);
       return;
@@ -414,6 +429,9 @@ module.exports = function createRequests(ctx) {
         supplierAmount: p.supplierAmount,
         price: customerPrice(p.supplierAmount),
         days: p.days,
+        lines: p.lines,
+        unusual: !!p.unusual,
+        confidence: p.confidence,
         profile: anonymousProfile(p.supplierId),
       }));
       return {
@@ -422,6 +440,7 @@ module.exports = function createRequests(ctx) {
         label: o.label,
         note: "",
         split: o.split,
+        confidence: o.confidence,
         parts,
         supplierId: parts.length === 1 ? parts[0].supplierId : null,
         supplierAmount: o.supplierAmount,
@@ -534,8 +553,14 @@ module.exports = function createRequests(ctx) {
         ? [{ supplierId: common[0].supplierId, idx: pkgs.map((_, i) => i) }]
         : pkgs.map((_, i) => ({ supplierId: per[i][0].supplierId, idx: [i] }));
     for (const g of groups) {
-      const amount = g.idx.reduce((n, i) => n + per[i].find((c) => c.supplierId === g.supplierId).amount, 0),
-        hours = g.idx.reduce((n, i) => n + pkgs[i].hours, 0),
+      // T241: travel and the minimum order count for the new supplier too
+      const priced = estimates.partOf(
+          r,
+          g.supplierId,
+          g.idx.map((i) => ({ pkg: pkgs[i], c: per[i].find((c) => c.supplierId === g.supplierId) })),
+        ),
+        amount = priced.supplierAmount,
+        hours = priced.hours,
         next = newPart({
           supplierId: g.supplierId,
           packageIds: g.idx.map((i) => pkgs[i].id),
@@ -543,7 +568,8 @@ module.exports = function createRequests(ctx) {
           estimate: amount,
           supplierAmount: amount,
           price: customerPrice(amount),
-          days: estimates.daysFor(hours),
+          days: priced.days,
+          lines: priced.lines,
           replaces: part.id,
         });
       r.award.parts.push(next);

@@ -350,7 +350,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 
 **Wave 16 — market readiness (from the readiness review of 6 October 2026, asked for by Karam: the tasks to reach the review's goals; three phases, each with a gate; existing tasks are placed into the phases under "Wave 16")**
 - [x] T240 Commission statements: the platform fee is invoiced to the supplier every month · S · do first, **the platform earns nothing until this is done**
-- [ ] T241 Estimate guardrails: minimum order, travel costs, surcharges, price band and a confidence level · M
+- [x] T241 Estimate guardrails: minimum order, travel costs, surcharges, price band and a confidence level · M
 - [ ] T253 Ranking transparency: the terms and the supplier help say how suppliers are ranked and priced · S · **EU P2B Regulation 2019/1150; the text needs the lawyer**
 - [ ] T255 Served area: instant estimates only in the launch region and categories, a waiting list elsewhere · S · **needs Karam's beachhead decision**
 - [ ] T242 Operator cockpit: KPIs, the funnel and deadlines for the request queue · M
@@ -5138,10 +5138,41 @@ nothing tells the customer how sure it is.
    - After T243 the supplier's track record counts too.
 
 **Done when.**
-- [ ] Unit tests cover the minimum order, travel inside and outside the radius, each surcharge and the
+- [x] Unit tests cover the minimum order, travel inside and outside the radius, each surcharge and the
       materials share.
-- [ ] A price far outside the band is skipped and reported. Each confidence level has a test.
-- [ ] The option card shows the lines and the confidence in English and German.
+- [x] A price far outside the band is skipped and reported. Each confidence level has a test.
+- [x] The option card shows the lines and the confidence in English and German.
+
+**As built (6 October 2026).**
+- **Supplier pricing rules.** `PUT /profile {pricing}`, checked in `cleanSupplierProfile()`:
+  - a minimum order;
+  - travel: a flat fee per trip, a price per km and a radius;
+  - surcharges in percent for night, weekend and shift work (up to 200 %);
+  - a materials share in percent per category.
+  The supplier edits them under *Service catalogue → Pricing rules*.
+- **Request fields.** `shifts` (night, weekend, shift) and `trips` (1–50; by default one per week of work), in
+  the request form.
+- **Engine (`estimate.js`).**
+  - A candidate's amount is labour + surcharges of the asked shifts + the materials share.
+  - A supplier whose radius does not reach the site is left out.
+  - `partOf()` adds travel per part (trips × (flat + km × 2 × price per km)) and lifts the part to the minimum
+    order. `replacePart()` uses it too.
+  - Every part keeps its `lines` (labour, surcharge, materials, travel, minimum).
+- **Price band.** From the T69 benchmarks of the category, when available. A rate above twice the 75th
+  percentile, or under half the 25th, is skipped and listed in `estimateSkipped` for the operator only. A rate
+  outside the 25th–75th percentile is marked `unusual`.
+- **Confidence.** Per part, and per option as its weakest part:
+  - *low*: rough hours, or a rate from the profile only;
+  - *medium*: an unusual price;
+  - *high*: everything else.
+- **Pages.**
+  - Option cards show the confidence (with an explanation on hover), each part's lines in customer prices,
+    and "unusual price".
+  - The operator's request page lists the skipped rates.
+- **Demo.** Donau and Nordwind have pricing rules (minimum order, travel, surcharges, materials).
+- **Tests.** `test/estimate-guardrails.test.js`: the engine (minimum, travel and trips, radius, surcharges,
+  materials, band, each confidence) and the API (checks, and a request below the minimum order).
+  `test/estimate.test.js` expects the new `skipped` list.
 
 ### T253 · Ranking transparency
 `P0 · S · the text needs the lawyer`

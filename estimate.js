@@ -18,7 +18,10 @@ const key = (s) =>
     .toLowerCase();
 const PAUSED = new Set(["paused", "inactive", "unavailable", "pausiert"]);
 
-module.exports = function createEstimate({ getDb, scorecard }) {
+const round = (n) => Math.round(Number(n || 0) * 100) / 100;
+const RANK = { low: 0, medium: 1, high: 2 };
+
+module.exports = function createEstimate({ getDb, scorecard, benchmark = () => null }) {
   // A supplier's hourly rate for a category: catalogue entry for the category or a service of that name (hour, or
   // day ÷ 8), else the profile's hourly rate. Null: no price known.
   function rateFor(s, category) {
@@ -45,8 +48,14 @@ module.exports = function createEstimate({ getDb, scorecard }) {
   }
   const daysFor = (hours) => Math.ceil(hours / HOURS_PER_DAY) + START_DAYS;
 
-  // The suppliers that can take a package, best first
-  function candidates(request, pkg) {
+  // T241: the price band of a category from the T69 benchmarks (25th–75th percentile), when there is one
+  function band(category) {
+    const b = benchmark(category);
+    return b?.available ? b : null;
+  }
+  // The suppliers that can take a package, best first. A rate far outside the category's price band is skipped
+  // (and listed in `skipped` for the operator); one outside the band is marked unusual.
+  function candidates(request, pkg, skipped = null) {
     const db = getDb(),
       from = request.startDate || new Date().toISOString().slice(0, 10),
       to = request.dueDate || "9999-12-31",
@@ -70,14 +79,33 @@ module.exports = function createEstimate({ getDb, scorecard }) {
         const r = rateFor(s, pkg.category);
         if (!r) return null;
         const place = geo.geocode(s.location || ""),
-          km = site && place ? Math.round(geo.distanceKm(site, place)) : null;
+          km = site && place ? Math.round(geo.distanceKm(site, place)) : null,
+          pr = s.pricing || {};
+        // T241: a supplier does not travel beyond its radius
+        if (Number(pr.travel?.radiusKm) > 0 && km !== null && km > Number(pr.travel.radiusKm)) return null;
+        const b = band(pkg.category);
+        let unusual = false;
+        if (b) {
+          if (r.rate > 2 * b.p75 || r.rate < 0.5 * b.p25) {
+            skipped?.push({ supplierId: s.id, package: pkg.name, category: pkg.category, rate: r.rate, p25: b.p25, p75: b.p75 });
+            return null;
+          }
+          unusual = r.rate < b.p25 || r.rate > b.p75;
+        }
+        // Labour, surcharges for night, weekend or shift work, and the materials share of the category
+        const labour = r.rate * pkg.hours,
+          pct = (request.shifts || []).reduce((n, k) => n + (Number(pr.surcharges?.[k]) || 0), 0),
+          surcharge = (labour * pct) / 100,
+          materials = ((labour + surcharge) * (Number(pr.materials?.[pkg.category]) || 0)) / 100;
         // Ranking: quality first, a little less for long journeys
         const rank = quality(s) - (km === null ? 5 : Math.min(15, km / 50));
         return {
           supplierId: s.id,
           rate: r.rate,
           rateSource: r.source,
-          amount: Math.round(r.rate * pkg.hours),
+          amount: Math.round(labour + surcharge + materials),
+          lines: { labour: round(labour), surcharge: round(surcharge), materials: round(materials) },
+          unusual,
           quality: quality(s),
           km,
           rank,
@@ -87,31 +115,55 @@ module.exports = function createEstimate({ getDb, scorecard }) {
       .sort((a, b) => b.rank - a.rank || a.amount - b.amount);
   }
 
+  // T241: one supplier's part: its packages' candidates, plus travel (trips × flat fee and km both ways) and the
+  // supplier's minimum order. Returns the amount, the lines and a confidence level.
+  function partOf(request, supplierId, items) {
+    const s = getDb().suppliers.find((x) => x.id === supplierId) || {},
+      pr = s.pricing || {},
+      hours = items.reduce((n, x) => n + x.pkg.hours, 0),
+      days = daysFor(hours),
+      lines = { labour: 0, surcharge: 0, materials: 0, travel: 0, minimum: 0 };
+    for (const { c } of items) for (const k of ["labour", "surcharge", "materials"]) lines[k] += c.lines?.[k] ?? (k === "labour" ? c.amount : 0);
+    const trips = Number(request.trips) > 0 ? Number(request.trips) : Math.max(1, Math.ceil(days / 5)),
+      km = items.find((x) => x.c.km !== null && x.c.km !== undefined)?.c.km ?? null,
+      flat = Number(pr.travel?.flat) || 0,
+      perKm = Number(pr.travel?.perKm) || 0;
+    lines.travel = trips * (flat + (km !== null ? perKm * km * 2 : 0));
+    const subtotal = lines.labour + lines.surcharge + lines.materials + lines.travel;
+    lines.minimum = Math.max(0, (Number(pr.minimumOrder) || 0) - subtotal);
+    for (const k of Object.keys(lines)) lines[k] = round(lines[k]);
+    const rough = items.some((x) => x.pkg.rough),
+      profileRate = items.some((x) => x.c.rateSource === "profile"),
+      unusual = items.some((x) => x.c.unusual);
+    return {
+      supplierId,
+      packageIds: items.map((x) => x.pkg.id),
+      hours,
+      days,
+      supplierAmount: Math.round(subtotal + lines.minimum),
+      lines,
+      unusual,
+      confidence: rough || profileRate ? "low" : unusual ? "medium" : "high",
+      quality: items[0]?.c.quality ?? 60,
+    };
+  }
   // An option from a choice of supplier per package: parts grouped by supplier, running in parallel
   function option(request, choice) {
-    const parts = new Map();
+    const groups = new Map();
     for (const pkg of request.packages) {
       const c = choice.get(pkg.id);
-      if (!parts.has(c.supplierId))
-        parts.set(c.supplierId, {
-          supplierId: c.supplierId,
-          packageIds: [],
-          hours: 0,
-          supplierAmount: 0,
-          quality: c.quality,
-        });
-      const part = parts.get(c.supplierId);
-      part.packageIds.push(pkg.id);
-      part.hours += pkg.hours;
-      part.supplierAmount += c.amount;
+      if (!groups.has(c.supplierId)) groups.set(c.supplierId, []);
+      groups.get(c.supplierId).push({ pkg, c });
     }
-    const list = [...parts.values()].map((p) => ({ ...p, days: daysFor(p.hours) })),
+    const list = [...groups.entries()].map(([sid, items]) => partOf(request, sid, items)),
       hours = list.reduce((n, p) => n + p.hours, 0);
     return {
       parts: list,
       supplierAmount: list.reduce((n, p) => n + p.supplierAmount, 0),
       days: Math.max(...list.map((p) => p.days)),
       quality: Math.round(list.reduce((n, p) => n + p.quality * p.hours, 0) / hours),
+      // The option is as sure as its least sure part
+      confidence: list.map((p) => p.confidence).sort((a, b) => RANK[a] - RANK[b])[0],
       split: list.length > 1,
       signature: list
         .map((p) => p.supplierId + ":" + p.packageIds.join("+"))
@@ -122,9 +174,10 @@ module.exports = function createEstimate({ getDb, scorecard }) {
 
   // The estimate: up to three options, or the packages nobody can price (the operator takes over)
   function build(request) {
-    const per = new Map(request.packages.map((pkg) => [pkg.id, candidates(request, pkg)])),
+    const skipped = [],
+      per = new Map(request.packages.map((pkg) => [pkg.id, candidates(request, pkg, skipped)])),
       missing = request.packages.filter((pkg) => !per.get(pkg.id).length).map((pkg) => pkg.id);
-    if (missing.length) return { options: [], missing };
+    if (missing.length) return { options: [], missing, skipped };
     // One supplier for everything: those who can take every package
     const everywhere = per
       .get(request.packages[0].id)
@@ -173,8 +226,8 @@ module.exports = function createEstimate({ getDb, scorecard }) {
         seen.add(o.signature);
         options.push({ label, ...o });
       }
-    return { options, missing: [] };
+    return { options, missing: [], skipped };
   }
 
-  return { build, candidates, rateFor, daysFor };
+  return { build, candidates, partOf, rateFor, daysFor };
 };

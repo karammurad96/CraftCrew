@@ -119,7 +119,8 @@ async function rqNewPage(params, query) {
     }</div><button type="button" class="btn small outline" data-action="req.addPackage">${rqk("pkg.add")}</button></fieldset>
 <div class="cc-platform-grid"><label>${rqk("field.postcode")}<input name="sitePostcode" maxlength="10"></label><label>${rqk("field.city")}<input name="siteCity" maxlength="80"></label>
 <label>${rqk("field.start")}<input type="date" name="startDate"></label><label>${rqk("field.due")}<input type="date" name="dueDate"></label>
-<label>${rqk("field.budgetOptional")}<input type="number" name="budget" min="0" step="100"></label></div>
+<label>${rqk("field.budgetOptional")}<input type="number" name="budget" min="0" step="100"></label><label>${rqk("field.trips")}<input type="number" name="trips" min="1" max="50" placeholder="${rqk("field.tripsPh")}"></label></div>
+<fieldset class="rq-shifts"><legend>${rqk("field.shifts")}</legend>${["night", "weekend", "shift"].map((k) => `<label class="cc-check-label"><input type="checkbox" name="shifts" value="${k}"> ${rqk("shift." + k)}</label>`).join("")}</fieldset>
 <label>${rqk("field.files")}<input type="file" name="files" multiple></label>
 <p class="subtle">${rqk("privacyNote")}</p>
 <div class="cc-actions"><button class="btn primary">${rqk("send")}</button><a class="btn outline" href="#/customer/requests">${rqk("cancel")}</a></div></form>`,
@@ -143,8 +144,10 @@ actions.on("req.create", async (form) => {
       "startDate",
       "dueDate",
       "budget",
+      "trips",
     ],
     body = Object.fromEntries(keep.map((k) => [k, f.get(k) || ""]));
+  body.shifts = f.getAll("shifts");
   const names = f.getAll("pkgName"),
     cats = f.getAll("pkgCat"),
     hours = f.getAll("pkgHours");
@@ -408,6 +411,14 @@ function rqAwardNote(r, role = "customer") {
     }</div>`;
   return "";
 }
+// T241: what a part's price is made of; only the lines that are there
+function rqLines(x) {
+  const l = x.lines;
+  if (!l) return "";
+  const shown = ["labour", "surcharge", "materials", "travel", "minimum"].filter((k) => Number(l[k]) > 0);
+  if (shown.length < 2 && !Number(l.minimum)) return "";
+  return `<small class="rq-lines">${shown.map((k) => rqk("line." + k, { amount: fmt.money(l[k]) })).join(" · ")}</small>`;
+}
 function rqOptionCard(o, chooseFor = "") {
   const p = o.profile || {},
     fact = (k, params) => `<li>${rqk("profile." + k, params)}</li>`;
@@ -424,11 +435,15 @@ function rqOptionCard(o, chooseFor = "") {
                   price: fmt.money(x.price),
                   days: x.days,
                 },
-              )}${x.profile?.badge ? " · " + esc(t("common.badge." + x.profile.badge)) : ""}${x.profile?.rating ? " · " + rqk("profile.rating", { rating: fmt.number(x.profile.rating, 1) }) : ""}</small></li>`,
+              )}${x.profile?.badge ? " · " + esc(t("common.badge." + x.profile.badge)) : ""}${x.profile?.rating ? " · " + rqk("profile.rating", { rating: fmt.number(x.profile.rating, 1) }) : ""}</small>${rqLines(x)}${
+                x.unusual ? `<small class="rq-unusual">${rqk("estimate.unusual")}</small>` : ""
+              }</li>`,
           )
           .join("")}</ul>`
       : "";
-  const flags = `${o.estimate ? `<span class="status submitted rq-estimate">${rqk("estimate.badge")}</span>` : ""}${o.split ? `<span class="status">${rqk("estimate.split", { n: o.parts.length })}</span>` : ""}`;
+  const flags = `${o.estimate ? `<span class="status submitted rq-estimate">${rqk("estimate.badge")}</span>` : ""}${
+    o.confidence ? `<span class="status rq-confidence rq-confidence-${esc(o.confidence)}" title="${rqk("confidence.hint." + o.confidence)}">${rqk("confidence." + o.confidence)}</span>` : ""
+  }${o.split ? `<span class="status">${rqk("estimate.split", { n: o.parts.length })}</span>` : ""}`;
   return `<article class="cc-card rq-option${o.chosen ? " chosen" : ""}"><span class="status ${o.label === "recommended" ? "completed" : "submitted"}">${rqk("opt." + o.label)}</span>${flags}<b class="rq-price">${esc(fmt.money(o.price))}</b><small>${rqk("daysN", { n: o.deliveryDays })}</small>${parts}${o.estimate ? `<small class="subtle">${rqk("estimate.note")}</small>` : ""}<ul class="rq-profile">${[
     p.badge ? fact("badge", { badge: t("common.badge." + p.badge) }) : "",
     p.rating ? fact("rating", { rating: fmt.number(p.rating, 1) }) : "",
@@ -570,6 +585,12 @@ async function rqAdminDetail(params) {
     }</div>${take}
 <section class="panel"><h3>${rqk("details")}</h3>${rqFacts(r)}${rqPackages(r)}<p class="rq-description"><bdi>${esc(r.description)}</bdi></p></section>
 ${rqAwardNote(r, "admin")}${(r.estimateGap || []).length ? `<div class="notice warn">${rqk("estimate.gap", { list: r.estimateGap.join(", ") })}</div>` : ""}${
+      (r.estimateSkipped || []).length
+        ? `<div class="notice warn"><b>${rqk("estimate.skippedTitle")}</b><ul>${r.estimateSkipped
+            .map((x) => `<li>${rqk("estimate.skipped", { package: x.package, rate: fmt.money(x.rate), low: fmt.money(x.p25), high: fmt.money(x.p75) })}</li>`)
+            .join("")}</ul></div>`
+        : ""
+    }${
       (r.leakHints || []).length
         ? `<div class="notice warn"><b>${rqk("leak.title", { n: r.leakHints.length })}</b> ${r.leakHints
             .slice(-5)

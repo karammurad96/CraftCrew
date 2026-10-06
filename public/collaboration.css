@@ -1253,3 +1253,12 @@ ul.ff-check-list.pk-included { min-height: 0; gap: 4px; }
 /* T240: fee statements */
 .fe-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
 .cc-table td.num, .cc-table th.num { text-align: end; font-variant-numeric: tabular-nums; }
+
+/* T241: estimate lines and confidence */
+.rq-lines { display: block; color: var(--muted, #5b6b80); }
+.rq-unusual { display: block; color: #9a5b00; }
+.rq-confidence-high { background: #e3f6ea; color: #11592e; }
+.rq-confidence-medium { background: #fff4d6; color: #6b4a00; }
+.rq-confidence-low { background: #fde8e6; color: #8f1d14; }
+.rq-shifts { display: flex; flex-wrap: wrap; gap: 8px 20px; border: 0; padding: 0; }
+.rq-shifts legend { font-weight: 600; margin-block-end: 4px; }

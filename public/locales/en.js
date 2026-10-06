@@ -193,6 +193,11 @@ LOCALES.en = {
     wrongAccount: "This page belongs to another type of account.",
     // API error messages by code (T137): the server sends { error, code, params }; see errorCode() in server.js
     api: {
+      rqShifts: "Choose night, weekend or shift work from the list.",
+      rqTrips: "Enter the number of trips (1 to 50), or leave it empty.",
+      prNumbers: "Pricing rules: enter numbers of at least 0 (surcharges up to 200 %, travel up to 20 € per km).",
+      prMaterialsMax: "Pricing rules: materials for up to 30 categories.",
+      prMaterialsShare: "Pricing rules: a materials share is 0 to 100 %.",
       feeMonth: "Choose a month that has started, for example 2026-09.",
       feeOnlySuppliers: "Only suppliers and admins see fee statements.",
       feeNotFound: "Statement not found",
@@ -3645,8 +3650,33 @@ LOCALES.en = {
     "hours": "{n} h · {name}"
   },
   req: {
+    confidence: {
+      high: "High confidence",
+      medium: "Medium confidence",
+      low: "Low confidence",
+      hint: {
+        high: "Known hours, prices from the suppliers' price lists, inside the usual range.",
+        medium: "A price outside the usual range for this kind of work.",
+        low: "Rough hours or a general rate: the supplier's confirmation may change the price.",
+      },
+    },
+    line: {
+      labour: "Labour {amount}",
+      surcharge: "Surcharges {amount}",
+      materials: "Materials {amount}",
+      travel: "Travel {amount}",
+      minimum: "Minimum order {amount}",
+    },
+    shift: {
+      night: "Night work",
+      weekend: "Weekend work",
+      shift: "Shift work",
+    },
     "awardDoneMany": "Contracts in place with your suppliers:",
     "estimate": {
+      unusual: "Unusual price for this kind of work",
+      skippedTitle: "Rates far outside the usual range were left out:",
+      skipped: "{package}: {rate} per hour (usual {low}–{high})",
       "badge": "Estimate",
       "split": "{n} suppliers",
       "note": "An estimate from the suppliers' price lists. After your choice each supplier confirms its part; if a price changes upward, you decide again.",
@@ -3822,6 +3852,9 @@ LOCALES.en = {
     "newTitle": "New request",
     "newLead": "The more you tell us, the better the options. Suppliers see your request only without your name or company.",
     "field": {
+      trips: "Trips to the site (optional)",
+      tripsPh: "One per week of work",
+      shifts: "Work outside normal hours",
       "title": "Title",
       "category": "Category",
       "description": "What needs to be done?",
@@ -4381,6 +4414,36 @@ LOCALES.en = {
     }
   },
   prof: {
+    price: {
+      title: "Pricing rules",
+      lead: "Used for instant estimates: your minimum order, travel, surcharges and materials. Customers see the lines of each estimate.",
+      edit: "Edit pricing rules",
+      none: "None",
+      anywhere: "Anywhere",
+      minimum: "Minimum order",
+      travel: "Travel",
+      travelText: "{flat} per trip + {perKm} per km",
+      radius: "Radius",
+      radiusText: "Up to {n} km",
+      surcharges: "Surcharges",
+      surcharge: {
+        night: "Night {pct} %",
+        weekend: "Weekend {pct} %",
+        shift: "Shift {pct} %",
+      },
+      surchargeLabel: {
+        night: "Night surcharge",
+        weekend: "Weekend surcharge",
+        shift: "Shift surcharge",
+      },
+      materials: "Materials share",
+      materialsHint: "If you bring the materials: the share on top of the labour, per category.",
+      flat: "Travel per trip",
+      perKm: "Travel per km",
+      save: "Save",
+      cancel: "Cancel",
+      saved: "Pricing rules saved.",
+    },
     "sections": {
       "label": "Settings sections",
       "company": "Company",

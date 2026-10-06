@@ -192,6 +192,11 @@ LOCALES.de = {
     wrongAccount: "Diese Seite gehört zu einer anderen Kontoart.",
     // API error messages by code (T137): the server sends { error, code, params }; see errorCode() in server.js
     api: {
+      rqShifts: "Wählen Sie Nacht-, Wochenend- oder Schichtarbeit aus der Liste.",
+      rqTrips: "Geben Sie die Anzahl der Anfahrten an (1 bis 50) oder lassen Sie das Feld leer.",
+      prNumbers: "Preisregeln: Geben Sie Zahlen ab 0 an (Zuschläge bis 200 %, Anfahrt bis 20 € pro km).",
+      prMaterialsMax: "Preisregeln: Material für bis zu 30 Kategorien.",
+      prMaterialsShare: "Preisregeln: Ein Materialanteil liegt zwischen 0 und 100 %.",
       feeMonth: "Wählen Sie einen Monat, der schon begonnen hat, zum Beispiel 2026-09.",
       feeOnlySuppliers: "Nur Lieferanten und Administratoren sehen Gebührenabrechnungen.",
       feeNotFound: "Abrechnung nicht gefunden",
@@ -3644,8 +3649,33 @@ LOCALES.de = {
     "hours": "{n} h · {name}"
   },
   req: {
+    confidence: {
+      high: "Hohe Sicherheit",
+      medium: "Mittlere Sicherheit",
+      low: "Geringe Sicherheit",
+      hint: {
+        high: "Bekannte Stunden, Preise aus den Preislisten der Lieferanten, im üblichen Bereich.",
+        medium: "Ein Preis außerhalb des üblichen Bereichs für diese Art von Arbeit.",
+        low: "Grobe Stunden oder ein allgemeiner Satz: Die Bestätigung des Lieferanten kann den Preis ändern.",
+      },
+    },
+    line: {
+      labour: "Arbeit {amount}",
+      surcharge: "Zuschläge {amount}",
+      materials: "Material {amount}",
+      travel: "Anfahrt {amount}",
+      minimum: "Mindestauftrag {amount}",
+    },
+    shift: {
+      night: "Nachtarbeit",
+      weekend: "Wochenendarbeit",
+      shift: "Schichtarbeit",
+    },
     "awardDoneMany": "Verträge mit Ihren Lieferanten geschlossen:",
     "estimate": {
+      unusual: "Ungewöhnlicher Preis für diese Art von Arbeit",
+      skippedTitle: "Sätze weit außerhalb des üblichen Bereichs wurden ausgelassen:",
+      skipped: "{package}: {rate} pro Stunde (üblich {low}–{high})",
       "badge": "Schätzung",
       "split": "{n} Lieferanten",
       "note": "Eine Schätzung aus den Preislisten der Lieferanten. Nach Ihrer Wahl bestätigt jeder Lieferant seinen Teil; steigt ein Preis, entscheiden Sie erneut.",
@@ -3821,6 +3851,9 @@ LOCALES.de = {
     "newTitle": "Neue Anfrage",
     "newLead": "Je mehr Sie uns sagen, desto besser die Optionen. Lieferanten sehen Ihre Anfrage nur ohne Ihren Namen und Ihre Firma.",
     "field": {
+      trips: "Anfahrten zum Einsatzort (optional)",
+      tripsPh: "Eine pro Arbeitswoche",
+      shifts: "Arbeit außerhalb der normalen Zeiten",
       "title": "Titel",
       "category": "Kategorie",
       "description": "Was soll gemacht werden?",
@@ -4380,6 +4413,36 @@ LOCALES.de = {
     }
   },
   prof: {
+    price: {
+      title: "Preisregeln",
+      lead: "Für sofortige Schätzungen: Ihr Mindestauftrag, Anfahrt, Zuschläge und Material. Kunden sehen die Posten jeder Schätzung.",
+      edit: "Preisregeln bearbeiten",
+      none: "Keine",
+      anywhere: "Überall",
+      minimum: "Mindestauftrag",
+      travel: "Anfahrt",
+      travelText: "{flat} pro Anfahrt + {perKm} pro km",
+      radius: "Umkreis",
+      radiusText: "Bis {n} km",
+      surcharges: "Zuschläge",
+      surcharge: {
+        night: "Nacht {pct} %",
+        weekend: "Wochenende {pct} %",
+        shift: "Schicht {pct} %",
+      },
+      surchargeLabel: {
+        night: "Nachtzuschlag",
+        weekend: "Wochenendzuschlag",
+        shift: "Schichtzuschlag",
+      },
+      materials: "Materialanteil",
+      materialsHint: "Wenn Sie das Material mitbringen: der Anteil zusätzlich zur Arbeit, je Kategorie.",
+      flat: "Anfahrt pauschal",
+      perKm: "Anfahrt pro km",
+      save: "Speichern",
+      cancel: "Abbrechen",
+      saved: "Preisregeln gespeichert.",
+    },
     "sections": {
       "label": "Bereiche der Einstellungen",
       "company": "Unternehmen",
