@@ -192,6 +192,8 @@ LOCALES.en = {
     wrongAccount: "This page belongs to another type of account.",
     // API error messages by code (T137): the server sends { error, code, params }; see errorCode() in server.js
     api: {
+      seBannerText: "Write the English text of the banner.",
+      seBannerDates: "Check the dates: the end cannot be before the start.",
       seSlug: "Use lowercase letters, digits and dashes for the address.",
       seSlugTaken: "Another page already uses this address.",
       sePageTitle: "Give the page an English title.",
@@ -5466,6 +5468,31 @@ LOCALES.en = {
     noSuppliers: "No supplier works on this project yet.",
   },
   se: {
+    banner: {
+      title: "Banner",
+      lead: "A short message at the top of every page, for example a holiday notice or a new feature. It shows to the chosen people between the dates.",
+      on: "Show the banner",
+      text: "Text",
+      kind: "Kind",
+      kinds: {
+        info: "Information",
+        success: "Good news",
+        warning: "Warning",
+      },
+      audience: "Who sees it",
+      audiences: {
+        everyone: "Everyone",
+        visitors: "Visitors who are not signed in",
+        customers: "Customers",
+        suppliers: "Suppliers",
+      },
+      from: "From",
+      until: "Until",
+      linkUrl: "Link (optional)",
+      linkLabel: "Link label",
+      closable: "People can close it (it shows again when the text changes)",
+      close: "Close the message",
+    },
     savedSite: "Saved. Visitors see it now.",
     previewNote: "Preview: this page is a draft and only admins see it.",
     footerLabel: "More pages",
