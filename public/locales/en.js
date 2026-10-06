@@ -193,6 +193,11 @@ LOCALES.en = {
     wrongAccount: "This page belongs to another type of account.",
     // API error messages by code (T137): the server sends { error, code, params }; see errorCode() in server.js
     api: {
+      stNotFound: "Not found",
+      stBadSignature: "Invalid signature",
+      stHandlerFailed: "Handler failed",
+      stOff: "Payments are off: no Stripe key is set.",
+      stUnreachable: "Stripe could not be reached. Check the key and the network.",
       rqShifts: "Choose night, weekend or shift work from the list.",
       rqTrips: "Enter the number of trips (1 to 50), or leave it empty.",
       prNumbers: "Pricing rules: enter numbers of at least 0 (surcharges up to 200 %, travel up to 20 € per km).",
@@ -1066,6 +1071,7 @@ LOCALES.en = {
         "profile": "Profile / Billing"
       },
       "admin": {
+        stripe: "Stripe",
         fees: "Fee statements",
         site: "Website",
         packages: "Packages",
@@ -5762,6 +5768,44 @@ LOCALES.en = {
       save: "Save details",
       saved: "Details saved.",
     },
+  },
+  stripe: {
+    title: "Stripe payments",
+    lead: "The connection to Stripe. Keys are set only as secrets on the server, never here: STRIPE_SECRET_KEY (a restricted key rk_test_… is best), STRIPE_PUBLISHABLE_KEY and STRIPE_WEBHOOK_SECRET.",
+    mode: {
+      off: "Off",
+      test: "Test mode",
+      live: "Live",
+    },
+    offText: "Payments are off because no Stripe key is set on the server. Customers pay by bank transfer as before.",
+    testText: "No real money moves. Use Stripe's test cards, for example 4242 4242 4242 4242.",
+    liveText: "Real money moves.",
+    keyType: "Key",
+    key: {
+      restricted: "Restricted key",
+      secret: "Secret key",
+    },
+    publishable: "Publishable key",
+    set: "set",
+    missing: "missing",
+    account: "Stripe account",
+    notChecked: "not checked yet",
+    check: "Check the connection",
+    checked: "Connected to Stripe.",
+    webhook: "Webhook",
+    webhookUrl: "Endpoint for the Stripe Dashboard: {url}",
+    lastEvent: "Last event",
+    none: "none yet",
+    lastError: "Last problem",
+    events: "Latest events",
+    col: {
+      time: "Received",
+      type: "Event",
+      id: "ID",
+      handled: "Handled",
+    },
+    yes: "yes",
+    no: "no",
   },
   server: {
     notify: {

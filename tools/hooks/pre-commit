@@ -1,0 +1,3 @@
+#!/bin/sh
+# T270: refuse a commit that contains a Stripe key or webhook secret. Install with `npm run hooks`.
+exec node "$(git rev-parse --show-toplevel)/tools/secret-scan.js" --staged

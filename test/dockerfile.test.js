@@ -42,11 +42,12 @@ it("copies every local server module into the Docker image", () => {
 
 it("installs the locked runtime dependencies and the migrations (T161)", () => {
   const pkg = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8"));
-  assert.deepEqual(Object.keys(pkg.dependencies || {}), ["pg"], "pg is the only runtime dependency");
+  assert.deepEqual(Object.keys(pkg.dependencies || {}), ["pg", "stripe"], "pg and the Stripe SDK (T270) are the only runtime dependencies");
   assert.match(docker, /^COPY package\.json package-lock\.json \.\/$/m);
   assert.match(docker, /^RUN npm ci --omit=dev\b/m);
   assert.match(docker, /^COPY migrations \.\/migrations$/m);
   assert.match(docker, /^COPY tools\/db \.\/tools\/db$/m, "the database tools run inside the container (T163)");
   const lock = JSON.parse(readFileSync(path.join(ROOT, "package-lock.json"), "utf8"));
   assert.equal(lock.packages[""].dependencies.pg, pkg.dependencies.pg, "the lock file matches package.json");
+  assert.equal(lock.packages[""].dependencies.stripe, pkg.dependencies.stripe, "the lock file pins the Stripe SDK");
 });
