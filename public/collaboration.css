@@ -1241,3 +1241,9 @@ ul.ff-check-list.pk-included { min-height: 0; gap: 4px; }
 .site-banner-warning { background: #fff4d6; color: #6b4a00; border-color: #f2dc9b; }
 .site-banner-close { background: none; border: 0; font-size: 1.2rem; line-height: 1; cursor: pointer; color: inherit; padding: 2px 6px; border-radius: 6px; }
 .site-banner-close:focus-visible { outline: 2px solid currentColor; }
+.se-changes { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; }
+.se-change { display: flex; gap: 12px; justify-content: space-between; align-items: center; padding-block: 10px; border-block-end: 1px solid var(--line, #dde3ec); }
+.se-change > div { display: grid; gap: 2px; min-width: 0; }
+.se-change small { color: var(--muted, #5b6b80); overflow-wrap: anywhere; }
+.se-diff span { font-weight: 600; }
+.se-file { cursor: pointer; }

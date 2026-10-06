@@ -101,10 +101,10 @@ module.exports = function createSiteContent(ctx) {
     return out;
   }
   const PLACES = ["none", "top", "footer"];
-  function checkPage(b, selfId) {
+  function checkPage(b, selfId, pages = content().pages) {
     const slug = text(b.slug, 60).toLowerCase();
     if (!SLUG.test(slug)) return { error: "Use lowercase letters, digits and dashes for the address." };
-    if (content().pages.some((p) => p.slug === slug && p.id !== selfId))
+    if (pages.some((p) => p.slug === slug && p.id !== selfId))
       return { error: "Another page already uses this address." };
     const title = perLang(b.title, 120, true);
     if (!title) return { error: "Give the page an English title." };
@@ -118,7 +118,7 @@ module.exports = function createSiteContent(ctx) {
     return { page: { slug, title, body: bodyText, status, place, order, seoTitle, seoDescription } };
   }
   // A menu or footer link: a built-in page, an own page, or an address (https://, mailto: or #/)
-  function checkLink(x) {
+  function checkLink(x, pages = content().pages) {
     const kind = String(x?.kind || "");
     const label = perLang(x?.label, 40, false);
     if (kind === "builtin") {
@@ -127,7 +127,7 @@ module.exports = function createSiteContent(ctx) {
       return { link: { kind, ref: x.ref, label } };
     }
     if (kind === "page") {
-      if (!content().pages.some((p) => p.slug === x.ref)) return { error: "Choose a page of the website for each link." };
+      if (!pages.some((p) => p.slug === x.ref)) return { error: "Choose a page of the website for each link." };
       return { link: { kind, ref: x.ref, label } };
     }
     if (kind === "link") {
@@ -139,14 +139,14 @@ module.exports = function createSiteContent(ctx) {
     }
     return { error: "Choose a page of the website for each link." };
   }
-  function checkNav(b) {
+  function checkNav(b, pages = content().pages) {
     const out = {};
     for (const where of ["top", "footer"]) {
       const list = Array.isArray(b?.[where]) ? b[where] : [];
       if (list.length > 12) return { error: "A menu can have up to 12 links." };
       out[where] = [];
       for (const x of list) {
-        const { error, link } = checkLink(x);
+        const { error, link } = checkLink(x, pages);
         if (error) return { error };
         out[where].push(link);
       }
@@ -192,7 +192,13 @@ module.exports = function createSiteContent(ctx) {
     };
   }
   function checkDetails(b) {
-    return { title: perLang(b?.title, 70, false), description: perLang(b?.description, 160, false) };
+    // Only filled fields, so an unchanged export compares equal
+    const out = {},
+      title = perLang(b?.title, 70, false),
+      description = perLang(b?.description, 160, false);
+    if (Object.keys(title).length) out.title = title;
+    if (Object.keys(description).length) out.description = description;
+    return out;
   }
   // The public view of one page; drafts only for admins (preview)
   function pageView(p) {
@@ -243,6 +249,110 @@ module.exports = function createSiteContent(ctx) {
       "X-Content-Type-Options": "nosniff",
     });
     res.end(out);
+  }
+
+  /* ---------- T267: undo, export and import ---------- */
+  const AREAS = ["texts", "pages", "builtins", "nav", "details", "banner"];
+  const snapshot = () => {
+    const c = content();
+    return clone(Object.fromEntries(AREAS.map((k) => [k, c[k] ?? null])));
+  };
+  // Puts back the value before a change; returns an error or null
+  function undo(entry) {
+    const c = content();
+    if (entry.area === "text") {
+      setText(entry.target.lang, entry.target.key, entry.before);
+      return null;
+    }
+    if (entry.area === "page") {
+      const at = c.pages.findIndex((p) => p.id === entry.target.id);
+      if (!entry.before) {
+        if (at >= 0) {
+          const gone = c.pages[at];
+          c.pages.splice(at, 1);
+          for (const where of ["top", "footer"]) c.nav[where] = c.nav[where].filter((l) => !(l.kind === "page" && l.ref === gone.slug));
+        }
+        return null;
+      }
+      if (c.pages.some((p) => p.slug === entry.before.slug && p.id !== entry.target.id))
+        return "Another page already uses this address.";
+      if (at >= 0) c.pages[at] = clone(entry.before);
+      else c.pages.push(clone(entry.before));
+      return null;
+    }
+    if (entry.area === "import") {
+      Object.assign(c, clone(entry.before));
+      return null;
+    }
+    if (["builtins", "nav", "details", "banner"].includes(entry.area)) {
+      c[entry.area] = clone(entry.before) ?? (entry.area === "nav" ? { top: [], footer: [] } : entry.area === "banner" ? null : {});
+      return null;
+    }
+    return "This change cannot be undone.";
+  }
+  const currentOf = (entry) => {
+    const c = content();
+    if (entry.area === "text") return getText(entry.target.lang, entry.target.key);
+    if (entry.area === "page") return c.pages.find((p) => p.id === entry.target.id) || null;
+    if (entry.area === "import") return snapshot();
+    return c[entry.area] ?? null;
+  };
+  function exported() {
+    return { format: "craftcrew-site", version: 1, exportedAt: now(), content: snapshot() };
+  }
+  // Checks a whole export: {error} or {content, summary}
+  function checkImport(data) {
+    if (!data || data.format !== "craftcrew-site" || data.version !== 1 || typeof data.content !== "object")
+      return { error: "This is not an export of the site editor." };
+    const inc = data.content,
+      fail = (reason) => ({ error: `The import was refused: ${reason}` });
+    const texts = {};
+    for (const [lang, list] of Object.entries(inc.texts || {}))
+      for (const [key, value] of Object.entries(list || {})) {
+        const r = checkText(lang, key, value);
+        if (r.error) return fail(`${lang} ${key}: ${r.error}`);
+        if (r.value !== null) (texts[lang] ||= {})[key] = r.value;
+      }
+    const pages = [],
+      seen = new Set();
+    for (const raw of Array.isArray(inc.pages) ? inc.pages : []) {
+      const r = checkPage(raw, null, []);
+      if (r.error) return fail(`${raw?.slug || "?"}: ${r.error}`);
+      const page = r.page;
+      if (seen.has(page.slug)) return fail(`${page.slug}: Another page already uses this address.`);
+      seen.add(page.slug);
+      pages.push({ id: /^spg_[\w]+$/.test(raw.id || "") ? raw.id : id("spg"), ...page, createdAt: raw.createdAt || now(), updatedAt: now() });
+    }
+    const nav = checkNav(inc.nav || {}, pages);
+    if (nav.error) return fail(nav.error);
+    const banner = inc.banner ? checkBanner(inc.banner) : { banner: null };
+    if (banner.error) return fail(banner.error);
+    const next = { texts, pages, builtins: checkBuiltins(inc.builtins || {}), nav: nav.nav, details: checkDetails(inc.details || {}), banner: banner.banner };
+    const now_ = snapshot(),
+      count = (o) => Object.values(o || {}).reduce((n, l) => n + Object.keys(l || {}).length, 0),
+      changedTexts = [...new Set([...Object.keys(now_.texts || {}), ...Object.keys(texts)])].reduce(
+        (n, lang) =>
+          n +
+          [...new Set([...Object.keys(now_.texts?.[lang] || {}), ...Object.keys(texts[lang] || {})])].filter(
+            (k) => JSON.stringify(now_.texts?.[lang]?.[k] ?? null) !== JSON.stringify(texts[lang]?.[k] ?? null),
+          ).length,
+        0,
+      ),
+      slugs = new Set((now_.pages || []).map((p) => p.slug));
+    return {
+      content: next,
+      summary: {
+        texts: count(texts),
+        changedTexts,
+        pages: pages.length,
+        newPages: pages.filter((p) => !slugs.has(p.slug)).length,
+        removedPages: (now_.pages || []).filter((p) => !seen.has(p.slug)).length,
+        nav: JSON.stringify(now_.nav) !== JSON.stringify(next.nav),
+        builtins: JSON.stringify(now_.builtins || {}) !== JSON.stringify(next.builtins),
+        details: JSON.stringify(now_.details || {}) !== JSON.stringify(next.details),
+        banner: JSON.stringify(now_.banner ?? null) !== JSON.stringify(next.banner),
+      },
+    };
   }
 
   async function handle(req, res, url, parts, user) {
@@ -308,6 +418,32 @@ module.exports = function createSiteContent(ctx) {
         save();
         return (send(res, 200, { ok: true }), true);
       }
+    }
+    if (parts[3] === "history" && parts.length === 4 && method === "GET")
+      return (send(res, 200, { history: history() }), true);
+    if (parts[3] === "history" && parts[4] && parts[5] === "undo" && parts.length === 6 && method === "POST") {
+      const entry = history().find((h) => h.id === parts[4]);
+      if (!entry) return (send(res, 404, { error: "This change is no longer in the history." }), true);
+      const now_ = currentOf(entry),
+        failed = undo(entry);
+      if (failed) return (send(res, 409, { error: failed }), true);
+      record(user, entry.area, entry.target, now_, entry.before, "undo");
+      activity(user, `Website change undone (${entry.area})`);
+      save();
+      return (send(res, 200, { content: c, history: history().slice(0, 100) }), true);
+    }
+    if (parts[3] === "export" && parts.length === 4 && method === "GET") return (send(res, 200, exported()), true);
+    if (parts[3] === "import" && parts.length === 4 && method === "POST") {
+      const b = await body(req),
+        out = checkImport(b.data);
+      if (out.error) return (send(res, 400, { error: out.error }), true);
+      if (b.apply !== true) return (send(res, 200, { preview: out.summary }), true);
+      const before = snapshot();
+      Object.assign(c, clone(out.content));
+      record(user, "import", null, before, snapshot());
+      activity(user, "Website content imported");
+      save();
+      return (send(res, 200, { imported: out.summary, content: c }), true);
     }
     const whole = { builtins: checkBuiltins, nav: checkNav, details: checkDetails, banner: checkBanner };
     if (whole[parts[3]] && parts.length === 4 && method === "PUT") {

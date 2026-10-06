@@ -374,7 +374,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T264 Site editor: every text of the website and the app, per language, changed by an admin · M
 - [x] T265 Site editor: own pages, built-in pages on or off, menu and footer links, search engine texts · M
 - [x] T266 Site editor: an announcement banner · S
-- [ ] T267 Site editor: history, undo, export and import · S
+- [x] T267 Site editor: history, undo, export and import · S
 - [ ] T268 Demo data for packages and the organigram · S · last task of the wave
 
 ---
@@ -5733,8 +5733,34 @@ Asked for by Karam on 6 October 2026:
    first, then apply. The same checks as T264 and T265 apply.
 
 **Done when.**
-- [ ] Undo restores the value before the change, including a deleted page.
-- [ ] An import with a bad text is refused as a whole, with the reason.
+- [x] Undo restores the value before the change, including a deleted page.
+- [x] An import with a bad text is refused as a whole, with the reason.
+
+**As built (6 October 2026).**
+- **History.** Every change (text, page, built-in pages, menu, details, banner, import) is stored with who,
+  when, before and after; the last 500 are kept. `GET /api/admin/site/history` lists them.
+- **Undo.** `POST /api/admin/site/history/:id/undo` puts back the value before the change:
+  - an added page is removed, with its menu links;
+  - a deleted or changed page comes back, unless another page took its address;
+  - an import goes back to the whole earlier state.
+  The undo is recorded as a change (`note: "undo"`), so it can be undone too.
+- **Export and import.**
+  - `GET /api/admin/site/export` gives `{format: "craftcrew-site", version: 1, content}`.
+  - `POST /api/admin/site/import {data, apply}` checks everything with the same rules as the editor
+    (`checkText`, `checkPage`, `checkNav` against the imported pages, the banner, details and built-in pages).
+    The first problem refuses the whole import with its reason (`seImportRefused`).
+  - Without `apply` it returns a preview: changed texts, new and removed pages, and whether the menu,
+    built-in pages, details and banner change. With `apply` it replaces the content.
+  - Site details now keep only filled fields, so an unchanged export previews as "no changes".
+- **Admin tab** *History*: the changes with before and after for texts, Undo with a confirmation, *Export as a
+  file*, and *Import a file…* with the preview and "Import now".
+- **Also.** The package booking total now updates while typing the units (`data-input`).
+- **Tests.** `test/site-history.test.js`:
+  - text undo and undoing the undo;
+  - a deleted page back and an added one removed with its link;
+  - banner and details undo;
+  - export, preview, apply and undo of the import, and a no-change round trip;
+  - refused imports.
 
 ### T268 · Demo data for packages and the organigram
 `P2 · S · last task of the wave`
