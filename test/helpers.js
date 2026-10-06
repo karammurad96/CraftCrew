@@ -142,6 +142,7 @@ async function startApp({ smtp, env = {}, dataDir: keepDir } = {}) {
         STRIPE_SECRET_KEY: "",
         STRIPE_PUBLISHABLE_KEY: "",
         STRIPE_WEBHOOK_SECRET: "",
+        STRIPE_THIN_WEBHOOK_SECRET: "",
         STRIPE_API_BASE: "",
         PAYMENTS_LIVE: "",
         ...(smtp

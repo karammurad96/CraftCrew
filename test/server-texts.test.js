@@ -71,6 +71,7 @@ describe("server texts by language (T137)", () => {
     assert.deepEqual(plain, [], "use { key, params } with a text in server.notify");
     const keys = new Set(specs.flatMap((x) => [...x.spec.matchAll(/key: ([^,}]+)/g)].flatMap((m) => [...m[1].matchAll(/"(\w+)"/g)].map((k) => k[1]))));
     for (const k of ["workAccepted", "workRejected", "defectCreated"]) keys.add(k); // punchlist.js and acceptance.js pass a variable
+    for (const k of ["payoutsActive", "payoutsRestricted"]) keys.add(k); // payouts.js too (T271)
     const missing = [...keys].filter((k) => typeof en.server.notify[k] !== "string");
     assert.deepEqual(missing, []);
   });

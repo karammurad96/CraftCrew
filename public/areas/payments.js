@@ -38,3 +38,94 @@ actions.on("stripe.check", async () => {
   }
 });
 routes.add("/admin/stripe", stAdminPage);
+
+/* T271: the supplier's payouts. The platform creates the Stripe connected account; onboarding and account management
+   run in Stripe's embedded components (Connect.js, loaded only on this page), with an Account Session made by the
+   server. The IBAN under Profile / Billing stays on the invoices for bank transfers. */
+const pok = (key, params) => esc(t("payouts." + key, params));
+const PO_TONE = { active: "completed", pending: "submitted", restricted: "rejected" };
+let poConnect = null;
+function poConnectJs() {
+  if (window.StripeConnect) return Promise.resolve(window.StripeConnect);
+  return new Promise((resolve) => {
+    const s = document.createElement("script");
+    s.src = "https://connect-js.stripe.com/v1.0/connect.js";
+    s.onload = () => resolve(window.StripeConnect || null);
+    s.onerror = () => resolve(null);
+    document.head.appendChild(s);
+  });
+}
+async function poComponents(info) {
+  const box = document.getElementById("poEmbedded");
+  if (!box) return;
+  const Connect = await poConnectJs();
+  if (!document.body.contains(box)) return;
+  if (!Connect) {
+    box.innerHTML = `<div class="notice warn">${pok("loadFailed")}</div>`;
+    return;
+  }
+  poConnect ||= Connect.init({
+    publishableKey: info.publishableKey,
+    fetchClientSecret: async () => (await api("/payouts/session", { method: "POST", body: {} })).clientSecret,
+    locale: ccLanguage.locale,
+    appearance: { variables: { colorPrimary: "#2563eb", fontFamily: "Inter, system-ui, sans-serif" } },
+  });
+  box.innerHTML = "";
+  if (info.account.transfers === "active") box.append(poConnect.create("notification-banner"), poConnect.create("account-management"));
+  else {
+    const onboarding = poConnect.create("account-onboarding");
+    onboarding.setOnExit?.(() => poRefresh());
+    box.append(onboarding);
+  }
+}
+async function poRefresh() {
+  try {
+    await api("/payouts/refresh", { method: "POST", body: {} });
+  } catch (x) {
+    toast(x.message, "error");
+  }
+  if (location.hash.startsWith("#/supplier/payouts")) route();
+}
+async function poSupplierPage() {
+  const info = await api("/payouts"),
+    a = info.account;
+  let body;
+  if (!info.enabled) body = `<div class="notice">${pok("off")}</div>`;
+  else if (!a)
+    body = `<section class="panel"><h2>${pok("startTitle")}</h2><p>${pok("startText")}</p>${
+      info.canManage ? `<div class="cc-actions"><button class="btn primary" data-action="po.create">${pok("start")}</button></div>` : `<p class="subtle">${pok("mainOnly")}</p>`
+    }</section>`;
+  else
+    body = `<section class="panel"><div class="panel-title"><h3>${pok("account")}</h3><span class="status ${PO_TONE[a.transfers] || "submitted"}">${pok("status." + a.transfers)}</span></div><p>${pok(
+      "text." + a.transfers,
+    )}</p>${
+      info.canManage
+        ? `<div class="cc-actions"><button class="btn outline" data-action="po.dashboard">${pok("dashboard")}</button><button class="btn ghost" data-action="po.refresh">${pok("refresh")}</button></div>`
+        : `<p class="subtle">${pok("mainOnly")}</p>`
+    }</section>${info.canManage ? `<section class="panel"><div id="poEmbedded"><p class="subtle">${pok("loading")}</p></div></section>` : ""}`;
+  app.innerHTML = dashboardShell(
+    "supplier",
+    "payouts",
+    `<div class="dash-top"><div><h1>${pok("title")}</h1><p>${pok("lead")}</p></div></div>${body}<p class="subtle">${pok("iban")} <a href="#/supplier/profile">${pok("profile")}</a></p>`,
+  );
+  if (info.enabled && a && info.canManage) poComponents(info);
+}
+actions.on("po.create", async () => {
+  try {
+    await api("/payouts/account", { method: "POST", body: {} });
+    tToast(t("payouts.created"));
+    route();
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
+actions.on("po.dashboard", async () => {
+  try {
+    const { url } = await api("/payouts/login-link", { method: "POST", body: {} });
+    if (/^https:\/\/[\w.-]*stripe\.com\//.test(url)) window.open(url, "_blank", "noopener");
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
+actions.on("po.refresh", () => poRefresh());
+routes.add("/supplier/payouts", poSupplierPage);

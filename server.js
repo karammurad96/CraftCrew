@@ -66,6 +66,8 @@ const PRIVATE_SUPPLIER_FIELDS = [
   "claimRequest",
   "batchId",
   "keyHash",
+  // T271: the supplier's Stripe connected account
+  "stripeAccount",
 ];
 // T86: company name, legal invoicing details and claimed certifications are the facts a customer actually
 // relies on, so once a supplier is live, changes to them wait for an admin to re-verify them. Everything
@@ -558,6 +560,7 @@ const payments = require("./payments")({
   send: (...a) => send(...a),
   now: () => now(),
   activity: (...a) => activity(...a),
+  notify: (...a) => notify(...a),
 });
 const benchmarks = require("./benchmarks")({
   getDb: () => db,
