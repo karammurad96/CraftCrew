@@ -53,6 +53,7 @@ const UI_NAV_ICONS = {
   site: "platform",
   fees: "invoices",
   stripe: "invoices",
+  payouts: "billing",
   applications: "vetting",
   users: "users",
   billing: "billing",

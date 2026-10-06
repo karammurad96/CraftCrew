@@ -242,7 +242,12 @@ async function adminUsers() {
       ccBadge(s),
     )}</td><td><select aria-label="${f("badgeFor", { company: s.company })}" data-action="adm.badge" data-id="${esc(s.id)}">${["None", "Bronze", "Silver", "Gold"]
       .map((x) => `<option value="${x}" ${x === (s.badge || "None") ? "selected" : ""}>${x === "None" ? f("noBadge") : esc(t("common.badge." + x))}</option>`)
-      .join("")}</select></td></tr>`;
+      .join("")}</select></td><td>${
+      // T271: the Stripe payout account; without active transfers the customer pays by bank transfer
+      s.stripeAccount
+        ? `<span class="status ${{ active: "completed", pending: "submitted" }[s.stripeAccount.transfers] || "rejected"}">${esc(t("payouts.status." + s.stripeAccount.transfers))}</span>`
+        : `<small>${f("noPayoutAccount")}</small>`
+    }</td></tr>`;
   };
   const accountRow = (u) => {
     const status = u.status || "Active",
@@ -269,7 +274,7 @@ async function adminUsers() {
       `<div class="dash-top"><div><h1>${f("title")}</h1><p>${f("lead")}</p></div></div>`,
       `<section class="panel"><div class="panel-title"><h3>${f("badges")}</h3><span>${esc(t.plural("adm.users.suppliers", suppliers.length))}</span></div><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>${f("supplier")}</th><th>${f(
         "location",
-      )}</th><th>${f("account")}</th><th>${f("currentBadge")}</th><th>${f("changeBadge")}</th></tr></thead><tbody>${suppliers.map(supplierRow).join("") || `<tr><td colspan="5">${f("noSuppliers")}</td></tr>`}</tbody></table></div></section>`,
+      )}</th><th>${f("account")}</th><th>${f("currentBadge")}</th><th>${f("changeBadge")}</th><th>${f("payouts")}</th></tr></thead><tbody>${suppliers.map(supplierRow).join("") || `<tr><td colspan="6">${f("noSuppliers")}</td></tr>`}</tbody></table></div></section>`,
       `<section class="panel" id="gdPending"><div class="panel-title"><h3>${f("deletions")}</h3><span>${pending.length}</span></div>${
         pending.length
           ? `<div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>${f("name")}</th><th>${f("email")}</th><th>${f("role")}</th><th>${f("requested")}</th><th>${f("deletedOn")}</th></tr></thead><tbody>${pending
