@@ -63,8 +63,9 @@ const COLLECTIONS = [
   "requests",
   "introductions",
   "servicePackages",
+  "siteHistory",
 ];
-const VALUES = ["meta", "settings", "counters", "uploadOwners"];
+const VALUES = ["meta", "settings", "counters", "uploadOwners", "siteContent"];
 // Projects hold their phases, and phases their tasks (T166). Each level is a table of its own: `children` is the
 // list field that is cut off and stored in the next table, `parent` the column that points back.
 const TASKS = {

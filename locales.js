@@ -25,8 +25,17 @@ function langOf(x) {
   return codes().includes(code) ? code : "en";
 }
 const localeOf = (lang) => (LANGUAGES.find((l) => l.code === lang) || LANGUAGES[0]).locale;
-function lookup(lang, key) {
+function defaultText(lang, key) {
   return key.split(".").reduce((node, part) => (node && typeof node === "object" ? node[part] : undefined), LOCALES[lang]);
+}
+// T264: texts an admin changed in the site editor come first (set by server.js)
+let override = () => undefined;
+function setOverride(fn) {
+  override = fn;
+}
+function lookup(lang, key) {
+  const changed = override(lang, key);
+  return changed !== undefined ? changed : defaultText(lang, key);
 }
 // {brand} is the product's name unless the caller passes its own (T171).
 const fill = (text, params) =>
@@ -41,8 +50,8 @@ function text(lang, key, params) {
 }
 // A whole group, e.g. the labels of one PDF, with English for anything the language lacks.
 function group(lang, key) {
-  const all = { ...lookup("en", key), ...lookup(lang, key) };
-  for (const [k, v] of Object.entries(all)) if (typeof v === "string") all[k] = fill(v);
+  const all = { ...defaultText("en", key), ...defaultText(lang, key) };
+  for (const [k, v] of Object.entries(all)) if (typeof v === "string") all[k] = text(lang, `${key}.${k}`);
   return all;
 }
 // Status, priority and category values: common.status.<camelCase>, as in the browser (tStatus); others unchanged.
@@ -88,4 +97,19 @@ function addLanguage(language, texts) {
   LOCALES[language.code] = texts;
 }
 
-module.exports = { BRAND, LANGUAGES, codes, langOf, localeOf, text, group, statusText, notifyText, email, pdfLang, addLanguage };
+module.exports = {
+  BRAND,
+  LANGUAGES,
+  codes,
+  langOf,
+  localeOf,
+  text,
+  group,
+  statusText,
+  notifyText,
+  email,
+  pdfLang,
+  addLanguage,
+  defaultText,
+  setOverride,
+};

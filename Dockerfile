@@ -4,7 +4,7 @@ WORKDIR /app
 # Runtime dependencies (only `pg`), installed exactly as locked
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
-COPY server.js store.js store-postgres.js mailer.js sourcing.js compliance.js team.js documents.js planning.js xrechnung.js vies.js geo.js pdf.js acceptance.js punchlist.js sitereports.js calendar.js twofactor.js preferred.js requests.js servicepackages.js organigram.js clause.js estimate.js demo-brokered.js benchmarks.js gdpr.js locales.js ./
+COPY server.js store.js store-postgres.js mailer.js sourcing.js compliance.js team.js documents.js planning.js xrechnung.js vies.js geo.js pdf.js acceptance.js punchlist.js sitereports.js calendar.js twofactor.js preferred.js requests.js servicepackages.js organigram.js sitecontent.js clause.js estimate.js demo-brokered.js benchmarks.js gdpr.js locales.js ./
 COPY db ./db
 # The database tools (migrate, import, export), run with `docker compose run --rm craftcrew node tools/db/…`
 COPY tools/db ./tools/db
