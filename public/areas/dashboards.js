@@ -575,7 +575,23 @@ async function dashAdmin() {
       )
       .join("") || `<div class="empty">${dk("grid.queueClear")}</div>`
   }</div><div class="panel" data-lc-key="quality pipeline"><h3>${dk("grid.pipeline")}</h3><div class="stage-flow" style="flex-wrap:wrap">${stages.map((s, i) => `<span${i ? "" : ' class="on"'}>${esc(s)}</span>`).join("")}</div><p class="subtle">${dk("grid.badgeNote")}</p></div></div>`;
-  dashRender("admin", [header, decisions, dashStats(statCells), attention, grid]);
+  // T255: the waiting list, requests outside the served area by region and category (only once an area is set)
+  const sa = m.metrics.servedArea || {},
+    wl = sa.waitingList || [],
+    waiting =
+      (sa.regions || []).length || (sa.categories || []).length || wl.length
+        ? `<section class="panel" data-lc-section="waiting-list"><div class="panel-title"><h3>${dk("waiting.title")}</h3><a href="#/admin/platform">${dk("waiting.settings")}</a></div><p class="subtle">${dk("waiting.served", {
+            regions: (sa.regions || []).join(", ") || t("dash.waiting.everywhere"),
+            categories: (sa.categories || []).join(", ") || t("dash.waiting.allCategories"),
+          })}</p>${
+            wl.length
+              ? `<div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>${dk("waiting.region")}</th><th>${dk("waiting.category")}</th><th>${dk("waiting.requests")}</th><th>${dk("waiting.last")}</th></tr></thead><tbody>${wl
+                  .map((x) => `<tr><td>${x.region ? esc(x.region) : dk("waiting.noPostcode")}</td><td><bdi>${esc(x.category)}</bdi></td><td>${esc(String(x.count))}</td><td>${x.last ? esc(fmt.date(x.last)) : "—"}</td></tr>`)
+                  .join("")}</tbody></table></div>`
+              : `<p class="pa-empty">${dk("waiting.empty")}</p>`
+          }</section>`
+        : "";
+  dashRender("admin", [header, decisions, dashStats(statCells), attention, grid, waiting]);
 }
 
 /* Every section is a direct child of the content area, so the layout editor can move it; each one is drawn

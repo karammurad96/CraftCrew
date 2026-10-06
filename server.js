@@ -436,6 +436,7 @@ const clause = require("./clause")({
   activity: (...a) => activity(...a),
 });
 // T231: instant estimates from the suppliers' own price lists
+const servedArea = require("./servedarea");
 const estimates = require("./estimate")({
   getDb: () => db,
   scorecard: (sid) => sourcing.scorecard(sid),
@@ -6881,6 +6882,17 @@ async function api(req, res, url) {
         ? b.serviceCategories.map((x) => String(x).trim().slice(0, 80)).filter(Boolean)
         : [];
       if (!list.length) return (send(res, 400, { error: "Keep at least one service category." }), true);
+      // T255: the served area (postcode prefixes and categories); empty means everywhere, missing keeps the setting
+      const regions =
+          b.servedRegions === undefined ? { regions: db.settings?.servedRegions || [] } : servedArea.cleanRegions(b.servedRegions),
+        served =
+          b.servedCategories === undefined
+            ? { categories: (db.settings?.servedCategories || []).filter((c) => list.includes(c)) }
+            : servedArea.cleanCategories(b.servedCategories, list);
+      if (regions.error)
+        return (send(res, 400, { error: "Enter the served regions as postcode prefixes of 1 to 5 digits." }), true);
+      if (served.error)
+        return (send(res, 400, { error: "Choose the served categories from the service categories." }), true);
       db.settings = {
         ...(db.settings || {}),
         serviceCategories: [...new Set(list)],
@@ -6899,6 +6911,8 @@ async function api(req, res, url) {
           b.instantEstimates === undefined ? db.settings?.instantEstimates : !!b.instantEstimates,
         // T223: suggest suppliers as soon as a request arrives (on unless switched off)
         autoSuggest: b.autoSuggest === undefined ? db.settings?.autoSuggest !== false : !!b.autoSuggest,
+        servedRegions: regions.regions,
+        servedCategories: served.categories,
         emailTemplates: Object.fromEntries(
           Object.entries(b.emailTemplates || {}).map(([k, v]) => [k, String(v).slice(0, 300)]),
         ),
@@ -6972,6 +6986,12 @@ async function api(req, res, url) {
             applications: db.applications.filter((a) => a.status !== "Approved" && a.status !== "Rejected")
               .length,
             grossVolume: db.invoices.reduce((a, i) => a + i.amount, 0),
+            // T255: requests outside the served area by region and category
+            servedArea: {
+              regions: db.settings?.servedRegions || [],
+              categories: db.settings?.servedCategories || [],
+              waitingList: servedArea.waitingList(db.requests),
+            },
           },
         }),
         true

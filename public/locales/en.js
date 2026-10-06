@@ -200,6 +200,8 @@ LOCALES.en = {
       stUnreachable: "Stripe could not be reached. Check the key and the network.",
       rqShifts: "Choose night, weekend or shift work from the list.",
       rqTrips: "Enter the number of trips (1 to 50), or leave it empty.",
+      saRegions: "Enter the served regions as postcode prefixes of 1 to 5 digits.",
+      saCategories: "Choose the served categories from the service categories.",
       prNumbers: "Pricing rules: enter numbers of at least 0 (surcharges up to 200 %, travel up to 20 € per km).",
       prMaterialsMax: "Pricing rules: materials for up to 30 categories.",
       prMaterialsShare: "Pricing rules: a materials share is 0 to 100 %.",
@@ -1253,6 +1255,19 @@ LOCALES.en = {
       "accept": "Accept Job",
       "decline": "Decline",
       "ask": "Ask a question ›"
+    },
+    "waiting": {
+      "title": "Waiting list: demand outside the served area",
+      "settings": "Served area",
+      "served": "Served: postcodes {regions} · categories {categories}. Requests from outside go to the operator without an instant estimate.",
+      "everywhere": "all",
+      "allCategories": "all",
+      "region": "Postcode area",
+      "category": "Category",
+      "requests": "Requests",
+      "last": "Latest",
+      "noPostcode": "no postcode",
+      "empty": "No requests from outside the served area yet."
     },
     "stats": {
       "activeProjects": "Active projects",
@@ -3679,6 +3694,9 @@ LOCALES.en = {
       shift: "Shift work",
     },
     "awardDoneMany": "Contracts in place with your suppliers:",
+    "outsideArea": "We are building our network in your region. We will contact you within two working days.",
+    "outsideAreaAdmin": "Outside the served area (postcode area {region}, {categories}): not priced instantly. The customer was told we will contact them within two working days.",
+    "noPostcode": "none",
     "estimate": {
       unusual: "Unusual price for this kind of work",
       skippedTitle: "Rates far outside the usual range were left out:",
@@ -4157,6 +4175,14 @@ LOCALES.en = {
       "legalSaved": "Legal pages published",
       "autoSuggest": "Suggest suppliers automatically when a request arrives",
       "instantEstimates": "Instant estimates: price new requests at once from the suppliers' price lists",
+      "served": {
+        "title": "Served area",
+        "hint": "Instant estimates only here. Empty means everywhere.",
+        "regions": "Postcode prefixes (comma-separated, e.g. 93, 94, 84)",
+        "regionsPlaceholder": "Placeholder: 93, 94, 84",
+        "categories": "Served categories (none ticked = all)",
+        "placeholderNote": "Placeholder until the launch region is decided: the region around Regensburg (postcodes 93, 94, 84) with PLC programming, commissioning, electrical installation, and mechanical installation and relocation. Nothing is restricted until you save prefixes or categories here. Requests from outside still reach the operator and are counted on the dashboard's waiting list."
+      },
       "markup": "Markup on brokered options (%)",
       "markupHint": "0 = the customer pays the supplier's price and the platform fee is taken from the payout. A markup means the platform resells the work: decide with your tax adviser first.",
       "clause": {
