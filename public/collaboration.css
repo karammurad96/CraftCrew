@@ -1234,3 +1234,10 @@ ul.ff-check-list.pk-included { min-height: 0; gap: 4px; }
 .site-footer-links { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: center; }
 .site-page .site-body { max-width: 760px; }
 .se-links > .btn { justify-self: start; }
+.site-banner { display: flex; gap: 12px; align-items: center; justify-content: center; padding: 10px 16px; font-size: 0.92rem; background: #e8f0fe; color: #183b77; border-block-end: 1px solid #c9d8f6; }
+.site-banner p { margin: 0; text-align: center; }
+.site-banner a { color: inherit; font-weight: 600; text-decoration: underline; }
+.site-banner-success { background: #e3f6ea; color: #11592e; border-color: #bfe6cc; }
+.site-banner-warning { background: #fff4d6; color: #6b4a00; border-color: #f2dc9b; }
+.site-banner-close { background: none; border: 0; font-size: 1.2rem; line-height: 1; cursor: pointer; color: inherit; padding: 2px 6px; border-radius: 6px; }
+.site-banner-close:focus-visible { outline: 2px solid currentColor; }

@@ -373,7 +373,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T263 Project organigram: the customer at the top, the platform, each supplier with its people, tasks and categories · M
 - [x] T264 Site editor: every text of the website and the app, per language, changed by an admin · M
 - [x] T265 Site editor: own pages, built-in pages on or off, menu and footer links, search engine texts · M
-- [ ] T266 Site editor: an announcement banner · S
+- [x] T266 Site editor: an announcement banner · S
 - [ ] T267 Site editor: history, undo, export and import · S
 - [ ] T268 Demo data for packages and the organigram · S · last task of the wave
 
@@ -5701,7 +5701,26 @@ Asked for by Karam on 6 October 2026:
 2. A closed banner stays closed in that browser until the banner text changes.
 
 **Done when.**
-- [ ] The banner shows only to its audience and between its dates; closing it works.
+- [x] The banner shows only to its audience and between its dates; closing it works.
+
+**As built (6 October 2026).**
+- **Server.** `PUT /api/admin/site/banner` takes:
+  - `on` and a text per language (English needed when on);
+  - a kind (information, success, warning) and an audience (everyone, visitors, customers, suppliers);
+    unknown values fall back to the first;
+  - `from` and `until` (the end not before the start);
+  - whether it can be closed;
+  - an optional link with the same rules as menu links.
+  `/site-content.js` includes the banner only while it is on and today is between its dates. Changes are in the
+  history.
+- **Pages.** `siteBanner()` (called by `siteChrome()` after every page change) puts the banner at the top of
+  the page for its audience. It is not shown on the editor itself.
+  - Closing stores the banner's text, link and kind in this browser (`cc_banner_closed`), so a changed banner
+    shows again.
+- **Admin tab** *Banner* with the switch, texts per language, kind, audience, dates, link and "can be closed".
+- **Tests.** `test/site-banner.test.js` covers the checks, the fallbacks, and the dates and switch.
+  - Browser check: a customer banner showed for the customer, not for the admin or the supplier, and stayed
+    closed after closing.
 
 ### T267 · Site editor: history, undo, export and import
 `P2 · S · depends on T264`

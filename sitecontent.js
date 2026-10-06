@@ -158,6 +158,39 @@ module.exports = function createSiteContent(ctx) {
     for (const k of BUILTINS) if (b?.[k] === false) out[k] = false;
     return out;
   }
+  // T266: one banner with a text per language, a kind, an optional link, an audience and dates
+  const KINDS = ["info", "success", "warning"],
+    AUDIENCES = ["everyone", "visitors", "customers", "suppliers"],
+    isDay = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
+  function checkBanner(b) {
+    const on = b?.on === true,
+      bannerText = perLang(b?.text, 300, false);
+    if (on && !bannerText?.en) return { error: "Write the English text of the banner." };
+    const from = b?.from ? String(b.from) : "",
+      until = b?.until ? String(b.until) : "";
+    if ((from && !isDay(from)) || (until && !isDay(until)) || (from && until && until < from))
+      return { error: "Check the dates: the end cannot be before the start." };
+    let link = null;
+    if (b?.link?.url) {
+      const url = text(b.link.url, 300);
+      if (!/^(https:\/\/[^\s<>"']+|mailto:[^\s<>"']+|#\/[\w\-/?=&.]*)$/.test(url))
+        return { error: "A link must start with https://, mailto: or #/." };
+      link = { url, label: perLang(b.link.label, 40, false) };
+      if (!link.label?.en) return { error: "Give every outside link an English label." };
+    }
+    return {
+      banner: {
+        on,
+        text: bannerText,
+        kind: KINDS.includes(b?.kind) ? b.kind : "info",
+        audience: AUDIENCES.includes(b?.audience) ? b.audience : "everyone",
+        from,
+        until,
+        closable: b?.closable !== false,
+        link,
+      },
+    };
+  }
   function checkDetails(b) {
     return { title: perLang(b?.title, 70, false), description: perLang(b?.description, 160, false) };
   }
@@ -276,12 +309,12 @@ module.exports = function createSiteContent(ctx) {
         return (send(res, 200, { ok: true }), true);
       }
     }
-    const whole = { builtins: checkBuiltins, nav: checkNav, details: checkDetails };
+    const whole = { builtins: checkBuiltins, nav: checkNav, details: checkDetails, banner: checkBanner };
     if (whole[parts[3]] && parts.length === 4 && method === "PUT") {
       const area = parts[3],
         out = whole[area](await body(req));
       if (out.error) return (send(res, 400, { error: out.error }), true);
-      const value = area === "nav" ? out.nav : out,
+      const value = area === "nav" ? out.nav : area === "banner" ? out.banner : out,
         before = clone(c[area]);
       c[area] = value;
       record(user, area, null, before, value);

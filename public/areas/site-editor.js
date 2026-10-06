@@ -235,6 +235,7 @@ function siteChrome() {
     if (title && path === "/") document.title = title;
     seMeta(seLangText(s.details?.description));
   }
+  siteBanner();
 }
 const seBaseRoute = window.route;
 window.route = route = async function () {
@@ -429,6 +430,74 @@ actions.on("se.saveDetails", async (form) => {
   const f = new FormData(form);
   try {
     await api("/admin/site/details", { method: "PUT", body: { title: sePerLang(f, "title"), description: sePerLang(f, "description") } });
+    await seRefreshSite();
+    tToast(t("se.savedSite"));
+    route();
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
+
+/* ---------- T266: the banner ---------- */
+// The banner's identity: a changed text shows again to people who closed the old one
+const seBannerId = (b) => JSON.stringify([b.text, b.link?.url || "", b.kind]);
+function seBannerClosed(b) {
+  try {
+    return localStorage.getItem("cc_banner_closed") === seBannerId(b);
+  } catch {
+    return false;
+  }
+}
+function siteBanner() {
+  document.getElementById("siteBanner")?.remove();
+  const b = seSite().banner,
+    role = state.user?.role,
+    path = location.hash.replace(/^#/, "").split("?")[0];
+  if (!b || !b.on || path.startsWith("/admin/site")) return;
+  const fits = { everyone: true, visitors: !role, customers: role === "customer", suppliers: role === "supplier" }[b.audience || "everyone"];
+  if (!fits || (b.closable && seBannerClosed(b))) return;
+  const host = document.getElementById("app");
+  if (!host) return;
+  const link = b.link ? ` <a href="${esc(b.link.url)}"${/^https:/.test(b.link.url) ? ' target="_blank" rel="noopener"' : ""}>${esc(seLangText(b.link.label))}</a>` : "";
+  host.insertAdjacentHTML(
+    "afterbegin",
+    `<div id="siteBanner" class="site-banner site-banner-${esc(b.kind || "info")}" role="status"><p><bdi>${esc(seLangText(b.text))}</bdi>${link}</p>${
+      b.closable ? `<button type="button" class="site-banner-close" data-action="se.closeBanner" aria-label="${sek("banner.close")}">×</button>` : ""
+    }</div>`,
+  );
+}
+actions.on("se.closeBanner", () => {
+  try {
+    localStorage.setItem("cc_banner_closed", seBannerId(seSite().banner));
+  } catch {}
+  document.getElementById("siteBanner")?.remove();
+});
+
+/* ---------- Admin: banner (T266) ---------- */
+function seTab_banner() {
+  const b = seData.content.banner || { on: false, kind: "info", audience: "everyone", closable: true },
+    opt = (v, cur, label) => `<option value="${v}"${v === cur ? " selected" : ""}>${esc(label)}</option>`;
+  document.getElementById("seBody").innerHTML = `<form class="panel modal-form" data-action="se.saveBanner"><h3>${sek("banner.title")}</h3><p class="subtle">${sek("banner.lead")}</p><label class="cc-check-label"><input type="checkbox" name="on"${b.on ? " checked" : ""}> ${sek("banner.on")}</label>${sePerLangFields("text", t("se.banner.text"), b.text, { max: 300 })}<div class="cc-platform-grid"><label>${sek("banner.kind")}<select name="kind">${["info", "success", "warning"].map((k) => opt(k, b.kind, t("se.banner.kinds." + k))).join("")}</select></label><label>${sek("banner.audience")}<select name="audience">${["everyone", "visitors", "customers", "suppliers"]
+    .map((k) => opt(k, b.audience, t("se.banner.audiences." + k)))
+    .join("")}</select></label><label>${sek("banner.from")}<input type="date" name="from" value="${esc(b.from || "")}"></label><label>${sek("banner.until")}<input type="date" name="until" value="${esc(b.until || "")}"></label><label>${sek("banner.linkUrl")}<input name="linkUrl" maxlength="300" value="${esc(b.link?.url || "")}" placeholder="https://… / #/…"></label></div>${sePerLangFields("linkLabel", t("se.banner.linkLabel"), b.link?.label, { max: 40 })}<label class="cc-check-label"><input type="checkbox" name="closable"${b.closable === false ? "" : " checked"}> ${sek("banner.closable")}</label><div class="cc-actions"><button class="btn primary">${sek("save")}</button></div></form>`;
+}
+actions.on("se.saveBanner", async (form) => {
+  const f = new FormData(form),
+    url = String(f.get("linkUrl") || "").trim();
+  try {
+    await api("/admin/site/banner", {
+      method: "PUT",
+      body: {
+        on: f.get("on") === "on",
+        text: sePerLang(f, "text"),
+        kind: f.get("kind"),
+        audience: f.get("audience"),
+        from: f.get("from"),
+        until: f.get("until"),
+        closable: f.get("closable") === "on",
+        link: url ? { url, label: sePerLang(f, "linkLabel") } : null,
+      },
+    });
     await seRefreshSite();
     tToast(t("se.savedSite"));
     route();

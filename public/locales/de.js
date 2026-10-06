@@ -191,6 +191,8 @@ LOCALES.de = {
     wrongAccount: "Diese Seite gehört zu einer anderen Kontoart.",
     // API error messages by code (T137): the server sends { error, code, params }; see errorCode() in server.js
     api: {
+      seBannerText: "Schreiben Sie den englischen Text des Banners.",
+      seBannerDates: "Prüfen Sie die Daten: Das Ende kann nicht vor dem Beginn liegen.",
       seSlug: "Verwenden Sie Kleinbuchstaben, Ziffern und Bindestriche für die Adresse.",
       seSlugTaken: "Eine andere Seite verwendet diese Adresse bereits.",
       sePageTitle: "Geben Sie der Seite einen englischen Titel.",
@@ -5465,6 +5467,31 @@ LOCALES.de = {
     noSuppliers: "Noch kein Lieferant arbeitet an diesem Projekt.",
   },
   se: {
+    banner: {
+      title: "Banner",
+      lead: "Eine kurze Nachricht oben auf jeder Seite, zum Beispiel ein Hinweis zu Feiertagen oder einer neuen Funktion. Sie erscheint für die gewählten Personen zwischen den Daten.",
+      on: "Banner anzeigen",
+      text: "Text",
+      kind: "Art",
+      kinds: {
+        info: "Information",
+        success: "Gute Nachricht",
+        warning: "Warnung",
+      },
+      audience: "Wer es sieht",
+      audiences: {
+        everyone: "Alle",
+        visitors: "Besucher, die nicht angemeldet sind",
+        customers: "Kunden",
+        suppliers: "Lieferanten",
+      },
+      from: "Ab",
+      until: "Bis",
+      linkUrl: "Link (optional)",
+      linkLabel: "Bezeichnung des Links",
+      closable: "Man kann es schließen (es erscheint wieder, wenn sich der Text ändert)",
+      close: "Nachricht schließen",
+    },
     savedSite: "Gespeichert. Besucher sehen es jetzt.",
     previewNote: "Vorschau: Diese Seite ist ein Entwurf und nur für Administratoren sichtbar.",
     footerLabel: "Weitere Seiten",
