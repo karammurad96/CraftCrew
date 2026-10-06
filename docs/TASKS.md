@@ -348,6 +348,24 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T232 Supplier confirmation per part: confirm, adjust the price or decline, automatic replacement · M
 - [x] T233 Several suppliers in one request: contracts, assignment and reveal per supplier; demo data and rollback · S
 
+**Wave 16 — market readiness (from the readiness review of 6 October 2026, asked for by Karam: the tasks to reach the review's goals; three phases, each with a gate; existing tasks are placed into the phases under "Wave 16")**
+- [ ] T240 Commission statements: the platform fee is invoiced to the supplier every month · S · do first, **the platform earns nothing until this is done**
+- [ ] T241 Estimate guardrails: minimum order, travel costs, surcharges, price band and a confidence level · M
+- [ ] T253 Ranking transparency: the terms and the supplier help say how suppliers are ranked and priced · S · **EU P2B Regulation 2019/1150; the text needs the lawyer**
+- [ ] T255 Served area: instant estimates only in the launch region and categories, a waiting list elsewhere · S · **needs Karam's beachhead decision**
+- [ ] T242 Operator cockpit: KPIs, the funnel and deadlines for the request queue · M
+- [ ] T243 Estimate calibration: learn from the gap between estimate and confirmed price · M · after T242
+- [ ] T244 Supplier price rules and automatic confirmation; the answer time as a setting · M
+- [ ] T245 Capacity calendar: crew-days, booked days and calendar sync · M
+- [ ] T246 Pages per category and region with real price ranges · S
+- [ ] T247 Crew app: install the site pages on a phone and keep working without signal · M
+- [ ] T248 E-invoices as ZUGFeRD and sent over Peppol · M · **needs Karam's choice of a Peppol access point (running cost)**
+- [ ] T249 Platform guarantee: a replacement supplier at the platform's cost, up to a set amount · M · **needs an insurer and the lawyer**
+- [ ] T250 Framework agreements and one-click repeat orders, with a lower fee for repeat pairs · M
+- [ ] T251 One-vendor mode: the platform is the customer's only contracting party (price model B, Stufe 2) · L · **needs the lawyer, tax adviser and insurance first**
+- [ ] T252 Procurement integration: punch-out (OCI and cXML) for SAP, Ariba and Coupa customers · M · after T251
+- [ ] T254 Quarterly price index for industrial services · S · after T243
+
 ---
 
 ## Wave 0 — preparation
@@ -4931,6 +4949,418 @@ fallback.
   - `test/demo-brokered.test.js` checks the new demo stages.
   - `test/rollback.test.js` passes unchanged.
 
+---
+
+## Wave 16 — market readiness
+
+From the readiness review of 6 October 2026 (published for Karam as the "CraftCrew Readiness Review"). Karam asked
+for the tasks that reach the review's goals.
+
+**The review in short.**
+- **Product.** The brokered workflow (Waves 15 and 15b) and the project tools are ahead of the market.
+- **Business.** It is not ready to launch:
+  - the platform fee is calculated but never invoiced or collected;
+  - the terms and the clause have no lawyer's review yet;
+  - there are no real suppliers beyond the demo data;
+  - an instant estimate has no guardrails, so it can be far off.
+- **How to lead.** Make the estimate a price customers can trust, then add money through the platform, a
+  guarantee and repeat business.
+
+**Three phases.** Do them in order. A phase ends at its gate; the gate numbers are proposed targets, set with
+Karam at the start of each phase.
+
+**Phase 1 — weeks 0–8: launch**
+1. **Karam's decisions** (below), and the briefs for the lawyer and the tax adviser.
+2. T171 brand and domain, T172 legal pages, T253 ranking transparency.
+3. T240 commission statements.
+4. T241 estimate guardrails, T255 served area.
+5. T190–T195 supplier base, aimed at the launch region and categories (T255).
+6. T180 launch day, T181 email DNS, T182 monitoring, T184 load test, T176 chat rate limit. T183 runs monthly
+   from then on.
+
+**Gate 1.**
+- 60 vetted suppliers with price lists in the four launch categories.
+- The first 10 customers.
+- The first commission statement sent.
+
+**Phase 2 — months 2–6: win the first customers**
+1. T80 real payments with milestones.
+2. T200–T205 contracts both sides accept.
+3. T242 operator cockpit, then T243 estimate calibration.
+4. T244 price rules and automatic confirmation, T245 capacity calendar.
+5. T210 and T211 AI foundation and project assistant (scoping).
+6. T246 category and region pages, T247 crew app.
+7. T196 CSV import, and T185 managed database once customers depend on the platform daily.
+
+**Gate 2.**
+- 50 customers.
+- 80 % of the parts confirmed without a price change.
+- 30 % of the customers order again within six months.
+
+**Phase 3 — months 6–18: lead the category**
+1. T249 platform guarantee, T250 framework agreements and repeat orders.
+2. T251 one-vendor mode, T252 punch-out, T248 ZUGFeRD and Peppol.
+3. T212–T217 AI matching and reviews.
+4. T254 price index.
+5. T175 more languages: German-speaking neighbours first, then Polish and Czech texts for suppliers.
+6. T168 several app servers, when one server is not enough.
+
+**Gate 3.**
+- The reference platform for at least one category in Germany.
+- The first framework agreement with a large customer.
+
+**Karam's decisions (with the review's recommendation).**
+1. **Price model.** A (fee from the supplier's payout) at launch. B only with T251.
+2. **Fee.** The default `platformFeePercent` is 3 %, which fits a self-service marketplace, not a brokered
+   service with an operator. Test 8–12 %, lower for repeat pairs (T250).
+3. **Launch region and categories (T255).** For example the region around Regensburg, with PLC programming,
+   commissioning, electrical installation, and mechanical installation and relocation.
+4. **Answer time for suppliers.** 2 working days instead of 3 (a setting with T244).
+5. **Lawyer.** Terms, clause, the platform's role as broker, and a check that orders are contracts for work and
+   not hidden labour leasing (AÜG). T253's ranking text.
+6. **Tax adviser.** Whether DAC7 reporting (PStTG) applies, the platform email on invoices, and later T251.
+7. **Providers.** Payment (T80), AI and its data location (T210), Peppol access point (T248).
+8. **Brand name (T171).**
+
+### T240 · Commission statements
+`P0 · S · do first`
+
+The fee is calculated when a customer approves an invoice (`platformFee` on the payment record), but nobody
+invoices it, so the platform earns nothing. Until real payments (T80) take the fee from the payout, the platform
+invoices it to the supplier once a month.
+
+**Do.**
+1. **Monthly statement.** On the 1st, for each supplier, one statement of the payments of the month before that
+   carry a fee. Each line has the invoice number, the customer, the net amount, the fee rate and the fee.
+2. **A real invoice from the platform.**
+   - The platform's legal details come from the settings (company, address, VAT ID).
+   - It has its own number range (`CC-PROV-2026-0001`), § 14 UStG data and VAT. VAT is reverse charge for a
+     supplier in another EU country with a valid VAT ID (VIES, as for supplier invoices).
+   - A PDF and an XRechnung, made like the supplier invoices (`pdf.js`, `xrechnung.js`).
+3. **Supplier side.** A "Platform fees" page lists the statements with their PDF and XRechnung, and whether
+   they are open or paid. The supplier gets a notification and an email.
+4. **Admin side.** A list of all statements: mark one as paid, and add a credit note for a payment that was
+   reversed. Never delete a statement (rule 6).
+5. **Model B.** With a broker markup, the margin is already in the customer price. Statements then list only
+   the fee, if any.
+
+**Done when.**
+- [ ] A month with three approved invoices from two suppliers gives two statements with the right sums.
+- [ ] The numbers run without gaps, and running the job twice gives no second statement.
+- [ ] The XRechnung of a statement passes the same checks as a supplier invoice.
+- [ ] A statement cannot be deleted. A reversed payment leads to a credit note.
+
+### T241 · Estimate guardrails and confidence
+`P0 · M · depends on T231`
+
+Today an instant estimate is rate × hours. It knows no minimum order, travel, materials or surcharges, and
+nothing tells the customer how sure it is.
+
+**Do.**
+1. **What suppliers can add to their price list (profile, service catalogue):**
+   - a minimum order value;
+   - travel: a price per km or a flat fee per trip, and the radius they cover;
+   - surcharges in percent for night, weekend and shift work;
+   - a materials share in percent per category, if they bring materials.
+2. **What the request can say:** night, weekend or shift work wanted; the number of trips (default: one per
+   week of work).
+3. **The estimate.** Each part becomes the larger of the minimum order and labour plus travel, surcharges and
+   materials. The option card lists these lines.
+   - A supplier outside its radius is not a candidate.
+4. **Price band.** Compare the hourly price of each part with the T69 benchmark for the category (25th–75th
+   percentile, when available).
+   - Above twice the 75th or below half the 25th percentile: the candidate is skipped and the operator is told.
+   - Outside the band: the part is marked "unusual price" for the operator.
+5. **Confidence** per option: *High*, *Medium* or *Low*, shown to the customer.
+   - High: hours not rough, every rate from the catalogue, the price inside the band.
+   - Low: rough hours, or a rate from the profile only.
+   - Medium: everything else.
+   - After T243 the supplier's track record counts too.
+
+**Done when.**
+- [ ] Unit tests cover the minimum order, travel inside and outside the radius, each surcharge and the
+      materials share.
+- [ ] A price far outside the band is skipped and reported. Each confidence level has a test.
+- [ ] The option card shows the lines and the confidence in English and German.
+
+### T253 · Ranking transparency
+`P0 · S · the text needs the lawyer`
+
+The EU P2B Regulation (2019/1150) asks a platform to tell business users the main parameters of its ranking and
+of any treatment that differs between them. Instant estimates rank suppliers (T231), and suggestions rank them
+for the operator (T223).
+
+**Do.**
+1. **A "How suppliers are ranked and priced" page for suppliers**, linked from the terms, the supplier help and
+   *Platform orders*. It covers:
+   - the parameters and their weight: quality (scorecard, else rating), badge, distance, availability and open
+     tasks, the price from the price list;
+   - the split thresholds;
+   - what changes a supplier's position;
+   - that no supplier can pay for a better position.
+2. **The values on the page come from the code** (constants of `estimate.js` and the T223 weights), so the text
+   cannot drift from the engine.
+3. **For the lawyer.** `docs/LEGAL-FACTS.md` gets a section with the facts for the terms.
+
+**Done when.**
+- [ ] A test changes a constant and sees the page change.
+- [ ] The page is in English and German. The legal facts section exists.
+
+### T255 · Served area
+`P0 · S · needs Karam's decision on the region and categories`
+
+Liquidity is local. Instant estimates should only promise what the supplier base can keep.
+
+**Do.**
+1. **Admin settings:** served regions (postcode prefixes, for example `93`, `94`, `84`) and served categories.
+   Empty means everywhere.
+2. **Outside the served area** the request still reaches the operator (manual flow), but is not instantly
+   priced. The customer sees "We are building our network in your region. We will contact you within two
+   working days."
+3. **Waiting list.** Requests outside the area are counted by region and category on the admin dashboard, so
+   Karam sees where demand comes from.
+4. The Wave 12 outreach desk (T195) can filter by the served area.
+
+**Done when.**
+- [ ] A request inside the area is priced instantly; one outside it goes to the operator with the message.
+- [ ] The waiting list counts by region and category. An empty setting changes nothing.
+
+### T242 · Operator cockpit
+`P1 · M`
+
+**Do.**
+1. **An admin page "Business".** Per week and month, for a chosen period, and filterable by category and region:
+   - **Speed:** time to first options (instant and manual separately).
+   - **Funnel:** requests → options ready → chosen → contracted, with the rate at each step.
+   - **Estimates:** the share of parts confirmed without a price change, the mean gap between estimate and
+     confirmed price, and the share confirmed by the first supplier asked.
+   - **Liquidity:** priced candidates per package. A package with fewer than 3 is a warning.
+   - **Money:** order volume, fee invoiced (T240), fee paid, take rate.
+   - **Retention:** customers with a second request within six months.
+   - **Leakage signals:** leak hints, and introduced pairs (T227) with no new order during their protection
+     period.
+2. **Deadlines in the request queue:**
+   - a new request waiting more than 4 working hours for the operator;
+   - a part 1 working day before it expires;
+   - a price change waiting more than 2 working days for the customer.
+   These show in red in the queue and in the admin's action queue. The limits are settings.
+3. **CSV export** of every figure.
+
+**Done when.**
+- [ ] Each figure has a test with fixed data.
+- [ ] The deadlines show in the queue and in the action queue.
+- [ ] The page loads in under a second with 10,000 requests (measured in a test).
+
+### T243 · Estimate calibration
+`P1 · M · after T242`
+
+**Do.**
+1. **Learning data.** For each confirmed part, store the estimate and the confirmed price (the data is already
+   in `award.parts`).
+2. **Supplier factor.** Per supplier and category: the median of confirmed ÷ estimated over the last 12 months,
+   with at least 3 parts. The estimate multiplies by it, limited to 0.8–1.3.
+3. **Hours factor.** Per category: when the time entries of finished tasks show more hours than the package,
+   the median ratio corrects later estimates for rough hours. This needs at least 5 finished tasks.
+4. **Track record.** The factor and the share confirmed unchanged feed T241's confidence.
+5. **Transparency.**
+   - The supplier sees their own factor ("Your confirmed prices are 6 % above your price list") with a link to
+     update the price list.
+   - The ranking page (T253) explains it.
+
+**Done when.**
+- [ ] Unit tests: no factor under 3 parts, the limits, the hours factor, and old data dropping out after 12
+      months.
+- [ ] The estimate of a supplier who always adds 10 % moves towards the confirmed price.
+
+### T244 · Supplier price rules and automatic confirmation
+`P1 · M`
+
+An instant estimate becomes a binding offer when the supplier has agreed in advance.
+
+**Do.**
+1. **Rules per supplier and category:** "confirm automatically" on or off, the regions (postcode prefixes or a
+   radius), the largest order value, the earliest start (lead time in days) and the free crew-days (T245).
+2. **Automatic confirmation.** When the customer chooses and the part fits every rule, the part is confirmed at
+   once, at the estimate, with the clause accepted in the supplier's name under their stored rule. The
+   acceptance records the rule's version.
+3. **Binding offer.** An option whose parts all have a matching rule is marked "Binding price" instead of
+   "Estimate".
+4. **Supplier control.** The supplier is told about every automatic confirmation and can switch the rules off at
+   any time. Switching off does not undo confirmations.
+5. **Answer time as a setting.** The working days to answer (today the constant `SUPPLIER_DAYS` = 3) become an
+   admin setting, default 3 until Karam decides.
+
+**Done when.**
+- [ ] A part inside the rules is confirmed at once, and one outside any rule waits as before.
+- [ ] "Binding price" appears only when every part matches.
+- [ ] The answer time setting changes the deadline of new parts only.
+- [ ] The lawyer's OK for confirming in the supplier's name is noted in `docs/LEGAL-FACTS.md` before the feature
+      is switched on.
+
+### T245 · Capacity calendar
+`P1 · M`
+
+Today "available" means not *Busy* and fewer than three open tasks. An instant estimate can promise dates
+nobody can keep.
+
+**Do.**
+1. **Capacity.** A supplier sets crew-days per week (people × days), per category if needed.
+2. **Booked days.** Assigned tasks fill the calendar from their dates and hours. The supplier can block days
+   (holidays, other work).
+3. **Calendar sync.** The supplier can export the bookings as an iCal feed, and import an iCal feed of blocked
+   days (read-only, refreshed hourly).
+4. **The estimate** (T231) uses the free crew-days in the request's period instead of the open-task count. A
+   part's time becomes its hours spread over the free days, so a busy supplier gets a later end date.
+
+**Done when.**
+- [ ] Unit tests: a full week makes a supplier no candidate, half-free weeks stretch the time, and blocked days
+      from an imported feed count.
+- [ ] The exported feed opens in a calendar app (checked by hand once, screenshot in the PR).
+
+### T246 · Pages per category and region
+`P1 · S`
+
+**Do.**
+1. **Public pages** such as `/services/plc-programming/bavaria`, for the served categories and regions (T255).
+   Each page has:
+   - what the service covers;
+   - the price range from the T69 benchmarks (only with at least 5 data points, never single prices);
+   - the number of vetted suppliers (rounded down to 5, 10, 20 …);
+   - how the instant estimate works;
+   - one anonymised finished project as a case study, when the customer allowed it;
+   - a button to the request form.
+2. **Search engines.** A title and description per page, a sitemap and structured data (`Service`).
+3. **Only real pages.** No page for a pair without at least 3 vetted suppliers.
+
+**Done when.**
+- [ ] The pages are in English and German, and pass the CSP and accessibility checks.
+- [ ] The sitemap lists only pairs with enough suppliers.
+- [ ] A price range never shows below 5 data points.
+
+### T247 · Crew app
+`P1 · M`
+
+**Do.**
+1. **Installable.** A web app manifest and a service worker, so the supplier's crew can add the site pages to
+   their phone's home screen. The CSP must allow the worker from the same origin only.
+2. **Offline.**
+   - Time entries, site reports with photos, and punch-list items can be written without signal.
+   - They are sent when the phone is online again, in order, with a "waiting to send" marker.
+   - A conflict (the item was changed meanwhile) asks the user instead of overwriting.
+3. **Scope.** Only these site pages work offline. Everything else shows "You are offline".
+
+**Done when.**
+- [ ] A browser test goes offline, writes a time entry and a site report, goes online, and sees both on the
+      server.
+- [ ] Lighthouse lists the app as installable.
+
+### T248 · ZUGFeRD and Peppol
+`P2 · M · needs a Peppol access point (running cost)`
+
+German B2B e-invoicing is mandatory for issuers above €800k turnover from 1 January 2027 and for all from
+1 January 2028.
+
+**Do.**
+1. **ZUGFeRD.** Invoices and commission statements (T240) as a PDF/A-3 with the XML inside, profile EN 16931,
+   next to the XRechnung that exists today.
+2. **Peppol.** Sending through an access point, chosen by Karam, to customers with a Peppol ID. The delivery
+   status is shown on the invoice.
+3. **The customer's choice.** In the company settings: PDF, XRechnung, ZUGFeRD or Peppol.
+
+**Done when.**
+- [ ] ZUGFeRD samples pass the validator in CI, like the XRechnung samples.
+- [ ] Sending over Peppol works against the access point's test system.
+
+### T249 · Platform guarantee
+`P2 · M · needs an insurer and the lawyer`
+
+**Do.**
+1. **The promise.** If a contracted supplier fails (does not start, stops, or is removed after a dispute), the
+   platform finds a replacement. It pays the extra cost up to a set amount per order (an admin setting) and
+   within the guarantee terms.
+2. **Process.**
+   - The customer reports the failure from the project.
+   - The operator confirms it.
+   - The part goes back to T232's replacement, and the price difference is booked as a guarantee case.
+3. **Money.** Guarantee cases are listed for the admin with their cost. An admin setting adds a guarantee share
+   to the fee, so its cost is covered.
+4. **Shown** on the option cards and the landing pages, with a link to the guarantee terms.
+
+**Done when.**
+- [ ] A failed part is replaced, the difference is booked, and the upper limit holds.
+- [ ] The guarantee terms are reviewed by the lawyer before the feature is switched on.
+
+### T250 · Framework agreements and repeat orders
+`P2 · M · after T201`
+
+**Do.**
+1. **Repeat order.** On a contracted request: "Order again". It copies the packages and asks the same suppliers
+   first, at their current prices.
+2. **Framework agreement** between a customer and one or more suppliers. It sets:
+   - the period;
+   - agreed rates per category;
+   - a volume target;
+   - the fee for this pair (lower than the standard fee, an admin setting).
+   Requests inside it are priced with the agreed rates and confirmed automatically (T244).
+3. **Both sides accept** the agreement the T201 way.
+
+**Done when.**
+- [ ] A repeat order reaches the same suppliers first.
+- [ ] A request inside a framework agreement uses its rates and fee.
+- [ ] An agreement past its end date is no longer used.
+
+### T251 · One-vendor mode
+`P2 · L · needs the lawyer, the tax adviser and insurance first`
+
+Stufe 2 of Karam's general-contractor idea. Large customers add a new vendor only after weeks of procurement
+work. In this mode the platform is the customer's only contracting party.
+
+**Do.**
+1. **A third platform mode, "one vendor"**, per customer and not global, set by the admin.
+2. **Contracts.**
+   - The customer's contract is with the platform.
+   - The platform's contract is with each supplier (subcontract).
+   - Both are T200 contracts.
+3. **Invoices.**
+   - The supplier invoices the platform.
+   - The platform invoices the customer: one invoice per order, with the markup (price model B).
+   - The tax adviser decides on § 13b UStG (reverse charge for construction services) before the switch-on.
+4. **Liability.** Warranty claims of the customer go to the platform and are passed on to the supplier. The
+   insurance policy number is in the settings and on the contract.
+5. **Rollback.** Turning the mode off for a customer keeps every contract and invoice.
+
+**Done when.**
+- [ ] A one-vendor order runs from request to both invoices, with the right parties on each.
+- [ ] Turning the mode off for a customer changes no existing record.
+- [ ] `docs/LEGAL-FACTS.md` has the facts for the lawyer and the tax adviser.
+
+### T252 · Procurement integration
+`P2 · M · after T251`
+
+**Do.**
+1. **Punch-out.** A customer's buyer starts in their own system (SAP via OCI, Ariba or Coupa via cXML). They
+   create a request on the platform, and the chosen option goes back to their system as a shopping cart.
+2. **Order back.** The purchase order from their system confirms the choice (T225), and its order number is on
+   every invoice.
+3. **Set-up per customer:** the punch-out credentials and the mapping of categories to their material groups.
+
+**Done when.**
+- [ ] OCI and cXML round trips are tested with recorded samples.
+- [ ] An invoice carries the customer's order number.
+
+### T254 · Quarterly price index
+`P2 · S · after T243`
+
+**Do.**
+1. **A public page and a PDF each quarter:** the median hourly price and the 25th–75th percentile per category
+   and region, the change against the last quarter, and the average time to a contract.
+   - Only with at least 10 data points per cell.
+   - Never single companies or orders.
+2. **Admin review.** The admin reviews and publishes each edition.
+
+**Done when.**
+- [ ] A cell with fewer than 10 data points is not shown.
+- [ ] The figures match the benchmarks module on fixed data.
 
 ---
 
