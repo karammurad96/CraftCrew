@@ -134,3 +134,305 @@ actions.on("se.resetText", async (el) => {
 });
 
 routes.add("/admin/site", sePage);
+
+/* ---------- T265: what visitors see: own pages, menu and footer, site details, built-in pages off ---------- */
+const seSite = () => window.CC_SITE || {};
+const seLangText = (v) => (v && (v[ccLang] || v.en)) || "";
+// The safe markup of own pages: # and ## headings, paragraphs, - lists, **bold** and [text](link) with https,
+// mailto: or #/ links. Everything is escaped first, so HTML and scripts show as plain text.
+function siteMarkup(src) {
+  const inline = (s) =>
+    esc(s)
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, label, url) => {
+        const raw = url.replace(/&amp;/g, "&");
+        if (!/^(https:\/\/|mailto:|#\/)/.test(raw)) return m;
+        const out = /^https:/.test(raw) ? ' target="_blank" rel="noopener"' : "";
+        return `<a href="${url}"${out}>${label}</a>`;
+      });
+  return String(src || "")
+    .replace(/\r/g, "")
+    .trim()
+    .split(/\n{2,}/)
+    .map((block) => {
+      if (block.startsWith("## ")) return `<h3>${inline(block.slice(3))}</h3>`;
+      if (block.startsWith("# ")) return `<h2>${inline(block.slice(2))}</h2>`;
+      const lines = block.split("\n");
+      if (lines.every((l) => l.startsWith("- "))) return `<ul>${lines.map((l) => `<li>${inline(l.slice(2))}</li>`).join("")}</ul>`;
+      return `<p>${lines.map(inline).join("<br>")}</p>`;
+    })
+    .join("");
+}
+async function sePublicPage(params, query) {
+  const preview = query?.get("preview") === "1";
+  let page;
+  try {
+    ({ page } = await api("/site-pages/" + encodeURIComponent(params.slug)));
+  } catch {
+    return renderNotFound();
+  }
+  app.innerHTML = publicLayout(
+    `<div class="cc-page site-page">${preview || page.status !== "Published" ? `<div class="notice warn">${sek("previewNote")}</div>` : ""}<h1><bdi>${esc(seLangText(page.title))}</bdi></h1><article class="legal-body site-body">${siteMarkup(seLangText(page.body))}</article></div>`,
+  );
+  document.title = `${seLangText(page.seoTitle) || seLangText(page.title)} · ${BRAND.name}`;
+  seMeta(seLangText(page.seoDescription) || seLangText(seSite().details?.description));
+  window.scrollTo(0, 0);
+}
+routes.add("/p/:slug", sePublicPage);
+function seMeta(description) {
+  let m = document.querySelector('meta[name="description"]');
+  if (!description) return m?.remove();
+  if (!m) {
+    m = document.createElement("meta");
+    m.name = "description";
+    document.head.appendChild(m);
+  }
+  m.content = description;
+}
+const SE_BUILTIN_HREF = { home: "#/", "how-it-works": "#/how-it-works", pricing: "#/pricing", faq: "#/faq", imprint: "#/imprint", privacy: "#/privacy", terms: "#/terms" };
+const seBuiltinLabel = (ref) => t("se.builtin." + ref);
+function seLink(l) {
+  const s = seSite();
+  if (l.kind === "builtin") {
+    if (s.builtins?.[l.ref] === false) return "";
+    return `<a href="${SE_BUILTIN_HREF[l.ref]}" data-site-link>${esc(seLangText(l.label) || seBuiltinLabel(l.ref))}</a>`;
+  }
+  if (l.kind === "page") {
+    const p = (s.pages || []).find((x) => x.slug === l.ref);
+    if (!p) return "";
+    return `<a href="#/p/${esc(p.slug)}" data-site-link>${esc(seLangText(l.label) || seLangText(p.title))}</a>`;
+  }
+  const out = /^https:/.test(l.url) ? ' target="_blank" rel="noopener"' : "";
+  return `<a href="${esc(l.url)}"${out} data-site-link>${esc(seLangText(l.label))}</a>`;
+}
+// Menu, footer links and site details after every page change
+function siteChrome() {
+  const s = seSite(),
+    nav = s.nav || {},
+    pages = [...(s.pages || [])].sort((a, b) => (a.order || 0) - (b.order || 0)),
+    listed = (where) => new Set((nav[where] || []).filter((l) => l.kind === "page").map((l) => l.ref)),
+    extra = (where) => pages.filter((p) => p.place === where && !listed(where).has(p.slug)).map((p) => ({ kind: "page", ref: p.slug }));
+  const top = document.querySelector("body > .topbar .main-nav");
+  if (top) {
+    const base = (nav.top || []).length ? nav.top : ["how-it-works", "pricing", "faq"].map((ref) => ({ kind: "builtin", ref }));
+    top.innerHTML = [...base, ...extra("top")].map(seLink).join("");
+  }
+  const footer = document.querySelector("body > footer");
+  if (footer) {
+    let box = footer.querySelector(".site-footer-links");
+    const links = [...(nav.footer || []), ...extra("footer")].map(seLink).join("");
+    if (!box && links) {
+      box = document.createElement("nav");
+      box.className = "site-footer-links";
+      box.setAttribute("aria-label", t("se.footerLabel"));
+      footer.appendChild(box);
+    }
+    if (box) box.innerHTML = links;
+  }
+  const path = location.hash.replace(/^#/, "").split("?")[0] || "/";
+  if (!/^\/(customer|supplier|admin|p)(\/|$)/.test(path)) {
+    const title = seLangText(s.details?.title);
+    if (title && path === "/") document.title = title;
+    seMeta(seLangText(s.details?.description));
+  }
+}
+const seBaseRoute = window.route;
+window.route = route = async function () {
+  const path = location.hash.replace(/^#/, "").split("?")[0] || "/",
+    builtin = path.slice(1);
+  // A built-in page the admin switched off is "not found"
+  if (seSite().builtins?.[builtin] === false && !/^\/(customer|supplier|admin)/.test(path)) {
+    topActions();
+    renderNotFound();
+    siteChrome();
+    return;
+  }
+  const result = await seBaseRoute();
+  siteChrome();
+  return result;
+};
+// After a change the admin's own page uses the new settings: load /site-content.js again
+function seRefreshSite() {
+  return new Promise((resolve) => {
+    const tag = document.createElement("script");
+    tag.src = "site-content.js?t=" + Date.now();
+    tag.onload = tag.onerror = () => {
+      tag.remove();
+      resolve();
+    };
+    document.head.appendChild(tag);
+  });
+}
+
+/* ---------- Admin: own pages (T265) ---------- */
+const seLangName = (code) => (LANGUAGES.find((l) => l.code === code) || {}).name || code;
+function sePerLangFields(name, label, values = {}, { textarea = false, max = 120, required = false } = {}) {
+  return seData.languages
+    .map(
+      (code) =>
+        `<label>${esc(label)} · ${esc(seLangName(code))}${
+          textarea
+            ? `<textarea name="${name}.${code}" rows="10" maxlength="${max}" dir="auto"${required && code === "en" ? " required" : ""}>${esc(values?.[code] || "")}</textarea>`
+            : `<input name="${name}.${code}" maxlength="${max}" value="${esc(values?.[code] || "")}" dir="auto"${required && code === "en" ? " required" : ""}>`
+        }</label>`,
+    )
+    .join("");
+}
+const sePerLang = (f, name) => Object.fromEntries(seData.languages.map((code) => [code, String(f.get(`${name}.${code}`) || "")]));
+function seTab_pages(query) {
+  const pages = seData.content.pages || [],
+    editing = query.get("page"),
+    p = editing === "new" ? { status: "Draft", place: "none", order: 0 } : pages.find((x) => x.id === editing);
+  const box = document.getElementById("seBody");
+  if (p) {
+    const opt = (v, cur, label) => `<option value="${v}"${v === cur ? " selected" : ""}>${esc(label)}</option>`;
+    box.innerHTML = `<div class="breadcrumb"><a href="#/admin/site?tab=pages">${sek("pages.back")}</a></div><form class="panel modal-form se-page-form" data-action="se.savePage" data-id="${esc(p.id || "")}"><h3>${sek(p.id ? "pages.edit" : "pages.new")}</h3><div class="cc-platform-grid"><label>${sek("pages.slug")}<input name="slug" required maxlength="60" pattern="[a-z0-9]+(-[a-z0-9]+)*" value="${esc(p.slug || "")}" placeholder="about-us"><small class="subtle">${sek("pages.slugHint")}</small></label><label>${sek("pages.status")}<select name="status">${opt("Draft", p.status, t("se.pages.draft"))}${opt("Published", p.status, t("se.pages.published"))}</select></label><label>${sek("pages.place")}<select name="place">${opt("none", p.place, t("se.pages.placeNone"))}${opt("top", p.place, t("se.pages.placeTop"))}${opt("footer", p.place, t("se.pages.placeFooter"))}</select></label><label>${sek("pages.order")}<input type="number" name="order" min="0" max="99" value="${esc(p.order || 0)}"></label></div>
+${sePerLangFields("title", t("se.pages.title"), p.title, { required: true })}
+<p class="subtle">${sek("pages.markupHint")}</p>
+${sePerLangFields("body", t("se.pages.body"), p.body, { textarea: true, max: 20000, required: true })}
+<details><summary>${sek("pages.seo")}</summary>${sePerLangFields("seoTitle", t("se.pages.seoTitle"), p.seoTitle, { max: 70 })}${sePerLangFields("seoDescription", t("se.pages.seoDescription"), p.seoDescription, { max: 160 })}</details>
+<div class="cc-actions"><button class="btn primary">${sek("save")}</button>${p.id ? `<a class="btn outline" href="#/p/${esc(p.slug)}?preview=1" target="_blank" rel="noopener">${sek("pages.preview")}</a><button type="button" class="btn ghost danger" data-action="se.deletePage" data-id="${esc(p.id)}">${sek("pages.delete")}</button>` : ""}</div></form>`;
+    return;
+  }
+  const builtins = seData.content.builtins || {};
+  box.innerHTML = `<section class="panel"><div class="panel-title"><h3>${sek("pages.own")}</h3><a class="btn small primary" href="#/admin/site?tab=pages&page=new">${sek("pages.new")}</a></div>${
+    pages.length
+      ? `<div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>${sek("pages.title")}</th><th>${sek("pages.slug")}</th><th>${sek("pages.status")}</th><th>${sek("pages.place")}</th><th><span class="sr-only">${sek("pages.actions")}</span></th></tr></thead><tbody>${pages
+          .map(
+            (x) =>
+              `<tr><td><b><bdi>${esc(seLangText(x.title))}</bdi></b></td><td><code>/p/${esc(x.slug)}</code></td><td>${statusHtml(x.status)}</td><td>${sek("pages.place" + x.place[0].toUpperCase() + x.place.slice(1))}</td><td><a class="btn small outline" href="#/admin/site?tab=pages&page=${esc(x.id)}">${sek("pages.edit")}</a></td></tr>`,
+          )
+          .join("")}</tbody></table></div>`
+      : `<p class="subtle">${sek("pages.none")}</p>`
+  }</section><form class="panel modal-form" data-action="se.saveBuiltins"><h3>${sek("pages.builtins")}</h3><p class="subtle">${sek("pages.builtinsLead")}</p>${seData.builtins
+    .map(
+      (k) =>
+        `<div class="se-builtin"><label class="cc-check-label"><input type="checkbox" name="${esc(k)}"${builtins[k] === false ? "" : " checked"}> ${esc(seBuiltinLabel(k))}</label><a class="btn small ghost" href="#/admin/site?tab=texts&area=public&q=${encodeURIComponent({ "how-it-works": "public.how", pricing: "public.pricing", faq: "public.faq" }[k])}">${sek("pages.editTexts")}</a></div>`,
+    )
+    .join("")}<p class="subtle">${sek("pages.required")}</p><div class="cc-actions"><button class="btn primary">${sek("save")}</button></div></form>`;
+}
+actions.on("se.savePage", async (form) => {
+  const f = new FormData(form),
+    body = {
+      slug: f.get("slug"),
+      status: f.get("status"),
+      place: f.get("place"),
+      order: Number(f.get("order")) || 0,
+      title: sePerLang(f, "title"),
+      body: sePerLang(f, "body"),
+      seoTitle: sePerLang(f, "seoTitle"),
+      seoDescription: sePerLang(f, "seoDescription"),
+    };
+  try {
+    const pid = form.dataset.id;
+    await api("/admin/site/pages" + (pid ? "/" + encodeURIComponent(pid) : ""), { method: pid ? "PUT" : "POST", body });
+    await seRefreshSite();
+    tToast(t("se.savedSite"));
+    navigate("/admin/site?tab=pages");
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
+actions.on("se.deletePage", async (el) => {
+  const ok = await uiDialog({ title: t("se.pages.deleteTitle"), message: t("se.pages.deleteText"), confirmLabel: t("se.pages.delete"), danger: true });
+  if (!ok) return;
+  try {
+    await api("/admin/site/pages/" + encodeURIComponent(el.dataset.id), { method: "DELETE" });
+    await seRefreshSite();
+    tToast(t("se.pages.deleted"));
+    navigate("/admin/site?tab=pages");
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
+actions.on("se.saveBuiltins", async (form) => {
+  const body = Object.fromEntries(seData.builtins.map((k) => [k, form.elements[k].checked]));
+  try {
+    await api("/admin/site/builtins", { method: "PUT", body });
+    await seRefreshSite();
+    tToast(t("se.savedSite"));
+    route();
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
+
+/* ---------- Admin: menu and footer (T265) ---------- */
+function seLinkRow(l = { kind: "builtin", ref: "pricing" }) {
+  const pages = seData.content.pages || [],
+    opt = (v, cur, label) => `<option value="${esc(v)}"${v === cur ? " selected" : ""}>${esc(label)}</option>`,
+    target =
+      l.kind === "link"
+        ? `<input name="url" maxlength="300" value="${esc(l.url || "")}" placeholder="https://… / mailto:… / #/…" aria-label="${sek("nav.url")}">`
+        : `<select name="ref" aria-label="${sek("nav.target")}">${
+            l.kind === "page"
+              ? pages.map((p) => opt(p.slug, l.ref, seLangText(p.title) + " (/p/" + p.slug + ")")).join("")
+              : ["home", ...seData.builtins, "imprint", "privacy", "terms"].map((k) => opt(k, l.ref, seBuiltinLabel(k))).join("")
+          }</select>`;
+  return `<div class="se-link"><select name="kind" data-action="se.linkKind" aria-label="${sek("nav.kind")}">${opt("builtin", l.kind, t("se.nav.builtin"))}${opt("page", l.kind, t("se.nav.page"))}${opt("link", l.kind, t("se.nav.link"))}</select>${target}${seData.languages
+    .map((code) => `<input name="label.${code}" maxlength="40" value="${esc(l.label?.[code] || "")}" placeholder="${sek("nav.label")} (${code.toUpperCase()})" aria-label="${sek("nav.label")} ${esc(seLangName(code))}">`)
+    .join("")}<span class="se-link-moves"><button type="button" class="btn small ghost" data-action="se.linkUp" aria-label="${sek("nav.up")}">↑</button><button type="button" class="btn small ghost" data-action="se.linkDown" aria-label="${sek("nav.down")}">↓</button><button type="button" class="btn small ghost danger" data-action="se.linkRemove" aria-label="${sek("nav.remove")}">×</button></span></div>`;
+}
+function seTab_nav() {
+  const nav = seData.content.nav || {};
+  const list = (where) =>
+    `<fieldset class="se-links" data-where="${where}"><legend>${sek("nav." + where)}</legend><p class="subtle">${sek("nav." + where + "Hint")}</p><div class="se-link-rows">${(nav[where] || []).map(seLinkRow).join("")}</div><button type="button" class="btn small outline" data-action="se.linkAdd">${sek("nav.add")}</button></fieldset>`;
+  document.getElementById("seBody").innerHTML = `<form class="panel modal-form" data-action="se.saveNav">${list("top")}${list("footer")}<div class="cc-actions"><button class="btn primary">${sek("save")}</button></div></form>`;
+}
+actions.on("se.linkKind", (el) => {
+  const row = el.closest(".se-link"),
+    data = { kind: el.value, label: Object.fromEntries(seData.languages.map((c) => [c, row.querySelector(`[name="label.${c}"]`).value])) };
+  if (data.kind === "page" && !(seData.content.pages || []).length) {
+    el.value = "builtin";
+    return toast(t("se.nav.noPages"), "error");
+  }
+  row.outerHTML = seLinkRow({ ...data, ref: data.kind === "page" ? seData.content.pages[0].slug : "pricing" });
+});
+actions.on("se.linkAdd", (el) => el.previousElementSibling.insertAdjacentHTML("beforeend", seLinkRow()));
+actions.on("se.linkRemove", (el) => el.closest(".se-link").remove());
+actions.on("se.linkUp", (el) => {
+  const row = el.closest(".se-link");
+  if (row.previousElementSibling) row.parentNode.insertBefore(row, row.previousElementSibling);
+});
+actions.on("se.linkDown", (el) => {
+  const row = el.closest(".se-link");
+  if (row.nextElementSibling) row.parentNode.insertBefore(row.nextElementSibling, row);
+});
+actions.on("se.saveNav", async (form) => {
+  const read = (where) =>
+    [...form.querySelectorAll(`.se-links[data-where="${where}"] .se-link`)].map((row) => {
+      const kind = row.querySelector("[name=kind]").value,
+        label = Object.fromEntries(seData.languages.map((c) => [c, row.querySelector(`[name="label.${c}"]`).value.trim()]));
+      return kind === "link" ? { kind, url: row.querySelector("[name=url]").value.trim(), label } : { kind, ref: row.querySelector("[name=ref]").value, label };
+    });
+  try {
+    await api("/admin/site/nav", { method: "PUT", body: { top: read("top"), footer: read("footer") } });
+    await seRefreshSite();
+    tToast(t("se.savedSite"));
+    route();
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
+
+/* ---------- Admin: site details (T265) ---------- */
+function seTab_details() {
+  const d = seData.content.details || {};
+  document.getElementById("seBody").innerHTML = `<form class="panel modal-form" data-action="se.saveDetails"><h3>${sek("details.title")}</h3><p class="subtle">${sek("details.lead")}</p>${sePerLangFields("title", t("se.details.siteTitle"), d.title, { max: 70 })}${sePerLangFields(
+    "description",
+    t("se.details.description"),
+    d.description,
+    { max: 160 },
+  )}<div class="cc-actions"><button class="btn primary">${sek("save")}</button></div></form>`;
+}
+actions.on("se.saveDetails", async (form) => {
+  const f = new FormData(form);
+  try {
+    await api("/admin/site/details", { method: "PUT", body: { title: sePerLang(f, "title"), description: sePerLang(f, "description") } });
+    await seRefreshSite();
+    tToast(t("se.savedSite"));
+    route();
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});

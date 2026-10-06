@@ -372,7 +372,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T262 Booking a package: project, start date, supplier confirmation or instant booking, contract · M
 - [x] T263 Project organigram: the customer at the top, the platform, each supplier with its people, tasks and categories · M
 - [x] T264 Site editor: every text of the website and the app, per language, changed by an admin · M
-- [ ] T265 Site editor: own pages, built-in pages on or off, menu and footer links, search engine texts · M
+- [x] T265 Site editor: own pages, built-in pages on or off, menu and footer links, search engine texts · M
 - [ ] T266 Site editor: an announcement banner · S
 - [ ] T267 Site editor: history, undo, export and import · S
 - [ ] T268 Demo data for packages and the organigram · S · last task of the wave
@@ -5650,9 +5650,42 @@ Asked for by Karam on 6 October 2026:
 4. **Site details:** the site title and description per language, set on every public page.
 
 **Done when.**
-- [ ] A page with a script, an HTML tag or a `javascript:` link shows it as plain text (tested).
-- [ ] A turned-off page shows "not found". Imprint, privacy and terms cannot be turned off.
-- [ ] The menu and the footer follow the Navigation tab.
+- [x] A page with a script, an HTML tag or a `javascript:` link shows it as plain text (tested).
+- [x] A turned-off page shows "not found". Imprint, privacy and terms cannot be turned off.
+- [x] The menu and the footer follow the Navigation tab.
+
+**As built (6 October 2026).**
+- **Server (`sitecontent.js`).**
+  - Pages: `POST /api/admin/site/pages`, then `PUT` and `DELETE` on `…/pages/:id`. Each page has an address
+    (`[a-z0-9-]`, unique), a title and text per language (English required), *Draft* or *Published*, where it
+    is linked (nowhere, the top menu or the footer), the order, and a search engine title and description.
+  - Renaming a page's address moves its menu links; deleting a page removes them.
+  - `GET /api/site-pages/:slug` is public for published pages; admins also get drafts (preview).
+  - `PUT /api/admin/site/builtins`: only pricing, how it works and FAQ can be off. Home, imprint, privacy and
+    terms always stay on.
+  - `PUT /api/admin/site/nav {top, footer}`: up to 12 links each. A link is a built-in page, an own page, or
+    an address with `https://`, `mailto:` or `#/` (an outside link needs an English label).
+  - `PUT /api/admin/site/details`: the site title and description per language.
+  - Every change is in the history.
+- **Visitors (`public/areas/site-editor.js`).**
+  - `/p/<address>` shows a page through `siteMarkup()`: `#` and `##` headings, paragraphs, `-` lists,
+    `**bold**` and safe links. Everything is escaped first.
+  - After every page change `siteChrome()` draws the top menu (the admin's links, else the three built-in
+    pages, plus pages placed there) and the footer links.
+  - It also sets the home page title and the description meta tag.
+  - A built-in page that is off shows "Page not found".
+- **Admin tabs.**
+  - *Pages*: the list, the editor with every language, a draft preview, and switches for the built-in pages
+    with a link to edit their texts.
+  - *Menu & footer*: rows with kind, target and labels per language; move up, down and remove.
+  - *Site details*: title and description per language.
+  - After a save the admin's page loads `/site-content.js` again.
+- **Tests.** `test/site-pages.test.js`:
+  - page checks, drafts and published pages;
+  - the markup (scripts, `javascript:` and quote tricks stay text);
+  - the built-in switches;
+  - the menu checks, and the rename and delete follow-ups;
+  - the site details.
 
 ### T266 · Site editor: banner
 `P2 · S · depends on T264`

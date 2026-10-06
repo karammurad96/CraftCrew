@@ -1224,3 +1224,13 @@ ul.ff-check-list.pk-included { min-height: 0; gap: 4px; }
 .se-text-head code { font-size: 0.8rem; overflow-wrap: anywhere; }
 .se-default { margin: 0; color: var(--muted, #5b6b80); font-size: 0.85rem; display: flex; gap: 6px; flex-wrap: wrap; }
 .se-text textarea { width: 100%; resize: vertical; }
+.se-page-form details { border: 1px solid var(--line, #dde3ec); border-radius: 10px; padding: 8px 12px; }
+.se-builtin { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding-block: 4px; }
+.se-links { border: 1px solid var(--line, #dde3ec); border-radius: 12px; padding: 12px 16px; display: grid; gap: 10px; }
+.se-link-rows { display: grid; gap: 8px; }
+.se-link { display: grid; grid-template-columns: minmax(130px, 1fr) minmax(160px, 2fr) repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; align-items: center; }
+.se-link-moves { display: flex; gap: 2px; }
+@media (max-width: 700px) { .se-link { grid-template-columns: 1fr 1fr; } }
+.site-footer-links { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: center; }
+.site-page .site-body { max-width: 760px; }
+.se-links > .btn { justify-self: start; }
