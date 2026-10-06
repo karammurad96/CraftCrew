@@ -301,7 +301,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T183 Monthly maintenance routine · S · recurring
 - [ ] T184 Load test before the first marketing push · S
 - [ ] T185 Managed database with standby and point-in-time restore, when customers depend on it daily · S
-- [ ] T176 Rate limit for chat messages · S · from the security review (T173)
+- [x] T176 Rate limit for chat messages · S · from the security review (T173)
 - [ ] T80 Real payments (Wave 6): → replaced by Wave 18 (Stripe), 7 October 2026
 
 **Wave 12 — a large supplier base before launch (decided with Karam on 5 October 2026: source = an existing register that is legal to reuse; "Listed" suppliers are shown to signed-in customers, clearly marked; details under "Wave 12")**
@@ -3598,6 +3598,10 @@ could flood a project chat and the notifications of everyone in it.
 with `rateLimited()`, and answer 429 with a friendly message (a new `errors.api` key in en and de).
 
 **Tests.** The 31st message within a minute is refused; another user is not affected.
+
+**As built (6 October 2026).** One limit for `POST /api/chats/:id/messages` and `POST /api/messages`: 30 per
+minute per person (a team member counts as themselves), across all conversations. The 31st answers 429 with
+`errors.api.chatTooFast`. Test: `test/chat-rate-limit.test.js`.
 
 ### T180 · Launch day
 `P0 · S · Karam with an agent, following docs/LAUNCH.md (T174)`

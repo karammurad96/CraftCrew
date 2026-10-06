@@ -197,6 +197,7 @@ LOCALES.de = {
       stHandlerFailed: "Verarbeitung fehlgeschlagen",
       stOff: "Zahlungen sind aus: Es ist kein Stripe-Schlüssel gesetzt.",
       stUnreachable: "Stripe ist nicht erreichbar. Prüfen Sie den Schlüssel und das Netzwerk.",
+      chatTooFast: "Sie senden sehr schnell Nachrichten. Warten Sie eine Minute und senden Sie dann erneut.",
       rqShifts: "Wählen Sie Nacht-, Wochenend- oder Schichtarbeit aus der Liste.",
       rqTrips: "Geben Sie die Anzahl der Anfahrten an (1 bis 50) oder lassen Sie das Feld leer.",
       prNumbers: "Preisregeln: Geben Sie Zahlen ab 0 an (Zuschläge bis 200 %, Anfahrt bis 20 € pro km).",

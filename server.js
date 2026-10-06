@@ -7117,6 +7117,13 @@ async function api(req, res, url) {
         true
       );
     }
+    // T176: at most 30 chat messages per minute per user, across all conversations
+    if (
+      method === "POST" &&
+      ((parts[1] === "chats" && parts[2] && parts[3] === "messages") || (parts[1] === "messages" && !parts[2])) &&
+      rateLimited("chat:" + (user.memberId || user.id), 30, 60000)
+    )
+      return (send(res, 429, { error: "You are sending messages very fast. Wait a minute, then send again." }), true);
     if (parts[1] === "chats" && parts[2] && parts[3] === "messages" && method === "POST") {
       const c = (db.chats || []).find((x) => x.id === parts[2]);
       if (!c || !chatScopeAllows(user, c))
