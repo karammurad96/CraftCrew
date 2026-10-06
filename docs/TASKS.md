@@ -366,6 +366,17 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T252 Procurement integration: punch-out (OCI and cXML) for SAP, Ariba and Coupa customers · M · after T251
 - [ ] T254 Quarterly price index for industrial services · S · after T243
 
+**Wave 17 — packages, organigram and the site editor (asked for by Karam on 6 October 2026; details under "Wave 17")**
+- [ ] T260 Service packages: suppliers offer ready-made, fixed-price packages ("one team, one week on site") · M · do first
+- [ ] T261 Package shop: customers browse and filter the packages (anonymised in brokered mode) · M
+- [ ] T262 Booking a package: project, start date, supplier confirmation or instant booking, contract · M
+- [ ] T263 Project organigram: the customer at the top, the platform, each supplier with its people, tasks and categories · M
+- [ ] T264 Site editor: every text of the website and the app, per language, changed by an admin · M
+- [ ] T265 Site editor: own pages, built-in pages on or off, menu and footer links, search engine texts · M
+- [ ] T266 Site editor: an announcement banner · S
+- [ ] T267 Site editor: history, undo, export and import · S
+- [ ] T268 Demo data for packages and the organigram · S · last task of the wave
+
 ---
 
 ## Wave 0 — preparation
@@ -5361,6 +5372,230 @@ work. In this mode the platform is the customer's only contracting party.
 **Done when.**
 - [ ] A cell with fewer than 10 data points is not shown.
 - [ ] The figures match the benchmarks module on fixed data.
+
+---
+
+## Wave 17 — packages, organigram and the site editor
+
+Asked for by Karam on 6 October 2026:
+- **Packages.** Suppliers offer ready-made packages, such as "one team, one week on site for X €" or "one team
+  on site from the next working day for X €". Customers browse and buy them.
+- **Organigram.** Each project gets a page that shows who is involved: the customer at the top, then each
+  company and team member, with the tasks and categories each one handles.
+- **Site editor.** An admin can change the website's pages and texts on one page with all the controls needed.
+
+**Decisions taken for Karam (change them if they do not fit).**
+- **Packages follow the platform mode.** In brokered mode a package shows the anonymised profile (T224), never
+  the company. The supplier is named once the booking is confirmed, as with every brokered order.
+- **A booking is a request.** It belongs to a project (T230) and runs through the same confirmation, contract and
+  reveal (T225, T232). So it needs no second contract or reveal logic.
+- **Fixed price.** The supplier cannot change the price of a booked package; it confirms or declines. A decline
+  hands the request to the instant estimate (T231) and to the operator, so the customer still gets alternatives.
+- **Instant booking** is the supplier's choice per package. It needs the supplier's acceptance of the current
+  clause; a new clause version switches it off until the supplier accepts again.
+- **The site editor changes texts, not code.** A changed text keeps the default's placeholders (`{name}`). Pages
+  use a small, safe markup (headings, paragraphs, lists, bold, links), never HTML, so the CSP stays strict.
+
+### T260 · Service packages
+`P1 · M · do first`
+
+**Do.**
+1. **A package** (`db.servicePackages`) belongs to one supplier and has:
+   - a title, a description and a list of what is included;
+   - a category (T146 list);
+   - the team size (people) and the days on site (working days);
+   - the earliest start: working days from the booking (1 = next working day);
+   - a fixed price in euros, net;
+   - where the supplier works: postcode prefixes or a radius in km around its location;
+   - how many bookings it can start per week;
+   - whether travel is included, and an optional note on exclusions;
+   - a status: *Draft*, *Active*, *Paused* or *Archived*.
+2. **Only vetted, live suppliers publish.** A draft can be saved at any time.
+3. **Supplier pages.** *My packages* (`/supplier/packages`): a list with the status and bookings, a form to
+   create and edit, and buttons to pause, activate and archive. A package with open bookings cannot be
+   deleted, only archived.
+4. **Admin.** *Packages* (`/admin/packages`): every package with its supplier. The admin can pause one, with a
+   reason the supplier sees.
+
+**Done when.**
+- [ ] The API checks every field, ownership and the vetting rule.
+- [ ] Pause, activate and archive work; an archived package stays on its bookings.
+- [ ] The pages are in English and German.
+
+### T261 · Package shop
+`P1 · M · depends on T260`
+
+**Do.**
+1. **Customer page** *Packages* (`/customer/packages`) lists the active packages of available suppliers (not
+   *Busy* or *Unavailable*). Filters:
+   - category;
+   - start: next working day, this week, within two weeks, any;
+   - the site postcode, so only suppliers working there show;
+   - the highest price;
+   - a text search.
+   Sort by price, earliest start or rating.
+2. **The card** shows the title, category, team size, days, earliest start, price (customer price after
+   T224's price model) and what is included.
+   - In brokered mode it shows the anonymised profile (badge, rating, completed orders, certificate types,
+     country), never the company or its contact details.
+   - In marketplace mode it shows the company.
+3. **Detail page** (`/customer/packages/:id`) with the full description and the booking form (T262).
+4. **The earliest start** respects the lead time and the weekly limit: a week with no free slot moves the
+   date to the next week.
+
+**Done when.**
+- [ ] No company name, email or phone of a supplier leaves the server in brokered mode (tested).
+- [ ] Every filter and the earliest-start rule have tests.
+
+### T262 · Booking a package
+`P1 · M · depends on T261, T230, T232`
+
+**Do.**
+1. **Booking form:**
+   - the project: one of the customer's open projects, or a new one;
+   - the start date (not before the earliest start);
+   - how many units (1–10, for example two weeks of "one team, one week");
+   - the site postcode and city;
+   - notes;
+   - acceptance of the platform contract with the clause (T225).
+2. **The booking is a request** with one work package (hours = team size × days × 8 × units). It is created
+   *Chosen*, with one part for the package's supplier at the package price × units. The project gets a task as
+   in T230.
+3. **The supplier** sees it in *Platform orders* (T232), marked "Package booking — fixed price".
+   - It can confirm or decline, but not change the price.
+   - With instant booking on, the part is confirmed at once and the booking is *Contracted* straight away.
+4. **A decline or no answer.** The request goes back to *New*. The instant estimate (T231) runs again for
+   alternatives, without the declining supplier. The customer and the operator are told.
+5. **Weekly limit.** A booking counts in its start week. A full week refuses new bookings with a friendly
+   message.
+
+**Done when.**
+- [ ] A booking runs from the form to a contract, an assigned task and the reveal.
+- [ ] Instant booking contracts at once; a clause change switches it off.
+- [ ] A price change on a package booking is refused.
+- [ ] A decline leads to new options without the declining supplier.
+
+### T263 · Project organigram
+`P1 · M`
+
+**Do.**
+1. **A tab "Organisation"** on the project (customer, supplier and admin), drawn as an organigram:
+   - **at the top, the customer**: the account owner ("you" for the owner), with the company name;
+   - **under them, their team members** who can see projects, with job title and access;
+   - **the platform**, in a brokered project: the operator as the coordinator;
+   - **each supplier company** on the project, with:
+     - its contact person;
+     - the categories and tasks it handles, with status;
+     - its people: team members and workers planned on the project's tasks (team planner) or going to its site
+       (site visits), each with their role and their tasks.
+2. **Who sees what:**
+   - the customer and the admin see everyone;
+   - a supplier sees the customer's side, the platform and its own company, never another supplier's people
+     (T10);
+   - a brokered supplier who is not yet contracted is not shown.
+3. **Layout.** Lines between the boxes on a wide screen; an indented list on a phone. Each task links to its page.
+
+**Done when.**
+- [ ] Tests cover the tree for each role, the hidden supplier and the people from the planner and site visits.
+- [ ] The page is in English and German and mirrors in right-to-left languages.
+
+### T264 · Site editor: texts
+`P1 · M · do first in the editor`
+
+**Do.**
+1. **An admin page "Website"** (`/admin/site`) with tabs: Texts, Pages, Banner, Navigation, History.
+2. **Texts tab:**
+   - choose the language;
+   - search by key or by text, filter by area (the first part of the key: `public`, `auth`, `server` …), and
+     show only changed texts;
+   - each text shows the default and the current value, with Save and "Back to default".
+   - List texts (for example the pricing points) are edited one item per line.
+3. **Checks on the server:**
+   - the key exists in `en.js`;
+   - the kind matches (text or list);
+   - the placeholders (`{name}`) are the same as the default's;
+   - at most 5,000 characters.
+4. **Where the texts apply:**
+   - the pages get them through `/site-content.js`, loaded right after the locale files, so the first drawing
+     is already right;
+   - emails, notifications and PDFs use them through `locales.js`.
+5. Every change goes to the audit log.
+
+**Done when.**
+- [ ] A changed text shows on the page and in an email in that language; "Back to default" restores it.
+- [ ] A text with a missing or extra placeholder is refused.
+- [ ] `/site-content.js` contains no draft and no admin-only data.
+
+### T265 · Site editor: pages, navigation and search engine texts
+`P1 · M · depends on T264`
+
+**Do.**
+1. **Own pages** at `/p/<address>`. Each has:
+   - an address (lowercase letters, digits and dashes);
+   - a title and a body per language, in the safe markup: `#` and `##` headings, paragraphs, `-` lists,
+     `**bold**`, `[text](link)` with https, `mailto:` or `#/` links only;
+   - *Draft* or *Published*, with a preview for admins;
+   - where it is linked: the top menu, the footer or nowhere, with the order;
+   - a search engine title and description per language.
+2. **Built-in pages** (home, pricing, how it works, FAQ): on or off. Imprint, privacy and terms are required
+   by law and stay on. "Edit texts" opens the Texts tab filtered to the page.
+3. **Navigation tab:** the top menu and the footer links in order: built-in pages, own pages and outside
+   links.
+4. **Site details:** the site title and description per language, set on every public page.
+
+**Done when.**
+- [ ] A page with a script, an HTML tag or a `javascript:` link shows it as plain text (tested).
+- [ ] A turned-off page shows "not found". Imprint, privacy and terms cannot be turned off.
+- [ ] The menu and the footer follow the Navigation tab.
+
+### T266 · Site editor: banner
+`P2 · S · depends on T264`
+
+**Do.**
+1. **One banner** with:
+   - a text per language;
+   - a kind: information, success or warning;
+   - an optional link;
+   - who sees it: visitors, customers, suppliers, or everyone;
+   - from and until dates;
+   - whether it can be closed.
+2. A closed banner stays closed in that browser until the banner text changes.
+
+**Done when.**
+- [ ] The banner shows only to its audience and between its dates; closing it works.
+
+### T267 · Site editor: history, undo, export and import
+`P2 · S · depends on T264`
+
+**Do.**
+1. **History tab:** every change to texts, pages, banner, navigation and site details, with who, when, before
+   and after. The last 500 are kept.
+2. **Undo** a change from the history. The undo is itself a change in the history.
+3. **Export** everything as one JSON file, and **import** it on another server: a preview of what changes
+   first, then apply. The same checks as T264 and T265 apply.
+
+**Done when.**
+- [ ] Undo restores the value before the change, including a deleted page.
+- [ ] An import with a bad text is refused as a whole, with the reason.
+
+### T268 · Demo data for packages and the organigram
+`P2 · S · last task of the wave`
+
+**Do.**
+1. **Packages.** The demo suppliers get packages, for example:
+   - "Commissioning team, one week on site";
+   - "PLC programmer from the next working day";
+   - "Electrical installation crew, two weeks";
+   - "Maintenance team, weekend shift".
+   Some have instant booking.
+2. **Bookings.** Demo bookings at every stage: waiting, confirmed, declined.
+3. **Organigram.** The demo projects have team members, planned workers and site visits, so the organigram is
+   full.
+4. **Site editor.** One changed text, one own page ("About us") and a banner, so the editor shows each part.
+5. The README lists what to try.
+
+**Done when.**
+- [ ] `test/demo-brokered.test.js` (or a new demo test) checks the new demo data.
 
 ---
 
