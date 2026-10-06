@@ -515,6 +515,14 @@ const commission = require("./commission")({
   xrechnungProblem,
   invoiceNo: (i) => invoiceNo(i),
 });
+// T270: payments with Stripe (Wave 18); off unless STRIPE_SECRET_KEY is set in the environment
+const payments = require("./payments")({
+  getDb: () => db,
+  save: () => save(),
+  send: (...a) => send(...a),
+  now: () => now(),
+  activity: (...a) => activity(...a),
+});
 const benchmarks = require("./benchmarks")({
   getDb: () => db,
   send: (...a) => send(...a),
@@ -4018,6 +4026,9 @@ async function api(req, res, url) {
       }
     return (send(res, 200, { status: "ok", time: now() }), true);
   }
+  // T270: Stripe's signed events; the raw body is read here, before any JSON parsing or sign-in
+  if (parts[1] === "stripe" && parts[2] === "webhook" && parts.length === 3 && method === "POST")
+    return (await payments.webhook(req, res), true);
   try {
     // Auth
     if (parts[1] === "auth" && parts[2] === "signup" && method === "POST") {
@@ -4531,6 +4542,7 @@ async function api(req, res, url) {
     if (await organigram.handle(req, res, url, parts, user)) return true;
     if (await siteContent.handle(req, res, url, parts, user)) return true;
     if (await commission.handle(req, res, url, parts, user)) return true;
+    if (await payments.handle(req, res, url, parts, user)) return true;
     // Archived projects are read-only for everyone who can see them.
     if (method !== "GET" && parts[1] === "projects" && parts[2]) {
       const p = projectFor(user, parts[2]);
@@ -8333,7 +8345,14 @@ const CSP = [
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
-].join("; ");
+]
+  // T270: Stripe.js and the embedded Connect components, only when payments are on
+  .map((d) => {
+    const extra = payments.cspSources(),
+      name = d.split(" ")[0].replace("-src", "");
+    return extra && extra[name] ? d + " " + extra[name] : d;
+  })
+  .join("; ");
 function pageHeaders(req) {
   const https = req.headers["x-forwarded-proto"] === "https" || req.socket.encrypted;
   return {

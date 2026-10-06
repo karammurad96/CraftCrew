@@ -19,6 +19,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
+      # T270: the Stripe SDK is a dependency the payment tests load
+      - run: npm ci
       - run: npm test
       - name: Docker image builds
         if: matrix.node == 20

@@ -379,7 +379,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T268 Demo data for packages and the organigram · S · last task of the wave
 
 **Wave 18 — payments with Stripe, test version (asked for by Karam on 7 October 2026: Connect, Payments, Billing, Invoicing, Tax, Identity, Radar and Issuing; sandbox keys only; replaces T80; details under "Wave 18")**
-- [ ] T270 Stripe foundation: SDK, keys from the environment only, test mode only, webhooks with signature check, a fake Stripe for tests · M · do first, **first test version**
+- [x] T270 Stripe foundation: SDK, keys from the environment only, test mode only, webhooks with signature check, a fake Stripe for tests · M · do first, **first test version**
 - [ ] T271 Supplier payout accounts: Stripe Connect (Accounts v2), embedded onboarding, payouts page · M · **first test version**
 - [ ] T272 The customer pays an approved invoice through Stripe Checkout · M · **first test version**
 - [ ] T273 Payout to the supplier minus the platform fee; refunds and disputes reverse it · M · **first test version**
@@ -5984,9 +5984,30 @@ T274–T279 add the other products. T280 is the go-live check.
    - Then run the Stripe planner (`stripe_implementation_planner`) and compare its plan with this wave.
 
 **Done when.**
-- [ ] Without keys the app runs as before; all tests pass without network access to Stripe.
-- [ ] A live key is refused; the key test catches a key in a file.
-- [ ] A webhook with a wrong signature is refused; the same event twice is handled once.
+- [x] Without keys the app runs as before; all tests pass without network access to Stripe.
+- [x] A live key is refused; the key test catches a key in a file.
+- [x] A webhook with a wrong signature is refused; the same event twice is handled once.
+
+**As built (6 October 2026).**
+- **`payments.js`.** Off unless `STRIPE_SECRET_KEY` is set; `stripe@23.0.0` (pinned exactly, API version
+  `2026-09-30.endive`) is a normal dependency but only loaded when a key is set. A malformed key, or a live key
+  without `PAYMENTS_LIVE=1`, stops the start. `on(type, fn)` registers the handlers of T271–T273.
+- **Webhook `POST /api/stripe/webhook`.** Answered before sign-in and JSON parsing. Signature checked with
+  `STRIPE_WEBHOOK_SECRET` (404 when payments are off, 400 for a bad signature). Each event is kept once in
+  `db.stripeEvents` (newest first, the last 2,000). When a handler fails, the record is removed and Stripe gets 500,
+  so its retry is handled again.
+- **Admin page `/admin/stripe`** (under "More"): mode, key type, publishable key set or missing, Stripe account
+  (with "Check the connection", which calls `GET /v1/account`), webhook state, last problem, endpoint URL and the
+  last 20 events. The secret key is never sent to the browser.
+- **CSP.** Only when payments are on: `js.stripe.com` and `connect-js.stripe.com` in `script-src`, `*.stripe.com`
+  in `frame-src` and `img-src`, `api.stripe.com` and `*.stripe.com` in `connect-src`.
+- **Key safety.** `tools/secret-scan.js` finds secret, restricted and publishable keys and webhook secrets in the
+  tracked files (a test) and in staged files (`tools/hooks/pre-commit`, installed with `npm run hooks`). The test
+  helpers blank every `STRIPE_*` variable, so a real key in the shell is never used by the tests.
+- **Fake Stripe (`test/fake-stripe.js`)** with `STRIPE_API_BASE`, and signed deliveries through the SDK's
+  `generateTestHeaderString`. `test/payments.test.js` covers the above.
+- `stripeEvents` is a PostgreSQL collection; `payments.js` is in the Dockerfile; `.env.example` documents the
+  variables (without values).
 
 ### T271 · Supplier payout accounts
 `P1 · M · depends on T270`

@@ -8,12 +8,14 @@
     "dev": "node server.js",
     "test": "node --test --test-concurrency=1 test/*.test.js",
     "test:e2e": "node test/e2e/smoke.js && node test/e2e/pwa.js",
-    "format": "npx --yes prettier@3 --write \"**/*.{js,css}\""
+    "format": "npx --yes prettier@3 --write \"**/*.{js,css}\"",
+    "hooks": "git config core.hooksPath tools/hooks"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
-    "pg": "8.23.1"
+    "pg": "8.23.1",
+    "stripe": "23.0.0"
   }
 }

@@ -138,6 +138,12 @@ async function startApp({ smtp, env = {}, dataDir: keepDir } = {}) {
         PLATFORM_MODE: "marketplace",
         // The Wave 15 suites test the operator's manual flow; Wave 15b suites pass INSTANT_ESTIMATES: "on".
         INSTANT_ESTIMATES: "off",
+        // Payments stay off unless a suite starts a fake Stripe (T270); a real key in the shell is never used.
+        STRIPE_SECRET_KEY: "",
+        STRIPE_PUBLISHABLE_KEY: "",
+        STRIPE_WEBHOOK_SECRET: "",
+        STRIPE_API_BASE: "",
+        PAYMENTS_LIVE: "",
         ...(smtp
           ? {
               SMTP_HOST: "localhost",

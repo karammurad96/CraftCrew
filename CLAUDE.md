@@ -60,7 +60,8 @@ when signing in to get the token in the response body, then use `Authorization: 
    (`parts[1]==='invoices'`), so search for the quoted segment only (`'invoices'`).
 2. **Every fix gets a regression test** in `test/`. Add new cases to the suite that fits, or create
    `test/<area>.test.js`.
-3. **No new runtime dependencies.** The only one is `pg` (T161), loaded only with `STORE=postgres`. Keep it that
+3. **No new runtime dependencies.** The only ones are `pg` (T161), loaded only with `STORE=postgres`, and `stripe`
+   (T270), loaded only when `STRIPE_SECRET_KEY` is set. Keep it that
    way unless a task says otherwise. Install with `npm ci`; `package-lock.json` pins the versions.
 4. **Escape all user data in HTML** with `esc()` or the file's alias (`ccEsc`, `reviewEsc`, `paEsc`, …).
 5. **Validate on the server:** types, allowed values, lengths and ownership. Use `projectFor(user, id)`

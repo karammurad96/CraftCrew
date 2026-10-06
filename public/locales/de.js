@@ -192,6 +192,11 @@ LOCALES.de = {
     wrongAccount: "Diese Seite gehört zu einer anderen Kontoart.",
     // API error messages by code (T137): the server sends { error, code, params }; see errorCode() in server.js
     api: {
+      stNotFound: "Nicht gefunden",
+      stBadSignature: "Ungültige Signatur",
+      stHandlerFailed: "Verarbeitung fehlgeschlagen",
+      stOff: "Zahlungen sind aus: Es ist kein Stripe-Schlüssel gesetzt.",
+      stUnreachable: "Stripe ist nicht erreichbar. Prüfen Sie den Schlüssel und das Netzwerk.",
       rqShifts: "Wählen Sie Nacht-, Wochenend- oder Schichtarbeit aus der Liste.",
       rqTrips: "Geben Sie die Anzahl der Anfahrten an (1 bis 50) oder lassen Sie das Feld leer.",
       prNumbers: "Preisregeln: Geben Sie Zahlen ab 0 an (Zuschläge bis 200 %, Anfahrt bis 20 € pro km).",
@@ -1065,6 +1070,7 @@ LOCALES.de = {
         "profile": "Profil / Abrechnung"
       },
       "admin": {
+        stripe: "Stripe",
         fees: "Gebührenabrechnungen",
         site: "Website",
         packages: "Pakete",
@@ -5761,6 +5767,44 @@ LOCALES.de = {
       save: "Angaben speichern",
       saved: "Angaben gespeichert.",
     },
+  },
+  stripe: {
+    title: "Stripe-Zahlungen",
+    lead: "Die Verbindung zu Stripe. Schlüssel werden nur als Geheimnisse auf dem Server gesetzt, nie hier: STRIPE_SECRET_KEY (am besten ein eingeschränkter Schlüssel rk_test_…), STRIPE_PUBLISHABLE_KEY und STRIPE_WEBHOOK_SECRET.",
+    mode: {
+      off: "Aus",
+      test: "Testmodus",
+      live: "Live",
+    },
+    offText: "Zahlungen sind aus, weil auf dem Server kein Stripe-Schlüssel gesetzt ist. Kunden zahlen wie bisher per Überweisung.",
+    testText: "Es fließt kein echtes Geld. Nutzen Sie die Testkarten von Stripe, zum Beispiel 4242 4242 4242 4242.",
+    liveText: "Es fließt echtes Geld.",
+    keyType: "Schlüssel",
+    key: {
+      restricted: "Eingeschränkter Schlüssel",
+      secret: "Geheimer Schlüssel",
+    },
+    publishable: "Veröffentlichbarer Schlüssel",
+    set: "gesetzt",
+    missing: "fehlt",
+    account: "Stripe-Konto",
+    notChecked: "noch nicht geprüft",
+    check: "Verbindung prüfen",
+    checked: "Mit Stripe verbunden.",
+    webhook: "Webhook",
+    webhookUrl: "Endpunkt für das Stripe-Dashboard: {url}",
+    lastEvent: "Letztes Ereignis",
+    none: "noch keines",
+    lastError: "Letztes Problem",
+    events: "Neueste Ereignisse",
+    col: {
+      time: "Empfangen",
+      type: "Ereignis",
+      id: "ID",
+      handled: "Verarbeitet",
+    },
+    yes: "ja",
+    no: "nein",
   },
   server: {
     notify: {
