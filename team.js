@@ -50,7 +50,7 @@ function moduleFor(parts, method) {
   if (p1 === "account" && p2 === "payout") return "settings";
   if (p1 === "team") return "team";
   if (["projects", "documents", "reviews", "disputes", "deliverables"].includes(p1)) return "projects";
-  if (["bids", "rfqs", "contracts", "scorecards"].includes(p1)) return "sourcing";
+  if (["bids", "rfqs", "contracts", "scorecards", "service-packages"].includes(p1)) return "sourcing";
   if (p1 === "invoices") return "invoices";
   if (p1 === "time-entries") return "time";
   if (["sites", "workers", "compliance", "site-visits"].includes(p1)) return "compliance";

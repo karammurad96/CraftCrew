@@ -1144,3 +1144,10 @@
   display: block;
   color: #526174;
 }
+
+/* T260–T262: service packages */
+.pk-own .rq-description, .pk-card .rq-description { margin-block: 8px; }
+.pk-price { display: flex; align-items: baseline; gap: 8px; margin-block: 8px; }
+.pk-price b { font-size: 1.35rem; }
+.pk-included { margin-block: 8px; }
+.pk-form textarea { resize: vertical; }

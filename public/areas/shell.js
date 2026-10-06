@@ -10,12 +10,12 @@ const SHELL_NAV = {
     more: ["analytics", "contracts", "sites", "offers", "suppliers", "preferred", "inbox", "time", "team", "profile"],
   },
   supplier: {
-    daily: ["dashboard", "projects", "planning", "orders", "bids", "invoices", "compliance"],
+    daily: ["dashboard", "projects", "planning", "orders", "packages", "bids", "invoices", "compliance"],
     more: ["analytics", "requests", "contracts", "suppliers", "inbox", "time", "messages", "team", "profile"],
   },
   admin: {
     daily: ["dashboard", "requests", "applications", "users", "billing", "disputes", "reports"],
-    more: ["audit", "platform", "profile-changes", "profile"],
+    more: ["packages", "audit", "platform", "profile-changes", "profile"],
   },
 };
 // Phone bottom bar (T102): four pages per role, then "More" opens the drawer
