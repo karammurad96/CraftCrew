@@ -191,6 +191,13 @@ LOCALES.de = {
     wrongAccount: "Diese Seite gehört zu einer anderen Kontoart.",
     // API error messages by code (T137): the server sends { error, code, params }; see errorCode() in server.js
     api: {
+      pkUnits: "Buchen Sie das Paket 1- bis 10-mal.",
+      pkStartDate: "Wählen Sie das Startdatum.",
+      pkTooEarly: "Dieser Start ist für das Paket zu früh. Wählen Sie ein späteres Datum.",
+      pkWeekFull: "Der Lieferant ist in dieser Woche ausgebucht. Wählen Sie einen späteren Start.",
+      pkNotServed: "Dieses Paket wird für diesen Einsatzort nicht angeboten.",
+      pkFixedPrice: "Ein Paket hat einen Festpreis. Bestätigen oder lehnen Sie ab.",
+      pkInstantAccept: "Akzeptieren Sie den Plattformvertrag, um die Sofortbuchung einzuschalten.",
       pkGiveTitle: "Geben Sie dem Paket einen Titel.",
       pkDescribe: "Beschreiben Sie das Paket in ein paar Sätzen.",
       pkIncludedMax: "Nennen Sie bis zu 15 enthaltene Leistungen.",
@@ -3664,6 +3671,7 @@ LOCALES.de = {
     "chooseConfirm": "Wählen und beauftragen",
     "chosen": "Option gewählt. Der Lieferant bestätigt jetzt den Auftrag.",
     "order": {
+      packageNote: "Paketbuchung zu Ihrem Festpreis ({n} × das Paket). Bestätigen oder lehnen Sie ab; der Preis kann sich nicht ändern.",
       "estimateNote": "Dieser Preis ist eine Schätzung aus Ihrer Preisliste. Bestätigen Sie ihn oder nennen Sie Ihren Preis mit Begründung; ein höherer Preis geht dem Kunden zur Zustimmung.",
       "priceWaiting": "Ihr Preis von {price} wartet auf die Zustimmung des Kunden.",
       "yourPrice": "Ihr Preis (€)",
@@ -3693,6 +3701,7 @@ LOCALES.de = {
     },
     "daysN": "{n} Tage",
     "opt": {
+      package: "Paket",
       "fastest": "Am schnellsten",
       "cheapest": "Am günstigsten",
       "best": "Beste Qualität",
@@ -5268,6 +5277,28 @@ LOCALES.de = {
   },
   // Texts the server sends (T137): notifications, emails and PDFs, in the recipient's language (see locales.js)
   pk: {
+    instantBadge: "Sofortbuchung",
+    instantOutdated: "Die Sofortbuchung ist pausiert: Der Plattformvertrag hat sich geändert. Bearbeiten Sie das Paket und akzeptieren Sie die neuen Bedingungen.",
+    instantLabel: "Buchungen dieses Pakets automatisch bestätigen",
+    instantHint: "Buchungen werden sofort bestätigt, ohne Ihre Prüfung. Sie akzeptieren den Plattformvertrag unten für jede solche Buchung.",
+    instantAccept: "Ich akzeptiere den Plattformvertrag für jede Sofortbuchung dieses Pakets.",
+    instantAcceptAgain: "Vertrag erneut akzeptieren (nur nötig, wenn er sich geändert hat).",
+    book: {
+      title: "Dieses Paket buchen",
+      instant: "Sofortbuchung: bestätigt, sobald Sie buchen.",
+      confirmNote: "Der Lieferant bestätigt innerhalb von 3 Werktagen. Der Preis ist fest.",
+      project: "Projekt",
+      newProject: "Neues Projekt aus dieser Buchung",
+      start: "Startdatum",
+      units: "Wie oft (zum Beispiel Wochen)",
+      postcode: "PLZ des Einsatzorts",
+      city: "Ort des Einsatzorts",
+      notes: "Hinweise für das Team",
+      notesPh: "Zugang, Ansprechpartner vor Ort, besondere Bedingungen",
+      button: "Für {price} buchen",
+      done: "Gebucht. Der Lieferant bestätigt innerhalb von 3 Werktagen.",
+      doneInstant: "Gebucht und bestätigt.",
+    },
     startFrom: "Start ab {date}",
     shop: {
       title: "Pakete",
@@ -5306,6 +5337,7 @@ LOCALES.de = {
       reset: "Zurücksetzen",
     },
     field: {
+      instant: "Sofortbuchung",
       title: "Titel",
       category: "Kategorie",
       description: "Beschreibung",
@@ -5388,6 +5420,11 @@ LOCALES.de = {
   },
   server: {
     notify: {
+      packageBooked: "Ein Kunde hat Ihr Paket {title} ab {date} gebucht. Bestätigen Sie es innerhalb von 3 Werktagen unter Plattformaufträge.",
+      packageBookedInstant: "Ein Kunde hat Ihr Paket {title} ab {date} gebucht. Die Sofortbuchung hat es bestätigt; der Auftrag ist in Ihren Projekten.",
+      packageBookedAdmin: "Neue Paketbuchung: {title} ab {date}.",
+      packageDeclined: "Der Lieferant kann Ihre Buchung {title} nicht übernehmen. Die Plattform sucht nach Alternativen.",
+      packageDeclinedAdmin: "Ein Lieferant hat die Paketbuchung {title} abgelehnt. Prüfen Sie die Alternativen.",
       packagePaused: "Die Plattform hat Ihr Paket {title} pausiert: {reason}",
       invoiceSubmitted: "Rechnung {number} zur Prüfung eingereicht",
       invoiceStatus: "Rechnung {number}: {status}",

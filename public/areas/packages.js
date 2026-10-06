@@ -36,7 +36,9 @@ async function pkSupplierList() {
   const card = (p) =>
     `<article class="panel pk-own"><div class="panel-title"><div><span class="eyebrow"><bdi>${esc(p.category)}</bdi></span><h3><bdi>${esc(p.title)}</bdi></h3></div>${pkChip(p.status)}</div>${
       p.pausedByAdmin ? `<div class="notice warn">${pkk("pausedByAdmin")} <bdi>${esc(p.pausedByAdmin.reason)}</bdi></div>` : ""
-    }<p class="rq-description"><bdi>${esc(p.description)}</bdi></p>${pkIncluded(p)}${pkFacts(p)}<p class="pk-price"><b>${esc(fmt.money(p.price))}</b> <small>${pkk("net")}</small></p><p class="subtle">${pkk("bookingsLine", {
+    }${
+      p.instantBooking && !p.instantActive ? `<div class="notice warn">${pkk("instantOutdated")}</div>` : ""
+    }<p class="rq-description"><bdi>${esc(p.description)}</bdi></p>${pkIncluded(p)}${pkFacts(p)}${p.instantActive ? `<ul class="pk-chips"><li class="pk-instant">${pkk("instantBadge")}</li></ul>` : ""}<p class="pk-price"><b>${esc(fmt.money(p.price))}</b> <small>${pkk("net")}</small></p><p class="subtle">${pkk("bookingsLine", {
       n: p.bookings,
       open: p.openBookings,
       done: p.contracted,
@@ -62,12 +64,13 @@ async function pkSupplierList() {
 }
 let pkCache = [];
 // The create and edit form
-actions.on("pk.edit", (el) => {
+actions.on("pk.edit", async (el) => {
+  const { clause: c } = await api("/clause");
   const p = pkCache.find((x) => x.id === el.dataset.id) || { teamSize: 2, days: 5, leadDays: 5, perWeek: 1, included: [], regions: [] };
   const v = (k) => esc(p[k] ?? "");
   modal(
     t(p.id ? "pk.editTitle" : "pk.newTitle"),
-    `<form class="modal-form pk-form" data-action="pk.save" data-id="${esc(p.id || "")}">
+    `<form class="modal-form pk-form" data-action="pk.save" data-id="${esc(p.id || "")}" data-hash="${esc(c.hash)}">
 <label>${pkk("field.title")}<input name="title" required minlength="3" maxlength="120" value="${v("title")}" placeholder="${pkk("ph.title")}"></label>
 <label>${pkk("field.category")}<select name="category" required><option value="">${pkk("chooseCategory")}</option>${pkCategories
       .map((c) => `<option${c === p.category ? " selected" : ""}>${esc(c)}</option>`)
@@ -85,6 +88,7 @@ actions.on("pk.edit", (el) => {
 </div>
 <label class="cc-check-label"><input type="checkbox" name="travelIncluded"${p.travelIncluded ? " checked" : ""}> ${pkk("field.travelIncluded")}</label>
 <label>${pkk("field.exclusions")}<input name="exclusions" maxlength="1000" value="${v("exclusions")}" placeholder="${pkk("ph.exclusions")}"></label>
+<fieldset class="pk-instant-box"><legend>${pkk("field.instant")}</legend><label class="cc-check-label"><input type="checkbox" name="instantBooking"${p.instantBooking ? " checked" : ""}> ${pkk("instantLabel")}</label><small class="subtle">${pkk("instantHint")}</small><div class="rq-clause"><bdi>${esc(c.text)}</bdi></div><label class="cc-check-label"><input type="checkbox" name="acceptClause"> ${pkk(p.instantActive ? "instantAcceptAgain" : "instantAccept")}</label></fieldset>
 <div class="cc-actions"><button type="button" class="btn outline" data-action="pk.closeModal">${pkk("cancel")}</button><button class="btn primary">${pkk("save")}</button></div></form>`,
   );
 });
@@ -95,6 +99,8 @@ actions.on("pk.save", async (form) => {
       ["title", "category", "description", "included", "teamSize", "days", "leadDays", "perWeek", "price", "regions", "radiusKm", "exclusions"].map((k) => [k, f.get(k) || ""]),
     );
   body.travelIncluded = f.get("travelIncluded") === "on";
+  body.instantBooking = f.get("instantBooking") === "on";
+  if (f.get("acceptClause") === "on") Object.assign(body, { acceptClause: true, clauseHash: form.dataset.hash });
   try {
     const pid = form.dataset.id;
     await api("/service-packages" + (pid ? "/" + encodeURIComponent(pid) : ""), { method: pid ? "PUT" : "POST", body });
@@ -188,7 +194,7 @@ function pkWho(p) {
   ].join("")}</ul>`;
 }
 function pkShopCard(p) {
-  return `<article class="cc-card pk-card"><span class="eyebrow"><bdi>${esc(p.category)}</bdi></span><h3><a href="#/customer/packages/${esc(p.id)}"><bdi>${esc(p.title)}</bdi></a></h3><p class="pk-price"><b>${esc(fmt.money(p.price))}</b> <small>${pkk("net")}</small></p><ul class="pk-chips"><li>${pkk("teamN", { n: p.teamSize })}</li><li>${pkk("daysN", { n: p.days })}</li><li>${pkk("startFrom", { date: fmt.date(p.earliestStart) })}</li></ul>${pkIncluded({ included: (p.included || []).slice(0, 3) })}${pkWho(p)}<a class="btn outline full" href="#/customer/packages/${esc(p.id)}">${pkk("shop.view")}</a></article>`;
+  return `<article class="cc-card pk-card"><span class="eyebrow"><bdi>${esc(p.category)}</bdi></span><h3><a href="#/customer/packages/${esc(p.id)}"><bdi>${esc(p.title)}</bdi></a></h3><p class="pk-price"><b>${esc(fmt.money(p.price))}</b> <small>${pkk("net")}</small></p><ul class="pk-chips">${p.instantBooking ? `<li class="pk-instant">${pkk("instantBadge")}</li>` : ""}<li>${pkk("teamN", { n: p.teamSize })}</li><li>${pkk("daysN", { n: p.days })}</li><li>${pkk("startFrom", { date: fmt.date(p.earliestStart) })}</li></ul>${pkIncluded({ included: (p.included || []).slice(0, 3) })}${pkWho(p)}<a class="btn outline full" href="#/customer/packages/${esc(p.id)}">${pkk("shop.view")}</a></article>`;
 }
 async function pkShop(params, query) {
   const q = new URLSearchParams();
@@ -246,6 +252,48 @@ async function pkShopDetail(params) {
   );
   if (typeof pkBookingForm === "function") pkBookingForm(p);
 }
+
+/* ---------- Customer: booking a package (T262) ---------- */
+async function pkBookingForm(p) {
+  const box = document.getElementById("pkBook");
+  if (!box) return;
+  const [{ projects = [] }, { clause: c }] = await Promise.all([api("/projects").catch(() => ({})), api("/clause")]);
+  const open = projects.filter((x) => x.status !== "Archived" && x.customerId === state.user.id);
+  box.innerHTML = `<form class="modal-form pk-book" data-action="pk.book" data-id="${esc(p.id)}" data-hash="${esc(c.hash)}" data-price="${esc(p.price)}"><h3>${pkk("book.title")}</h3>${
+    p.instantBooking ? `<p class="notice success">${pkk("book.instant")}</p>` : `<p class="subtle">${pkk("book.confirmNote")}</p>`
+  }<label>${pkk("book.project")}<select name="projectId"><option value="">${pkk("book.newProject")}</option>${open
+    .map((x) => `<option value="${esc(x.id)}">${esc(x.name)}</option>`)
+    .join("")}</select></label><label>${pkk("book.start")}<input type="date" name="startDate" required min="${esc(p.earliestStart)}" value="${esc(p.earliestStart)}"></label><label>${pkk("book.units")}<input type="number" name="units" min="1" max="10" value="1" required data-action="pk.units"></label><div class="cc-platform-grid"><label>${pkk("book.postcode")}<input name="sitePostcode" maxlength="10" required inputmode="numeric"></label><label>${pkk("book.city")}<input name="siteCity" maxlength="80"></label></div><label>${pkk("book.notes")}<textarea name="notes" rows="3" maxlength="2000" placeholder="${pkk("book.notesPh")}"></textarea></label><div class="rq-clause"><bdi>${esc(c.text)}</bdi></div><small class="subtle">${esc(
+    t("req.clauseVersion", { n: c.version, months: c.months }),
+  )}</small><label class="cc-check-label"><input type="checkbox" name="accept" required> ${esc(t("req.acceptClause"))}</label><button class="btn primary full" id="pkBookBtn">${pkk("book.button", { price: fmt.money(p.price) })}</button></form>`;
+}
+actions.on("pk.units", (el) => {
+  const form = el.closest("form"),
+    n = Math.min(10, Math.max(1, Number(el.value) || 1));
+  document.getElementById("pkBookBtn").textContent = t("pk.book.button", { price: fmt.money(Number(form.dataset.price) * n) });
+});
+actions.on("pk.book", async (form) => {
+  const f = new FormData(form);
+  try {
+    const { request } = await api(`/service-packages/${encodeURIComponent(form.dataset.id)}/book`, {
+      method: "POST",
+      body: {
+        projectId: f.get("projectId") || "",
+        startDate: f.get("startDate"),
+        units: Number(f.get("units")),
+        sitePostcode: f.get("sitePostcode"),
+        siteCity: f.get("siteCity"),
+        notes: f.get("notes"),
+        acceptClause: form.elements.accept.checked,
+        clauseHash: form.dataset.hash,
+      },
+    });
+    tToast(t(request.status === "Contracted" ? "pk.book.doneInstant" : "pk.book.done"));
+    navigate("/customer/requests/" + request.id);
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});
 
 routes.add("/customer/packages", pkShop);
 routes.add("/customer/packages/:id", pkShopDetail);

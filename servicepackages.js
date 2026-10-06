@@ -11,7 +11,9 @@ const DAY = 86400000;
 
 module.exports = function createServicePackages(ctx) {
   const { getDb, save, send, body, id, now, notify, activity, categories } = ctx;
-  const { customerPrice, anonymousProfile, platformMode } = ctx;
+  const { customerPrice, anonymousProfile, platformMode, clause, book } = ctx;
+  // T262: instant booking counts only while the supplier's acceptance is of the current clause
+  const instantActive = (p) => !!p.instantBooking && p.instantAcceptance?.hash === clause().current().hash;
   const text = (v, max) =>
     String(v ?? "")
       .trim()
@@ -76,6 +78,7 @@ module.exports = function createServicePackages(ctx) {
         radiusKm,
         travelIncluded: !!b.travelIncluded,
         exclusions: text(b.exclusions, 1000),
+        instantBooking: !!b.instantBooking,
       },
     };
   }
@@ -90,6 +93,7 @@ module.exports = function createServicePackages(ctx) {
     const all = bookings(pkg);
     return {
       ...pkg,
+      instantActive: instantActive(pkg),
       bookings: all.length,
       openBookings: all.filter((r) => r.status === "Chosen").length,
       contracted: all.filter((r) => r.status === "Contracted").length,
@@ -97,6 +101,19 @@ module.exports = function createServicePackages(ctx) {
   }
   function find(pid) {
     return list().find((p) => p.id === pid);
+  }
+  // T262: switching instant booking on needs the supplier's acceptance of the current clause; returns an error
+  function instantConsent(user, pkg, b) {
+    if (!pkg.instantBooking) {
+      delete pkg.instantAcceptance;
+      return null;
+    }
+    if (instantActive(pkg) && b.acceptClause !== true) return null;
+    if (b.acceptClause !== true) return "Accept the platform contract to switch on instant booking.";
+    if (b.clauseHash !== clause().current().hash)
+      return "The contract terms changed. Read them again and accept them.";
+    pkg.instantAcceptance = clause().acceptance(user, "instant-booking");
+    return null;
   }
 
   /* ---------- T261: the shop ---------- */
@@ -167,6 +184,7 @@ module.exports = function createServicePackages(ctx) {
       exclusions: pkg.exclusions || "",
       price: customerPrice(pkg.price),
       earliestStart: earliestStart(pkg),
+      instantBooking: instantActive(pkg),
       profile: anonymousProfile(pkg.supplierId),
     };
     if (platformMode() === "marketplace") {
@@ -224,6 +242,7 @@ module.exports = function createServicePackages(ctx) {
         if (error) return (send(res, 400, { error }), true);
         if (mine.filter((p) => p.status !== "Archived").length >= 50)
           return (send(res, 400, { error: "You can offer up to 50 packages." }), true);
+        const b = await body(req);
         const p = {
           id: id("spk"),
           supplierId: supplier.id,
@@ -232,6 +251,8 @@ module.exports = function createServicePackages(ctx) {
           createdAt: now(),
           updatedAt: now(),
         };
+        const refused = instantConsent(user, p, b);
+        if (refused) return (send(res, 400, { error: refused }), true);
         list().unshift(p);
         activity(user, `Created package ${p.title}`);
         save();
@@ -242,9 +263,16 @@ module.exports = function createServicePackages(ctx) {
       if (!parts[3] && method === "PUT") {
         if (pkg.status === "Archived")
           return (send(res, 409, { error: "An archived package can no longer be changed." }), true);
-        const { error, fields } = clean(await body(req));
+        const b = await body(req),
+          { error, fields } = clean(b);
         if (error) return (send(res, 400, { error }), true);
+        const before = { instantBooking: pkg.instantBooking, instantAcceptance: pkg.instantAcceptance };
         Object.assign(pkg, fields, { updatedAt: now() });
+        const refused = instantConsent(user, pkg, b);
+        if (refused) {
+          Object.assign(pkg, before);
+          return (send(res, 400, { error: refused }), true);
+        }
         activity(user, `Changed package ${pkg.title}`);
         save();
         return (send(res, 200, { package: own(pkg) }), true);
@@ -288,9 +316,16 @@ module.exports = function createServicePackages(ctx) {
       if (!parts[2] && method === "GET")
         return (send(res, 200, { packages: shop(url.searchParams), categories: categories() }), true);
       const live = pkg && shopList().includes(pkg);
-      if (!live || parts.length !== 3 || method !== "GET")
-        return (send(res, 404, { error: "Package not found" }), true);
-      return (send(res, 200, { package: shopView(pkg) }), true);
+      if (!live) return (send(res, 404, { error: "Package not found" }), true);
+      if (parts.length === 3 && method === "GET") return (send(res, 200, { package: shopView(pkg) }), true);
+      // T262: booking a package into a project
+      if (parts[3] === "book" && parts.length === 4 && method === "POST") {
+        const out = book(user, pkg, await body(req), { earliestStart, weekFull, serves });
+        if (out.error) return (send(res, out.status || 400, { error: out.error }), true);
+        save();
+        return (send(res, 201, { request: out.request }), true);
+      }
+      return (send(res, 404, { error: "Package not found" }), true);
     }
 
     // ---- admin: every package; pause with a reason, or release the pause ----

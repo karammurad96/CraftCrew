@@ -627,7 +627,7 @@ async function rqSupplierOrders() {
       (o.packages || []).length
         ? `<ul class="rq-pkg-list">${o.packages.map((x) => `<li><b><bdi>${esc(x.name)}</bdi></b> · <bdi>${esc(x.category)}</bdi> · ${rqk("pkg.hoursN", { n: x.hours })}</li>`).join("")}</ul>`
         : ""
-    }${o.estimate && waiting ? `<p class="subtle">${rqk("order.estimateNote")}</p>` : ""}${pending ? `<p class="subtle">${rqk("order.priceWaiting", { price: fmt.money(o.proposedAmount) })}</p>` : ""}<dl class="rq-facts"><div><dt>${rqk("field.category")}</dt><dd><bdi>${esc(o.category)}</bdi></dd></div><div><dt>${rqk(
+    }${o.fixed ? `<p class="notice">${rqk("order.packageNote", { n: o.units || 1 })}</p>` : ""}${o.estimate && waiting ? `<p class="subtle">${rqk("order.estimateNote")}</p>` : ""}${pending ? `<p class="subtle">${rqk("order.priceWaiting", { price: fmt.money(o.proposedAmount) })}</p>` : ""}<dl class="rq-facts"><div><dt>${rqk("field.category")}</dt><dd><bdi>${esc(o.category)}</bdi></dd></div><div><dt>${rqk(
       "order.amount",
     )}</dt><dd>${esc(fmt.money(o.amount))}</dd></div><div><dt>${rqk("order.days")}</dt><dd>${rqk("daysN", { n: o.deliveryDays })}</dd></div>${
       waiting

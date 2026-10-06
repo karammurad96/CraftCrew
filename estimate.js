@@ -53,6 +53,8 @@ module.exports = function createEstimate({ getDb, scorecard }) {
       site = geo.geocode(request.sitePostcode || "") || geo.geocode(request.siteCity || ""),
       tasks = db.projects.flatMap((p) => p.phases.flatMap((ph) => ph.tasks || []));
     return db.suppliers
+      // T262: a supplier who declined a package booking is not asked again for it
+      .filter((s) => !(request.excludeSupplierIds || []).includes(s.id))
       .filter((s) => s.live && !["Busy", "Unavailable"].includes(s.availability) && offers(s, pkg.category))
       .filter(
         (s) =>
