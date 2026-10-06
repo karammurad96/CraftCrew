@@ -25,7 +25,7 @@ module.exports = function createSiteContent(ctx) {
     c.pages ||= [];
     c.builtins ||= {};
     c.nav ||= { top: [], footer: [] };
-    c.seo ||= {};
+    c.details ||= {};
     return c;
   };
   const history = () => (getDb().siteHistory ||= []);
@@ -89,6 +89,90 @@ module.exports = function createSiteContent(ctx) {
     }
   }
 
+  /* ---------- T265: own pages, built-in pages, menu and footer, site details ---------- */
+  // Text per language: {en: "…", de: "…"}, registered languages only, English required when `need`
+  function perLang(v, max, need) {
+    const out = {};
+    for (const code of langs()) {
+      const x = text(v?.[code], max);
+      if (x) out[code] = x;
+    }
+    if (need && !out.en) return null;
+    return out;
+  }
+  const PLACES = ["none", "top", "footer"];
+  function checkPage(b, selfId) {
+    const slug = text(b.slug, 60).toLowerCase();
+    if (!SLUG.test(slug)) return { error: "Use lowercase letters, digits and dashes for the address." };
+    if (content().pages.some((p) => p.slug === slug && p.id !== selfId))
+      return { error: "Another page already uses this address." };
+    const title = perLang(b.title, 120, true);
+    if (!title) return { error: "Give the page an English title." };
+    const bodyText = perLang(b.body, 20000, true);
+    if (!bodyText) return { error: "Write the English text of the page." };
+    const status = b.status === "Published" ? "Published" : "Draft",
+      place = PLACES.includes(b.place) ? b.place : "none",
+      order = Number.isInteger(Number(b.order)) ? Math.max(0, Math.min(99, Number(b.order))) : 0,
+      seoTitle = perLang(b.seoTitle, 70, false),
+      seoDescription = perLang(b.seoDescription, 160, false);
+    return { page: { slug, title, body: bodyText, status, place, order, seoTitle, seoDescription } };
+  }
+  // A menu or footer link: a built-in page, an own page, or an address (https://, mailto: or #/)
+  function checkLink(x) {
+    const kind = String(x?.kind || "");
+    const label = perLang(x?.label, 40, false);
+    if (kind === "builtin") {
+      if (![...BUILTINS, "home", "imprint", "privacy", "terms"].includes(x.ref))
+        return { error: "Choose a page of the website for each link." };
+      return { link: { kind, ref: x.ref, label } };
+    }
+    if (kind === "page") {
+      if (!content().pages.some((p) => p.slug === x.ref)) return { error: "Choose a page of the website for each link." };
+      return { link: { kind, ref: x.ref, label } };
+    }
+    if (kind === "link") {
+      const url = text(x.url, 300);
+      if (!/^(https:\/\/[^\s<>"']+|mailto:[^\s<>"']+|#\/[\w\-/?=&.]*)$/.test(url))
+        return { error: "A link must start with https://, mailto: or #/." };
+      if (!label?.en) return { error: "Give every outside link an English label." };
+      return { link: { kind, url, label } };
+    }
+    return { error: "Choose a page of the website for each link." };
+  }
+  function checkNav(b) {
+    const out = {};
+    for (const where of ["top", "footer"]) {
+      const list = Array.isArray(b?.[where]) ? b[where] : [];
+      if (list.length > 12) return { error: "A menu can have up to 12 links." };
+      out[where] = [];
+      for (const x of list) {
+        const { error, link } = checkLink(x);
+        if (error) return { error };
+        out[where].push(link);
+      }
+    }
+    return { nav: out };
+  }
+  function checkBuiltins(b) {
+    const out = {};
+    for (const k of BUILTINS) if (b?.[k] === false) out[k] = false;
+    return out;
+  }
+  function checkDetails(b) {
+    return { title: perLang(b?.title, 70, false), description: perLang(b?.description, 160, false) };
+  }
+  // The public view of one page; drafts only for admins (preview)
+  function pageView(p) {
+    return { slug: p.slug, title: p.title, body: p.body, seoTitle: p.seoTitle, seoDescription: p.seoDescription, status: p.status };
+  }
+  async function handlePublic(req, res, parts, user) {
+    if (parts[1] !== "site-pages" || !parts[2] || parts.length !== 3 || req.method !== "GET") return false;
+    const p = content().pages.find((x) => x.slug === parts[2]);
+    if (!p || (p.status !== "Published" && user?.role !== "admin"))
+      return (send(res, 404, { error: "Page not found" }), true);
+    return (send(res, 200, { page: pageView(p) }), true);
+  }
+
   /* ---------- the published part for the browser ---------- */
   function published() {
     const c = content();
@@ -96,7 +180,7 @@ module.exports = function createSiteContent(ctx) {
       texts: c.texts,
       builtins: c.builtins,
       nav: c.nav,
-      seo: c.seo,
+      details: c.details || {},
       pages: c.pages
         .filter((p) => p.status === "Published")
         .map((p) => ({ slug: p.slug, title: p.title, place: p.place, order: p.order })),
@@ -156,8 +240,57 @@ module.exports = function createSiteContent(ctx) {
       save();
       return (send(res, 200, { lang, key, value }), true);
     }
+    if (parts[3] === "pages" && method === "POST" && parts.length === 4) {
+      const { error, page } = checkPage(await body(req), null);
+      if (error) return (send(res, 400, { error }), true);
+      const p = { id: id("spg"), ...page, createdAt: now(), updatedAt: now() };
+      c.pages.push(p);
+      record(user, "page", { id: p.id, slug: p.slug }, null, p);
+      activity(user, `Website page ${p.slug} created`);
+      save();
+      return (send(res, 201, { page: p }), true);
+    }
+    if (parts[3] === "pages" && parts[4] && parts.length === 5) {
+      const p = c.pages.find((x) => x.id === parts[4]);
+      if (!p) return (send(res, 404, { error: "Page not found" }), true);
+      if (method === "PUT") {
+        const { error, page } = checkPage(await body(req), p.id);
+        if (error) return (send(res, 400, { error }), true);
+        const before = clone(p);
+        // A new address: links to the old one follow
+        if (page.slug !== p.slug)
+          for (const where of ["top", "footer"])
+            for (const l of c.nav[where]) if (l.kind === "page" && l.ref === p.slug) l.ref = page.slug;
+        Object.assign(p, page, { updatedAt: now() });
+        record(user, "page", { id: p.id, slug: p.slug }, before, p);
+        activity(user, `Website page ${p.slug} changed`);
+        save();
+        return (send(res, 200, { page: p }), true);
+      }
+      if (method === "DELETE") {
+        c.pages = c.pages.filter((x) => x.id !== p.id);
+        for (const where of ["top", "footer"]) c.nav[where] = c.nav[where].filter((l) => !(l.kind === "page" && l.ref === p.slug));
+        record(user, "page", { id: p.id, slug: p.slug }, p, null);
+        activity(user, `Website page ${p.slug} deleted`);
+        save();
+        return (send(res, 200, { ok: true }), true);
+      }
+    }
+    const whole = { builtins: checkBuiltins, nav: checkNav, details: checkDetails };
+    if (whole[parts[3]] && parts.length === 4 && method === "PUT") {
+      const area = parts[3],
+        out = whole[area](await body(req));
+      if (out.error) return (send(res, 400, { error: out.error }), true);
+      const value = area === "nav" ? out.nav : out,
+        before = clone(c[area]);
+      c[area] = value;
+      record(user, area, null, before, value);
+      activity(user, `Website ${area} changed`);
+      save();
+      return (send(res, 200, { [area]: value }), true);
+    }
     return false;
   }
 
-  return { handle, serveScript, override, published, checkText, BUILTINS, SLUG };
+  return { handlePublic, handle, serveScript, override, published, checkText, BUILTINS, SLUG };
 };

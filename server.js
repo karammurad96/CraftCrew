@@ -4428,6 +4428,8 @@ async function api(req, res, url) {
       runViesCheck(a).catch((e) => console.error("VIES check failed", e));
       return (send(res, 201, { application: { id: a.id, status: a.status } }), true);
     }
+    // T265: the site editor's own pages are public once published (admins also see drafts)
+    if (await siteContent.handlePublic(req, res, parts, auth(req))) return true;
     if (parts[1] === "platform-config" && method === "GET")
       return (
         send(res, 200, {
