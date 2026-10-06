@@ -369,7 +369,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 **Wave 17 — packages, organigram and the site editor (asked for by Karam on 6 October 2026; details under "Wave 17")**
 - [x] T260 Service packages: suppliers offer ready-made, fixed-price packages ("one team, one week on site") · M · do first
 - [x] T261 Package shop: customers browse and filter the packages (anonymised in brokered mode) · M
-- [ ] T262 Booking a package: project, start date, supplier confirmation or instant booking, contract · M
+- [x] T262 Booking a package: project, start date, supplier confirmation or instant booking, contract · M
 - [ ] T263 Project organigram: the customer at the top, the platform, each supplier with its people, tasks and categories · M
 - [ ] T264 Site editor: every text of the website and the app, per language, changed by an admin · M
 - [ ] T265 Site editor: own pages, built-in pages on or off, menu and footer links, search engine texts · M
@@ -5503,10 +5503,40 @@ Asked for by Karam on 6 October 2026:
    message.
 
 **Done when.**
-- [ ] A booking runs from the form to a contract, an assigned task and the reveal.
-- [ ] Instant booking contracts at once; a clause change switches it off.
-- [ ] A price change on a package booking is refused.
-- [ ] A decline leads to new options without the declining supplier.
+- [x] A booking runs from the form to a contract, an assigned task and the reveal.
+- [x] Instant booking contracts at once; a clause change switches it off.
+- [x] A price change on a package booking is refused.
+- [x] A decline leads to new options without the declining supplier.
+
+**As built (6 October 2026).**
+- **API.** `POST /api/service-packages/:id/book` (customer) takes `projectId`, `startDate`, `units` (1–10),
+  `sitePostcode`, `siteCity`, `notes`, `acceptClause` and `clauseHash`.
+  - It checks the earliest start, the weekly limit (`pkWeekFull`), the region and the clause.
+  - The booking becomes a request through `bookPackage()` in `requests.js`, using T230's `clean()` and
+    `linkProject()`. It has one package (team × days × 8 × units hours) and `servicePackageId` and `booking`
+    (units, unit price, notes).
+  - It is *Chosen* with an option labelled "package" at the package price × units (customer price after T224)
+    and an award with `fixed: true` and one part.
+- **Supplier.** *Platform orders* marks the order as a package booking (`fixed`, `units`). `accept` refuses a
+  different price (`pkFixedPrice`); confirming leads to T233's `finalize()` (contract, task, reveal).
+- **Instant booking.** A package field. Switching it on needs `acceptClause` and the current `clauseHash`;
+  the acceptance is stored on the package (`instantAcceptance`, context `instant-booking`).
+  - While its hash is the current clause's, a booking is confirmed at once and contracted in the same call.
+  - A new clause version makes `instantActive` false: bookings wait, and the supplier sees a notice to accept
+    again.
+- **A decline or expiry** (`packageOut()`). The award ends, the supplier goes into `excludeSupplierIds`
+  (`estimate.js` skips them), and the request goes back to *New*. The instant estimate runs again, so the
+  customer usually gets *Options ready* at once. The customer and the operator are notified.
+- **Pages.**
+  - The package page has the booking form (project, start, units with a running total, site, notes, clause).
+  - The shop marks instant booking.
+  - The supplier's package form has the instant-booking box with the clause.
+- **Tests.** `test/package-booking.test.js`:
+  - the rules;
+  - the full run to contract, task and reveal at the fixed price;
+  - an existing project and a full week;
+  - instant booking and the clause change;
+  - the decline with alternatives.
 
 ### T263 · Project organigram
 `P1 · M`

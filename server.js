@@ -445,6 +445,8 @@ const servicePackages = require("./servicepackages")({
   customerPrice: (a) => requests.customerPrice(a),
   anonymousProfile: (sid) => requests.anonymousProfile(sid),
   platformMode: () => platformMode(),
+  clause: () => clause,
+  book: (...a) => requests.bookPackage(...a),
 });
 const benchmarks = require("./benchmarks")({
   getDb: () => db,

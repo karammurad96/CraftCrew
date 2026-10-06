@@ -555,8 +555,26 @@ module.exports = function createRequests(ctx) {
       `/customer/requests/${r.id}`,
     );
   }
+  // T262: a package booking the supplier declines (or lets expire) goes back to New: the instant estimate looks for
+  // alternatives without that supplier, and the operator is told
+  function packageOut(r, part, reason) {
+    Object.assign(part, { status: "Declined", endedAt: now(), reason });
+    const opt = (r.options || []).find((o) => o.id === r.award.optionId);
+    if (opt) Object.assign(opt, { chosen: false, declined: true });
+    r.awardHistory ||= [];
+    r.awardHistory.push({ ...r.award, status: reason, endedAt: now() });
+    delete r.award;
+    r.excludeSupplierIds = [...new Set([...(r.excludeSupplierIds || []), part.supplierId])];
+    r.options = [];
+    move(r, "New", { role: "admin", id: null }, reason);
+    if (instantOn()) instantEstimate(r);
+    notify(r.customerId, { key: "packageDeclined", params: { title: r.title } }, `/customer/requests/${r.id}`);
+    for (const a of admins())
+      notify(a.id, { key: "packageDeclinedAdmin", params: { title: r.title } }, `/admin/requests/${r.id}`);
+  }
   // A supplier said no (or nothing in time)
   function supplierOut(r, part, reason) {
+    if (r.award.fixed) return packageOut(r, part, reason);
     if (r.award.estimate) replacePart(r, part, reason);
     else releaseAward(r, reason);
     if (r.award) summarize(r);
@@ -714,6 +732,8 @@ module.exports = function createRequests(ctx) {
       startDate: r.startDate,
       dueDate: r.dueDate,
       estimate: !!r.award.estimate,
+      fixed: !!r.award.fixed,
+      units: r.booking?.units || null,
       packages: part.packageIds.map((pid) => {
         const x = r.packages.find((y) => y.id === pid);
         return { name: x?.name || "", category: x?.category || "", hours: x?.hours || 0 };
@@ -733,6 +753,108 @@ module.exports = function createRequests(ctx) {
         : {}),
     };
   }
+  /* ---------- T262: booking a supplier's package ---------- */
+  // A booking is a request with one work package, chosen at once: the supplier confirms (or instant booking
+  // confirms for it), then the usual contract, assignment and reveal follow. Returns {error, status} or {request}.
+  function bookPackage(user, pkg, b, shop) {
+    const units = Number(b.units ?? 1);
+    if (!Number.isInteger(units) || units < 1 || units > 10)
+      return { status: 400, error: "Book 1 to 10 units of the package." };
+    const startDate = String(b.startDate || "");
+    if (!isDate(startDate)) return { status: 400, error: "Choose the start date." };
+    if (startDate < shop.earliestStart(pkg))
+      return { status: 409, error: "This start is too early for the package. Choose a later date." };
+    if (shop.weekFull(pkg, startDate))
+      return { status: 409, error: "The supplier is fully booked that week. Choose a later start." };
+    if (!shop.serves(pkg, b.sitePostcode)) return { status: 400, error: "This package is not offered for that site." };
+    if (b.acceptClause !== true) return { status: 400, error: "Accept the platform contract to confirm." };
+    if (b.clauseHash !== clause.current().hash)
+      return { status: 409, error: "The contract terms changed. Read them again and accept them." };
+    const workDays = pkg.days * units,
+      hours = pkg.teamSize * workDays * 8,
+      notes = text(b.notes, 2000);
+    let due = new Date(startDate + "T00:00:00Z");
+    for (let n = workDays - 1; n > 0; ) {
+      due.setUTCDate(due.getUTCDate() + 1);
+      if (due.getUTCDay() !== 0 && due.getUTCDay() !== 6) n--;
+    }
+    const title = units > 1 ? `${pkg.title} (×${units})` : pkg.title;
+    const { error, fields } = clean(user, {
+      title,
+      description: pkg.description + (notes ? "\n\n" + notes : ""),
+      projectId: b.projectId || "",
+      startDate,
+      dueDate: due.toISOString().slice(0, 10),
+      sitePostcode: b.sitePostcode,
+      siteCity: b.siteCity,
+      packages: [{ name: title, category: pkg.category, hours }],
+    });
+    if (error) return { status: 400, error };
+    const amount = Math.round(pkg.price * units * 100) / 100,
+      r = {
+        id: id("req"),
+        customerId: user.id,
+        customerName: user.name,
+        customerCompany: user.company || "",
+        ...fields,
+        servicePackageId: pkg.id,
+        booking: { units, unitPrice: pkg.price, notes },
+        createdAt: now(),
+      };
+    linkProject(user, r);
+    move(r, "New", user, "Package booking");
+    const opt = {
+      id: id("opt"),
+      label: "package",
+      note: "",
+      supplierId: pkg.supplierId,
+      supplierAmount: amount,
+      price: customerPrice(amount),
+      deliveryDays: workDays,
+      profile: anonymousProfile(pkg.supplierId),
+      attachments: [],
+      chosen: true,
+    };
+    r.options = [opt];
+    const part = newPart({
+      supplierId: pkg.supplierId,
+      packageIds: [r.packages[0].id],
+      hours,
+      estimate: amount,
+      supplierAmount: amount,
+      price: opt.price,
+      days: workDays,
+    });
+    r.award = {
+      optionId: opt.id,
+      estimate: false,
+      fixed: true,
+      customerAcceptance: clause.acceptance(user, "brokered-contract"),
+      status: "Waiting for supplier",
+      offeredAt: now(),
+      parts: [part],
+    };
+    summarize(r);
+    move(r, "Chosen", user, "Package booking");
+    list().unshift(r);
+    const supplierLink = "/supplier/orders",
+      params = { title: pkg.title, date: startDate };
+    // Instant booking: the supplier accepted the current clause for it in advance (T262)
+    if (pkg.instantBooking && pkg.instantAcceptance?.hash === clause.current().hash) {
+      Object.assign(part, {
+        supplierAcceptance: { ...pkg.instantAcceptance, context: "instant-booking" },
+        status: "Confirmed",
+        confirmedAt: now(),
+      });
+      const failed = settle(r);
+      if (failed) return { status: 409, error: failed };
+      for (const u of supplierUsers(pkg.supplierId)) notify(u.id, { key: "packageBookedInstant", params }, supplierLink);
+    } else for (const u of supplierUsers(pkg.supplierId)) notify(u.id, { key: "packageBooked", params }, supplierLink);
+    for (const a of admins()) notify(a.id, { key: "packageBookedAdmin", params }, `/admin/requests/${r.id}`);
+    activity(user, `Booked package ${pkg.title}`);
+    return { request: view(user, r) };
+  }
+
   async function handleOrders(req, res, parts, user) {
     const method = req.method;
     if (user.role !== "supplier" || !user.supplierId)
@@ -766,7 +888,9 @@ module.exports = function createRequests(ctx) {
       );
     // T232: the supplier may confirm the estimate or name its own price, with a reason
     let price = null;
-    if (b.price !== undefined && b.price !== null && b.price !== "") {
+    if (r.award.fixed && b.price !== undefined && b.price !== null && b.price !== "" && Number(b.price) !== part.supplierAmount)
+      return (send(res, 400, { error: "A package has a fixed price. Confirm it or decline." }), true);
+    if (!r.award.fixed && b.price !== undefined && b.price !== null && b.price !== "") {
       price = Math.round(Number(b.price) * 100) / 100;
       if (!Number.isFinite(price) || price <= 0 || price > 100000000)
         return (send(res, 400, { error: "Enter your price in euros." }), true);
@@ -1124,5 +1248,5 @@ module.exports = function createRequests(ctx) {
     return false;
   }
 
-  return { handle, view, move, customerPrice, anonymousProfile, REQUEST_STATUSES };
+  return { handle, view, move, customerPrice, anonymousProfile, bookPackage, REQUEST_STATUSES };
 };

@@ -192,6 +192,13 @@ LOCALES.en = {
     wrongAccount: "This page belongs to another type of account.",
     // API error messages by code (T137): the server sends { error, code, params }; see errorCode() in server.js
     api: {
+      pkUnits: "Book 1 to 10 units of the package.",
+      pkStartDate: "Choose the start date.",
+      pkTooEarly: "This start is too early for the package. Choose a later date.",
+      pkWeekFull: "The supplier is fully booked that week. Choose a later start.",
+      pkNotServed: "This package is not offered for that site.",
+      pkFixedPrice: "A package has a fixed price. Confirm it or decline.",
+      pkInstantAccept: "Accept the platform contract to switch on instant booking.",
       pkGiveTitle: "Give the package a title.",
       pkDescribe: "Describe the package in a few sentences.",
       pkIncludedMax: "List up to 15 things that are included.",
@@ -3665,6 +3672,7 @@ LOCALES.en = {
     "chooseConfirm": "Choose and order",
     "chosen": "Option chosen. The supplier now confirms the order.",
     "order": {
+      packageNote: "Package booking at your fixed price ({n} × the package). Confirm it or decline; the price cannot change.",
       "estimateNote": "This price is an estimate from your price list. Confirm it, or enter your own price with a reason; a higher price goes to the customer for approval.",
       "priceWaiting": "Your price of {price} waits for the customer's approval.",
       "yourPrice": "Your price (€)",
@@ -3694,6 +3702,7 @@ LOCALES.en = {
     },
     "daysN": "{n} days",
     "opt": {
+      package: "Package",
       "fastest": "Fastest",
       "cheapest": "Cheapest",
       "best": "Best quality",
@@ -5269,6 +5278,28 @@ LOCALES.en = {
   },
   // Texts the server sends (T137): notifications, emails and PDFs, in the recipient's language (see locales.js)
   pk: {
+    instantBadge: "Instant booking",
+    instantOutdated: "Instant booking is paused: the platform contract changed. Edit the package and accept the new terms.",
+    instantLabel: "Confirm bookings of this package automatically",
+    instantHint: "Bookings are confirmed at once, without your review. You accept the platform contract below for every such booking.",
+    instantAccept: "I accept the platform contract for every instant booking of this package.",
+    instantAcceptAgain: "Accept the contract again (only needed if it changed).",
+    book: {
+      title: "Book this package",
+      instant: "Instant booking: confirmed as soon as you book.",
+      confirmNote: "The supplier confirms within 3 working days. The price is fixed.",
+      project: "Project",
+      newProject: "New project from this booking",
+      start: "Start date",
+      units: "How many times (for example weeks)",
+      postcode: "Site postcode",
+      city: "Site city",
+      notes: "Notes for the team",
+      notesPh: "Access, contact on site, special conditions",
+      button: "Book for {price}",
+      done: "Booked. The supplier confirms within 3 working days.",
+      doneInstant: "Booked and confirmed.",
+    },
     startFrom: "Start from {date}",
     shop: {
       title: "Packages",
@@ -5307,6 +5338,7 @@ LOCALES.en = {
       reset: "Reset",
     },
     field: {
+      instant: "Instant booking",
       title: "Title",
       category: "Category",
       description: "Description",
@@ -5389,6 +5421,11 @@ LOCALES.en = {
   },
   server: {
     notify: {
+      packageBooked: "A customer booked your package {title} from {date}. Confirm it within 3 working days under Platform orders.",
+      packageBookedInstant: "A customer booked your package {title} from {date}. Instant booking confirmed it; the work is in your projects.",
+      packageBookedAdmin: "New package booking: {title} from {date}.",
+      packageDeclined: "The supplier cannot take your booking {title}. The platform is looking for alternatives.",
+      packageDeclinedAdmin: "A supplier declined the package booking {title}. Check the alternatives.",
       packagePaused: "The platform paused your package {title}: {reason}",
       invoiceSubmitted: "Invoice {number} submitted for review",
       invoiceStatus: "Invoice {number}: {status}",
