@@ -50,6 +50,7 @@ const UI_NAV_ICONS = {
   requests: "requests",
   orders: "offers",
   packages: "catalog",
+  site: "platform",
   applications: "vetting",
   users: "users",
   billing: "billing",

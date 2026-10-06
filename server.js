@@ -456,6 +456,18 @@ const organigram = require("./organigram")({
   projectSupplierIds: (p) => projectSupplierIds(p),
   platformEmail: () => platformEmail(),
 });
+// T264–T267: the site editor; changed texts reach emails, notifications and PDFs through locales.js
+const siteContent = require("./sitecontent")({
+  getDb: () => db,
+  save: () => save(),
+  send: (...a) => send(...a),
+  body: (r) => body(r),
+  id: (p) => id(p),
+  now: () => now(),
+  activity: (...a) => activity(...a),
+  locales,
+});
+locales.setOverride((lang, key) => siteContent.override(lang, key));
 const benchmarks = require("./benchmarks")({
   getDb: () => db,
   send: (...a) => send(...a),
@@ -4464,6 +4476,7 @@ async function api(req, res, url) {
     if (await team.handle(req, res, url, parts, user)) return true;
     if (await gdpr.handle(req, res, url, parts, user)) return true;
     if (await organigram.handle(req, res, url, parts, user)) return true;
+    if (await siteContent.handle(req, res, url, parts, user)) return true;
     // Archived projects are read-only for everyone who can see them.
     if (method !== "GET" && parts[1] === "projects" && parts[2]) {
       const p = projectFor(user, parts[2]);
@@ -8341,6 +8354,8 @@ const server = http.createServer(async (req, res) => {
     }
     return api(req, res, url);
   }
+  // T264: the site editor's published texts and settings, always fresh
+  if (url.pathname === "/site-content.js") return siteContent.serveScript(req, res);
   if (url.pathname.startsWith("/ics/")) {
     if (rateLimited("ics:" + clientIp(req), 120, 3600000)) {
       res.writeHead(429, { "Content-Type": "text/plain; charset=utf-8" });

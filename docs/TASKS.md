@@ -371,7 +371,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T261 Package shop: customers browse and filter the packages (anonymised in brokered mode) · M
 - [x] T262 Booking a package: project, start date, supplier confirmation or instant booking, contract · M
 - [x] T263 Project organigram: the customer at the top, the platform, each supplier with its people, tasks and categories · M
-- [ ] T264 Site editor: every text of the website and the app, per language, changed by an admin · M
+- [x] T264 Site editor: every text of the website and the app, per language, changed by an admin · M
 - [ ] T265 Site editor: own pages, built-in pages on or off, menu and footer links, search engine texts · M
 - [ ] T266 Site editor: an announcement banner · S
 - [ ] T267 Site editor: history, undo, export and import · S
@@ -5606,9 +5606,31 @@ Asked for by Karam on 6 October 2026:
 5. Every change goes to the audit log.
 
 **Done when.**
-- [ ] A changed text shows on the page and in an email in that language; "Back to default" restores it.
-- [ ] A text with a missing or extra placeholder is refused.
-- [ ] `/site-content.js` contains no draft and no admin-only data.
+- [x] A changed text shows on the page and in an email in that language; "Back to default" restores it.
+- [x] A text with a missing or extra placeholder is refused.
+- [x] `/site-content.js` contains no draft and no admin-only data.
+
+**As built (6 October 2026).**
+- **Server (`sitecontent.js`).** `db.siteContent.texts[lang][key]` (PostgreSQL value `siteContent`), changes in
+  `db.siteHistory` (collection `siteHistory`, used by T267).
+  - `GET /api/admin/site` returns everything for the editor.
+  - `PUT /api/admin/site/texts {lang, key, value}` changes a text; `value: null` goes back to the original.
+  - Checks: a registered language; a key that is a text or a list in `en.js`; the same `{placeholders}` as
+    English; at most 5,000 characters; lists of 1–30 lines. Every change goes to the audit log.
+- **Where the texts apply.**
+  - `/site-content.js` is served fresh on every request (`no-store`) as `window.CC_SITE = {…}`, with `<` and
+    line separators escaped. `index.html` loads it right after `core/languages.js`, and `ccLookup()` in
+    `core/t.js` takes a changed text first.
+  - On the server, `locales.js` asks `siteContent.override()` before the locale file, so emails,
+    notifications and PDF labels (`group()` now goes through `text()`) use the changed texts.
+  - API error codes still match the original English messages.
+- **Page.** *Website* (`/admin/site`, admin "More") with tabs; T264 brings *Texts*.
+  - Choose the language and area, search keys, changed texts and originals, and show only changed texts.
+  - Each text shows its original, its placeholders and Save / "Back to the original". Lists are one line per
+    item.
+  - The admin's own pages show a change at once.
+- **Tests.** `test/site-texts.test.js`: a change per language reaches `/site-content.js`, and the reset; every
+  check; script escaping; admin only; a changed notification text; the script order in `index.html`.
 
 ### T265 · Site editor: pages, navigation and search engine texts
 `P1 · M · depends on T264`

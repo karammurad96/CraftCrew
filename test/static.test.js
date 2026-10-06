@@ -28,7 +28,8 @@ describe("static assets", () => {
     const html = readFileSync(path.join(PUBLIC, "index.html"), "utf8");
     const refs = [...html.matchAll(/(?:href|src)="([^"#:]+)"/g)].map((m) => m[1].split("?")[0]);
     assert.ok(refs.length > 10);
-    for (const r of refs) assert.ok(existsSync(path.join(PUBLIC, r)), `missing ${r}`);
+    // site-content.js is made by the server from the site editor's data (T264)
+    for (const r of refs.filter((x) => x !== "site-content.js")) assert.ok(existsSync(path.join(PUBLIC, r)), `missing ${r}`);
     assert.doesNotMatch(html, /fonts\.googleapis|unpkg\.com/, "no third-party assets");
   });
   it("the Docker image includes every server module", () => {

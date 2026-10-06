@@ -62,7 +62,10 @@ function langSyncAccount() {
     .catch(() => {});
 }
 const ccMissingKeys = new Set();
+// T264: a text the admin changed in the site editor (site-content.js) comes before the locale file's
 function ccLookup(lang, key) {
+  const changed = typeof window !== "undefined" ? window.CC_SITE?.texts?.[lang]?.[key] : undefined;
+  if (changed !== undefined) return changed;
   return key.split(".").reduce((node, part) => (node && typeof node === "object" ? node[part] : undefined), (window.LOCALES || {})[lang]);
 }
 // {brand} is the product's name (core/brand.js, T171) unless the caller passes its own.
