@@ -1247,3 +1247,5 @@ ul.ff-check-list.pk-included { min-height: 0; gap: 4px; }
 .se-change small { color: var(--muted, #5b6b80); overflow-wrap: anywhere; }
 .se-diff span { font-weight: 600; }
 .se-file { cursor: pointer; }
+/* Links inside a notice are underlined, so they stand out from the text without relying on colour (WCAG 1.4.1) */
+.notice a { text-decoration: underline; }

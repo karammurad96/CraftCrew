@@ -53,6 +53,21 @@ accounts and drives eight requests through the real API, so every stage can be t
 The generated demo suppliers sign in as `sup_0NN@craftcrew.demo` / `demo123`. Send a new request as any
 customer to see the estimate appear at once.
 
+**Packages, organigram and the site editor (Wave 17).**
+- **Packages.** Four suppliers offer fixed-price packages (*Packages* for customers, *My packages* for
+  suppliers, *Packages* for the admin under "More"):
+  - *Commissioning team, one week on site* (Keller), with instant booking: Maya's booking was contracted at
+    once.
+  - *PLC programmer from the next working day* (Nordwind): Tobias's booking was confirmed by the supplier.
+  - *Electrical installation crew, two weeks* (Donau): Lena's booking waits under *Platform orders* for
+    `supplier2.demo`. Confirm or decline it.
+  - *Maintenance team, weekend shift* (Alpen): declined, so Tobias's request shows alternative options.
+- **Organigram.** Open a project's *Organisation* tab. *Hall C conveyor extension* (Maya) shows Maya's team
+  member Alex Neumann (`team.demo@craftcrew.local`, `CraftCrew2026!`), two suppliers, and Donau's planned
+  electricians.
+- **Site editor.** *Website* (admin, "More") has a changed footer text, an "About us" page in the footer and a
+  banner for visitors. Try the texts, pages, menu, banner and the history with undo.
+
 To see the marketplace instead, switch *Platform management → How customers find suppliers → Marketplace*.
 
 Seeded data lives in `data/db.json`; uploaded files live under `data/uploads`. For a fresh local demo, stop the server and remove `data/db.json` and `data/uploads`. The server recreates demo data at startup.

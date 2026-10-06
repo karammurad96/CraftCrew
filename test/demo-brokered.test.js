@@ -30,7 +30,7 @@ async function demo(dataDir) {
   // A failed start is stopped, so the test ends instead of waiting for the server
   await new Promise((resolve, reject) => {
     const fail = (message) => (clearTimeout(timer), proc.kill(), reject(new Error(message)));
-    const timer = setTimeout(() => fail("demo data not created in time:\n" + out), 30000);
+    const timer = setTimeout(() => fail("demo data not created in time:\n" + out), 60000);
     const check = (d) => {
       out += d;
       if (/brokered requests seeded/.test(out)) (clearTimeout(timer), resolve());
@@ -51,7 +51,8 @@ describe("brokered demo data", () => {
       await stop(app.proc);
       const db = JSON.parse(readFileSync(path.join(dataDir, "db.json"), "utf8"));
       // Wave 15: eight manual stages; Wave 15b: an estimate, a split waiting on a price, a split contracted
-      assert.deepEqual(db.requests.map((r) => r.status).sort(), [
+      const bookings = db.requests.filter((r) => r.servicePackageId);
+      assert.deepEqual(db.requests.filter((r) => !r.servicePackageId).map((r) => r.status).sort(), [
         "Chosen",
         "Chosen",
         "Closed",
@@ -64,11 +65,24 @@ describe("brokered demo data", () => {
         "Sourcing",
         "Withdrawn",
       ]);
+      // Wave 17 (T268): four packages, bookings waiting, contracted (confirmed and instant) and declined
+      assert.equal(db.servicePackages.filter((p) => p.status === "Active").length, 4);
+      assert.ok(db.servicePackages.some((p) => p.instantBooking));
+      assert.deepEqual(
+        bookings.map((r) => r.status).sort(),
+        ["Chosen", "Contracted", "Contracted", "Options ready"],
+      );
+      assert.ok(bookings.find((r) => r.status === "Options ready").excludeSupplierIds.length, "a declined booking");
+      assert.equal(db.planEntries.filter((e) => e.type === "assignment").length >= 2, true, "people planned on a project");
+      assert.ok(db.users.some((u) => u.email === "team.demo@craftcrew.local" && u.orgOwnerId));
+      assert.equal(db.siteContent.pages[0].slug, "about-us");
+      assert.equal(db.siteContent.banner.audience, "visitors");
+      assert.equal(db.siteContent.texts.en["ui.footer.claim"], "Vetted industrial crews, booked in days.");
       const hall = db.requests.find((r) => r.title === "Hall C conveyor extension");
       assert.equal(hall.suppliers.length, 2, "a split request contracted with two suppliers");
       const upgrade = db.requests.find((r) => r.title === "Packaging line upgrade");
       assert.deepEqual(upgrade.award.parts.map((p) => p.status).sort(), ["Confirmed", "Price changed"]);
-      assert.equal(db.introductions.length, 3);
+      assert.equal(db.introductions.length, 4, "three from Wave 15b, one new pair from a package booking");
       assert.ok(db.contracts.some((c) => c.brokered && c.status === "Active"));
       for (const email of [
         "operator.demo@craftcrew.local",
@@ -91,7 +105,8 @@ describe("brokered demo data", () => {
       await new Promise((r) => setTimeout(r, 3000));
       await stop(proc);
       const again = JSON.parse(readFileSync(path.join(dataDir, "db.json"), "utf8"));
-      assert.equal(again.requests.length, 11);
+      assert.equal(again.requests.length, 15);
+      assert.equal(again.servicePackages.length, 4);
       assert.equal(again.users.length, db.users.length);
     } finally {
       rmSync(dataDir, { recursive: true, force: true });

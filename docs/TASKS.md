@@ -375,7 +375,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T265 Site editor: own pages, built-in pages on or off, menu and footer links, search engine texts · M
 - [x] T266 Site editor: an announcement banner · S
 - [x] T267 Site editor: history, undo, export and import · S
-- [ ] T268 Demo data for packages and the organigram · S · last task of the wave
+- [x] T268 Demo data for packages and the organigram · S · last task of the wave
 
 ---
 
@@ -5779,7 +5779,26 @@ Asked for by Karam on 6 October 2026:
 5. The README lists what to try.
 
 **Done when.**
-- [ ] `test/demo-brokered.test.js` (or a new demo test) checks the new demo data.
+- [x] `test/demo-brokered.test.js` (or a new demo test) checks the new demo data.
+
+**As built (6 October 2026).**
+- **`demo-brokered.js`.**
+  - `wave17Accounts()` (before the server listens, flag `wave17DemoAccountsV1`) adds Maya's team member Alex
+    Neumann (`team.demo@craftcrew.local`, view access to projects).
+  - `wave17Journeys()` (after the Wave 15 and 15b journeys, flag `wave17DemoV1`) goes through the real API:
+    - **Four packages:** Keller's commissioning week with instant booking, Nordwind's PLC programmer from the
+      next working day, Donau's two-week electrical crew, and Alpen's weekend maintenance shift.
+    - **Four bookings:** Lena's waits for Donau; Tobias's PLC booking is confirmed; Maya's is contracted at
+      once; Tobias's maintenance booking is declined and gets alternatives.
+    - **Organigram:** two Donau electricians (workers) planned on Donau's task of *Hall C conveyor
+      extension*.
+    - **Site editor:** an "About us" page in the footer (English and German), a banner for visitors linking
+      to the sign-up, and a changed English footer claim.
+- **README.** The demo section lists what to try.
+- **Tests.** `test/demo-brokered.test.js` checks the packages, the four booking stages, the planned people, the
+  team member and the site editor content. A restart adds nothing. The demo start may take up to 60 s.
+- **Found on the way.** A contracted single-supplier request showed its "Open project" link in a notice
+  without an underline (axe `link-in-text-block`). Links in notices are now underlined.
 
 ---
 
