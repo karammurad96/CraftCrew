@@ -149,6 +149,7 @@ async function dirPage(params, query) {
       onlyShortlist: query.get("shortlist") === "1",
       sort: query.get("sort") || "relevance",
       view: query.get("view") || "grid",
+      level: ["listed", "registered", "vetted"].includes(query.get("level")) ? query.get("level") : "",
     },
     customer = state.user?.role === "customer",
     // Certification and region filters run on the server (T62); the rest filters this list
@@ -158,7 +159,7 @@ async function dirPage(params, query) {
     [directory, shortlist] = await Promise.all([api("/suppliers?" + serverQuery), customer ? dirLoadShortlist() : []]),
     all = directory.suppliers || [],
     tokens = reviewTokens(v.q);
-  const rows = all
+  const beforeLevel = all
     .filter((s) => !tokens.length || reviewScore(s, v.q) > 0)
     .filter(
       (s) =>
@@ -173,7 +174,12 @@ async function dirPage(params, query) {
         dirInCategory(s, v.cat, v.sub) &&
         (!v.minExperience || Number(s.experience) >= Number(v.minExperience)) &&
         (!v.onlyShortlist || shortlist.includes(s.id)),
-    )
+    ),
+    // T190: the counts per level ignore the level filter itself
+    levelCounts = { listed: 0, registered: 0, vetted: 0 };
+  for (const s of beforeLevel) levelCounts[dirLevel(s)]++;
+  const rows = beforeLevel
+    .filter((s) => !v.level || dirLevel(s) === v.level)
     .sort((a, b) =>
       v.sort === "price"
         ? Number(a.hourlyRate) - Number(b.hourlyRate)
@@ -187,20 +193,34 @@ async function dirPage(params, query) {
           ? Number(b.rating) - Number(a.rating)
           : v.sort === "experience"
             ? Number(b.experience) - Number(a.experience)
-            : reviewScore(b, v.q) - reviewScore(a, v.q),
+            : dirLevelRank(b) - dirLevelRank(a) || reviewScore(b, v.q) - reviewScore(a, v.q),
     );
-  const html = `<div class="cc-page"><div class="page-head"><div><div class="eyebrow">${dirk("eyebrow")}</div><h1>${dirk("title")}</h1><p>${dirk("intro")}</p></div></div>${dirCategoryBar(v, all)}${dirFilters(v, all, directory.certifications || [], customer)}<div class="review-directory-toolbar"><span>${esc(t.plural("dir.found", rows.length))}</span><div class="cc-actions">${["grid", "list", "map"]
+  const html = `<div class="cc-page"><div class="page-head"><div><div class="eyebrow">${dirk("eyebrow")}</div><h1>${dirk("title")}</h1><p>${dirk("intro")}</p></div></div>${dirCategoryBar(v, all)}${dirFilters(v, all, directory.certifications || [], customer, levelCounts)}<div class="review-directory-toolbar"><span>${esc(t.plural("dir.found", rows.length))}</span><div class="cc-actions">${["grid", "list", "map"]
     .map((x) => `<button class="btn small ${v.view === x ? "primary" : "outline"}" data-action="dir.view" data-view="${x}">${dirk("view." + x)}</button>`)
     .join("")}</div></div>${directory.region && !directory.region.found ? `<div class="notice" role="status">${dirk("region")}</div>` : ""}${dirListing(rows, v.view, customer, shortlist)}${dirBarHtml()}</div>`;
   app.innerHTML = customer ? dashboardShell("customer", "suppliers", html) : publicLayout(html);
   if (v.view === "map") dirMap(rows);
 }
-function dirFilters(v, all, certifications, customer) {
+// T190: the level of a supplier, its rank in the default order (vetted first) and its label on a card
+const dirLevel = (s) => (["listed", "registered", "vetted"].includes(s.level) ? s.level : "vetted");
+const dirLevelRank = (s) => ({ vetted: 2, registered: 1, listed: 0 })[dirLevel(s)];
+function dirLevelLabel(s) {
+  const lv = dirLevel(s);
+  if (lv === "vetted") return s.badge && s.badge !== "None" ? dirk("level.vettedBadge", { badge: t("common.badge." + s.badge) }) : dirk("level.vetted");
+  return dirk("level." + lv);
+}
+// "Source: EU public procurement (TED), notice …" for a listed company
+function dirSourceLine(s) {
+  if (!s.source) return "";
+  const text = s.source.register === "TED" ? dirk("source.TED", { notice: s.source.notice || "" }) : dirk("source.other", { register: s.source.register || "" });
+  return `<small class="dir-source">${text}</small>`;
+}
+function dirFilters(v, all, certifications, customer, levelCounts = {}) {
   const opt = (value, label, on) => `<option value="${esc(value)}"${on ? " selected" : ""}>${label}</option>`,
     services = [...new Set(all.flatMap((s) => s.services || []))].sort(),
     countries = [...new Set(all.map((s) => (s.location || "").split(",").at(-1).trim()).filter(Boolean))].sort(),
     more = v.certs.length || v.near || v.onlyShortlist || v.country || v.minRating || v.maxRate || v.minRate || v.minExperience || v.minProjects;
-  return `<form id="ccSupplierSearch" class="cc-supplier-filters" data-action="dir.search"><label class="cc-search-wide">${dirk("f.search")}<input id="ccSq" value="${esc(v.q)}" placeholder="${dirk("f.searchHint")}"></label><label>${dirk("f.service")}<select id="ccSs">${opt("", esc(t("dir.f.allServices")))}${services.map((s) => opt(s, esc(s), s === v.service)).join("")}</select></label><label>${dirk("f.badge")}<select id="ccSb">${opt("", dirk("f.allBadges"))}${["Gold", "Silver", "Bronze"].map((s) => opt(s, esc(t("common.badge." + s)), s === v.badge)).join("")}</select></label><label class="cc-check-label"><input id="ccSa" type="checkbox"${v.available ? " checked" : ""}> ${dirk("f.available")}</label><button class="btn primary">${dirk("f.go")}</button><details class="cc-advanced-filters"${more ? " open" : ""}><summary>${dirk("f.more")}</summary><div class="cc-advanced-grid"><label>${dirk("f.country")}<select id="ccCountry">${opt("", esc(t("dir.f.anyLocation")))}${countries.map((s) => opt(s, esc(s), s === v.country)).join("")}</select></label><label>${dirk("f.rating")}<select id="ccRating">${opt("", dirk("f.anyRating"))}${["3", "3.5", "4", "4.5"].map((s) => opt(s, s, s === v.minRating)).join("")}</select></label><label>${dirk("f.minRate")}<input id="ccMinRate" type="number" min="0" value="${esc(v.minRate)}" placeholder="${dirk("f.rateHint")}"></label><label>${dirk("f.maxRate")}<input id="ccRate" type="number" min="0" value="${esc(v.maxRate)}" placeholder="${dirk("f.rateHint")}"></label><label>${dirk("f.projects")}<input id="ccProjects" type="number" min="0" value="${esc(v.minProjects)}" placeholder="0"></label><label>${dirk("f.experience")}<input id="ccExperience" type="number" min="0" value="${esc(v.minExperience)}" placeholder="${dirk("f.years")}"></label><label>${dirk("f.near")}<input id="ccNear" value="${esc(v.near)}" placeholder="${dirk("f.nearHint")}"></label><label>${dirk("f.radius")}<select id="ccRadius">${["25", "50", "100", "200", "500"].map((r) => opt(r, dirk("f.km", { n: r }), r === v.radius)).join("")}</select></label>${customer ? `<label class="cc-check-label"><input id="ccShortlistOnly" type="checkbox"${v.onlyShortlist ? " checked" : ""}> ${dirk("f.shortlist")}</label>` : ""}<fieldset class="dir-certs"><legend>${dirk("f.certs")}</legend>${[...new Set([...certifications, ...v.certs])]
+  return `<form id="ccSupplierSearch" class="cc-supplier-filters" data-action="dir.search"><label class="cc-search-wide">${dirk("f.search")}<input id="ccSq" value="${esc(v.q)}" placeholder="${dirk("f.searchHint")}"></label><label>${dirk("f.service")}<select id="ccSs">${opt("", esc(t("dir.f.allServices")))}${services.map((s) => opt(s, esc(s), s === v.service)).join("")}</select></label><label>${dirk("f.badge")}<select id="ccSb">${opt("", dirk("f.allBadges"))}${["Gold", "Silver", "Bronze"].map((s) => opt(s, esc(t("common.badge." + s)), s === v.badge)).join("")}</select></label><label>${dirk("f.level")}<select id="ccSl">${opt("", dirk("f.allLevels"))}${["listed", "registered", "vetted"].map((l) => opt(l, dirk("f.levelOption", { label: dirk("level.short." + l), n: levelCounts[l] || 0 }), l === v.level)).join("")}</select></label><label class="cc-check-label"><input id="ccSa" type="checkbox"${v.available ? " checked" : ""}> ${dirk("f.available")}</label><button class="btn primary">${dirk("f.go")}</button><details class="cc-advanced-filters"${more ? " open" : ""}><summary>${dirk("f.more")}</summary><div class="cc-advanced-grid"><label>${dirk("f.country")}<select id="ccCountry">${opt("", esc(t("dir.f.anyLocation")))}${countries.map((s) => opt(s, esc(s), s === v.country)).join("")}</select></label><label>${dirk("f.rating")}<select id="ccRating">${opt("", dirk("f.anyRating"))}${["3", "3.5", "4", "4.5"].map((s) => opt(s, s, s === v.minRating)).join("")}</select></label><label>${dirk("f.minRate")}<input id="ccMinRate" type="number" min="0" value="${esc(v.minRate)}" placeholder="${dirk("f.rateHint")}"></label><label>${dirk("f.maxRate")}<input id="ccRate" type="number" min="0" value="${esc(v.maxRate)}" placeholder="${dirk("f.rateHint")}"></label><label>${dirk("f.projects")}<input id="ccProjects" type="number" min="0" value="${esc(v.minProjects)}" placeholder="0"></label><label>${dirk("f.experience")}<input id="ccExperience" type="number" min="0" value="${esc(v.minExperience)}" placeholder="${dirk("f.years")}"></label><label>${dirk("f.near")}<input id="ccNear" value="${esc(v.near)}" placeholder="${dirk("f.nearHint")}"></label><label>${dirk("f.radius")}<select id="ccRadius">${["25", "50", "100", "200", "500"].map((r) => opt(r, dirk("f.km", { n: r }), r === v.radius)).join("")}</select></label>${customer ? `<label class="cc-check-label"><input id="ccShortlistOnly" type="checkbox"${v.onlyShortlist ? " checked" : ""}> ${dirk("f.shortlist")}</label>` : ""}<fieldset class="dir-certs"><legend>${dirk("f.certs")}</legend>${[...new Set([...certifications, ...v.certs])]
     .map((c) => `<label class="cc-check-label"><input type="checkbox" name="ccCerts" value="${esc(c)}"${v.certs.includes(c) ? " checked" : ""}> ${dirDom(c)}</label>`)
     .join("")}</fieldset><label>${dirk("f.sort")}<select id="ccSort">${[
     ["relevance", "sortRelevance"],
@@ -218,19 +238,23 @@ function dirCard(s, customer, shortlist) {
   const href = `#${dirBase()}/${encodeURIComponent(s.id)}`,
     picked = dirSelected().includes(s.id),
     starred = shortlist.includes(s.id);
-  return `<article class="supplier-card review-supplier-card" data-supplier-id="${esc(s.id)}"><div class="supplier-top"><div class="supplier-avatar">${esc(s.avatar || "CC")}</div><div><h3>${esc(s.company)}</h3><small>${dirDom(s.location || "")}</small></div><span class="badge ${esc((s.badge || "none").toLowerCase())}">${esc(ccBadge(s))}</span></div><p>${(s.services || [])
+  return `<article class="supplier-card review-supplier-card" data-supplier-id="${esc(s.id)}"><div class="supplier-top"><div class="supplier-avatar">${esc(s.avatar || "CC")}</div><div><h3>${esc(s.company)}</h3><small>${dirDom(s.location || "")}</small></div><span class="badge level-${dirLevel(s)}">${dirLevelLabel(s)}</span></div><p>${(s.services || [])
     .slice(0, 4)
     .map((x) => `<span class="chip">${esc(x)}</span>`)
-    .join("")}</p><div class="supplier-meta">${dirk("meta", {
-    rating: Number(s.rating || 0).toFixed(1),
-    projects: s.projectsCompleted || 0,
-    years: s.experience || 0,
-    rate: fmt.money(s.hourlyRate || 0),
-  })}</div>${dirReliability(s)}<div class="dir-picks"><label class="cc-check-label"><input type="checkbox" class="dir-compare" value="${esc(s.id)}"${picked ? " checked" : ""} data-action="dir.compare"> ${dirk("pick.compare")}</label>${
+    .join("")}</p>${
+    dirLevel(s) === "listed"
+      ? dirSourceLine(s)
+      : `<div class="supplier-meta">${dirk("meta", {
+          rating: Number(s.rating || 0).toFixed(1),
+          projects: s.projectsCompleted || 0,
+          years: s.experience || 0,
+          rate: fmt.money(s.hourlyRate || 0),
+        })}</div>${dirReliability(s)}`
+  }<div class="dir-picks"><label class="cc-check-label"><input type="checkbox" class="dir-compare" value="${esc(s.id)}"${picked ? " checked" : ""} data-action="dir.compare"> ${dirk("pick.compare")}</label>${
     customer
       ? `<button type="button" class="btn small outline dir-star" aria-pressed="${starred}" data-action="dir.star" data-id="${esc(s.id)}">${dirk(starred ? "pick.starOn" : "pick.starOff")}</button>`
       : ""
-  }</div><div class="cc-actions"><a class="btn small outline" href="${href}">${dirk("viewProfile")}</a>${customer ? `<a class="btn small primary" href="${href}">${dirk("requestQuote")}</a>` : ""}</div></article>`;
+  }</div><div class="cc-actions"><a class="btn small outline" href="${href}">${dirk("viewProfile")}</a>${customer && dirLevel(s) !== "listed" ? `<a class="btn small primary" href="${href}">${dirk("requestQuote")}</a>` : ""}</div></article>`;
 }
 function dirListing(rows, view, customer, shortlist) {
   const cards = rows.map((s) => dirCard(s, customer, shortlist)).join("");
@@ -281,6 +305,7 @@ actions.on("dir.search", (form) => {
       q: val("ccSq"),
       service: val("ccSs"),
       badge: val("ccSb"),
+      level: val("ccSl"),
       available: form.querySelector("#ccSa").checked ? "1" : "0",
       country: val("ccCountry"),
       rating: val("ccRating"),
@@ -482,8 +507,10 @@ async function dirProfile(params) {
     p = (key, params) => dirk("p." + key, params),
     catalog = s.serviceCatalog || [],
     certs = s.certifications || [],
+    // T190: a listed company has no account, so nothing can be requested from it
+    listed = s.level === "listed",
     ask = (kind, name, label, cls = "btn small primary") =>
-      `<button class="${cls}" data-action="dir.ask" data-kind="${kind}" data-supplier="${esc(s.id)}" data-name="${esc(name)}">${label}</button>`;
+      listed ? "" : `<button class="${cls}" data-action="dir.ask" data-kind="${kind}" data-supplier="${esc(s.id)}" data-name="${esc(name)}">${label}</button>`;
   const serviceRows = catalog.length
     ? catalog
         .map(
@@ -504,12 +531,12 @@ async function dirProfile(params) {
     services = `<section class="panel"><div class="panel-title"><div><h2>${p("services")}</h2><small>${p("servicesIntro")}</small></div></div><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>${p("colService")}</th><th>${p("colScope")}</th><th>${p("colRate")}</th><th>${p("colCapacity")}</th><th></th></tr></thead><tbody>${serviceRows}</tbody></table></div></section>`,
     // Certificates follow the reliability panel, or the services when there is none
     documents = docs ? dirDocsPanel(docs, { supplierId: customer ? id : "" }) : "";
-  const html = `<div class="cc-page"><a class="btn small outline review-back" href="#${dirBase()}">${p("back")}</a><div class="supplier-profile-head"><div class="supplier-avatar large">${esc(s.avatar || "CC")}</div><div><div class="eyebrow">${p("eyebrow")}</div><h1>${esc(s.company)}</h1><p>${s.location ? dirDom(s.location) : p("noLocation")} · ${s.availability ? statusHtml(s.availability) : p("availability")}</p></div><span class="badge ${esc((s.badge || "none").toLowerCase())}">${esc(ccBadge(s))}</span>${preferred}</div><div class="health"><div class="cc-card"><span class="cc-label">${p("team")}</span><b>${p("teamValue", { n: Number(s.employees) || 0, people: (s.teamMembers || []).length })}</b></div><div class="cc-card"><span class="cc-label">${p("experience")}</span><b>${p("experienceValue", { years: Number(s.experience) || 0, projects: Number(s.projectsCompleted) || 0 })}</b></div><div class="cc-card"><span class="cc-label">${p("rates")}</span><b>${p("ratesValue", { hourly: fmt.money(s.hourlyRate || 0), project: fmt.money(s.projectRate || 0) })}</b></div></div>${
+  const html = `<div class="cc-page"><a class="btn small outline review-back" href="#${dirBase()}">${p("back")}</a><div class="supplier-profile-head"><div class="supplier-avatar large">${esc(s.avatar || "CC")}</div><div><div class="eyebrow">${p("eyebrow")}</div><h1>${esc(s.company)}</h1><p>${s.location ? dirDom(s.location) : p("noLocation")} · ${s.availability ? statusHtml(s.availability) : p("availability")}</p></div><span class="badge level-${dirLevel(s)}">${dirLevelLabel(s)}</span>${preferred}</div>${listed ? `<div class="notice" role="status">${dirSourceLine(s)}</div>` : ""}<div class="health"><div class="cc-card"><span class="cc-label">${p("team")}</span><b>${p("teamValue", { n: Number(s.employees) || 0, people: (s.teamMembers || []).length })}</b></div><div class="cc-card"><span class="cc-label">${p("experience")}</span><b>${p("experienceValue", { years: Number(s.experience) || 0, projects: Number(s.projectsCompleted) || 0 })}</b></div><div class="cc-card"><span class="cc-label">${p("rates")}</span><b>${p("ratesValue", { hourly: fmt.money(s.hourlyRate || 0), project: fmt.money(s.projectRate || 0) })}</b></div></div>${
     reliability ? reliability + documents + services : services + documents
   }<div class="supplier-profile-grid"><section class="cc-card"><h2>${p("about")}</h2><p>${s.description ? dirDom(s.description) : p("aboutFallback")}</p><h3>${p("certs")}</h3><div>${
     certs.map((x) => `<span class="chip">${esc(x)}</span>${customer ? " " + ask("evidence", x, p("requestProof"), "btn small outline") : ""}`).join("") ||
     `<p class="muted">${p("noCerts")}</p>`
-  }</div>${customer ? `<button class="btn small outline dir-evidence" data-action="dir.ask" data-kind="evidence" data-supplier="${esc(s.id)}" data-name="">${p("requestEvidence")}</button>` : ""}</section><section class="cc-card"><h2>${p("delivery")}</h2>${
+  }</div>${customer && !listed ? `<button class="btn small outline dir-evidence" data-action="dir.ask" data-kind="evidence" data-supplier="${esc(s.id)}" data-name="">${p("requestEvidence")}</button>` : ""}</section><section class="cc-card"><h2>${p("delivery")}</h2>${
     (s.teamMembers || [])
       .map((m) => `<div class="team-row"><b>${esc(m.name)}</b><span>${dirDom(m.role || "")}</span><small>${dirDom(m.experience || "")} · ${dirDom(m.certifications || "")}</small></div>`)
       .join("") || `<p class="muted">${p("noTeam")}</p>`

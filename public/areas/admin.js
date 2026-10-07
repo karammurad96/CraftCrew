@@ -233,12 +233,14 @@ actions.on("adm.change", async (el) => {
 
 /* ---------- Users, badges, access and pending deletions ---------- */
 async function adminUsers() {
-  const [{ users = [] }, { suppliers = [] }] = await Promise.all([api("/admin/users"), api("/admin/suppliers")]),
+  // T190: the same "Level" filter as the directory, with the counts per level
+  const level = new URLSearchParams(location.hash.split("?")[1] || "").get("level") || "",
+    [{ users = [] }, { suppliers = [], levels = {} }] = await Promise.all([api("/admin/users"), api("/admin/suppliers" + (level ? "?level=" + encodeURIComponent(level) : ""))]),
     f = (key, params) => adk("users." + key, params),
     pending = users.filter((u) => u.deleteAfter && u.status !== "Deleted");
   const supplierRow = (s) => {
     const account = users.find((u) => u.supplierId === s.id);
-    return `<tr><td><b>${esc(s.company)}</b><small>${f(s.live ? "live" : "notLive")}</small></td><td>${s.location ? adDom(s.location) : "—"}</td><td>${account ? esc(account.email) : f("noAccount")}</td><td>${esc(
+    return `<tr><td><b>${esc(s.company)}</b><small>${f(s.live ? "live" : "notLive")} · ${esc(t("dir.level.short." + (s.level || (s.live ? "vetted" : "registered"))))}</small></td><td>${s.location ? adDom(s.location) : "—"}</td><td>${account ? esc(account.email) : f("noAccount")}</td><td>${esc(
       ccBadge(s),
     )}</td><td><select aria-label="${f("badgeFor", { company: s.company })}" data-action="adm.badge" data-id="${esc(s.id)}">${["None", "Bronze", "Silver", "Gold"]
       .map((x) => `<option value="${x}" ${x === (s.badge || "None") ? "selected" : ""}>${x === "None" ? f("noBadge") : esc(t("common.badge." + x))}</option>`)
@@ -267,7 +269,9 @@ async function adminUsers() {
     "users",
     [
       `<div class="dash-top"><div><h1>${f("title")}</h1><p>${f("lead")}</p></div></div>`,
-      `<section class="panel"><div class="panel-title"><h3>${f("badges")}</h3><span>${esc(t.plural("adm.users.suppliers", suppliers.length))}</span></div><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>${f("supplier")}</th><th>${f(
+      `<section class="panel"><div class="panel-title"><h3>${f("badges")}</h3><span>${esc(t.plural("adm.users.suppliers", suppliers.length))}</span></div><label class="cc-inline-filter">${f("level")} <select data-action="adm.level"><option value="">${f("allLevels")}</option>${["listed", "registered", "vetted"]
+        .map((l) => `<option value="${l}"${l === level ? " selected" : ""}>${esc(f("levelOption", { label: t("dir.level.short." + l), n: levels[l] || 0 }))}</option>`)
+        .join("")}</select></label><div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>${f("supplier")}</th><th>${f(
         "location",
       )}</th><th>${f("account")}</th><th>${f("currentBadge")}</th><th>${f("changeBadge")}</th></tr></thead><tbody>${suppliers.map(supplierRow).join("") || `<tr><td colspan="5">${f("noSuppliers")}</td></tr>`}</tbody></table></div></section>`,
       `<section class="panel" id="gdPending"><div class="panel-title"><h3>${f("deletions")}</h3><span>${pending.length}</span></div>${
@@ -284,6 +288,9 @@ async function adminUsers() {
       .join(""),
   );
 }
+actions.on("adm.level", (sel) => {
+  location.hash = "#/admin/users" + (sel.value ? "?level=" + encodeURIComponent(sel.value) : "");
+});
 actions.on("adm.badge", async (sel) => {
   try {
     await api(`/admin/suppliers/${encodeURIComponent(sel.dataset.id)}/badge`, { method: "PATCH", body: { badge: sel.value } });

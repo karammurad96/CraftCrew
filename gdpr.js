@@ -285,7 +285,7 @@ module.exports = function createGdpr(ctx) {
       const s = (db.suppliers || []).find((x) => x.id === u.supplierId);
       if (s) {
         for (const k of Object.keys(s)) if (!["id", "createdAt"].includes(k)) delete s[k];
-        Object.assign(s, { company: "Deleted supplier", live: false, verified: false, status: "Deleted", services: [], certifications: [], reviews: [] });
+        Object.assign(s, { company: "Deleted supplier", live: false, level: "registered", verified: false, status: "Deleted", services: [], certifications: [], reviews: [] });
       }
       for (const w of db.workers || [])
         if (w.supplierId === u.supplierId) {

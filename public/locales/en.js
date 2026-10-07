@@ -585,6 +585,8 @@ LOCALES.en = {
       attachUpToFiveFiles: "Attach up to five files",
       thisBidRoundIsNo: "This bid round is no longer accepting offers",
       onlyVettedSuppliersCanBid: "Only vetted suppliers can bid on this task",
+      listedNotOnPlatform: "This company is not on the platform yet. Ask it to quote instead.",
+      notVettedConfirm: "This supplier is not vetted yet. Confirm that you want to continue.",
       thisBidIsLimitedTo: "This bid is limited to invited suppliers",
       enterAValidOfferAmount: "Enter a valid offer amount and delivery schedule",
       enterTheHourlyRateIn: "Enter the hourly rate in euros, or leave it empty",
@@ -1328,6 +1330,12 @@ LOCALES.en = {
       "decline": "Decline",
       "ask": "Ask a question ›"
     },
+    "levels": {
+      "title": "Suppliers by level",
+      "listed": "Listed",
+      "registered": "Registered",
+      "vetted": "Vetted"
+    },
     "waiting": {
       "title": "Waiting list: demand outside the served area",
       "settings": "Served area",
@@ -1952,6 +1960,8 @@ LOCALES.en = {
       "locationPending": "Location pending",
       "rates": "{hourly}/hour · {project} starting",
       "invite": "Invite supplier",
+      "notVetted": "{company} is not vetted yet. Invite anyway?",
+      "inviteAnyway": "Invite anyway",
       "sent": "Invitation sent — waiting for the supplier to accept"
     },
     "withdraw": {
@@ -2183,6 +2193,9 @@ LOCALES.en = {
       "allServices": "All services",
       "badge": "Badge",
       "allBadges": "All badges",
+      "level": "Level",
+      "allLevels": "All",
+      "levelOption": "{label} ({n})",
       "available": "Available now",
       "go": "Search",
       "more": "More filters",
@@ -2224,6 +2237,17 @@ LOCALES.en = {
     "noneFilters": "No suppliers match these filters.",
     "meta": "★ {rating} · {projects} projects · {years}+ yrs · {rate}/h",
     "viewProfile": "View profile",
+    "level": {
+      "listed": "Listed: not on the platform yet",
+      "registered": "Registered",
+      "vetted": "Vetted",
+      "vettedBadge": "Vetted · {badge}",
+      "short": { "listed": "Listed", "registered": "Registered", "vetted": "Vetted" }
+    },
+    "source": {
+      "TED": "Source: EU public procurement (TED), notice {notice}, © European Union",
+      "other": "Source: {register}"
+    },
     "requestQuote": "Request quote",
     "region": "We don't know this place. Try a nearby city or a German postcode.",
     "map": {
@@ -4491,6 +4515,9 @@ LOCALES.en = {
       "badgeFor": "Badge for {company}",
       "noBadge": "None",
       "noSuppliers": "No supplier companies yet.",
+      "level": "Level",
+      "allLevels": "All levels",
+      "levelOption": "{label} ({n})",
       "badgeSet": "Supplier badge set to {badge}",
       "accounts": "Accounts",
       "count": {

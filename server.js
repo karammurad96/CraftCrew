@@ -60,6 +60,12 @@ const PRIVATE_SUPPLIER_FIELDS = [
   "internalNotes",
   "companyProfile",
   "pendingVerification",
+  // Wave 12 (T190–T195): the claim code of a listed company's letter and the outreach desk's notes stay with admins
+  "claimCode",
+  "outreach",
+  "claimRequest",
+  "batchId",
+  "keyHash",
 ];
 // T86: company name, legal invoicing details and claimed certifications are the facts a customer actually
 // relies on, so once a supplier is live, changes to them wait for an admin to re-verify them. Everything
@@ -91,10 +97,15 @@ function reverifyProposal(s, acct, b, supplierFields) {
   return Object.keys(next).length ? next : null;
 }
 function publicSupplier(s) {
-  const out = { ...s, reliability: sourcing.publicReliability(s.id) };
+  const out = { ...s, level: levelOf(s), reliability: sourcing.publicReliability(s.id) };
   for (const k of PRIVATE_SUPPLIER_FIELDS) delete out[k];
   return out;
 }
+const supplierBase = require("./supplierbase");
+const { levelOf } = supplierBase;
+// T190: who can be given work. Listed companies never; registered ones after the customer's confirmation.
+const LISTED_NOT_ON_PLATFORM = "This company is not on the platform yet. Ask it to quote instead.";
+const NOT_VETTED_CONFIRM = "This supplier is not vetted yet. Confirm that you want to continue.";
 const createVies = require("./vies");
 const { pdfText, wrapPdfText } = require("./pdf");
 const geo = require("./geo");
@@ -1080,6 +1091,7 @@ function ensureSupplierAccounts() {
         reviews: [],
         verified: false,
         live: false,
+        level: "registered",
         applicationStatus: "Not applied",
         createdAt: now(),
       };
@@ -1107,6 +1119,8 @@ function normaliseStoredEmails() {
 }
 normaliseStoredEmails();
 ensureSupplierAccounts();
+// T190: every supplier has a level; `live` follows it
+if (supplierBase.migrateLevels(db)) save();
 // Start-up repair: older supplier records may hold non-text services or certifications.
 for (const s of db.suppliers || [])
   for (const key of ["services", "certifications"])
@@ -4116,6 +4130,7 @@ async function api(req, res, url) {
           reviews: [],
           verified: false,
           live: false,
+          level: "registered",
           applicationStatus: "Not applied",
           createdAt: now(),
         };
@@ -4343,9 +4358,11 @@ async function api(req, res, url) {
         center = near ? geo.geocode(near) : null;
       const viewer = auth(req),
         known = marketplaceClosed(viewer) ? knownSupplierIds(viewer) : null;
+      // T190: the "Level" filter; the counts per level ignore it so the filter can show them
+      const wantedLevel = supplierBase.LEVELS.includes(url.searchParams.get("level")) ? url.searchParams.get("level") : "";
       let list = db.suppliers.filter(
         (s) =>
-          s.live &&
+          supplierBase.visibleTo(s, viewer) &&
           (!known || known.has(s.id)) &&
           (!q ||
             String(s.company ?? "")
@@ -4362,10 +4379,16 @@ async function api(req, res, url) {
           wantedCerts.every((c) => (s.certifications || []).some((x) => String(x).toLowerCase() === c)) &&
           (!near || (center && withinRadius(s.location, center, radius))),
       );
-      list = list.sort((a, b) => b.rating - a.rating);
+      const levels = { listed: 0, registered: 0, vetted: 0 };
+      for (const s of list) levels[levelOf(s)]++;
+      if (wantedLevel) list = list.filter((s) => levelOf(s) === wantedLevel);
+      // Vetted suppliers come first, then registered, then listed; by rating within a level
+      const rank = (s) => supplierBase.LEVELS.indexOf(levelOf(s));
+      list = list.sort((a, b) => rank(b) - rank(a) || b.rating - a.rating);
       return (
         send(res, 200, {
           suppliers: list.map(publicSupplier),
+          levels,
           services: db.settings?.serviceCategories || services,
           certifications: certs,
           ...(near ? { region: { near, radius, found: !!center } } : {}),
@@ -4377,7 +4400,7 @@ async function api(req, res, url) {
     }
     if (parts[1] === "suppliers" && parts[2] && !parts[3] && method === "GET") {
       if (supplierHidden(auth(req), parts[2])) return (send(res, 403, { error: MARKETPLACE_CLOSED }), true);
-      const s = db.suppliers.find((x) => x.id === parts[2] && x.live);
+      const s = db.suppliers.find((x) => x.id === parts[2] && supplierBase.visibleTo(x, auth(req)));
       if (!s) return (send(res, 404, { error: "Supplier not found" }), true);
       return (send(res, 200, { supplier: publicSupplier(s) }), true);
     }
@@ -5425,7 +5448,9 @@ async function api(req, res, url) {
             (i) => i.projectId === p.id && (user.role !== "supplier" || i.supplierId === user.supplierId),
           ),
           // Suppliers don't need the list of other companies on the project.
-          suppliers: db.suppliers.filter((s) => s.live && (user.role !== "supplier" || s.id === user.supplierId)),
+          suppliers: db.suppliers.filter(
+            (s) => levelOf(s) !== "listed" && supplierBase.visibleTo(s, user) && (user.role !== "supplier" || s.id === user.supplierId),
+          ),
         }),
         true
       );
@@ -5599,13 +5624,15 @@ async function api(req, res, url) {
     ) {
       const p = projectFor(user, parts[2]),
         b = await body(req),
-        s = db.suppliers.find((x) => x.id === b.supplierId && x.live),
+        s = db.suppliers.find((x) => x.id === b.supplierId && x.status !== "Deleted"),
         found =
           p &&
           p.phases.flatMap((ph) => (ph.tasks || []).map((t) => ({ ph, t }))).find((x) => x.t.id === parts[4]);
       if (!p || user.role !== "customer" || !found || !s)
         return (send(res, 404, { error: "Project, task or supplier not found" }), true);
       if (supplierHidden(user, s.id)) return (send(res, 403, { error: ASSIGN_KNOWN_ONLY }), true);
+      const block = supplierBase.workBlock(s, b);
+      if (block) return (send(res, 409, { error: block === "listed" ? LISTED_NOT_ON_PLATFORM : NOT_VETTED_CONFIRM }), true);
       const { ph, t } = found;
       t.assignmentHistory ||= [];
       if (t.assignedSupplierId && t.assignedSupplierId !== s.id) {
@@ -6042,9 +6069,11 @@ async function api(req, res, url) {
         return (send(res, 403, { error: "Only customer can assign" }), true);
       const b = await body(req);
       const ph = p.phases.find((x) => x.id === b.phaseId),
-        s = db.suppliers.find((x) => x.id === b.supplierId && x.live);
+        s = db.suppliers.find((x) => x.id === b.supplierId && x.status !== "Deleted");
       if (!ph || !s) return (send(res, 404, { error: "Phase or supplier not found" }), true);
       if (supplierHidden(user, s.id)) return (send(res, 403, { error: ASSIGN_KNOWN_ONLY }), true);
+      const block = supplierBase.workBlock(s, b);
+      if (block) return (send(res, 409, { error: block === "listed" ? LISTED_NOT_ON_PLATFORM : NOT_VETTED_CONFIRM }), true);
       ph.assignmentHistory ||= [];
       if (ph.supplierId) {
         ph.assignmentHistory.push({
@@ -6772,6 +6801,7 @@ async function api(req, res, url) {
             reviews: [],
             verified: true,
             live: true,
+            level: "vetted",
             createdAt: now(),
           };
           db.suppliers.push(s);
@@ -6785,6 +6815,7 @@ async function api(req, res, url) {
           experience: Number(a.yearsInBusiness) || s.experience || 0,
           description: a.portfolio || s.description,
           live: true,
+          level: "vetted",
           verified: true,
           applicationStatus: "Approved",
         });
@@ -7003,7 +7034,17 @@ async function api(req, res, url) {
     }
     if (parts[1] === "admin" && parts[2] === "suppliers" && parts.length === 3 && method === "GET") {
       if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
-      return (send(res, 200, { suppliers: db.suppliers }), true);
+      // T190: the same "Level" filter as the directory, with the counts per level
+      const levels = { listed: 0, registered: 0, vetted: 0 };
+      for (const s of db.suppliers) levels[levelOf(s)]++;
+      const wanted = url.searchParams.get("level");
+      return (
+        send(res, 200, {
+          suppliers: supplierBase.LEVELS.includes(wanted) ? db.suppliers.filter((s) => levelOf(s) === wanted) : db.suppliers,
+          levels,
+        }),
+        true
+      );
     }
     if (
       parts[1] === "admin" &&
@@ -7031,6 +7072,10 @@ async function api(req, res, url) {
           metrics: {
             users: db.users.length,
             suppliers: db.suppliers.filter((s) => s.live).length,
+            suppliersByLevel: supplierBase.LEVELS.reduce(
+              (o, l) => ({ ...o, [l]: db.suppliers.filter((s) => levelOf(s) === l && s.status !== "Deleted").length }),
+              {},
+            ),
             projects: db.projects.length,
             invoices: db.invoices.length,
             applications: db.applications.filter((a) => a.status !== "Approved" && a.status !== "Rejected")
@@ -7341,9 +7386,11 @@ async function api(req, res, url) {
       if (user.role !== "customer")
         return (send(res, 403, { error: "Only customers can request quotes" }), true);
       const b = await body(req),
-        supplier = db.suppliers.find((s) => s.id === b.supplierId && s.live);
+        supplier = db.suppliers.find((s) => s.id === b.supplierId && s.status !== "Deleted");
       if (!supplier || !b.service || !b.message)
         return (send(res, 400, { error: "Choose a supplier and service, and describe the work" }), true);
+      // T190: a listed company has no account, so it cannot be sent a quote request (T194: "Ask to quote")
+      if (levelOf(supplier) === "listed") return (send(res, 409, { error: LISTED_NOT_ON_PLATFORM }), true);
       let project = null,
         phase = null,
         task = null;
@@ -7466,11 +7513,12 @@ async function api(req, res, url) {
       if (p?.status === "Archived") return (send(res, 409, { error: ARCHIVED_ERROR }), true);
       if (!p || !task || !b.title || !b.dueDate)
         return (send(res, 400, { error: "Project task, title and bid deadline are required" }), true);
+      const wanted = Array.isArray(b.invitedSupplierIds) ? b.invitedSupplierIds : [];
+      if (db.suppliers.some((s) => wanted.includes(s.id) && levelOf(s) === "listed"))
+        return (send(res, 409, { error: LISTED_NOT_ON_PLATFORM }), true);
       const invited = [
         ...new Set(
-          (Array.isArray(b.invitedSupplierIds) ? b.invitedSupplierIds : []).filter((sid) =>
-            db.suppliers.some((s) => s.id === sid && s.live),
-          ),
+          wanted.filter((sid) => db.suppliers.some((s) => s.id === sid && levelOf(s) !== "listed" && s.status !== "Deleted")),
         ),
       ];
       const attachments = [...new Set(Array.isArray(b.attachments) ? b.attachments : [])];
@@ -7519,7 +7567,7 @@ async function api(req, res, url) {
         return (send(res, 404, { error: "This bid round is no longer accepting offers" }), true);
       const b = await body(req),
         supplier = supplierForUser(user);
-      if (user.role !== "supplier" || !supplier?.live)
+      if (user.role !== "supplier" || !supplier || levelOf(supplier) === "listed" || supplier.status === "Deleted")
         return (send(res, 403, { error: "Only vetted suppliers can bid on this task" }), true);
       if ((bid.invitedSupplierIds || []).length && !bid.invitedSupplierIds.includes(user.supplierId))
         return (send(res, 403, { error: "This bid is limited to invited suppliers" }), true);
@@ -7673,6 +7721,9 @@ async function api(req, res, url) {
           ph = p?.phases.find((x) => x.id === bid.phaseId),
           task = ph?.tasks?.find((x) => x.id === bid.taskId);
         if (!task) return (send(res, 404, { error: "Linked task no longer exists" }), true);
+        const awardee = db.suppliers.find((x) => x.id === offer.supplierId);
+        if (awardee && supplierBase.workBlock(awardee, b))
+          return (send(res, 409, { error: NOT_VETTED_CONFIRM }), true);
         if (task.assignedSupplierId && task.assignedSupplierId !== offer.supplierId)
           return (send(res, 409, { error: "Task already assigned to another supplier" }), true);
         task.assignedSupplierId = offer.supplierId;
@@ -7724,13 +7775,14 @@ async function api(req, res, url) {
           true
         );
       const b = await body(req),
-        ids = [
-          ...new Set(
-            (Array.isArray(b.supplierIds) ? b.supplierIds : []).filter((sid) =>
-              db.suppliers.some((s) => s.id === sid && s.live),
-            ),
-          ),
-        ];
+        wanted = Array.isArray(b.supplierIds) ? b.supplierIds : [];
+      if (db.suppliers.some((s) => wanted.includes(s.id) && levelOf(s) === "listed"))
+        return (send(res, 409, { error: LISTED_NOT_ON_PLATFORM }), true);
+      const ids = [
+        ...new Set(
+          wanted.filter((sid) => db.suppliers.some((s) => s.id === sid && levelOf(s) !== "listed" && s.status !== "Deleted")),
+        ),
+      ];
       if (!ids.length) return (send(res, 400, { error: "Choose at least one active supplier" }), true);
       bid.invitedSupplierIds = [...new Set([...(bid.invitedSupplierIds || []), ...ids])];
       for (const sid of ids)
