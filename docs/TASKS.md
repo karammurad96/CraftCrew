@@ -355,7 +355,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T255 Served area: instant estimates only in the launch region and categories, a waiting list elsewhere · S · **needs Karam's beachhead decision**
 - [x] T242 Operator cockpit: KPIs, the funnel and deadlines for the request queue · M
 - [x] T243 Estimate calibration: learn from the gap between estimate and confirmed price · M · after T242
-- [ ] T244 Supplier price rules and automatic confirmation; the answer time as a setting · M
+- [x] T244 Supplier price rules and automatic confirmation; the answer time as a setting · M
 - [ ] T245 Capacity calendar: crew-days, booked days and calendar sync · M
 - [ ] T246 Pages per category and region with real price ranges · S
 - [ ] T247 Crew app: install the site pages on a phone and keep working without signal · M
@@ -5409,11 +5409,39 @@ An instant estimate becomes a binding offer when the supplier has agreed in adva
    admin setting, default 3 until Karam decides.
 
 **Done when.**
-- [ ] A part inside the rules is confirmed at once, and one outside any rule waits as before.
-- [ ] "Binding price" appears only when every part matches.
-- [ ] The answer time setting changes the deadline of new parts only.
-- [ ] The lawyer's OK for confirming in the supplier's name is noted in `docs/LEGAL-FACTS.md` before the feature
+- [x] A part inside the rules is confirmed at once, and one outside any rule waits as before.
+- [x] "Binding price" appears only when every part matches.
+- [x] The answer time setting changes the deadline of new parts only.
+- [x] The lawyer's OK for confirming in the supplier's name is noted in `docs/LEGAL-FACTS.md` before the feature
       is switched on.
+
+**As built (7 October 2026).**
+- **`pricerules.js`.** `supplier.priceRules = { version, rules, acceptance, updatedAt, history }`; one rule per
+  category: `auto`, `regions` (postcode prefixes), `radiusKm`, `maxValue` (required for automatic rules),
+  `leadDays`, `freeCrewDays`. No region and no radius means anywhere; a prefix or the radius is enough. API
+  `GET/PUT /api/price-rules` (suppliers). Saving an automatic rule needs `acceptClause` and the current
+  `clauseHash`; switching rules off needs nothing. A changed rule set is a new version, old versions stay in
+  `history`.
+- **Automatic confirmation (`requests.js`).** When the customer chooses an estimate option, each part whose packages
+  all have a matching automatic rule (region or radius, price at most `maxValue`, start at least `leadDays` away,
+  free crew-days once T245 provides them, the supplier's stored acceptance still on the current clause text) is
+  confirmed at once at the estimate (`auto: true`, `ruleVersion`, `supplierAcceptance` with context `price-rule`
+  and the rule version). The supplier gets the notification `orderAutoConfirmed`; when every part is confirmed the
+  contracts follow at once. Parts outside the rules wait as before. A replacement part (after a decline) is not
+  confirmed automatically. Automatic confirmations are left out of T243's calibration (they carry no price
+  information).
+- **Binding price.** Each part and its option get `binding` when every part would match; the customer sees
+  "Binding price" instead of "Estimate" (the customer's option shows only the flag, never the rules).
+- **Supplier control.** The profile page has the panel "Automatic confirmation" with an editor (the clause text and
+  an acceptance box); switching off needs no acceptance and undoes nothing.
+- **Answer time.** `settings.supplierDays` (admin settings, 1-10, default 3) replaces the constant; it is used when
+  a part is offered, so only new parts get a changed deadline; the supplier's notification names the days.
+- **Gate.** `settings.autoConfirm` (admin settings, **off by default**): without it, rules are saved but nothing is
+  confirmed and nothing is binding. `docs/LEGAL-FACTS.md` section 10 holds the facts for the lawyer and an open
+  checklist: the lawyer's OK must be noted there before an admin switches it on.
+- **Tests:** `test/price-rules.test.js` (validation and acceptance, off until switched on, confirmation at once with
+  the rule version, outside the value/lead time/region and mixed packages waiting, Binding price only when every
+  part matches, switching off, the answer time setting).
 
 ### T245 · Capacity calendar
 `P1 · M`

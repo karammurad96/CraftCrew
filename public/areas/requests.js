@@ -443,10 +443,10 @@ function rqOptionCard(o, chooseFor = "") {
           )
           .join("")}</ul>`
       : "";
-  const flags = `${o.estimate ? `<span class="status submitted rq-estimate">${rqk("estimate.badge")}</span>` : ""}${
+  const flags = `${o.estimate ? `<span class="status ${o.binding ? "completed" : "submitted"} rq-estimate">${rqk(o.binding ? "estimate.binding" : "estimate.badge")}</span>` : ""}${
     o.confidence ? `<span class="status rq-confidence rq-confidence-${esc(o.confidence)}" title="${rqk("confidence.hint." + o.confidence)}">${rqk("confidence." + o.confidence)}</span>` : ""
   }${o.split ? `<span class="status">${rqk("estimate.split", { n: o.parts.length })}</span>` : ""}`;
-  return `<article class="cc-card rq-option${o.chosen ? " chosen" : ""}"><span class="status ${o.label === "recommended" ? "completed" : "submitted"}">${rqk("opt." + o.label)}</span>${flags}<b class="rq-price">${esc(fmt.money(o.price))}</b><small>${rqk("daysN", { n: o.deliveryDays })}</small>${parts}${o.estimate ? `<small class="subtle">${rqk("estimate.note")}</small>` : ""}<ul class="rq-profile">${[
+  return `<article class="cc-card rq-option${o.chosen ? " chosen" : ""}"><span class="status ${o.label === "recommended" ? "completed" : "submitted"}">${rqk("opt." + o.label)}</span>${flags}<b class="rq-price">${esc(fmt.money(o.price))}</b><small>${rqk("daysN", { n: o.deliveryDays })}</small>${parts}${o.estimate ? `<small class="subtle">${rqk(o.binding ? "estimate.bindingNote" : "estimate.note")}</small>` : ""}<ul class="rq-profile">${[
     p.badge ? fact("badge", { badge: t("common.badge." + p.badge) }) : "",
     p.rating ? fact("rating", { rating: fmt.number(p.rating, 1) }) : "",
     p.completedOrders ? fact("completed", { n: p.completedOrders }) : "",

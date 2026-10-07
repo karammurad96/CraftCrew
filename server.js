@@ -6888,7 +6888,10 @@ async function api(req, res, url) {
       const b = await body(req),
         fee = Number(b.platformFeePercent),
         terms = Number(b.defaultPaymentTermsDays),
-        limit = Number(b.uploadLimitMb);
+        limit = Number(b.uploadLimitMb),
+        supplierDays = Number(b.supplierDays ?? db.settings?.supplierDays ?? 3);
+      if (!Number.isInteger(supplierDays) || supplierDays < 1 || supplierDays > 10)
+        return (send(res, 400, { error: "A supplier's answer time is 1 to 10 working days." }), true);
       if (
         !Number.isFinite(fee) ||
         fee < 0 ||
@@ -6934,6 +6937,10 @@ async function api(req, res, url) {
         faqContent: String(b.faqContent || "").slice(0, 10000),
         // T224: a markup on the supplier's price for brokered options (0 = price model A, the default)
         brokerMarkupPercent: Math.max(0, Math.min(30, Number(b.brokerMarkupPercent) || 0)),
+        // T244: suppliers' price rules confirm automatically only once an admin switches this on (off by default)
+        autoConfirm: b.autoConfirm === undefined ? db.settings?.autoConfirm === true : b.autoConfirm === true,
+        // T244: working days a supplier has to answer (3 until decided)
+        supplierDays,
         // T231: price a request instantly (on unless switched off; INSTANT_ESTIMATES sets the start value)
         instantEstimates:
           b.instantEstimates === undefined ? db.settings?.instantEstimates : !!b.instantEstimates,
