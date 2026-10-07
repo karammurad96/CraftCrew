@@ -198,6 +198,7 @@ LOCALES.en = {
       stHandlerFailed: "Handler failed",
       stOff: "Payments are off: no Stripe key is set.",
       stUnreachable: "Stripe could not be reached. Check the key and the network.",
+      chatTooFast: "You are sending messages very fast. Wait a minute, then send again.",
       rqShifts: "Choose night, weekend or shift work from the list.",
       rqTrips: "Enter the number of trips (1 to 50), or leave it empty.",
       prNumbers: "Pricing rules: enter numbers of at least 0 (surcharges up to 200 %, travel up to 20 € per km).",
