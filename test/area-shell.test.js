@@ -74,6 +74,8 @@ describe("app shell", () => {
     ]);
     assert.deepEqual(navLabels(shell("en", owner("supplier"), "#/supplier/dashboard").render("supplier", "dashboard")).slice(0, 9), ["Today", "Work", "Team planner", "Platform orders", "My packages", "Opportunities", "Invoices", "Compliance", "[More]"]);
     assert.deepEqual(navLabels(shell("en", { role: "admin", name: "Admin" }, "#/admin/dashboard").render("admin", "dashboard")), ["Today", "Requests", "Vetting", "Users", "Payments", "Escalations", "Reports", "Business", "[More]", "Packages", "Fee statements", "Stripe", "Website", "Audit log", "Platform Management", "Profile changes", "Settings"]);
+    // T271: Payouts after Platform fees
+    assert.deepEqual(navLabels(shell("en", owner("supplier"), "#/supplier/dashboard").render("supplier", "dashboard")).slice(9), ["Analytics", "Quote Requests", "Contracts", "Platform fees", "Payouts", "Service Catalog", "Inbox", "Time &amp; approvals", "Messages", "Team", "Profile / Billing"]);
   });
 
   for (const lang of ["en", "de"])

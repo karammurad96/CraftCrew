@@ -49,6 +49,8 @@ function moduleFor(parts, method) {
     return null;
   if (p1 === "profile") return method === "GET" ? null : "settings";
   if (p1 === "account" && p2 === "payout") return "settings";
+  // T271: the Stripe payout account (the server lets only the main account change it)
+  if (p1 === "payouts") return "settings";
   if (p1 === "team") return "team";
   if (["projects", "documents", "reviews", "disputes", "deliverables"].includes(p1)) return "projects";
   if (["bids", "rfqs", "contracts", "scorecards", "service-packages"].includes(p1)) return "sourcing";

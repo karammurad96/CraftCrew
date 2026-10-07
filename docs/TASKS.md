@@ -314,7 +314,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T196 Admin CSV import for other legal sources (licensed lists, fair exhibitor lists with permission) · S
 
 **Wave 13 — contracts both sides agree to (details under "Wave 13")**
-- [ ] T200 A complete contract: parties, scope, price, payment, schedule, acceptance, warranty, liability, insurance, confidentiality, changes, termination, law · L · **the clause texts need a lawyer's review**
+- [ ] T200 A complete contract: parties, scope, price, payment, schedule, acceptance, warranty, liability, insurance, confidentiality, changes, termination, law · L (T200a–b) · **the clause texts need a lawyer's review**
 - [ ] T201 A contract is valid only when both sides accept the same version · M · do right after T200
 - [ ] T202 Amendments, change orders and termination · M
 - [ ] T203 The contract as a PDF with both acceptances, kept unchangeable · S
@@ -380,7 +380,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 
 **Wave 18 — payments with Stripe, test version (asked for by Karam on 7 October 2026: Connect, Payments, Billing, Invoicing, Tax, Identity, Radar and Issuing; sandbox keys only; replaces T80; details under "Wave 18")**
 - [x] T270 Stripe foundation: SDK, keys from the environment only, test mode only, webhooks with signature check, a fake Stripe for tests · M · do first, **first test version**
-- [ ] T271 Supplier payout accounts: Stripe Connect (Accounts v2), embedded onboarding, payouts page · M · **first test version**
+- [x] T271 Supplier payout accounts: Stripe Connect (Accounts v2), embedded onboarding, payouts page · M · **first test version**
 - [ ] T272 The customer pays an approved invoice through Stripe Checkout · M · **first test version**
 - [ ] T273 Payout to the supplier minus the platform fee; refunds and disputes reverse it · M · **first test version**
 - [ ] T274 Milestone deposits: the customer pays before the work, the money is released on acceptance · M
@@ -399,11 +399,12 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T285 Preserve pending and failed emails when pruning the outbox · P0 · S · before operational emails
 - [ ] T286 Track operator time and variable contribution per paid job · P1 · M · before wider launch, not a first invited-pilot blocker
 
-**Launch focus, 7 October 2026.** Preserve existing waves and IDs, but prioritize the paid-pilot journey: inspect existing work; T282; T200–T205 one at a time (split T200's L scope into approved child tasks before implementation); T272; T273; T283; T284; T285; T281; T182/T184; then T180/T181 and the full-journey/restore checks in T174. Reuse T171/T172/T255/T280 for founder decisions, legal review, served scope and payment activation. T271 is in progress; its checkbox remains open until merged, and real embedded-component sandbox verification is separate. Validate current Stripe documentation and the customer-paid processing-fee decision before implementing T272/T273; do not silently change money formulas.
+**Launch focus, 7 October 2026.** Preserve existing waves and IDs, but prioritize the paid-pilot journey: inspect existing work; T282; T200a data/editor; T200b versioned templates; T201 then T205, followed by T202–T204 one at a time; T272; T273; T283; T284; T285; T281; T182/T184; then T180/T181 and the full-journey/restore checks in T174. Reuse T171/T172/T255/T280 for founder decisions, legal review, served scope and payment activation. T271 code is merged in PR #181; real embedded-component sandbox verification remains outstanding. Validate current Stripe documentation and the customer-paid processing-fee decision before implementing T272/T273; do not silently change money formulas.
 
 External launch prerequisites remain named under their existing tasks: brand/domain (T171), legal review and contracting/invoicing responsibility (T172/T200/T280), real supplier readiness (T190 and existing vetting/compliance), served geography/categories (T255), secure Stripe sandbox secrets including both webhook secrets (T270/T271), hosting/email (T180/T181), and Karam's final live-payment activation (T280). No secret values in chat or files. No live activation/deployment is implied by a task checkbox.
 
 Keep T191–T196, T246/T247, AI and advanced payment products as demand-dependent work, not blanket launch blockers. Bring T250 forward after successful pilot transactions if repeat demand supports it. Reassess historical security review T173 and the T174 full journey after this new financial code: old passing checks do not validate new changes.
+
 
 
 ---
@@ -3887,6 +3888,12 @@ when both companies have accepted exactly the same text.
 ### T200 · A complete contract
 `P1 · L · the clause texts need a lawyer's review; split into two PRs (data + editor, then template texts)`
 
+**Child tasks (one branch/PR each).**
+- [ ] **T200a Structured contract drafts, validation and editor** · P1 · M · first child. Implement all sections in Do 1 and server validation in Do 4. Populate authorized company, project, phase/task, compliance and document snapshots; preserve custom clauses. Provide the EN/DE draft editor and preview with delegated actions, escaped content and logical CSS. Keep changes additive and preserve existing/brokered flows; do not change acceptance or identity disclosure. Regression checks cover missing parties/signatories, invalid values/rates/start dates, ownership, forbidden private identity, custom sections, locale/CSP/RTL and desktop/phone layouts. If this exceeds M scope (about 500 changed lines), define further child tasks before coding rather than omit sections.
+- [ ] **T200b Versioned EN/DE templates and frozen rendered snapshots** · P1 · M · depends on T200a. Implement Do 2–3: explicit `contractTemplates` store collection, immutable published versions and admin-only publication, shipped EN/DE templates labeled "draft – to be reviewed by a lawyer". Render and retain the pinned template version, parameters, authorized party/scope/attachment snapshots and custom clauses with canonical serialization and a SHA-256 hash reusable by T201/T203. Tests cover both languages/parameters, unauthorized publication, stable hashes and new template/profile/project data never rewriting existing contract snapshots. Publication does not assert legal approval.
+
+The parent T200 remains open until both children merge and the original scope/tests pass. T201 owns mutual acceptance and brokered integration; T203 owns PDF output and dedicated-table protections. Do not duplicate those tasks in T200. Complete T205 immediately after T201 to prevent legacy activation paths bypassing mutual acceptance.
+
 **Do.**
 1. **Sections** of a contract, each filled from the platform where possible and editable while it is a draft:
    - **Parties:** legal name, address, VAT ID and register number from both company profiles; the signatory
@@ -3925,6 +3932,8 @@ does not change existing contracts.
 
 ### T201 · A contract is valid only when both sides accept the same version
 `P1 · M · depends on T200`
+
+**External prerequisite — identity-disclosure decision pending.** Karam has been asked about the proposed sequence "introduction agreement → reveal supplier identity → full contract acceptance". It is a proposal, not an agreed policy. Preserve the existing disclosure/acceptance rules until the founder's decision and the relevant legal review are recorded; do not hardcode a new reveal trigger. T200a/T200b can proceed without changing that policy. Acceptance must identify the actual actor (`memberId || id`) separately from the company owner and use the trusted client-IP helper; these safeguards do not choose the disclosure policy.
 
 **Do.**
 1. **Statuses:**
@@ -6235,8 +6244,41 @@ T274–T279 add the other products. T280 is the go-live check.
 4. **The old payout details.** The IBAN fields stay for invoices (§ 14 UStG) and for paying outside Stripe.
 
 **Done when.**
-- [ ] Creating the account sends the v2 fields above (tested against the fake Stripe), never `type`.
-- [ ] Capability changes from a webhook update the supplier; a transfer to a restricted account is refused.
+- [x] Creating the account sends the v2 fields above (tested against the fake Stripe), never `type`.
+- [x] Capability changes from a webhook update the supplier; a transfer to a restricted account is refused.
+
+**Implementation merged in PR #181 (7 October 2026).** Real Stripe sandbox eligibility and embedded-component verification remain outstanding.
+- **`payouts.js`** (loaded by `payments.js`). `POST /api/payouts/account` creates the connected account with
+  `client.v2.core.accounts.create`: `dashboard: "express"`, `defaults` (EUR, fees and losses collected by the
+  application), `identity` (the explicitly selected ISO registration country, company, the legal name from the company profile), the recipient configuration
+  with `stripe_transfers` requested, `include` of the recipient configuration and the requirements, and an
+  idempotency key per supplier. Never `type`, no merchant configuration. `POST /api/payouts/session` makes the
+  Account Session (`account_onboarding`, `notification_banner`, `account_management`); `POST /api/payouts/login-link`
+  the Express login link; `POST /api/payouts/refresh` reads the account again. Only the supplier's main account
+  may call them; team members with the settings area see the status (`GET /api/payouts`).
+- **Status.** The supplier keeps `stripeAccount: { id, transfers, requirements, updatedAt }` (`transfers` is
+  `active`, `pending` or `restricted`; Stripe's `rejected`, `unsupported` and a closed account count as
+  restricted). `stripeAccount` is in `PRIVATE_SUPPLIER_FIELDS`. The supplier is notified when payouts become active
+  or are restricted.
+- **Thin events.** The webhook endpoint now also takes Accounts v2 thin events (`v2.core.event`, checked with
+  `parseEventNotification`); their event destination has its own secret, `STRIPE_THIN_WEBHOOK_SECRET`. The
+  `v2.core.account…` events (updated, closed, recipient configuration, capability status, requirements) reload the
+  account with `v2.core.accounts.retrieve(id, { include })`; the event is deduplicated like the others.
+- **Transfers.** `payouts.transfer(supplierId, params)` is the only way money goes to a supplier (T273): it reads
+  the account from Stripe first and refuses unless `stripe_transfers` is active right now.
+- **Pages.** `/supplier/payouts` ("Payouts" under More) loads Connect.js only there and shows onboarding until the
+  account is active, then the notification banner and account management, plus the Express dashboard link. When
+  payments are off it says so. The admin's Users page shows each supplier's payout status. The IBAN fields are
+  unchanged.
+- Tests: `test/payments-payouts.test.js` with fake Stripe covers explicit international registration countries,
+  account creation, sessions/login links, thin-event signing secrets, status privacy and fresh transfer checks;
+  delayed-body concurrency and embedded-session identity regressions are covered too. Targeted checks: 50 passed.
+  Full `npm test`: 727 passed, 0 failed, 1 skipped (PostgreSQL unavailable).
+- Browser checks: installed Chromium, desktop (1440 px) and phone (390 px), English and German, account creation
+  and session API verified against fake Stripe; no page errors or horizontal overflow. Screenshots saved outside
+  the checkout. Connect.js rendering was stubbed explicitly; real embedded components still require a Stripe sandbox.
+- Stripe API references for Accounts v2 creation and Account Sessions checked on 7 October 2026; ISO country
+  selection does not establish Stripe eligibility. Real sandbox eligibility and embedded components remain unverified.
 
 ### T272 · The customer pays an approved invoice
 `P1 · M · depends on T271`
