@@ -173,6 +173,8 @@ page therefore changes when the code changes. The numbers below are today's valu
 - Suppliers that are vetted and live and offer the work package's category. Their availability is not *Busy* or
   *Unavailable*.
 - Fewer than 3 open tasks in the weeks of the request.
+- Instead of that rule, a supplier who set a capacity calendar (T245) needs enough free crew-days in the request's
+  period; the time is its hours spread over those free days.
 - A price for the category:
   - an hourly catalogue entry;
   - else a daily entry ÷ 8;

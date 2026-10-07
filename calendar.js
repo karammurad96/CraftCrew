@@ -132,6 +132,15 @@ module.exports = function createCalendar(ctx) {
           v.endDate && v.endDate > v.date ? nextDay(v.endDate) : null,
         );
     }
+    // T245: a supplier's bookings (assigned, unfinished tasks) and the days it blocked are busy time
+    if (user.role === "supplier" && ctx.capacity) {
+      const s = (db.suppliers || []).find((x) => x.id === user.supplierId);
+      for (const b of s ? ctx.capacity.bookings(s) : [])
+        add(`booking-${b.id}`, b.from, `Booked: ${b.name}`, b.project, "/supplier/suppliers", nextDay(b.to));
+      for (const b of s?.capacity?.blocked || [])
+        add(`blocked-${b.id}`, b.from, `Blocked${b.note ? ": " + b.note : ""}`, "", "/supplier/suppliers", nextDay(b.to));
+      list.filter((e) => e.uid.startsWith("booking-") || e.uid.startsWith("blocked-")).forEach((e) => (e.busy = true));
+    }
     return list;
   }
 
@@ -157,7 +166,7 @@ module.exports = function createCalendar(ctx) {
         `SUMMARY:${icsText(e.summary)}`,
         ...(e.description ? [`DESCRIPTION:${icsText(e.description)}`] : []),
         `URL:${appUrl()}/#${e.link}`,
-        "TRANSP:TRANSPARENT",
+        e.busy ? "TRANSP:OPAQUE" : "TRANSP:TRANSPARENT",
         "END:VEVENT",
       );
     lines.push("END:VCALENDAR");

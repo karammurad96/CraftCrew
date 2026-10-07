@@ -396,7 +396,18 @@ const siteReports = require("./sitereports")({
   ownUpload: (...a) => ownUpload(...a),
   uploadDir: () => UPLOAD_DIR,
 });
+// T245: the capacity calendar: crew-days, booked and blocked days, iCal import of blocked days
+const capacity = require("./capacity")({
+  getDb: () => db,
+  save: () => save(),
+  send: (...a) => send(...a),
+  body: (r) => body(r),
+  id: (p) => id(p),
+  now: () => now(),
+  activity: (...a) => activity(...a),
+});
 const calendar = require("./calendar")({
+  capacity,
   getDb: () => db,
   save: () => save(),
   send: (...a) => send(...a),
@@ -464,6 +475,8 @@ const requests = require("./requests")({
   contractFromAward: (...a) => sourcing.contractFromAward(...a),
   cleanWeights: (w) => sourcing.cleanWeights(w),
   deadlines: (r) => cockpit.deadlines(r),
+  // T245: the free crew-days of a supplier (T244 rules), null without a capacity calendar
+  freeCrewDays: (sid, from, to) => capacity.freeCrewDays(sid, undefined, from, to),
 });
 // T242: the operator cockpit: business figures and the request queue's deadlines
 const cockpit = require("./cockpit")({
@@ -3545,6 +3558,8 @@ setInterval(() => commission.run(), 6 * 3600000).unref();
 // GDPR: accounts whose 14-day grace period is over are anonymised (T122).
 gdpr.runDeletions();
 setInterval(() => gdpr.runDeletions(), 3600000).unref();
+// T245: the iCal feeds of blocked days are refreshed every hour
+setInterval(() => capacity.refreshAll().catch((e) => console.error(e)), 3600000).unref();
 // One-time links for email verification and password reset (only the hash is stored).
 function issueAuthToken(userId, type, ttlMs) {
   const token = crypto.randomBytes(32).toString("base64url");
@@ -8249,6 +8264,7 @@ async function api(req, res, url) {
     }
     if (await acceptance.handle(req, res, url, parts, user)) return true;
     if (await calendar.handle(req, res, url, parts, user)) return true;
+    if (await capacity.handle(req, res, parts, user)) return true;
     if (await twoFactor.handle(req, res, url, parts, user)) return true;
     if (await preferred.handle(req, res, url, parts, user)) return true;
     if (await requests.handle(req, res, url, parts, user)) return true;

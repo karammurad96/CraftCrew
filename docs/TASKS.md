@@ -356,7 +356,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T242 Operator cockpit: KPIs, the funnel and deadlines for the request queue · M
 - [x] T243 Estimate calibration: learn from the gap between estimate and confirmed price · M · after T242
 - [x] T244 Supplier price rules and automatic confirmation; the answer time as a setting · M
-- [ ] T245 Capacity calendar: crew-days, booked days and calendar sync · M
+- [x] T245 Capacity calendar: crew-days, booked days and calendar sync · M
 - [ ] T246 Pages per category and region with real price ranges · S
 - [ ] T247 Crew app: install the site pages on a phone and keep working without signal · M
 - [ ] T248 E-invoices as ZUGFeRD and sent over Peppol · M · **needs Karam's choice of a Peppol access point (running cost)**
@@ -5459,9 +5459,37 @@ nobody can keep.
    part's time becomes its hours spread over the free days, so a busy supplier gets a later end date.
 
 **Done when.**
-- [ ] Unit tests: a full week makes a supplier no candidate, half-free weeks stretch the time, and blocked days
+- [x] Unit tests: a full week makes a supplier no candidate, half-free weeks stretch the time, and blocked days
       from an imported feed count.
 - [ ] The exported feed opens in a calendar app (checked by hand once, screenshot in the PR).
+
+**As built (7 October 2026).**
+- **`capacity.js`** (pure functions of `db`; the feed fetch is injected).
+  - **Capacity:** `supplier.capacity = { crewDaysPerWeek, perCategory, blocked, feeds }`, set with `PUT /api/capacity`
+    (suppliers; `GET` shows it with the next 12 weeks and the bookings, `POST /api/capacity/refresh` refreshes the
+    feeds now). A category with its own figure uses it instead of the weekly total. **Without a capacity nothing
+    changes:** the old rule (fewer than 3 open tasks) stays.
+  - **Booked days:** a supplier's assigned, unfinished tasks fill the calendar from their dates: estimated hours ÷ 8
+    crew-days spread over the working days (Monday to Friday), one crew-day per working day when the task has no
+    hours. For a category, tasks known (through the request's package) to belong to another category do not count.
+  - **Blocked days:** blocked ranges the supplier enters and the days of imported iCal feeds (up to 3 feeds).
+    Import: https only, no redirects, 10 s, 1 MB, never an address of the machine's own network (checked when the
+    connection is made); all-day and timed events block, transparent and cancelled ones do not, a repeating
+    event counts once (limit of the import). Refreshed every hour (`server.js`) and when a feed is added.
+  - **Estimate:** a supplier with a capacity is a candidate only if its hours (÷ 8 = crew-days) fit into the free
+    crew-days between the request's start and due date; a part's time is the number of working days that takes
+    plus the 2 days to start, so a busy supplier gets a later end date. A part combining several packages is
+    scheduled with its total hours.
+  - **T244:** a rule's free crew-days are compared with the free crew-days in the request's period (ignored when
+    the supplier has no capacity).
+- **Calendar feed.** The supplier's personal feed (T66) now also carries its bookings (`Booked: <task>`, busy) and
+  its blocked days (`Blocked: <note>`).
+- **Page.** The supplier's service page has the panel "Capacity calendar" (crew-days, the next 12 weeks with
+  capacity, booked, blocked and free, feeds) and an editor. Blocked days are typed one per line
+  (`2026-12-24 to 2026-12-31 Holiday`). The ranking page (T253) names the capacity rule.
+- **Tests:** `test/capacity.test.js` (full week, half-free weeks, blocked days from a feed, per category, the feed
+  import against a local server, refused addresses, the calendar feed). **Open:** the hand check that the feed
+  opens in a calendar app, with a screenshot, is left for Karam (the feed's structure is tested).
 
 ### T246 · Pages per category and region
 `P1 · S`
