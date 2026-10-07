@@ -650,9 +650,16 @@ async function adminPlatform() {
       "minRating",
     )}<input type="number" min="0" max="5" step="0.1" name="${k}Rating" value="${num(s.badgeCriteria?.[k]?.rating)}"></label></fieldset>`;
   const templateLabel = (k) => (typeof ccLookup("en", "adm.platform.templates." + k) === "string" ? f("templates." + k) : esc(k.replaceAll(/([A-Z])/g, " $1")));
+  // T255: the served area. Empty means everywhere; the placeholder is only an example until the region is decided
+  const served = new Set(s.servedCategories || []);
+  const servedPanel = `<section class="panel cc-served-area"><div class="panel-title"><h3>${f("served.title")}</h3><small>${f("served.hint")}</small></div><label>${f(
+    "served.regions",
+  )}<input name="servedRegions" value="${esc((s.servedRegions || []).join(", "))}" placeholder="${f("served.regionsPlaceholder")}" maxlength="700"></label><fieldset><legend>${f("served.categories")}</legend>${s.serviceCategories
+    .map((c) => `<label class="cc-check-label"><input type="checkbox" name="servedCategories" value="${esc(c)}"${served.has(c) ? " checked" : ""}> <bdi>${esc(c)}</bdi></label>`)
+    .join("")}</fieldset><p class="subtle">${f("served.placeholderNote")}</p></section>`;
   const settings = `<form id="ccPlatformSettings" class="cc-platform-settings" data-action="adm.saveSettings"><section class="panel"><div class="panel-title"><h3>${f("categories")}</h3><small>${f(
     "categoriesHint",
-  )}</small></div><textarea name="serviceCategories" rows="7" required aria-label="${f("categoriesLabel")}">${esc(s.serviceCategories.join("\n"))}</textarea></section><section class="panel"><div class="panel-title"><h3>${f(
+  )}</small></div><textarea name="serviceCategories" rows="7" required aria-label="${f("categoriesLabel")}">${esc(s.serviceCategories.join("\n"))}</textarea></section>${servedPanel}<section class="panel"><div class="panel-title"><h3>${f(
     "badges",
   )}</h3><small>${f("badgesHint")}</small></div><div class="cc-badge-criteria">${["bronze", "silver", "gold"].map(tier).join("")}</div></section><section class="panel"><div class="panel-title"><h3>${f(
     "system",
@@ -742,6 +749,9 @@ actions.on("adm.saveSettings", async (form) => {
     brokerMarkupPercent: f.get("brokerMarkupPercent"),
     emailTemplates,
   };
+  // T255: a served category the admin just removed from the list is dropped
+  body.servedRegions = String(f.get("servedRegions") || "");
+  body.servedCategories = f.getAll("servedCategories").filter((c) => body.serviceCategories.includes(c));
   try {
     await api("/admin/settings", { method: "PUT", body });
     document.getElementById("ccPlatformSaved").textContent = t("adm.platform.saved");

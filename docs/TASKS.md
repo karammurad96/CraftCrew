@@ -352,7 +352,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T240 Commission statements: the platform fee is invoiced to the supplier every month · S · do first, **the platform earns nothing until this is done**
 - [x] T241 Estimate guardrails: minimum order, travel costs, surcharges, price band and a confidence level · M
 - [ ] T253 Ranking transparency: the terms and the supplier help say how suppliers are ranked and priced · S · **EU P2B Regulation 2019/1150; the text needs the lawyer**
-- [ ] T255 Served area: instant estimates only in the launch region and categories, a waiting list elsewhere · S · **needs Karam's beachhead decision**
+- [x] T255 Served area: instant estimates only in the launch region and categories, a waiting list elsewhere · S · **needs Karam's beachhead decision**
 - [ ] T242 Operator cockpit: KPIs, the funnel and deadlines for the request queue · M
 - [ ] T243 Estimate calibration: learn from the gap between estimate and confirmed price · M · after T242
 - [ ] T244 Supplier price rules and automatic confirmation; the answer time as a setting · M
@@ -5230,8 +5230,30 @@ Liquidity is local. Instant estimates should only promise what the supplier base
 4. The Wave 12 outreach desk (T195) can filter by the served area.
 
 **Done when.**
-- [ ] A request inside the area is priced instantly; one outside it goes to the operator with the message.
-- [ ] The waiting list counts by region and category. An empty setting changes nothing.
+- [x] A request inside the area is priced instantly; one outside it goes to the operator with the message.
+- [x] The waiting list counts by region and category. An empty setting changes nothing.
+
+**As built (6 October 2026).**
+- **Settings.** `PUT /admin/settings {servedRegions, servedCategories}`: postcode prefixes of 1–5 digits (up to 100,
+  as an array or a comma-separated text) and categories from the service categories. Empty means everywhere, and
+  that is the default, so nothing changes until the admin saves an area. A save without the fields keeps them.
+  The admin edits them under *Platform → Served area*. **Karam's beachhead decision is still open:** the page shows
+  the Regensburg example (93, 94, 84 with PLC programming, commissioning, electrical and mechanical installation)
+  only as a placeholder, it is not saved.
+- **Rules (`servedarea.js`).** `check(settings, request)`: a request is outside when its site postcode starts with
+  none of the prefixes (a missing postcode is outside too), or when one of its packages' categories is not served.
+  `inside(settings, {postcode, categories})` is the same test for a place, ready for the T195 outreach desk's
+  filter (T195 is not built yet, so item 4 waits for it).
+- **Requests.** `requests.js` prices instantly only inside the area (also when a declined package booking is
+  priced again, T262). Outside, the request stays *New* for the operator and keeps `outsideArea` (postcode area,
+  categories, reasons). The customer only gets `outsideArea: true` and sees "We are building our network in your
+  region. We will contact you within two working days."; the operator sees why on the request page.
+- **Waiting list.** `GET /admin/metrics` returns `servedArea` with the settings and the waiting list: requests
+  outside the area counted by postcode area (first two digits) and category, the largest first, with the latest
+  date. The admin dashboard shows it as a table once an area is set or a request was counted.
+- **Tests.** `test/served-area.test.js`: the rules, the settings checks, an empty setting, a request inside and
+  outside (region and category), the waiting list, the customer's and operator's message in English and German.
+  `test/area-dashboards.test.js` and `test/area-admin-b.test.js` cover the dashboard table and the settings form.
 
 ### T242 · Operator cockpit
 `P1 · M`

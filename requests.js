@@ -8,12 +8,21 @@
 const REQUEST_STATUSES = ["New", "Sourcing", "Options ready", "Chosen", "Contracted", "Withdrawn", "Closed"];
 const OPEN = ["New", "Sourcing", "Options ready"];
 const DAY = 86400000;
+const servedArea = require("./servedarea");
 
 module.exports = function createRequests(ctx) {
   const { getDb, save, send, body, id, now, notify, activity, projectFor, ownUpload, categories } = ctx;
   const { suggest, cleanWeights, scorecard, clause, estimate, estimates } = ctx;
   // T231: the admin setting wins over INSTANT_ESTIMATES; on by default
   const instantOn = () => getDb().settings?.instantEstimates ?? process.env.INSTANT_ESTIMATES !== "off";
+  // T255: priced instantly only inside the served area; outside, the operator takes it and the waiting list counts it
+  function priceInstantly(r) {
+    if (!instantOn()) return false;
+    const outside = servedArea.check(getDb().settings, r);
+    if (outside) r.outsideArea = outside;
+    else delete r.outsideArea;
+    return !outside;
+  }
   const OPTION_LABELS = ["fastest", "cheapest", "best", "recommended"];
   const text = (v, max) =>
     String(v ?? "")
@@ -60,6 +69,8 @@ module.exports = function createRequests(ctx) {
       : [];
     out.thread = (r.thread || []).map(({ byId, ...m }) => m);
     delete out.estimateGap;
+    // T255: the customer only learns that the region is still being built up
+    if (r.outsideArea) out.outsideArea = true;
     // T225: the supplier is named only once both sides have accepted the contract
     delete out.award;
     // T232: each part's state, packages and price, never its supplier; a higher price waits for the customer
@@ -593,7 +604,7 @@ module.exports = function createRequests(ctx) {
     r.excludeSupplierIds = [...new Set([...(r.excludeSupplierIds || []), part.supplierId])];
     r.options = [];
     move(r, "New", { role: "admin", id: null }, reason);
-    if (instantOn()) instantEstimate(r);
+    if (priceInstantly(r)) instantEstimate(r);
     notify(r.customerId, { key: "packageDeclined", params: { title: r.title } }, `/customer/requests/${r.id}`);
     for (const a of admins())
       notify(a.id, { key: "packageDeclinedAdmin", params: { title: r.title } }, `/admin/requests/${r.id}`);
@@ -977,7 +988,7 @@ module.exports = function createRequests(ctx) {
       };
       linkProject(user, r);
       move(r, "New", user);
-      if (instantOn()) instantEstimate(r);
+      if (priceInstantly(r)) instantEstimate(r);
       if (getDb().settings?.autoSuggest !== false) refreshSuggestions(r);
       list().unshift(r);
       for (const a of admins())

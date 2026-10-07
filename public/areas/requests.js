@@ -182,7 +182,7 @@ async function rqCustomerDetail(params) {
         ? `<button class="btn outline danger" data-action="req.withdraw" data-id="${esc(r.id)}">${rqk("withdraw")}</button>`
         : ""
     }</div>
-<section class="panel"><h3>${rqk("details")}</h3>${rqFacts(r)}${rqPackages(r)}<p class="rq-description"><bdi>${esc(r.description)}</bdi></p>${r.closeReason ? `<p class="rq-closed"><b>${rqk("closedReason")}</b> <bdi>${esc(r.closeReason)}</bdi></p>` : ""}</section>
+${r.outsideArea && ["New", "Sourcing"].includes(r.status) ? `<div class="notice">${rqk("outsideArea")}</div>` : ""}<section class="panel"><h3>${rqk("details")}</h3>${rqFacts(r)}${rqPackages(r)}<p class="rq-description"><bdi>${esc(r.description)}</bdi></p>${r.closeReason ? `<p class="rq-closed"><b>${rqk("closedReason")}</b> <bdi>${esc(r.closeReason)}</bdi></p>` : ""}</section>
 ${
   (r.options || []).length
     ? `<section class="panel"><h3>${rqk("optionsTitle")}</h3><p class="subtle">${rqk("optionsLead")}</p>${rqAwardNote(r)}<div class="rq-options">${r.options
@@ -584,7 +584,14 @@ async function rqAdminDetail(params) {
         : ""
     }</div>${take}
 <section class="panel"><h3>${rqk("details")}</h3>${rqFacts(r)}${rqPackages(r)}<p class="rq-description"><bdi>${esc(r.description)}</bdi></p></section>
-${rqAwardNote(r, "admin")}${(r.estimateGap || []).length ? `<div class="notice warn">${rqk("estimate.gap", { list: r.estimateGap.join(", ") })}</div>` : ""}${
+${rqAwardNote(r, "admin")}${
+      r.outsideArea
+        ? `<div class="notice warn">${rqk("outsideAreaAdmin", {
+            region: r.outsideArea.region || t("req.noPostcode"),
+            categories: (r.outsideArea.categories || []).join(", "),
+          })}</div>`
+        : ""
+    }${(r.estimateGap || []).length ? `<div class="notice warn">${rqk("estimate.gap", { list: r.estimateGap.join(", ") })}</div>` : ""}${
       (r.estimateSkipped || []).length
         ? `<div class="notice warn"><b>${rqk("estimate.skippedTitle")}</b><ul>${r.estimateSkipped
             .map((x) => `<li>${rqk("estimate.skipped", { package: x.package, rate: fmt.money(x.rate), low: fmt.money(x.p25), high: fmt.money(x.p75) })}</li>`)

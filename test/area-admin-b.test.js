@@ -66,7 +66,9 @@ function area(lang) {
     routes: { add() {} },
     FormData: class {
       constructor(form) {
-        return new Map(Object.entries(form.values || {}));
+        const m = new Map(Object.entries(form.values || {}));
+        m.getAll = (k) => [].concat(form.values?.[k] ?? []);
+        return m;
       }
     },
     esc: (s) => String(s ?? "").replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[c]),
@@ -133,6 +135,10 @@ describe("admin: billing, escalations, reports, audit, platform (T134b)", () => 
       assert.ok(html.includes("CraftCrew GmbH") && html.includes("SMTP down"));
       assert.ok(html.includes("custom Template"), "unknown template names stay readable");
       assert.ok(html.indexOf("ccPlatformSettings") < html.indexOf("pa-outbox") && html.indexOf("pa-outbox") < html.indexOf("legal-admin"));
+      // T255: the served area, empty by default, with a placeholder that is clearly only an example
+      assert.match(html, /<input name="servedRegions" value="" placeholder="[^"]*93, 94, 84"/);
+      assert.match(html, /<input type="checkbox" name="servedCategories" value="Welding">/);
+      assert.ok(html.includes(de ? "Platzhalter, bis die Startregion entschieden ist" : "Placeholder until the launch region is decided"));
     });
   }
 
@@ -157,13 +163,15 @@ describe("admin: billing, escalations, reports, audit, platform (T134b)", () => 
     const ctx = area("en");
     ctx.els.ccPlatformSaved = { textContent: "" };
     ctx.run("adm.saveSettings", {
-      values: { serviceCategories: "Welding\n\nPLC ", goldProjects: "20", goldRating: "4.5", bronzeProjects: "1", bronzeRating: "3", silverProjects: "5", silverRating: "4", supportEmail: "help@x.de", platformFeePercent: "5", defaultPaymentTermsDays: "30", uploadLimitMb: "5", faqContent: "", email_applicationReceived: "Thanks", email_customTemplate: "Custom" },
+      values: { serviceCategories: "Welding\n\nPLC ", goldProjects: "20", goldRating: "4.5", bronzeProjects: "1", bronzeRating: "3", silverProjects: "5", silverRating: "4", supportEmail: "help@x.de", platformFeePercent: "5", defaultPaymentTermsDays: "30", uploadLimitMb: "5", faqContent: "", email_applicationReceived: "Thanks", email_customTemplate: "Custom", servedRegions: "93, 94", servedCategories: ["PLC", "Robotics"] },
     });
     await settle();
     const body = JSON.parse(JSON.stringify(ctx.calls.find((c) => c[2] === "PUT")[3]));
     assert.deepEqual(body.serviceCategories, ["Welding", "PLC"]);
     assert.deepEqual(body.badgeCriteria.gold, { projects: 20, rating: 4.5 });
     assert.deepEqual(body.emailTemplates, { applicationReceived: "Thanks", customTemplate: "Custom" });
+    assert.equal(body.servedRegions, "93, 94");
+    assert.deepEqual(body.servedCategories, ["PLC"], "a category no longer in the list is dropped");
     assert.equal(ctx.els.ccPlatformSaved.textContent, "Saved");
   });
 

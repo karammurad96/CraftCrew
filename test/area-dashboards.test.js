@@ -135,6 +135,7 @@ describe("dashboards area", () => {
         assert.match(html, /<div class="stats" data-lc-section="stats" data-lc-grid="stats-0">/);
         assert.match(html, /data-lc-section="pa-attention"/);
         assert.match(html, /data-lc-section="dashboard-grid"/);
+        assert.doesNotMatch(html, /data-lc-section="waiting-list"/, "T255: no served area set, no waiting list");
         if (lang === "de") {
           assert.ok(html.includes(role === "supplier" ? "Außerdem für Sie" : "Braucht Ihre Entscheidung"));
           assert.ok(html.includes("Mehr auf Ihrer Übersicht"));
@@ -262,4 +263,32 @@ describe("dashboards area", () => {
     assert.ok(lc.includes('t("layout.customize")'));
     assert.ok(read("onboarding.js").includes('content.querySelector(":scope > .aq-panel")'));
   });
+});
+
+describe("admin dashboard: waiting list (T255)", () => {
+  for (const lang of ["en", "de"])
+    it(`counts requests outside the served area by region and category in ${lang === "en" ? "English" : "German"}`, async () => {
+      const servedArea = {
+        regions: ["93", "94"],
+        categories: [],
+        waitingList: [
+          { region: "10", category: "Robotics <b>", count: 3, last: "2026-10-03T10:00:00Z" },
+          { region: "", category: "PLC Programming", count: 1, last: "2026-10-01T10:00:00Z" },
+        ],
+      };
+      const base = area(lang, "admin"),
+        ctx = area(lang, "admin", {
+          extra: {
+            api: async (p) => (p === "/admin/metrics" ? { metrics: { users: 1, suppliers: 1, projects: 0, grossVolume: 0, servedArea } } : base.api(p)),
+          },
+        }),
+        html = await ctx.render();
+      assert.deepEqual(ctx.warnings, []);
+      assert.match(html, /<section class="panel" data-lc-section="waiting-list">/);
+      assert.ok(html.includes(lang === "de" ? "Warteliste: Nachfrage außerhalb des Einsatzgebiets" : "Waiting list: demand outside the served area"));
+      assert.ok(html.includes("93, 94"));
+      assert.ok(html.includes("<td>10</td><td><bdi>Robotics &lt;b&gt;</bdi></td><td>3</td>"), "escaped");
+      assert.ok(html.includes(lang === "de" ? "keine PLZ" : "no postcode"));
+      assert.doesNotMatch(text(html), /\bdash\.[a-zA-Z.]+/, "raw key");
+    });
 });

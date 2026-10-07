@@ -200,6 +200,8 @@ LOCALES.de = {
       chatTooFast: "Sie senden sehr schnell Nachrichten. Warten Sie eine Minute und senden Sie dann erneut.",
       rqShifts: "Wählen Sie Nacht-, Wochenend- oder Schichtarbeit aus der Liste.",
       rqTrips: "Geben Sie die Anzahl der Anfahrten an (1 bis 50) oder lassen Sie das Feld leer.",
+      saRegions: "Geben Sie die bedienten Regionen als Postleitzahl-Anfänge mit 1 bis 5 Ziffern an.",
+      saCategories: "Wählen Sie die bedienten Kategorien aus den Leistungskategorien.",
       prNumbers: "Preisregeln: Geben Sie Zahlen ab 0 an (Zuschläge bis 200 %, Anfahrt bis 20 € pro km).",
       prMaterialsMax: "Preisregeln: Material für bis zu 30 Kategorien.",
       prMaterialsShare: "Preisregeln: Ein Materialanteil liegt zwischen 0 und 100 %.",
@@ -1253,6 +1255,19 @@ LOCALES.de = {
       "accept": "Auftrag annehmen",
       "decline": "Ablehnen",
       "ask": "Eine Frage stellen ›"
+    },
+    "waiting": {
+      "title": "Warteliste: Nachfrage außerhalb des Einsatzgebiets",
+      "settings": "Einsatzgebiet",
+      "served": "Bedient: Postleitzahlen {regions} · Kategorien {categories}. Anfragen von außerhalb gehen ohne Sofortschätzung an das Team.",
+      "everywhere": "alle",
+      "allCategories": "alle",
+      "region": "PLZ-Gebiet",
+      "category": "Kategorie",
+      "requests": "Anfragen",
+      "last": "Zuletzt",
+      "noPostcode": "keine PLZ",
+      "empty": "Noch keine Anfragen von außerhalb des Einsatzgebiets."
     },
     "stats": {
       "activeProjects": "Aktive Projekte",
@@ -3679,6 +3694,9 @@ LOCALES.de = {
       shift: "Schichtarbeit",
     },
     "awardDoneMany": "Verträge mit Ihren Lieferanten geschlossen:",
+    "outsideArea": "Wir bauen unser Netzwerk in Ihrer Region gerade auf. Wir melden uns innerhalb von zwei Werktagen bei Ihnen.",
+    "outsideAreaAdmin": "Außerhalb des Einsatzgebiets (PLZ-Gebiet {region}, {categories}): keine Sofortschätzung. Der Kunde weiß, dass wir uns innerhalb von zwei Werktagen melden.",
+    "noPostcode": "keine",
     "estimate": {
       unusual: "Ungewöhnlicher Preis für diese Art von Arbeit",
       skippedTitle: "Sätze weit außerhalb des üblichen Bereichs wurden ausgelassen:",
@@ -4157,6 +4175,14 @@ LOCALES.de = {
       "legalSaved": "Rechtstexte veröffentlicht",
       "autoSuggest": "Lieferanten automatisch vorschlagen, sobald eine Anfrage eingeht",
       "instantEstimates": "Sofortschätzung: neue Anfragen sofort aus den Preislisten der Lieferanten bepreisen",
+      "served": {
+        "title": "Einsatzgebiet",
+        "hint": "Sofortschätzungen nur hier. Leer bedeutet überall.",
+        "regions": "Postleitzahl-Anfänge (durch Komma getrennt, z. B. 93, 94, 84)",
+        "regionsPlaceholder": "Platzhalter: 93, 94, 84",
+        "categories": "Bediente Kategorien (keine angekreuzt = alle)",
+        "placeholderNote": "Platzhalter, bis die Startregion entschieden ist: die Region um Regensburg (PLZ 93, 94, 84) mit SPS-Programmierung, Inbetriebnahme, Elektroinstallation sowie Montage und Verlagerung. Nichts wird eingeschränkt, bis Sie hier Anfänge oder Kategorien speichern. Anfragen von außerhalb erreichen weiterhin das Team und werden auf der Warteliste der Übersicht gezählt."
+      },
       "markup": "Aufschlag auf vermittelte Optionen (%)",
       "markupHint": "0 = der Kunde zahlt den Preis des Lieferanten, die Plattformgebühr wird von der Auszahlung abgezogen. Ein Aufschlag bedeutet, dass die Plattform die Leistung weiterverkauft: vorher mit dem Steuerberater klären.",
       "clause": {
