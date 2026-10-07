@@ -380,7 +380,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 
 **Wave 18 — payments with Stripe, test version (asked for by Karam on 7 October 2026: Connect, Payments, Billing, Invoicing, Tax, Identity, Radar and Issuing; sandbox keys only; replaces T80; details under "Wave 18")**
 - [x] T270 Stripe foundation: SDK, keys from the environment only, test mode only, webhooks with signature check, a fake Stripe for tests · M · do first, **first test version**
-- [x] T271 Supplier payout accounts: Stripe Connect (Accounts v2), embedded onboarding, payouts page · M · **first test version**
+- [ ] T271 Supplier payout accounts: Stripe Connect (Accounts v2), embedded onboarding, payouts page · M · **first test version**
 - [ ] T272 The customer pays an approved invoice through Stripe Checkout · M · **first test version**
 - [ ] T273 Payout to the supplier minus the platform fee; refunds and disputes reverse it · M · **first test version**
 - [ ] T274 Milestone deposits: the customer pays before the work, the money is released on acceptance · M
@@ -6223,10 +6223,10 @@ T274–T279 add the other products. T280 is the go-live check.
 - [x] Creating the account sends the v2 fields above (tested against the fake Stripe), never `type`.
 - [x] Capability changes from a webhook update the supplier; a transfer to a restricted account is refused.
 
-**As built (6 October 2026).**
+**Implementation verified on the T271 branch (7 October 2026); not merged.**
 - **`payouts.js`** (loaded by `payments.js`). `POST /api/payouts/account` creates the connected account with
   `client.v2.core.accounts.create`: `dashboard: "express"`, `defaults` (EUR, fees and losses collected by the
-  application), `identity` (DE, company, the legal name from the company profile), the recipient configuration
+  application), `identity` (the explicitly selected ISO registration country, company, the legal name from the company profile), the recipient configuration
   with `stripe_transfers` requested, `include` of the recipient configuration and the requirements, and an
   idempotency key per supplier. Never `type`, no merchant configuration. `POST /api/payouts/session` makes the
   Account Session (`account_onboarding`, `notification_banner`, `account_management`); `POST /api/payouts/login-link`
@@ -6246,9 +6246,15 @@ T274–T279 add the other products. T280 is the go-live check.
   account is active, then the notification banner and account management, plus the Express dashboard link. When
   payments are off it says so. The admin's Users page shows each supplier's payout status. The IBAN fields are
   unchanged.
-- Tests: `test/payments-payouts.test.js` with the fake Stripe (`/v2/core/accounts`, `/v1/account_sessions`,
-  `/v1/accounts/:id/login_links`, `/v1/transfers`, thin events). The embedded components themselves need a real
-  Stripe sandbox and were not tried here.
+- Tests: `test/payments-payouts.test.js` with fake Stripe covers explicit international registration countries,
+  account creation, sessions/login links, thin-event signing secrets, status privacy and fresh transfer checks;
+  delayed-body concurrency and embedded-session identity regressions are covered too. Targeted checks: 50 passed.
+  Full `npm test`: 727 passed, 0 failed, 1 skipped (PostgreSQL unavailable).
+- Browser checks: installed Chromium, desktop (1440 px) and phone (390 px), English and German, account creation
+  and session API verified against fake Stripe; no page errors or horizontal overflow. Screenshots saved outside
+  the checkout. Connect.js rendering was stubbed explicitly; real embedded components still require a Stripe sandbox.
+- Stripe API references for Accounts v2 creation and Account Sessions checked on 7 October 2026; ISO country
+  selection does not establish Stripe eligibility. Real sandbox eligibility and embedded components remain unverified.
 
 ### T272 · The customer pays an approved invoice
 `P1 · M · depends on T271`

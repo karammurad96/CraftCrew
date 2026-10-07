@@ -1,7 +1,7 @@
 /*
  * Supplier payout accounts (T271, Wave 18). Each supplier is a connected account, created with Accounts v2:
  * - the recipient configuration with the stripe_transfers capability (separate charges and transfers: the platform
- *   is the merchant of record, so no card payments on the supplier's account), the Express dashboard, and fees and
+ *   collects customer payments; no card payments on the supplier's account), the Express dashboard, and fees and
  *   losses carried by the platform ("application"). Never the old `type: express/custom/standard`.
  * - Onboarding and account management run in Stripe's embedded components; the server only makes the Account
  *   Session. The Express dashboard opens through a login link.
@@ -10,6 +10,8 @@
  * - Only the supplier's main account creates the account, opens onboarding and the dashboard; team members with
  *   access to the settings see the status.
  */
+// ISO 3166-1 country codes; Stripe determines eligibility for the platform and capability.
+const COUNTRIES = "AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW".split(" ");
 const INCLUDE = ["configuration.recipient", "requirements"];
 // The thin events of a connected account; each one reloads the account
 const ACCOUNT_EVENTS = [
@@ -32,7 +34,7 @@ class PayoutRefused extends Error {
 }
 
 module.exports = function createPayouts(ctx) {
-  const { getDb, save, send, now, notify, activity, client, enabled, publishableKey, on } = ctx;
+  const { getDb, save, send, now, notify, activity, client, enabled, publishableKey, on, body } = ctx;
   const suppliers = () => getDb().suppliers || [];
   const mainUser = (supplierId) => (getDb().users || []).find((u) => u.supplierId === supplierId && !u.isMember);
   const creating = new Set();
@@ -78,7 +80,7 @@ module.exports = function createPayouts(ctx) {
     return client.transfers.create({ ...params, destination: account.id }, options);
   }
 
-  async function create(s, user) {
+  async function create(s, user, country) {
     const owner = mainUser(s.id) || user,
       cp = owner.companyProfile || {};
     const account = await client.v2.core.accounts.create(
@@ -87,7 +89,7 @@ module.exports = function createPayouts(ctx) {
         contact_email: cp.procurementEmail || owner.email,
         dashboard: "express",
         defaults: { currency: "eur", responsibilities: { fees_collector: "application", losses_collector: "application" } },
-        identity: { country: "de", entity_type: "company", business_details: { registered_name: String(cp.legalName || s.company || "").slice(0, 200) } },
+        identity: { country: country.toLowerCase(), entity_type: "company", business_details: { registered_name: String(cp.legalName || s.company || "").slice(0, 200) } },
         configuration: { recipient: { capabilities: { stripe_balance: { stripe_transfers: { requested: true } } } } },
         include: INCLUDE,
         metadata: { supplierId: s.id },
@@ -106,7 +108,7 @@ module.exports = function createPayouts(ctx) {
     const s = suppliers().find((x) => x.id === user.supplierId);
     if (!s) return (send(res, 404, { error: "Supplier not found" }), true);
     const answer = (status = 200, extra = {}) =>
-      send(res, status, { enabled, publishableKey, account: view(s), canManage: !user.isMember, ...extra });
+      send(res, status, { enabled, publishableKey, account: view(s), countries: COUNTRIES, canManage: !user.isMember, ...extra });
     if (parts.length === 2 && method === "GET") return (answer(), true);
     if (method !== "POST" || parts.length !== 3) return (send(res, 404, { error: "Not found" }), true);
     if (!enabled) return (send(res, 409, { error: "Payments are off: no Stripe key is set." }), true);
@@ -115,9 +117,14 @@ module.exports = function createPayouts(ctx) {
       if (parts[2] === "account") {
         if (s.stripeAccount?.id) return (answer(), true);
         if (creating.has(s.id)) return (send(res, 409, { error: "The payout account is being set up. Try again in a moment." }), true);
+        const b = await body(req);
+        const country = typeof b?.country === "string" ? b.country.toUpperCase() : "";
+        if (!COUNTRIES.includes(country)) return (send(res, 400, { error: "Choose the country where your company is legally registered." }), true);
+        if (s.stripeAccount?.id) return (answer(), true);
+        if (creating.has(s.id)) return (send(res, 409, { error: "The payout account is being set up. Try again in a moment." }), true);
         creating.add(s.id);
         try {
-          await create(s, user);
+          await create(s, user, country);
         } finally {
           creating.delete(s.id);
         }
@@ -142,7 +149,8 @@ module.exports = function createPayouts(ctx) {
         return (send(res, 200, { url: link.url }), true);
       }
     } catch (e) {
-      console.error("Stripe payout account:", parts[2], String(e.message || e).slice(0, 200));
+      console.error("Stripe payout account operation failed:", parts[2]);
+      if (e.type === "StripeInvalidRequestError") return (send(res, 422, { error: "Stripe could not accept these account details. Check your registration country and contact support." }), true);
       return (send(res, 502, { error: "Stripe could not be reached. Check the key and the network." }), true);
     }
     return (send(res, 404, { error: "Not found" }), true);

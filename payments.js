@@ -61,7 +61,7 @@ module.exports = function createPayments(ctx) {
     });
   }
   async function webhook(req, res) {
-    if (!enabled || !webhookSecret) return send(res, 404, { error: "Not found" });
+    if (!enabled || (!webhookSecret && !thinSecret)) return send(res, 404, { error: "Not found" });
     const raw = await readRaw(req),
       header = req.headers["stripe-signature"] || "";
     // A thin event (Accounts v2) carries only the related object's id; a snapshot event carries the object
@@ -70,11 +70,10 @@ module.exports = function createPayments(ctx) {
       thin = JSON.parse(raw.toString("utf8"))?.object === "v2.core.event";
     } catch {}
     let event = null;
-    for (const secret of [webhookSecret, thinSecret].filter(Boolean))
-      try {
-        event = thin ? client.parseEventNotification(raw, header, secret) : client.webhooks.constructEvent(raw, header, secret);
-        break;
-      } catch {}
+    const secret = thin ? thinSecret : webhookSecret;
+    if (secret) try {
+      event = thin ? client.parseEventNotification(raw, header, secret) : client.webhooks.constructEvent(raw, header, secret);
+    } catch {}
     if (!event) {
       state().lastError = { at: now(), message: "Signature check failed" };
       return send(res, 400, { error: "Invalid signature" });
@@ -91,9 +90,9 @@ module.exports = function createPayments(ctx) {
     } catch (e) {
       // Stripe retries a failed delivery; the record is removed so the retry is handled again
       list.splice(list.indexOf(record), 1);
-      state().lastError = { at: now(), message: String(e.message || e).slice(0, 300) };
+      state().lastError = { at: now(), message: "Webhook handler failed" };
       save();
-      console.error("Stripe webhook handler failed:", event.type, e.message);
+      console.error("Stripe webhook handler failed:", event.type);
       return send(res, 500, { error: "Handler failed" });
     }
     save();
@@ -107,7 +106,7 @@ module.exports = function createPayments(ctx) {
       mode: !enabled ? "off" : live ? "live" : "test",
       keyType: !enabled ? null : key.startsWith("rk_") ? "restricted" : "secret",
       publishableKey,
-      webhook: { configured: !!webhookSecret, lastEventAt: s.lastEventAt || null, lastEventType: s.lastEventType || null, lastError: s.lastError || null },
+      webhook: { configured: !!webhookSecret, thinConfigured: !!thinSecret, lastEventAt: s.lastEventAt || null, lastEventType: s.lastEventType || null, lastError: s.lastError || null },
       account: s.account || null,
       events: events().slice(0, 20),
     };

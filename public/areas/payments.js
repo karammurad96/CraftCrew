@@ -21,7 +21,7 @@ async function stAdminPage() {
         ? `<section class="panel"><dl class="rq-facts">${row(stk("keyType"), stk("key." + s.keyType))}${row(stk("publishable"), yes(!!s.publishableKey))}${row(
             stk("account"),
             s.account ? `<code>${esc(s.account.id)}</code>${s.account.name ? " · " + esc(s.account.name) : ""}${s.account.country ? " · " + esc(s.account.country) : ""}` : stk("notChecked"),
-          )}${row(stk("webhook"), yes(w.configured))}${row(stk("lastEvent"), w.lastEventAt ? `<code>${esc(w.lastEventType)}</code> · ${esc(fmt.date(w.lastEventAt))}` : stk("none"))}${
+          )}${row(stk("webhook"), yes(w.configured))}${row(stk("thinWebhook"), yes(w.thinConfigured))}${row(stk("lastEvent"), w.lastEventAt ? `<code>${esc(w.lastEventType)}</code> · ${esc(fmt.date(w.lastEventAt))}` : stk("none"))}${
             w.lastError ? row(stk("lastError"), `${esc(w.lastError.message)} · ${esc(fmt.date(w.lastError.at))}`) : ""
           }</dl><p class="subtle">${stk("webhookUrl", { url: location.origin + "/api/stripe/webhook" })}</p></section>${events}`
         : ""
@@ -44,7 +44,16 @@ routes.add("/admin/stripe", stAdminPage);
    server. The IBAN under Profile / Billing stays on the invoices for bank transfers. */
 const pok = (key, params) => esc(t("payouts." + key, params));
 const PO_TONE = { active: "completed", pending: "submitted", restricted: "rejected" };
-let poConnect = null;
+let poConnect = null, poOwner = null, poGeneration = 0;
+function poReset() {
+  const previous = poConnect;
+  poConnect = null;
+  poOwner = null;
+  poGeneration++;
+  try {
+    if (previous?.logout) Promise.resolve(previous.logout()).catch(() => {});
+  } catch {}
+}
 function poConnectJs() {
   if (window.StripeConnect) return Promise.resolve(window.StripeConnect);
   return new Promise((resolve) => {
@@ -58,15 +67,26 @@ function poConnectJs() {
 async function poComponents(info) {
   const box = document.getElementById("poEmbedded");
   if (!box) return;
+  const owner = state.user?.id + ":" + info.account.id;
+  try {
   const Connect = await poConnectJs();
-  if (!document.body.contains(box)) return;
+  if (!document.body.contains(box) || owner !== state.user?.id + ":" + info.account.id) return;
   if (!Connect) {
     box.innerHTML = `<div class="notice warn">${pok("loadFailed")}</div>`;
     return;
   }
+  if (poOwner !== owner) poReset();
+  poOwner = owner;
+  const generation = poGeneration;
   poConnect ||= Connect.init({
     publishableKey: info.publishableKey,
-    fetchClientSecret: async () => (await api("/payouts/session", { method: "POST", body: {} })).clientSecret,
+    fetchClientSecret: async () => {
+      const current = () => generation === poGeneration && poOwner === owner && state.user?.id + ":" + info.account.id === owner;
+      if (!current()) throw new Error("Payout session changed");
+      const session = await api("/payouts/session", { method: "POST", body: {} });
+      if (!current()) throw new Error("Payout session changed");
+      return session.clientSecret;
+    },
     locale: ccLanguage.locale,
     appearance: { variables: { colorPrimary: "#2563eb", fontFamily: "Inter, system-ui, sans-serif" } },
   });
@@ -76,6 +96,9 @@ async function poComponents(info) {
     const onboarding = poConnect.create("account-onboarding");
     onboarding.setOnExit?.(() => poRefresh());
     box.append(onboarding);
+  }
+  } catch {
+    if (document.body.contains(box)) box.innerHTML = `<div class="notice warn">${pok("loadFailed")}</div>`;
   }
 }
 async function poRefresh() {
@@ -87,13 +110,15 @@ async function poRefresh() {
   if (location.hash.startsWith("#/supplier/payouts")) route();
 }
 async function poSupplierPage() {
+  const userId = state.user?.id, generation = poGeneration;
   const info = await api("/payouts"),
     a = info.account;
+  if (state.user?.id !== userId || generation !== poGeneration || !location.hash.startsWith("#/supplier/payouts")) return;
   let body;
   if (!info.enabled) body = `<div class="notice">${pok("off")}</div>`;
   else if (!a)
     body = `<section class="panel"><h2>${pok("startTitle")}</h2><p>${pok("startText")}</p>${
-      info.canManage ? `<div class="cc-actions"><button class="btn primary" data-action="po.create">${pok("start")}</button></div>` : `<p class="subtle">${pok("mainOnly")}</p>`
+      info.canManage ? `<form data-action="po.create"><label>${pok("country")}<select id="poCountry" required><option value="">${pok("chooseCountry")}</option>${info.countries.map((code) => `<option value="${esc(code)}">${esc(new Intl.DisplayNames([fmt.locale()], { type: "region" }).of(code))}</option>`).join("")}</select></label><p class="subtle">${pok("countryHint")}</p><div class="cc-actions"><button class="btn primary">${pok("start")}</button></div></form>` : `<p class="subtle">${pok("mainOnly")}</p>`
     }</section>`;
   else
     body = `<section class="panel"><div class="panel-title"><h3>${pok("account")}</h3><span class="status ${PO_TONE[a.transfers] || "submitted"}">${pok("status." + a.transfers)}</span></div><p>${pok(
@@ -112,7 +137,7 @@ async function poSupplierPage() {
 }
 actions.on("po.create", async () => {
   try {
-    await api("/payouts/account", { method: "POST", body: {} });
+    await api("/payouts/account", { method: "POST", body: { country: document.getElementById("poCountry").value } });
     tToast(t("payouts.created"));
     route();
   } catch (x) {

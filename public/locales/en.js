@@ -220,6 +220,8 @@ LOCALES.en = {
       poOnlySuppliers: "Only suppliers have a payout account.",
       poMainOnly: "Only the main account can set up payouts.",
       poBusy: "The payout account is being set up. Try again in a moment.",
+      poDetails: "Stripe could not accept these account details. Check your registration country and contact support.",
+      poCountry: "Choose the country where your company is legally registered.",
       poFirst: "Set up the payout account first.",
       rqShifts: "Choose night, weekend or shift work from the list.",
       rqTrips: "Enter the number of trips (1 to 50), or leave it empty.",
@@ -6040,6 +6042,7 @@ LOCALES.en = {
     },
   },
   stripe: {
+    thinWebhook: "Account-event webhook",
     title: "Stripe payments",
     lead: "The connection to Stripe. Keys are set only as secrets on the server, never here: STRIPE_SECRET_KEY (a restricted key rk_test_… is best), STRIPE_PUBLISHABLE_KEY and STRIPE_WEBHOOK_SECRET.",
     mode: {
@@ -6078,6 +6081,10 @@ LOCALES.en = {
     no: "no",
   },
   payouts: {
+    country: "Company registration country",
+    chooseCountry: "Choose a country",
+    countryHint: "Use your company’s legal registration country. Stripe determines whether payouts are available there.",
+
     title: "Payouts",
     lead: "Customers pay your approved invoices through Stripe, and you receive the amount minus the platform fee. Stripe checks your company once, then pays out to your bank account.",
     off: "Payments with Stripe are not switched on yet. Customers pay your invoices by bank transfer to the IBAN on your invoices.",

@@ -219,6 +219,8 @@ LOCALES.de = {
       poOnlySuppliers: "Nur Lieferanten haben ein Auszahlungskonto.",
       poMainOnly: "Nur das Hauptkonto kann Auszahlungen einrichten.",
       poBusy: "Das Auszahlungskonto wird gerade eingerichtet. Versuchen Sie es gleich noch einmal.",
+      poDetails: "Stripe konnte diese Kontodaten nicht akzeptieren. Prüfen Sie Ihr Registrierungsland und kontaktieren Sie den Support.",
+      poCountry: "Wählen Sie das Land, in dem Ihr Unternehmen rechtlich registriert ist.",
       poFirst: "Richten Sie zuerst das Auszahlungskonto ein.",
       rqShifts: "Wählen Sie Nacht-, Wochenend- oder Schichtarbeit aus der Liste.",
       rqTrips: "Geben Sie die Anzahl der Anfahrten an (1 bis 50) oder lassen Sie das Feld leer.",
@@ -6039,6 +6041,7 @@ LOCALES.de = {
     },
   },
   stripe: {
+    thinWebhook: "Webhook für Kontoereignisse",
     title: "Stripe-Zahlungen",
     lead: "Die Verbindung zu Stripe. Schlüssel werden nur als Geheimnisse auf dem Server gesetzt, nie hier: STRIPE_SECRET_KEY (am besten ein eingeschränkter Schlüssel rk_test_…), STRIPE_PUBLISHABLE_KEY und STRIPE_WEBHOOK_SECRET.",
     mode: {
@@ -6077,6 +6080,10 @@ LOCALES.de = {
     no: "nein",
   },
   payouts: {
+    country: "Land der Unternehmensregistrierung",
+    chooseCountry: "Land auswählen",
+    countryHint: "Geben Sie das Land Ihrer rechtlichen Unternehmensregistrierung an. Stripe prüft, ob Auszahlungen dort verfügbar sind.",
+
     title: "Auszahlungen",
     lead: "Kunden bezahlen Ihre freigegebenen Rechnungen über Stripe, und Sie erhalten den Betrag abzüglich der Plattformgebühr. Stripe prüft Ihr Unternehmen einmal und zahlt dann auf Ihr Bankkonto aus.",
     off: "Zahlungen über Stripe sind noch nicht eingeschaltet. Kunden bezahlen Ihre Rechnungen per Überweisung auf die IBAN auf Ihren Rechnungen.",

@@ -23,7 +23,7 @@ describe("payouts: off without Stripe (API)", () => {
     assert.equal(r.status, 200, r.error);
     assert.equal(r.enabled, false);
     assert.equal(r.account, null);
-    assert.equal((await app.call("POST", "/payouts/account", {}, supplier)).code, "stOff");
+    assert.equal((await app.call("POST", "/payouts/account", { country: "DE" }, supplier)).code, "stOff");
   });
 });
 
@@ -65,13 +65,29 @@ describe("payouts: connected accounts with a fake Stripe (API)", () => {
     assert.ok(!fake.calls.some((c) => c.path === "/v2/core/accounts"), "nothing was created");
   });
 
+  it("requires a real explicit registration country without defaulting to Germany", async () => {
+    for (const country of [undefined, "", "ZZ", "EU", "Germany", 123]) {
+      const r = await app.call("POST", "/payouts/account", { country }, supplier);
+      assert.equal(r.status, 400);
+      assert.equal(r.code, "poCountry");
+    }
+    assert.ok(!fake.calls.some((c) => c.path === "/v2/core/accounts"));
+  });
+
+  it("uses an international supplier's explicit registration country", async () => {
+    const international = await vettedSupplier(app, admin, "po.poland@test.local", "Polish Supplier");
+    const r = await app.call("POST", "/payouts/account", { country: "PL" }, international.token);
+    assert.equal(r.status, 201, r.error);
+    assert.equal(fake.calls.findLast((c) => c.path === "/v2/core/accounts").body.identity.country, "pl");
+  });
+
   it("creates the account with the Accounts v2 fields, never `type`, and only once", async () => {
-    const r = await app.call("POST", "/payouts/account", {}, supplier);
+    const r = await app.call("POST", "/payouts/account", { country: "DE" }, supplier);
     assert.equal(r.status, 201, r.error);
     accountId = r.account.id;
     assert.equal(r.account.transfers, "pending");
     assert.equal(r.account.requirements, "currently_due");
-    const creates = fake.calls.filter((c) => c.method === "POST" && c.path === "/v2/core/accounts");
+    const creates = fake.calls.filter((c) => c.method === "POST" && c.path === "/v2/core/accounts" && c.body.metadata.supplierId === supplierId);
     assert.equal(creates.length, 1);
     const b = creates[0].body;
     assert.equal(b.type, undefined, "never the old account type");
@@ -85,10 +101,10 @@ describe("payouts: connected accounts with a fake Stripe (API)", () => {
     assert.ok(creates[0].headers["idempotency-key"], "a retry cannot open a second account");
     assert.ok(!("merchant" in b.configuration), "no card payments on the supplier's account");
     // A second click returns the same account
-    const again = await app.call("POST", "/payouts/account", {}, supplier);
+    const again = await app.call("POST", "/payouts/account", { country: "DE" }, supplier);
     assert.equal(again.status, 200);
     assert.equal(again.account.id, accountId);
-    assert.equal(fake.calls.filter((c) => c.method === "POST" && c.path === "/v2/core/accounts").length, 1);
+    assert.equal(fake.calls.filter((c) => c.method === "POST" && c.path === "/v2/core/accounts" && c.body.metadata.supplierId === supplierId).length, 1);
   });
 
   it("makes an Account Session for the embedded components and an Express login link", async () => {
@@ -115,6 +131,8 @@ describe("payouts: connected accounts with a fake Stripe (API)", () => {
     fake.setTransfers(accountId, "active");
     const type = "v2.core.account[configuration.recipient].capability_status_updated";
     assert.equal((await post(thin("evt_cap1", type, accountId, "whsec_other"))).status, 400, "wrong secret");
+    assert.equal((await post(thin("evt_cross", type, accountId, fake.env.STRIPE_WEBHOOK_SECRET))).status, 400, "snapshot secret cannot authenticate a thin event");
+    assert.equal((await post(fake.signed({ id: "evt_cross_snapshot", type: "test.snapshot" }, THIN_SECRET))).status, 400, "thin secret cannot authenticate a snapshot");
     assert.equal((await post(thin("evt_cap1", type, accountId))).status, 200);
     let r = await app.call("GET", "/payouts", undefined, supplier);
     assert.equal(r.account.transfers, "active");
@@ -176,5 +194,47 @@ describe("payouts: a transfer checks the account with Stripe first (unit)", () =
     assert.equal(transfersOf(acc("pending")), "pending");
     for (const s of ["restricted", "rejected", "unsupported", undefined]) assert.equal(transfersOf(acc(s)), "restricted");
     assert.equal(transfersOf(acc("active", true)), "restricted", "a closed account");
+  });
+});
+
+describe("payouts: thin-only webhook configuration", () => {
+  it("accepts thin events without the snapshot signing secret", async () => {
+    const fake = await startFakeStripe();
+    const app = await startApp({ env: { ...fake.env, STRIPE_WEBHOOK_SECRET: "", STRIPE_THIN_WEBHOOK_SECRET: THIN_SECRET } });
+    try {
+      const delivery = fake.signedThin({ id: "evt_thin_only", type: "v2.core.account.updated", related_object: { id: "acct_unknown", type: "v2.core.account" } }, THIN_SECRET);
+      const r = await fetch(app.base + "/api/stripe/webhook", { method: "POST", headers: { "Stripe-Signature": delivery.header }, body: delivery.payload });
+      assert.equal(r.status, 200);
+    } finally {
+      await app.stop();
+      await fake.stop();
+    }
+  });
+});
+
+describe("payouts: delayed request bodies cannot create two accounts", () => {
+  it("rechecks the creation lock after reading each body", async () => {
+    const supplier = { id: "sup_concurrent", company: "Concurrent Supplier" };
+    const user = { id: "owner", role: "supplier", supplierId: supplier.id, email: "owner@test.local" };
+    const reads = [], answers = [], creates = [];
+    let releaseCreate;
+    const payouts = require("../payouts")({
+      getDb: () => ({ suppliers: [supplier], users: [user] }), save() {}, now: () => "now", notify() {}, activity() {}, on() {}, enabled: true,
+      body: () => new Promise((resolve) => reads.push(resolve)),
+      send: (res, status, data) => answers.push({ res, status, data }),
+      client: { v2: { core: { accounts: { create: (params) => { creates.push(params); return new Promise((resolve) => { releaseCreate = () => resolve({ id: "acct_concurrent" }); }); } } } } },
+    });
+    const first = payouts.handle({ method: "POST" }, "first", null, ["api", "payouts", "account"], user);
+    const second = payouts.handle({ method: "POST" }, "second", null, ["api", "payouts", "account"], user);
+    reads[0]({ country: "PL" });
+    await new Promise((resolve) => setImmediate(resolve));
+    reads[1]({ country: "DE" });
+    await second;
+    assert.equal(creates.length, 1);
+    assert.equal(creates[0].identity.country, "pl");
+    assert.equal(answers.find((a) => a.res === "second").status, 409);
+    releaseCreate();
+    await first;
+    assert.equal(supplier.stripeAccount.id, "acct_concurrent");
   });
 });

@@ -555,6 +555,7 @@ const commission = require("./commission")({
 });
 // T270: payments with Stripe (Wave 18); off unless STRIPE_SECRET_KEY is set in the environment
 const payments = require("./payments")({
+  body,
   getDb: () => db,
   save: () => save(),
   send: (...a) => send(...a),
