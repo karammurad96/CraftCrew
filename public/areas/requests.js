@@ -189,11 +189,29 @@ ${
         .map((o) => rqOptionCard(o, r.status === "Options ready" && !o.declined ? r.id : ""))
         .join("")}</div></section>`
     : ""
-}${rqThread(r, "customer")}
+}${rqThread(r, "customer")}${r.status === "Contracted" ? rqCaseStudy(r) : ""}
 <section class="panel"><h3>${rqk("files")}</h3>${rqFiles(r)}</section>
 <section class="panel"><h3>${rqk("timeline")}</h3>${rqTimeline(r)}</section>`,
   );
 }
+// T246: the customer may allow an anonymised case study of the finished project on the public service pages
+function rqCaseStudy(r) {
+  const c = r.caseStudy || {};
+  return `<section class="panel"><h3>${rqk("caseStudy.title")}</h3><p class="subtle">${rqk("caseStudy.lead")}</p><form class="modal-form" data-action="req.caseStudy" data-id="${esc(r.id)}"><label>${rqk("caseStudy.summary")}<textarea name="summary" rows="3" maxlength="400">${esc(c.summary || "")}</textarea></label><label class="cc-check-label"><input type="checkbox" name="allow"${c.allowed ? " checked" : ""}> ${rqk("caseStudy.allow")}</label><div id="rqCaseError" class="form-error"></div><div class="cc-actions"><button class="btn outline">${rqk("caseStudy.save")}</button></div></form></section>`;
+}
+actions.on("req.caseStudy", async (form) => {
+  const f = new FormData(form);
+  try {
+    await api("/requests/" + encodeURIComponent(form.dataset.id) + "/case-study", {
+      method: "POST",
+      body: { allow: f.get("allow") === "on", summary: f.get("summary") || "" },
+    });
+    tToast(t("req.caseStudy.saved"));
+    route();
+  } catch (x) {
+    document.getElementById("rqCaseError").textContent = x.message;
+  }
+});
 actions.on("req.withdraw", async (el) => {
   const reason = await uiDialog({
     title: t("req.withdrawTitle"),

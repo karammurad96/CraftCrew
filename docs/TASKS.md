@@ -357,7 +357,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T243 Estimate calibration: learn from the gap between estimate and confirmed price · M · after T242
 - [x] T244 Supplier price rules and automatic confirmation; the answer time as a setting · M
 - [x] T245 Capacity calendar: crew-days, booked days and calendar sync · M
-- [ ] T246 Pages per category and region with real price ranges · S
+- [x] T246 Pages per category and region with real price ranges · S
 - [ ] T247 Crew app: install the site pages on a phone and keep working without signal · M
 - [ ] T248 E-invoices as ZUGFeRD and sent over Peppol · M · **needs Karam's choice of a Peppol access point (running cost)**
 - [ ] T249 Platform guarantee: a replacement supplier at the platform's cost, up to a set amount · M · **needs an insurer and the lawyer**
@@ -5507,9 +5507,36 @@ nobody can keep.
 3. **Only real pages.** No page for a pair without at least 3 vetted suppliers.
 
 **Done when.**
-- [ ] The pages are in English and German, and pass the CSP and accessibility checks.
-- [ ] The sitemap lists only pairs with enough suppliers.
-- [ ] A price range never shows below 5 data points.
+- [x] The pages are in English and German, and pass the CSP and accessibility checks.
+- [x] The sitemap lists only pairs with enough suppliers.
+- [x] A price range never shows below 5 data points.
+
+**As built (7 October 2026).**
+- **`servicepages.js`.** Plain HTML pages, drawn by the server without any script: `/services` (the list),
+  `/services/<category>/<region>` (for example `/services/plc-programming/bavaria`), `/sitemap.xml` and
+  `/robots.txt`. English by default, German with `?lang=de`; each page links both with `hreflang`. Texts are the
+  `server.servicePage` group of the locale files; the style is `public/servicepages.css` (logical properties).
+- **Regions** are the 16 German states, each a list of two-digit postcode prefixes (an approximation: a few postcode
+  areas straddle a border; every prefix belongs to one state). A supplier is in a region by the postcode in its
+  location text, else by a known city.
+- **Only real pages.** A pair exists when it is inside the served area (T255: the served regions overlap the
+  state's prefixes, the category is served; both empty means everywhere) and at least 3 vetted (live) suppliers
+  offer the category in the region. Any other pair answers 404 (noindex) and is not in the sitemap.
+- **Content.** What the service covers (with the names of the region's catalogue services of the category); the
+  price range from the T69 benchmark of the category (25th to 75th percentile, only when the benchmark is
+  available, which needs at least 5 data points); the number of vetted suppliers rounded down to 5, 10, 20, 50,
+  100 ... ("Several" under 5); how the instant estimate works; one anonymised finished project; a button to the
+  request form (`/#/customer/requests/new`).
+- **Case study.** On a contracted request, the customer can allow an anonymised case study and write its summary
+  (`POST /api/requests/<id>/case-study`, a panel on the request page). A page shows the newest allowed summary of a
+  request of the category and region whose tasks are all completed, as plain escaped text with the hours and the
+  number of packages, never names. The platform does not check the summary text; the customer writes it.
+- **Search engines.** Title, description, canonical and alternate links, structured data `Service` (with an
+  `AggregateOffer` only when the price range is shown), a sitemap with the real pairs in both languages and a
+  robots.txt that points to it.
+- **Checks.** `test/service-pages.test.js` and the browser test `test/e2e/servicepages.js` (every page of the
+  sitemap in English and German on desktop and phone: no script, console or CSP error, no sideways scroll, axe).
+  `npm run test:e2e` runs it.
 
 ### T247 · Crew app
 `P1 · M`

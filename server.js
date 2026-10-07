@@ -455,6 +455,21 @@ const estimates = require("./estimate")({
   // T241: the price band of a category
   benchmark: (category) => benchmarks.benchmark(category),
 });
+// T246: public pages per category and region, the sitemap and robots.txt
+const servicePages = require("./servicepages")({
+  getDb: () => db,
+  save: () => save(),
+  send: (...a) => send(...a),
+  body: (r) => body(r),
+  now: () => now(),
+  activity: (...a) => activity(...a),
+  benchmarks: { benchmark: (c) => benchmarks.benchmark(c) },
+  categories: () => db.settings?.serviceCategories || services,
+  appUrl: () => APP_URL,
+  pageHeaders: (req) => pageHeaders(req),
+  text: (...a) => locales.text(...a),
+  brand: () => BRAND,
+});
 const requests = require("./requests")({
   getDb: () => db,
   save: () => save(),
@@ -8267,6 +8282,7 @@ async function api(req, res, url) {
     if (await capacity.handle(req, res, parts, user)) return true;
     if (await twoFactor.handle(req, res, url, parts, user)) return true;
     if (await preferred.handle(req, res, url, parts, user)) return true;
+    if (await servicePages.handle(req, res, parts, user)) return true;
     if (await requests.handle(req, res, url, parts, user)) return true;
     if (await servicePackages.handle(req, res, url, parts, user)) return true;
     if (await clause.handle(req, res, url, parts, user)) return true;
@@ -8539,6 +8555,7 @@ const server = http.createServer(async (req, res) => {
   }
   // T264: the site editor's published texts and settings, always fresh
   if (url.pathname === "/site-content.js") return siteContent.serveScript(req, res);
+  if (servicePages.serve(req, res, url)) return;
   if (url.pathname.startsWith("/ics/")) {
     if (rateLimited("ics:" + clientIp(req), 120, 3600000)) {
       res.writeHead(429, { "Content-Type": "text/plain; charset=utf-8" });

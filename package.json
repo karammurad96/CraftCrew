@@ -7,7 +7,7 @@
     "start": "node server.js",
     "dev": "node server.js",
     "test": "node --test --test-concurrency=1 test/*.test.js",
-    "test:e2e": "node test/e2e/smoke.js && node test/e2e/pwa.js",
+    "test:e2e": "node test/e2e/smoke.js && node test/e2e/pwa.js && node test/e2e/servicepages.js",
     "format": "npx --yes prettier@3 --write \"**/*.{js,css}\"",
     "hooks": "git config core.hooksPath tools/hooks"
   },
