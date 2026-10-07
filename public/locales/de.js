@@ -584,6 +584,8 @@ LOCALES.de = {
       attachUpToFiveFiles: "Hängen Sie bis zu fünf Dateien an",
       thisBidRoundIsNo: "Diese Ausschreibungsrunde nimmt keine Angebote mehr an",
       onlyVettedSuppliersCanBid: "Nur geprüfte Dienstleister können für diese Aufgabe bieten",
+      listedNotOnPlatform: "Dieses Unternehmen ist noch nicht auf der Plattform. Bitten Sie es stattdessen um ein Angebot.",
+      notVettedConfirm: "Dieser Dienstleister ist noch nicht geprüft. Bestätigen Sie, dass Sie fortfahren möchten.",
       thisBidIsLimitedTo: "Diese Ausschreibung ist auf eingeladene Dienstleister beschränkt",
       enterAValidOfferAmount: "Geben Sie einen gültigen Angebotsbetrag und einen Lieferplan ein",
       enterTheHourlyRateIn: "Geben Sie den Stundensatz in Euro ein oder lassen Sie das Feld leer",
@@ -1327,6 +1329,12 @@ LOCALES.de = {
       "decline": "Ablehnen",
       "ask": "Eine Frage stellen ›"
     },
+    "levels": {
+      "title": "Dienstleister nach Stufe",
+      "listed": "Gelistet",
+      "registered": "Registriert",
+      "vetted": "Geprüft"
+    },
     "waiting": {
       "title": "Warteliste: Nachfrage außerhalb des Einsatzgebiets",
       "settings": "Einsatzgebiet",
@@ -1951,6 +1959,8 @@ LOCALES.de = {
       "locationPending": "Standort folgt",
       "rates": "{hourly}/Stunde · ab {project}",
       "invite": "Lieferant einladen",
+      "notVetted": "{company} ist noch nicht geprüft. Trotzdem einladen?",
+      "inviteAnyway": "Trotzdem einladen",
       "sent": "Einladung gesendet – wartet auf die Zusage des Lieferanten"
     },
     "withdraw": {
@@ -2182,6 +2192,9 @@ LOCALES.de = {
       "allServices": "Alle Leistungen",
       "badge": "Abzeichen",
       "allBadges": "Alle Abzeichen",
+      "level": "Stufe",
+      "allLevels": "Alle",
+      "levelOption": "{label} ({n})",
       "available": "Jetzt verfügbar",
       "go": "Suche",
       "more": "Weitere Filter",
@@ -2223,6 +2236,17 @@ LOCALES.de = {
     "noneFilters": "Keine Lieferanten passen zu diesen Filtern.",
     "meta": "★ {rating} · {projects} Projekte · {years}+ J. · {rate}/h",
     "viewProfile": "Profil ansehen",
+    "level": {
+      "listed": "Gelistet: noch nicht auf der Plattform",
+      "registered": "Registriert",
+      "vetted": "Geprüft",
+      "vettedBadge": "Geprüft · {badge}",
+      "short": { "listed": "Gelistet", "registered": "Registriert", "vetted": "Geprüft" }
+    },
+    "source": {
+      "TED": "Quelle: EU-Auftragsvergabe (TED), Bekanntmachung {notice}, © Europäische Union",
+      "other": "Quelle: {register}"
+    },
     "requestQuote": "Angebot anfragen",
     "region": "Diesen Ort kennen wir nicht. Versuchen Sie eine Stadt in der Nähe oder eine deutsche Postleitzahl.",
     "map": {
@@ -4490,6 +4514,9 @@ LOCALES.de = {
       "badgeFor": "Badge für {company}",
       "noBadge": "Kein Badge",
       "noSuppliers": "Noch keine Lieferantenunternehmen.",
+      "level": "Stufe",
+      "allLevels": "Alle Stufen",
+      "levelOption": "{label} ({n})",
       "badgeSet": "Lieferanten-Badge auf {badge} gesetzt",
       "accounts": "Konten",
       "count": {

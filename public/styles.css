@@ -537,6 +537,24 @@ footer {
   background: #edf4ff;
   color: #2563eb;
 }
+/* T190: the supplier level on a card: grey Listed, blue Registered, green Vetted */
+.badge.level-listed {
+  background: #eef1f5;
+  color: #475467;
+}
+.badge.level-registered {
+  background: #edf4ff;
+  color: #2563eb;
+}
+.badge.level-vetted {
+  background: #e7f6ec;
+  color: #11693a;
+}
+.dir-source {
+  display: block;
+  color: var(--muted, #475467);
+  margin-block: 8px;
+}
 .badge.gold {
   background: #fff5cf;
   color: var(--warn-text);

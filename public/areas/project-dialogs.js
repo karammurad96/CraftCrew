@@ -272,14 +272,17 @@ async function pdAssign(pid, tid) {
     `<div><p class="modal-intro">${a("intro")}</p><div class="wf-compare">${(d.suppliers || [])
       .map(
         (s) =>
-          `<article class="cc-card"><b>${esc(s.company)}</b><p>${s.location ? esc(s.location) : a("locationPending")} · ${esc(ccBadge(s))} · ★ ${fmt.number(s.rating || 0, 1)}</p><p>${(s.services || []).map(esc).join(" · ")}</p><strong>${a("rates", { hourly: fmt.money(s.hourlyRate || 0), project: fmt.money(s.projectRate || 0) })}</strong><button class="btn small primary" data-action="pd.invite" data-project="${esc(pid)}" data-task="${esc(tid)}" data-supplier="${esc(s.id)}">${a("invite")}</button></article>`,
+          `<article class="cc-card"><b>${esc(s.company)}</b><p>${s.location ? esc(s.location) : a("locationPending")} · ${esc(ccBadge(s))} · ★ ${fmt.number(s.rating || 0, 1)}</p><p>${(s.services || []).map(esc).join(" · ")}</p><strong>${a("rates", { hourly: fmt.money(s.hourlyRate || 0), project: fmt.money(s.projectRate || 0) })}</strong><button class="btn small primary" data-action="pd.invite" data-project="${esc(pid)}" data-task="${esc(tid)}" data-supplier="${esc(s.id)}" data-level="${esc(s.level || "vetted")}" data-company="${esc(s.company)}">${a("invite")}</button></article>`,
       )
       .join("")}</div></div>`,
   );
 }
 actions.on("pd.invite", async (el) => {
   try {
-    await api(`/projects/${encodeURIComponent(el.dataset.project)}/tasks/${encodeURIComponent(el.dataset.task)}/assign`, { method: "POST", body: { supplierId: el.dataset.supplier } });
+    // T190: a supplier that is not vetted yet needs one confirmation
+    const notVetted = el.dataset.level === "registered";
+    if (notVetted && !(await uiConfirm(t("dlg.assign.notVetted", { company: el.dataset.company }), { confirmLabel: t("dlg.assign.inviteAnyway") }))) return;
+    await api(`/projects/${encodeURIComponent(el.dataset.project)}/tasks/${encodeURIComponent(el.dataset.task)}/assign`, { method: "POST", body: { supplierId: el.dataset.supplier, ...(notVetted ? { confirmNotVetted: true } : {}) } });
     await pdDone(t("dlg.assign.sent"));
   } catch (x) {
     toast(x.message, "error");

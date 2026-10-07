@@ -305,7 +305,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T80 Real payments (Wave 6): → replaced by Wave 18 (Stripe), 7 October 2026
 
 **Wave 12 — a large supplier base before launch (decided with Karam on 5 October 2026: source = an existing register that is legal to reuse; "Listed" suppliers are shown to signed-in customers, clearly marked; details under "Wave 12")**
-- [ ] T190 Three supplier levels: Listed, Registered, Vetted · M · do first
+- [x] T190 Three supplier levels: Listed, Registered, Vetted · M · do first
 - [ ] T191 Import Listed suppliers from EU public procurement awards (TED) · M · **free, licence 2011/833/EU, attribution needed**
 - [ ] T192 Check imported companies against the GLEIF LEI register (CC0) · S
 - [ ] T193 "Is this your company?": claim or remove a listing, and a do-not-list register · M · **privacy texts need Karam's lawyer (Art. 14 GDPR)**
@@ -3730,6 +3730,30 @@ been vetted yet (`live: false`). There is no place for companies that have no ac
 (each 409 with a clear message); a registered supplier can send an offer, and assigning it needs
 `confirmNotVetted: true`; the search filter and counts per level; customers see the label; the public routes
 still list nothing.
+
+**As built (7 October 2026).**
+- **Levels (`supplierbase.js`).** `level` is `listed`, `registered` or `vetted`. `levelOf(s)` falls back to `live` for
+  old records, `setLevel` keeps `live === (level === "vetted")`, and `migrateLevels` runs at every start (live →
+  vetted, an account's placeholder → registered). Signup creates `registered`, an approved application `vetted`;
+  a deleted account (GDPR) goes back to `registered` and stays hidden (`status: "Deleted"`).
+- **Directory (`GET /suppliers`).** Shows vetted suppliers, registered ones with a company name and at least one
+  service, and listed ones to signed-in customers and admins only (and only when `published` is not false, T191).
+  `?level=` filters; the answer has `levels` (counts that ignore the filter). Default order: vetted, registered,
+  listed, then by rating. `publicSupplier` adds `level`; the claim code, outreach notes, batch id and key hash are
+  private fields. `/suppliers` stays behind sign-in, so the public routes list nothing.
+- **Work rules.** A listed company is refused with 409 "This company is not on the platform yet. Ask it to quote
+  instead." when assigned (task and phase), invited to a bid (publishing or inviting) or sent a quote request.
+  A registered supplier can receive quote requests and bids and send offers; assigning it, or accepting its offer,
+  returns 409 "This supplier is not vetted yet. Confirm that you want to continue." unless the body has
+  `confirmNotVetted: true`. The task dialog asks the customer once and sends it.
+- **Screens.** Directory: a "Level" filter with counts, a grey/blue/green label on each card ("Listed: not on the
+  platform yet", "Registered", "Vetted · Gold"), listed cards show the source line instead of rates and have no
+  "Request quote" button; the profile of a listed company hides all request buttons. Admin: the supplier table has
+  the same filter, and the dashboard shows the counts per level (`suppliersByLevel` in `/admin/metrics`).
+- **Not in this task.** The "Ask to quote" button on listed cards comes with T194 (the request needs its API).
+- **Tests.** `test/supplier-levels.test.js` (10 cases): the rules, the migration, directory counts and order, hidden
+  from suppliers and the public, the admin list and metrics, every refusal for a listed company, the registered
+  confirmation (assign and award), a vetted supplier unchanged.
 
 ### T191 · Import Listed suppliers from EU public procurement awards (TED)
 `P1 · M · depends on T190 · free`

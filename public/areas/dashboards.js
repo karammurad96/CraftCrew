@@ -591,7 +591,12 @@ async function dashAdmin() {
               : `<p class="pa-empty">${dk("waiting.empty")}</p>`
           }</section>`
         : "";
-  dashRender("admin", [header, decisions, dashStats(statCells), attention, grid, waiting]);
+  // T190: how many suppliers are at each level
+  const byLevel = m.metrics.suppliersByLevel || {},
+    levels = `<section class="panel" data-lc-section="supplier-levels"><div class="panel-title"><h3>${dk("levels.title")}</h3></div><div class="stats">${["listed", "registered", "vetted"]
+      .map((l) => `<div data-lc-key="level ${l}"><span class="cc-label">${dk("levels." + l)}</span><strong>${esc(String(byLevel[l] || 0))}</strong></div>`)
+      .join("")}</div></section>`;
+  dashRender("admin", [header, decisions, dashStats(statCells), attention, grid, levels, waiting]);
 }
 
 /* Every section is a direct child of the content area, so the layout editor can move it; each one is drawn
