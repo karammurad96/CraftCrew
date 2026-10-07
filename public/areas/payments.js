@@ -106,7 +106,7 @@ async function poSupplierPage() {
   app.innerHTML = dashboardShell(
     "supplier",
     "payouts",
-    `<div class="dash-top"><div><h1>${pok("title")}</h1><p>${pok("lead")}</p></div></div>${body}<p class="subtle">${pok("iban")} <a href="#/supplier/profile">${pok("profile")}</a></p>`,
+    `<div class="dash-top"><div><h1>${pok("title")}</h1><p>${pok("lead")}</p></div></div>${body}<p class="subtle">${pok("iban")}</p><a class="btn small outline" href="#/supplier/profile">${pok("profile")}</a>`,
   );
   if (info.enabled && a && info.canManage) poComponents(info);
 }
