@@ -26,6 +26,7 @@ const ccSessionReady = (() => {
 })();
 // After a successful sign-in or sign-up: remember who is signed in (the server has set the cookie).
 function ccSignedIn(user) {
+  if (typeof poReset === "function") poReset();
   state.user = user;
   state.token = "session";
   localStorage.setItem("cc_user", JSON.stringify(user));
@@ -150,6 +151,7 @@ function uiStaticTexts() {
   }
 }
 async function logout() {
+  if (typeof poReset === "function") poReset();
   const token = state.token;
   state.user = null;
   state.token = "";

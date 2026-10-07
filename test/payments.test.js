@@ -47,13 +47,14 @@ describe("payments: webhooks (unit)", () => {
     const { p, sent, db } = unit(fake.env);
     let calls = 0;
     p.on("test.event", () => {
-      if (++calls === 1) throw new Error("boom");
+      if (++calls === 1) throw new Error("provider error containing " + KEY);
     });
     const event = fake.signed({ id: "evt_retry", type: "test.event" });
     await p.webhook(delivery(event), {});
     assert.equal(sent.at(-1).status, 500);
     assert.equal(db.stripeEvents.length, 0, "not recorded, so the retry is handled");
-    assert.equal(db.meta.stripe.lastError.message, "boom");
+    assert.equal(db.meta.stripe.lastError.message, "Webhook handler failed");
+    assert.ok(!JSON.stringify(p.status()).includes(KEY));
     await p.webhook(delivery(fake.signed({ id: "evt_retry", type: "test.event" })), {});
     assert.equal(sent.at(-1).status, 200);
     assert.equal(calls, 2);

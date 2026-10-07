@@ -6220,8 +6220,41 @@ T274–T279 add the other products. T280 is the go-live check.
 4. **The old payout details.** The IBAN fields stay for invoices (§ 14 UStG) and for paying outside Stripe.
 
 **Done when.**
-- [ ] Creating the account sends the v2 fields above (tested against the fake Stripe), never `type`.
-- [ ] Capability changes from a webhook update the supplier; a transfer to a restricted account is refused.
+- [x] Creating the account sends the v2 fields above (tested against the fake Stripe), never `type`.
+- [x] Capability changes from a webhook update the supplier; a transfer to a restricted account is refused.
+
+**Implementation verified on the T271 branch (7 October 2026); not merged.**
+- **`payouts.js`** (loaded by `payments.js`). `POST /api/payouts/account` creates the connected account with
+  `client.v2.core.accounts.create`: `dashboard: "express"`, `defaults` (EUR, fees and losses collected by the
+  application), `identity` (the explicitly selected ISO registration country, company, the legal name from the company profile), the recipient configuration
+  with `stripe_transfers` requested, `include` of the recipient configuration and the requirements, and an
+  idempotency key per supplier. Never `type`, no merchant configuration. `POST /api/payouts/session` makes the
+  Account Session (`account_onboarding`, `notification_banner`, `account_management`); `POST /api/payouts/login-link`
+  the Express login link; `POST /api/payouts/refresh` reads the account again. Only the supplier's main account
+  may call them; team members with the settings area see the status (`GET /api/payouts`).
+- **Status.** The supplier keeps `stripeAccount: { id, transfers, requirements, updatedAt }` (`transfers` is
+  `active`, `pending` or `restricted`; Stripe's `rejected`, `unsupported` and a closed account count as
+  restricted). `stripeAccount` is in `PRIVATE_SUPPLIER_FIELDS`. The supplier is notified when payouts become active
+  or are restricted.
+- **Thin events.** The webhook endpoint now also takes Accounts v2 thin events (`v2.core.event`, checked with
+  `parseEventNotification`); their event destination has its own secret, `STRIPE_THIN_WEBHOOK_SECRET`. The
+  `v2.core.account…` events (updated, closed, recipient configuration, capability status, requirements) reload the
+  account with `v2.core.accounts.retrieve(id, { include })`; the event is deduplicated like the others.
+- **Transfers.** `payouts.transfer(supplierId, params)` is the only way money goes to a supplier (T273): it reads
+  the account from Stripe first and refuses unless `stripe_transfers` is active right now.
+- **Pages.** `/supplier/payouts` ("Payouts" under More) loads Connect.js only there and shows onboarding until the
+  account is active, then the notification banner and account management, plus the Express dashboard link. When
+  payments are off it says so. The admin's Users page shows each supplier's payout status. The IBAN fields are
+  unchanged.
+- Tests: `test/payments-payouts.test.js` with fake Stripe covers explicit international registration countries,
+  account creation, sessions/login links, thin-event signing secrets, status privacy and fresh transfer checks;
+  delayed-body concurrency and embedded-session identity regressions are covered too. Targeted checks: 50 passed.
+  Full `npm test`: 727 passed, 0 failed, 1 skipped (PostgreSQL unavailable).
+- Browser checks: installed Chromium, desktop (1440 px) and phone (390 px), English and German, account creation
+  and session API verified against fake Stripe; no page errors or horizontal overflow. Screenshots saved outside
+  the checkout. Connect.js rendering was stubbed explicitly; real embedded components still require a Stripe sandbox.
+- Stripe API references for Accounts v2 creation and Account Sessions checked on 7 October 2026; ISO country
+  selection does not establish Stripe eligibility. Real sandbox eligibility and embedded components remain unverified.
 
 ### T272 · The customer pays an approved invoice
 `P1 · M · depends on T271`
