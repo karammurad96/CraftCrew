@@ -391,6 +391,21 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T279 Issuing: virtual cards for site expenses, charged to the project budget · M · **exploration; needs Stripe's approval for Issuing in the EU**
 - [ ] T280 Go-live checklist for payments: restricted keys, secret store, webhooks, legal and tax checks · S · last task of the wave
 
+**Wave 19 — paid-pilot integrity (7 October 2026 review; implement one task per branch/PR; required before the affected feature accepts real money or sends operational email)**
+- [ ] T281 Correct take-rate and six-month retention definitions · P1 · M · follows T242
+- [ ] T282 Durable Stripe webhook processing and restart recovery · P0 · L (T282a–b) · follows T270/T271, before live payments
+- [ ] T283 Durable monetary operation identities and atomic settlement · P0 · L (T283a–c) · follows T272/T273 and T282, before live payments
+- [ ] T284 Stripe settlement reconciliation and operator exception list · P0 · M · follows T283, before live payments
+- [ ] T285 Preserve pending and failed emails when pruning the outbox · P0 · S · before operational emails
+- [ ] T286 Track operator time and variable contribution per paid job · P1 · M · before wider launch, not a first invited-pilot blocker
+
+**Launch focus, 7 October 2026.** Preserve existing waves and IDs, but prioritize the paid-pilot journey: inspect existing work; T282; T200–T205 one at a time (split T200's L scope into approved child tasks before implementation); T272; T273; T283; T284; T285; T281; T182/T184; then T180/T181 and the full-journey/restore checks in T174. Reuse T171/T172/T255/T280 for founder decisions, legal review, served scope and payment activation. T271 is in progress; its checkbox remains open until merged, and real embedded-component sandbox verification is separate. Validate current Stripe documentation and the customer-paid processing-fee decision before implementing T272/T273; do not silently change money formulas.
+
+External launch prerequisites remain named under their existing tasks: brand/domain (T171), legal review and contracting/invoicing responsibility (T172/T200/T280), real supplier readiness (T190 and existing vetting/compliance), served geography/categories (T255), secure Stripe sandbox secrets including both webhook secrets (T270/T271), hosting/email (T180/T181), and Karam's final live-payment activation (T280). No secret values in chat or files. No live activation/deployment is implied by a task checkbox.
+
+Keep T191–T196, T246/T247, AI and advanced payment products as demand-dependent work, not blanket launch blockers. Bring T250 forward after successful pilot transactions if repeat demand supports it. Reassess historical security review T173 and the T174 full journey after this new financial code: old passing checks do not validate new changes.
+
+
 ---
 
 ## Wave 0 — preparation
@@ -6389,6 +6404,125 @@ T274–T279 add the other products. T280 is the go-live check.
 
 **Done when.**
 - [ ] `docs/LAUNCH.md` has the payments section with every point ticked by Karam.
+
+---
+
+## Wave 19 — paid-pilot integrity
+
+From the 7 October 2026 review. These additions address verified gaps without replacing existing tasks. Follow CLAUDE.md and the Part 2 workflow: one task per branch/PR, regression tests, `npm test` before every commit, localized and accessible UI, and tick the overview only when merged. Sandbox checks and production checks are separate evidence; passing fake-Stripe tests does not authorize live payments.
+
+### T281 · Correct take-rate and six-month retention definitions
+`P1 · M · depends on T242`
+
+**Where.** `cockpit.js`, `public/areas/business.js`, locale files and `test/cockpit.test.js`.
+
+**Do.**
+1. Separate contract order volume, fee invoiced and fee collected; their existing reporting periods remain explicit. Stop labeling fee statements divided by unrelated contract cohorts as realized take rate.
+2. Calculate realized take rate only from collected fees and their matched paid-order amounts, with documented fee basis, tax treatment, credits/refunds and category/region attribution. Reuse existing record links. If a historical record cannot be matched reliably, show it as unmatched and exclude it rather than infer a payment or silently count zero. Without eligible matched transactions, show unavailable, not 0%.
+3. Preserve repeat requests as a separately named funnel metric. Add repeat paid orders using stable order/contract identities; paying two invoices for one order is not a repeat order. Measure six-month retention only for customers with a full six months of observation from their first paid order. Show younger cohorts as awaiting observation and define calendar-month boundaries and reporting date explicitly.
+4. Keep API, CSV and localized page definitions consistent. Describe definitions in `docs/LAUNCH.md`; no pricing change or new analytics dependency.
+
+**Tests.** Fixed-date data covering immature/mature cohorts, two invoices on one order, repeated orders, refunds/credits, unrelated statement/contract periods, unmatched legacy records, empty denominators and filters. Verify admin-only API/CSV and localized UI.
+
+**Done when.**
+- [ ] Monetary ratios use matched transactions or explicitly show unavailable/unmatched records.
+- [ ] Repeat requests and repeat paid orders are distinct; immature cohorts are never counted as lost.
+- [ ] Fixed-date regression tests, `npm test` and applicable desktop/phone UI checks pass.
+
+### T282 · Durable Stripe webhook processing and restart recovery
+`P0 · L · depends on T270 and T271 · before real-money payments`
+
+**Child tasks (one branch/PR each).**
+- [ ] **T282a Durable inbox:** implement Do 1–2, signature/type preservation, unique identities, storage-failure and old-replay tests.
+- [ ] **T282b Recovery and delivery:** after T282a, implement Do 3–4, concurrent handling, retry/restart recovery and JSON/PostgreSQL crash tests. Tick T282 only after both child tasks merge and all acceptance criteria pass.
+
+**Where.** `payments.js`, supported store interfaces/migrations, `test/payments.test.js` and payout webhook tests.
+
+**Do.**
+1. Persist a signature-verified event identity before processing, with received/processing/handled/failed state, timestamps, attempts and sanitized error. Distinguish snapshot and Accounts v2 thin events; preserve both signing-secret paths and existing payout updates.
+2. Replace the last-2,000 identity cap with durable deduplication. A limited admin display is allowed; removing display history must not remove deduplication identities. Do not retain unnecessary payloads or secret/payment data.
+3. Define safe acknowledgement and recovery: either commit a recoverable event before 2xx and process it durably, or return a retryable failure until handling is durably complete. Never acknowledge an in-progress duplicate merely because an uncommitted record exists. Recover interrupted processing on restart; preserve failed records for diagnosis/retry.
+4. Serialize identical event handling for the supported single-app-server deployment; use durable unique identity in PostgreSQL. Prevent partial local handler mutations from being committed as completed. Monetary side effects use T283's operation identities; webhook deduplication alone does not promise exactly-once transfers.
+
+**Tests.** Concurrent delivery, more than 2,000 subsequent events followed by old replay, handler failure/retry, restart during processing, storage failure, wrong signature and both snapshot/thin events. Run PostgreSQL cases with a real test database, not a skipped suite.
+
+**Done when.**
+- [ ] An acknowledged event is handled durably or remains recoverable after a crash.
+- [ ] Concurrent/old deliveries do not rerun completed handlers; failed work is retained and retriable.
+- [ ] JSON/PostgreSQL durability tests and the complete test suite pass; both webhook types remain supported.
+
+### T283 · Durable monetary operation identities and atomic settlement
+`P0 · L · depends on T272, T273 and T282 · before real-money payments`
+
+**Child tasks (one branch/PR each).**
+- [ ] **T283a Operation identities:** implement stable intent/key records and reuse across money calls from Do 1; permissions/partial-refund/concurrent-call tests.
+- [ ] **T283b Atomic settlement:** after T283a, implement Do 3 and JSON/PostgreSQL all-or-nothing failure tests.
+- [ ] **T283c Recovery and event ordering:** after T283b, implement Do 2 and 4, timeout/restart/provider-lookup and out-of-order tests. Tick T283 only after all child tasks merge and all acceptance criteria pass.
+
+**Where.** Payment/checkout/refund handlers from T272/T273, `payouts.js`, supported store interfaces/migrations and fake-Stripe tests.
+
+**Do.**
+1. Persist stable operation identities and Stripe idempotency keys before customer/session creation, transfers, refunds and transfer reversals. Reuse the same operation on timeout, repeated clicks, duplicate events and restart. Separate deliberately distinct partial refunds from retries of the same refund; derive amounts and permissions on the server.
+2. Record pending/succeeded/failed/unknown outcomes and Stripe object references. A timeout after Stripe accepted an operation is an unknown result requiring lookup/recovery, not permission to create a new key. Recover after the provider's idempotency window using stored references and reconciliation, not blind replay.
+3. Commit linked local financial records and operation outcome atomically. Inspect the PostgreSQL per-record refusal fallback: a financial transaction may not persist a payment/event/fee combination partially after a constraint error. Use a narrowly scoped transaction/store path; do not rewrite unrelated persistence or enable multiple app servers.
+4. Make duplicate/out-of-order state transitions monotonic and explicitly guarded; never resurrect a refunded/disputed payment by applying an earlier success event. Preserve financial history and T271's fresh capability check.
+
+**Tests.** Concurrent attempts; provider success followed by timeout or local commit failure; restart/retry with the same key; duplicate/out-of-order webhook types; partial refunds; restricted accounts; and a PostgreSQL failure proving linked records roll back together.
+
+**Done when.**
+- [ ] Retrying one logical monetary operation never creates another transfer/refund/session unintentionally.
+- [ ] Crash/storage-failure recovery preserves provider references and coherent financial records.
+- [ ] Fake-Stripe fault tests, real PostgreSQL rollback tests and `npm test` pass.
+
+### T284 · Stripe settlement reconciliation and operator exception list
+`P0 · M · depends on T283 · before real-money payments`
+
+**Where.** Existing admin Payments area, payment module, locale files, fake Stripe and `docs/PAYMENTS.md`/`docs/LAUNCH.md`.
+
+**Do.**
+1. Add an admin-only, read-only reconciliation run for a bounded date window. Retrieve tracked Stripe payment/charge, transfer, refund and dispute objects with pagination and compare IDs, currency, amounts and states to internal records. Cover delayed SEPA results and compare connected-account capability/restriction status to local status, detecting missed snapshot or thin account events. Do not claim exhaustive account reconciliation from a truncated or failed provider response.
+2. Record run time, covered window and completion/error status. Show unexplained mismatches, unresolved monetary operations and missing references as an exception list with operational record links. No automatic monetary correction, deletion or blind retry.
+3. Document how an operator investigates each exception, safely resumes an existing operation and escalates discrepancies. Provide a repeatable scheduled/manual run procedure suitable for the current single-server deployment; connect failure alerts to T182.
+
+**Tests.** Matched settlement, missed webhook, missing transfer, partial refund, open/closed dispute, delayed payment, missed account-capability event, pagination, provider failure/incomplete run and non-admin access.
+
+**Done when.**
+- [ ] A missed settlement update is visible and incomplete runs cannot report everything matched.
+- [ ] Reconciliation never creates a charge, transfer, refund or reversal.
+- [ ] Fake-Stripe/API/UI tests pass; the actual sandbox reconciliation is separately recorded before T280 activation.
+
+### T285 · Preserve pending and failed emails when pruning the outbox
+`P0 · S · follows T31/T22 · before operational email`
+
+**Where.** `queueEmail()`/`processOutbox()` in `server.js`, existing outbox tests and deployment notes.
+
+**Do.**
+1. Replace unconditional newest-2,000 truncation with bounded retention of successfully delivered history. Queued, retrying, failed and not-sent messages stay available for delivery/review; do not silently discard pending notifications to enforce the display-history limit.
+2. Keep oldest-due processing and existing retry semantics. Preserve outbox state across restart and expose backlog/failures through existing admin views and T182 checks. Document operational backlog monitoring and an explicit recovery procedure rather than claiming exactly-once SMTP delivery.
+
+**Tests.** More than 2,000 mixed queued/failed/sent messages, oldest pending survives pruning and is delivered, retry failure survives additional inserts, restart preservation, and bounded delivered history.
+
+**Done when.**
+- [ ] Enqueueing beyond the history limit never silently deletes an undelivered/failed message.
+- [ ] Delivery order, retries and delivered-history retention pass regression tests and `npm test`.
+
+### T286 · Track operator time and variable contribution per paid job
+`P1 · M · depends on T281 and T273 · before wider launch, not required for the first invited pilot`
+
+**Where.** Existing admin Business area, related payment/request records, locale files and cockpit tests.
+
+**Do.**
+1. Let authorized operators record minutes and categorized variable costs against a request/order: sourcing, vetting, support, travel borne by the platform, payment costs and losses. Validate ownership/access, amounts, currency, timestamps and nonnegative minutes; retain amendment history. Never expose internal costs or supplier-private information to customers/other suppliers.
+2. Configure an explicit operator cost rate; unpaid founder time still carries this stated rate. Reuse actual Stripe costs where reliably available, avoiding double counting customer-recovered fees. Distinguish estimates, confirmed costs and missing data; do not change charged prices, tax treatment or accounting revenue recognition.
+3. Report contribution per completed paid order and in filtered cohorts: matched net collected platform fees less platform-borne variable costs and monetized operator time, with refunds/credits accounted for once. State the formula and cost coverage. Track acquisition cost separately; absence of a recorded cost is incomplete coverage, not proof of zero cost or profitability.
+4. Provide consistent localized UI/CSV and define the method in `docs/LAUNCH.md`. Agree fee basis and cost categories with Karam/tax adviser before representing the figures as financial accounts; these are operating metrics.
+
+**Tests.** Admin authorization, validation, amendments, time/rate calculation, refunds, recovered Stripe costs, missing inputs, currency incompatibility and cohort filters with fixed data.
+
+**Done when.**
+- [ ] Operators can attribute time and variable costs without leaking internal financial information.
+- [ ] Contribution is reproducible and displays missing-input/coverage limitations.
+- [ ] API/CSV/localization/UI regressions and `npm test` pass; no automatic pricing change.
 
 ---
 
