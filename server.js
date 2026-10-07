@@ -352,6 +352,16 @@ const gdpr = require("./gdpr")({
   removeUnusedUpload: (...a) => removeUnusedUpload(...a),
   id: (p) => id(p),
 });
+// Wave 12 (T190–T195): listed companies, imports, claims, quote requests and the outreach desk
+const supplierBaseApi = supplierBase({
+  getDb: () => db,
+  save: () => save(),
+  send: (...a) => send(...a),
+  body: (r) => body(r),
+  id: (p) => id(p),
+  now: () => now(),
+  activity: (...a) => activity(...a),
+});
 const compliance = require("./compliance")({
   background,
   getDb: () => db,
@@ -4609,6 +4619,7 @@ async function api(req, res, url) {
     const closed = marketplaceRefusal(user, parts, method);
     if (closed) return (send(res, 403, { error: closed }), true);
     if (await team.handle(req, res, url, parts, user)) return true;
+    if (await supplierBaseApi.handle(req, res, url, parts, user)) return true;
     if (await gdpr.handle(req, res, url, parts, user)) return true;
     if (await organigram.handle(req, res, url, parts, user)) return true;
     if (await siteContent.handle(req, res, url, parts, user)) return true;
@@ -8428,6 +8439,9 @@ const AUDIT_ACTIONS = [
   [/^PATCH admin\/applications\//, "Vetting decision"],
   [/^PATCH admin\/users\//, "Changed account status"],
   [/^PATCH admin\/suppliers\//, "Changed supplier badge"],
+  [/^POST admin\/supplier-imports$/, "Added companies to an import batch"],
+  [/^POST admin\/supplier-imports\/[^/]+\/publish$/, "Published an import batch"],
+  [/^POST admin\/supplier-imports\/[^/]+\/discard$/, "Discarded an import batch"],
   [/^PUT admin\/settings$/, "Updated platform settings"],
   [/^PUT admin\/platform-mode$/, "Changed platform mode"],
   [/^PUT profile$/, "Updated profile"],

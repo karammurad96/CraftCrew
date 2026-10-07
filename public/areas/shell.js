@@ -15,7 +15,7 @@ const SHELL_NAV = {
   },
   admin: {
     daily: ["dashboard", "requests", "applications", "users", "billing", "disputes", "reports", "business"],
-    more: ["packages", "fees", "stripe", "site", "audit", "platform", "profile-changes", "profile"],
+    more: ["packages", "fees", "stripe", "site", "audit", "platform", "profile-changes", "supplier-imports", "profile"],
   },
 };
 // Phone bottom bar (T102): four pages per role, then "More" opens the drawer

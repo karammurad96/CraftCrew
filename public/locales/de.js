@@ -107,6 +107,8 @@ LOCALES.de = {
       pendingReview: "Prüfung ausstehend",
       accepted: "Angenommen",
       declined: "Abgelehnt",
+      review: "In Prüfung",
+      discarded: "Verworfen",
       notSelected: "Nicht ausgewählt",
       withdrawn: "Zurückgezogen",
       awarded: "Vergeben",
@@ -594,6 +596,10 @@ LOCALES.de = {
       onlyVettedSuppliersCanBid: "Nur geprüfte Dienstleister können für diese Aufgabe bieten",
       listedNotOnPlatform: "Dieses Unternehmen ist noch nicht auf der Plattform. Bitten Sie es stattdessen um ein Angebot.",
       notVettedConfirm: "Dieser Dienstleister ist noch nicht geprüft. Bestätigen Sie, dass Sie fortfahren möchten.",
+      importBatchSize: "Senden Sie pro Aufruf zwischen 1 und 5000 Unternehmen",
+      importNeedsRegister: "Nennen Sie das Register, aus dem die Unternehmen stammen",
+      importBatchNotFound: "Importstapel nicht gefunden",
+      importBatchDecided: "Über diesen Importstapel wurde bereits entschieden",
       thisBidIsLimitedTo: "Diese Ausschreibung ist auf eingeladene Dienstleister beschränkt",
       enterAValidOfferAmount: "Geben Sie einen gültigen Angebotsbetrag und einen Lieferplan ein",
       enterTheHourlyRateIn: "Geben Sie den Stundensatz in Euro ein oder lassen Sie das Feld leer",
@@ -1166,6 +1172,7 @@ LOCALES.de = {
         "audit": "Audit-Protokoll",
         "platform": "Plattformverwaltung",
         "profile-changes": "Profiländerungen",
+        "supplier-imports": "Lieferanten-Importe",
         "profile": "Einstellungen"
       }
     },
@@ -5991,6 +5998,40 @@ LOCALES.de = {
       save: "Fristen speichern",
       saved: "Fristen gespeichert.",
     },
+  },
+  // Die Lieferantenbasis (Welle 12, T190–T195)
+  sb: {
+    imports: {
+      title: "Lieferanten-Importe",
+      lead: "Unternehmen aus öffentlichen Registern warten hier auf Ihre Prüfung. Nur ein veröffentlichter Stapel erscheint für Kunden, als gelistete Dienstleister.",
+      empty: "Noch keine Importstapel",
+      emptyText: "Starten Sie tools/suppliers/import-ted.js, um Zuschläge aus dem EU-Vergabewesen in einen Stapel zu lesen.",
+      summary: "{total} Unternehmen",
+      status: { Review: "In Prüfung", Published: "Veröffentlicht", Discarded: "Verworfen" },
+      skipped: "Ausgelassen:",
+      skip: {
+        invalid: "{n} ohne Name oder Land",
+        person: "{n}, die nach einer Person aussehen",
+        doNotList: "{n} im Sperrregister",
+        existing: "{n} schon auf der Plattform",
+        duplicate: "{n} Dubletten"
+      },
+      byCategory: "Kategorie",
+      byCity: "Stadt",
+      count: "Unternehmen",
+      sample: "Eine Stichprobe von {n}",
+      company: "Unternehmen",
+      city: "Stadt",
+      categories: "Kategorien",
+      source: "Quelle",
+      noItems: "In diesem Stapel ist nichts mehr zu importieren.",
+      publish: "Veröffentlichen",
+      discard: "Verwerfen",
+      publishConfirm: "Diesen Stapel veröffentlichen? Seine Unternehmen erscheinen für angemeldete Kunden als gelistete Dienstleister.",
+      discardConfirm: "Diesen Stapel verwerfen? Daraus wird nichts gespeichert.",
+      published: "Stapel veröffentlicht",
+      discarded: "Stapel verworfen"
+    }
   },
   fee: {
     title: "Plattformgebühren",

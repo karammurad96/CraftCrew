@@ -66,6 +66,8 @@ const COLLECTIONS = [
   "siteHistory",
   "commissionStatements",
   "stripeEvents",
+  "supplierImports",
+  "doNotList",
 ];
 const VALUES = ["meta", "settings", "counters", "uploadOwners", "siteContent"];
 // Projects hold their phases, and phases their tasks (T166). Each level is a table of its own: `children` is the

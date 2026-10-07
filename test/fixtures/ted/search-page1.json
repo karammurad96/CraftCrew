@@ -1,0 +1,67 @@
+{
+  "notices": [
+    {
+      "publication-number": "123456-2024",
+      "publication-date": "2024-03-01+01:00",
+      "contract-conclusion-date": "2024-02-20+01:00",
+      "classification-cpv": ["50530000", "50000000"],
+      "winner-name": { "deu": ["Beispiel Anlagenbau GmbH", "Hans Meier"], "eng": ["Beispiel Anlagenbau GmbH", "Hans Meier"] },
+      "winner-country": ["DEU"],
+      "winner-city": { "deu": ["Regensburg", "Passau"] },
+      "winner-post-code": ["93055", "94032"],
+      "winner-street": { "deu": ["Industriestraße 8", "Dorfweg 1"] },
+      "winner-identifier": ["DE555666777", ""],
+      "winner-url": ["www.beispiel-anlagenbau.example", ""]
+    },
+    {
+      "publication-number": "234567-2024",
+      "publication-date": "2024-04-10+02:00",
+      "classification-cpv": "45310000",
+      "winner-name": ["Muster Elektrotechnik GmbH & Co. KG"],
+      "winner-country": ["DEU"],
+      "winner-city": ["Landshut"],
+      "winner-post-code": ["84028"],
+      "winner-street": ["Hauptstr. 3"],
+      "winner-identifier": ["DE987654321"]
+    },
+    {
+      "publication-number": "345678-2024",
+      "publication-date": "2024-05-02+02:00",
+      "classification-cpv": ["50710000"],
+      "winner-name": ["Beispiel Anlagenbau GmbH"],
+      "winner-country": ["DEU"],
+      "winner-city": ["Regensburg"],
+      "winner-post-code": ["93055"],
+      "winner-street": ["Industriestrasse 8"],
+      "winner-identifier": ["DE 555 666 777"]
+    },
+    {
+      "publication-number": "456789-2024",
+      "publication-date": "2024-05-05+02:00",
+      "classification-cpv": ["72200000"],
+      "winner-name": ["Software Automation SE"],
+      "winner-country": ["DEU"],
+      "winner-city": ["Nürnberg"],
+      "winner-post-code": ["90402"]
+    },
+    {
+      "publication-number": "567890-2024",
+      "publication-date": "2024-05-06+02:00",
+      "classification-cpv": ["90910000"],
+      "winner-name": ["Reinigung Schmidt GmbH"],
+      "winner-country": ["DEU"],
+      "winner-city": ["Augsburg"],
+      "winner-post-code": ["86150"]
+    },
+    {
+      "publication-number": "678901-2024",
+      "publication-date": "2024-05-07+02:00",
+      "classification-cpv": ["51100000"],
+      "winner-name": ["Peter Schulz e.K."],
+      "winner-country": ["DEU"],
+      "winner-city": ["Straubing"],
+      "winner-post-code": ["94315"]
+    }
+  ],
+  "totalNoticeCount": 6
+}
