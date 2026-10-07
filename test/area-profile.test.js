@@ -60,6 +60,7 @@ function area(lang, role) {
           companyProfile: { legalName: "Keller GmbH", industry: "Automation" },
           supplier: role === "supplier" ? SUPPLIER : null,
         };
+      if (p === "/price-rules") return { enabled: true, version: 1, accepted: true, clause: { text: "Clause", hash: "h" }, rules: [{ category: "Welding", auto: true, regions: ["93"], radiusKm: 0, maxValue: 5000, leadDays: 7, freeCrewDays: 0 }] };
       if (p === "/calendar") return { active: true, createdAt: "2026-09-01" };
       if (p === "/account/2fa") return { enabled: role === "admin", recoveryLeft: 8, required: role === "admin" };
       if (p === "/account/deletion") return { graceDays: 14, blockers: [], coversTeam: false };
@@ -118,6 +119,7 @@ describe("profile and settings (T135a)", () => {
     clean(ctx, html);
     assert.match(html, /95(,00)?\s€ \/ Tag/, "rate per unit");
     assert.ok(html.includes("Verfügbar"));
+    assert.ok(html.includes("Automatische Bestätigung") && html.includes("Welding"), "T244: the price rules panel");
     assert.ok(ctx.calls.some((c) => c[0] === "dcRefreshOwn"), "own certificates panel");
     await vm.runInContext("pfEditCatalog()", ctx);
     const body = ctx.shown.at(-1).body;

@@ -458,6 +458,7 @@ async function supplierCatalog() {
         .map((k) => `<th>${c(k)}</th>`)
         .join("")}</tr></thead><tbody>${items.map(service).join("") || `<tr><td colspan="5">${c("noServices")}</td></tr>`}</tbody></table></div></section>`,
       pfPricingPanel(s, d.calibration),
+      await pfRulesPanel(),
       `<section class="panel"><div class="panel-title"><h3>${c("people")}</h3><span>${c("listed", { n: team.length })}</span></div><div class="cc-table-wrap"><table class="cc-table"><thead><tr>${["colName", "colRole", "colExperience", "colCerts", "colAvailability"]
         .map((k) => `<th>${c(k)}</th>`)
         .join("")}</tr></thead><tbody>${team.map(person).join("") || `<tr><td colspan="5">${c("noPeople")}</td></tr>`}</tbody></table></div></section>`,
@@ -486,6 +487,56 @@ function pfPricingPanel(s, calibration = []) {
     fact("materials", mats.map(([cat, pct]) => `${esc(cat)} ${esc(pct)} %`).join(" · ") || k("none")),
   ].join("")}</dl></section>`;
 }
+// T244: price rules per category: automatic confirmation of an estimate part that fits
+async function pfRulesPanel() {
+  const d = await api("/price-rules"),
+    k = (key, params) => pfk("rules." + key, params),
+    rule = (x) =>
+      `<tr><td><bdi>${esc(x.category)}</bdi></td><td>${x.auto ? k("on") : k("off")}</td><td>${esc((x.regions || []).join(", ") || (x.radiusKm ? k("radiusText", { n: x.radiusKm }) : k("anywhere")))}</td><td>${x.maxValue ? esc(fmt.money(x.maxValue)) : "–"}</td><td>${esc(k("daysN", { n: x.leadDays || 0 }))}</td><td>${esc(x.freeCrewDays || 0)}</td></tr>`;
+  return `<section class="panel"><div class="panel-title"><div><h3>${k("title")}</h3><small>${k("lead")}</small></div><button class="btn small outline" data-action="prof.editRules">${k("edit")}</button></div>${d.enabled ? "" : `<p class="notice">${k("platformOff")}</p>`}${
+    d.rules.length
+      ? `<div class="cc-table-wrap"><table class="cc-table"><thead><tr>${["category", "auto", "regions", "maxValue", "leadDays", "crewDays"].map((c) => `<th>${k("col." + c)}</th>`).join("")}</tr></thead><tbody>${d.rules.map(rule).join("")}</tbody></table></div>`
+      : `<p class="subtle">${k("none")}</p>`
+  }</section>`;
+}
+actions.on("prof.editRules", async () => {
+  const [d, p] = await Promise.all([api("/price-rules"), api("/profile")]),
+    k = (key, params) => pfk("rules." + key, params),
+    cats = [...new Set([...(p.supplier?.services || []), ...d.rules.map((x) => x.category)])],
+    row = (cat) => {
+      const x = d.rules.find((r) => r.category === cat) || {};
+      return `<fieldset class="pf-rule" data-cat="${esc(cat)}"><legend><bdi>${esc(cat)}</bdi></legend><label class="cc-check-label"><input type="checkbox" name="auto"${x.auto ? " checked" : ""}> ${k("autoLabel")}</label><div class="cc-platform-grid"><label>${k("regionsLabel")}<input name="regions" value="${esc((x.regions || []).join(", "))}" placeholder="93, 80"></label><label>${k("radiusLabel")} (km)<input type="number" name="radiusKm" min="0" max="3000" value="${esc(x.radiusKm || "")}"></label><label>${k("maxValueLabel")} (EUR)<input type="number" name="maxValue" min="0" max="10000000" value="${esc(x.maxValue || "")}"></label><label>${k("leadDaysLabel")}<input type="number" name="leadDays" min="0" max="365" value="${esc(x.leadDays || "")}"></label><label>${k("crewDaysLabel")}<input type="number" name="freeCrewDays" min="0" max="1000" step="0.5" value="${esc(x.freeCrewDays || "")}"></label></div></fieldset>`;
+    };
+  modal(
+    k("title"),
+    `<form class="modal-form" data-action="prof.saveRules" data-hash="${esc(d.clause.hash)}"><p class="subtle">${k("lead")}</p>${cats.map(row).join("") || `<p class="subtle">${k("noCategories")}</p>`}<div class="rq-clause"><bdi>${esc(d.clause.text)}</bdi></div><label class="cc-check-label"><input type="checkbox" name="acceptClause"> ${k("accept")}</label><p class="subtle">${k("offHint")}</p><div id="pfRulesError" class="form-error"></div><div class="cc-actions"><button type="button" class="btn outline" data-action="prof.closeModal">${k("cancel")}</button><button class="btn primary">${k("save")}</button></div></form>`,
+  );
+});
+actions.on("prof.saveRules", async (form) => {
+  const f = new FormData(form),
+    rules = [...form.querySelectorAll(".pf-rule")].map((el) => {
+      const v = (n) => el.querySelector(`[name=${n}]`).value;
+      return {
+        category: el.dataset.cat,
+        auto: el.querySelector("[name=auto]").checked,
+        regions: v("regions"),
+        radiusKm: v("radiusKm"),
+        maxValue: v("maxValue"),
+        leadDays: v("leadDays"),
+        freeCrewDays: v("freeCrewDays"),
+      };
+    }),
+    body = { rules };
+  if (f.get("acceptClause") === "on") Object.assign(body, { acceptClause: true, clauseHash: form.dataset.hash });
+  try {
+    await api("/price-rules", { method: "PUT", body });
+    closeModal();
+    tToast(t("prof.rules.saved"));
+    route();
+  } catch (x) {
+    document.getElementById("pfRulesError").textContent = x.message;
+  }
+});
 actions.on("prof.editPricing", async () => {
   const d = await api("/profile"),
     pr = d.supplier?.pricing || {},

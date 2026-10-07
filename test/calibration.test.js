@@ -159,3 +159,10 @@ describe("the estimate uses the factors", () => {
     assert.equal(e.build(request(false)).options[0].parts[0].confidence, "medium");
   });
 });
+
+describe("automatic confirmations (T244)", () => {
+  it("say nothing about the supplier's prices and do not count for the factor", () => {
+    const db = dbWith([1, 2, 3].map(() => part(1000, 1000, { auto: true })));
+    assert.equal(calibration.supplierRecord(db, "s1", "Electrical Engineering", AT).n, 0);
+  });
+});

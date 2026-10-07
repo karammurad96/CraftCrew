@@ -9,10 +9,13 @@ const REQUEST_STATUSES = ["New", "Sourcing", "Options ready", "Chosen", "Contrac
 const OPEN = ["New", "Sourcing", "Options ready"];
 const DAY = 86400000;
 const servedArea = require("./servedarea");
+const createPriceRules = require("./pricerules");
 
 module.exports = function createRequests(ctx) {
   const { getDb, save, send, body, id, now, notify, activity, projectFor, ownUpload, categories } = ctx;
   const { suggest, cleanWeights, scorecard, clause, estimate, estimates } = ctx;
+  // T244: the suppliers' price rules and automatic confirmation
+  const priceRules = createPriceRules({ getDb, save, send, body, now, activity, clause, freeCrewDays: ctx.freeCrewDays });
   // T231: the admin setting wins over INSTANT_ESTIMATES; on by default
   const instantOn = () => getDb().settings?.instantEstimates ?? process.env.INSTANT_ESTIMATES !== "off";
   // T255: priced instantly only inside the served area; outside, the operator takes it and the waiting list counts it
@@ -115,6 +118,7 @@ module.exports = function createRequests(ctx) {
       // T231: an estimate, maybe split across suppliers; each part shows its packages, never its supplier
       estimate: !!o.estimate,
       split: !!o.split,
+      binding: !!o.binding,
       // T241: how sure the estimate is, and what each part's price is made of (in customer prices)
       confidence: o.confidence || null,
       parts: (o.parts || []).map((p) => ({
@@ -437,6 +441,8 @@ module.exports = function createRequests(ctx) {
     }
     r.options = options.map((o) => {
       const parts = o.parts.map((p) => ({
+        // T244: the supplier has agreed in advance to confirm this part at this price
+        binding: !!priceRules.match(p.supplierId, { packageIds: p.packageIds, supplierAmount: p.supplierAmount }, r),
         id: id("prt"),
         supplierId: p.supplierId,
         packageIds: p.packageIds,
@@ -461,6 +467,7 @@ module.exports = function createRequests(ctx) {
         note: "",
         split: o.split,
         confidence: o.confidence,
+        binding: parts.every((p) => p.binding),
         parts,
         supplierId: parts.length === 1 ? parts[0].supplierId : null,
         supplierAmount: o.supplierAmount,
@@ -480,7 +487,11 @@ module.exports = function createRequests(ctx) {
   }
 
   /* ---------- T225, T232: the customer's choice, each supplier's confirmation, the reveal ---------- */
-  const SUPPLIER_DAYS = 3; // working days a supplier has to answer
+  // T244: the working days a supplier has to answer: an admin setting, 3 until decided
+  const supplierDays = () => {
+    const n = Number(getDb().settings?.supplierDays);
+    return Number.isInteger(n) && n >= 1 && n <= 10 ? n : 3;
+  };
   const ACTIVE = ["Waiting for supplier", "Price changed", "Confirmed"];
   function workingDaysFrom(start, n) {
     const d = new Date(start);
@@ -498,7 +509,7 @@ module.exports = function createRequests(ctx) {
       id: id("prt"),
       status: "Waiting for supplier",
       offeredAt: now(),
-      expiresAt: workingDaysFrom(Date.now(), SUPPLIER_DAYS),
+      expiresAt: workingDaysFrom(Date.now(), supplierDays()),
       ...fields,
     };
   }
@@ -524,7 +535,23 @@ module.exports = function createRequests(ctx) {
   }
   function offerPart(r, part) {
     for (const u of supplierUsers(part.supplierId))
-      notify(u.id, { key: "brokeredOrderNew", params: { title: r.title } }, "/supplier/orders");
+      notify(u.id, { key: "brokeredOrderNew", params: { title: r.title, days: supplierDays() } }, "/supplier/orders");
+  }
+  // T244: a part that fits the supplier's rules is confirmed at once, at the estimate, in the supplier's name
+  function autoConfirm(r, part) {
+    if (!r.award.estimate || r.award.fixed) return false;
+    const m = priceRules.match(part.supplierId, part, r);
+    if (!m) return false;
+    Object.assign(part, {
+      status: "Confirmed",
+      confirmedAt: now(),
+      auto: true,
+      ruleVersion: m.version,
+      supplierAcceptance: { ...m.acceptance, context: "price-rule", ruleVersion: m.version },
+    });
+    for (const u of supplierUsers(part.supplierId))
+      notify(u.id, { key: "orderAutoConfirmed", params: { title: r.title } }, "/supplier/orders");
+    return true;
   }
   // T225: a chosen offer from the operator's round goes back as a whole: the customer chooses again
   function releaseAward(r, reason) {
@@ -974,6 +1001,7 @@ module.exports = function createRequests(ctx) {
 
   async function handle(req, res, url, parts, user) {
     if (parts[1] === "brokered-orders") return handleOrders(req, res, parts, user);
+    if (parts[1] === "price-rules") return priceRules.handle(req, res, parts, user);
     if (parts[1] !== "requests") return false;
     const method = req.method;
     if (user.role === "supplier")
@@ -1106,11 +1134,14 @@ module.exports = function createRequests(ctx) {
       };
       summarize(r);
       move(r, "Chosen", user);
-      for (const p of parts) offerPart(r, p);
+      for (const p of parts) if (!autoConfirm(r, p)) offerPart(r, p);
       for (const a of admins())
         notify(a.id, { key: "requestChosen", params: { title: r.title } }, `/admin/requests/${r.id}`);
       activity(user, `Chose an option for request ${r.title}`);
+      // T244: when every part confirmed itself, the contracts follow at once
+      const failed = settle(r);
       save();
+      if (failed) return (send(res, 409, { error: failed }), true);
       return (send(res, 200, { request: view(user, r) }), true);
     }
     // T232: the customer approves or rejects a higher price a supplier named for its part

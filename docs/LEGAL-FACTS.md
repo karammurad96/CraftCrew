@@ -238,3 +238,31 @@ page therefore changes when the code changes. The numbers below are today's valu
 
 - [ ] Lawyer reviewed this section and the page text. The terms of use mention the ranking parameters or link to
       `/#/ranking`.
+
+## 10. Automatic confirmation in the supplier's name (T244, for the lawyer)
+
+**Draft for legal review.** Written from the code on 7 October 2026. The feature is **off** until an admin switches
+"Confirm automatically" on in the platform settings. Do not switch it on before the lawyer's OK below is noted.
+
+**What happens.**
+- A supplier saves price rules per category: regions (postcode prefixes or a radius), the largest order value, the
+  earliest start in days, and free crew-days (checked once the capacity calendar T245 exists). Saving a rule set
+  that confirms automatically needs the supplier to accept the current platform contract (the non-circumvention
+  clause, section 8). Each change of the rules is a new version; the old versions are kept.
+- When a customer chooses an estimate option, every part that fits all rules of its supplier is confirmed at once,
+  at the estimate. The part stores a supplier acceptance with the context `price-rule`, the clause version and
+  hash, the time, and the rule version. The supplier is notified of each automatic confirmation.
+- The supplier can switch the rules off at any time without any acceptance. Confirmations already made stay.
+- An option whose parts all fit a rule is shown to the customer as "Binding price" instead of "Estimate".
+- If the clause text changes after the supplier accepted it, rules stop confirming until the supplier accepts the
+  new text.
+
+**Points to review.**
+- Whether accepting the contract in advance, under a stored rule, is a valid acceptance by the supplier for each
+  later order (declaration through an automated rule; consent and proof).
+- Whether "Binding price" is accurate wording for the customer, and what the supplier owes when it is binding.
+- Whether the supplier's terms must mention the automatic confirmation and the switch-off right.
+- The text is a factual draft written from the code, not legal advice.
+
+- [ ] Lawyer approved confirming in the supplier's name under stored rules (date, name): ______
+- [ ] An admin switched "Confirm automatically" on after that approval.

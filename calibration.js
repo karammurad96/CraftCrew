@@ -42,7 +42,8 @@ function confirmedParts(db, supplierId, category, at = Date.now()) {
     out = [];
   for (const r of db.requests || [])
     for (const p of r.award?.estimate ? r.award.parts || [] : []) {
-      if (p.supplierId !== supplierId || p.status !== "Confirmed" || !(p.baseAmount > 0)) continue;
+      // an automatic confirmation (T244) is the estimate itself and says nothing new
+      if (p.supplierId !== supplierId || p.status !== "Confirmed" || p.auto || !(p.baseAmount > 0)) continue;
       if (category !== undefined && key(p.category) !== key(category)) continue;
       const when = Date.parse(p.confirmedAt || "") || 0;
       if (when < from || when > at) continue;
