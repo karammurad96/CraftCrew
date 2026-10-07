@@ -142,6 +142,18 @@ describe("price rules and automatic confirmation", () => {
     assert.equal(r.options[0].binding, true);
   });
 
+  it("checks the free crew-days against the capacity calendar (T245)", async () => {
+    // without a capacity the field is not checked; with one, the free crew-days of the period must reach it
+    assert.equal((await save([rule({ freeCrewDays: 100 })])).status, 200);
+    assert.equal((await send()).request.options[0].binding, true, "no capacity set: not checked");
+    assert.equal((await app.call("PUT", "/capacity", { crewDaysPerWeek: 10 }, sup.token)).status, 200);
+    assert.equal((await send()).request.options[0].binding, false, "100 free crew-days are not there");
+    assert.equal((await save([rule({ freeCrewDays: 2 })])).status, 200);
+    assert.equal((await send()).request.options[0].binding, true);
+    assert.equal((await app.call("PUT", "/capacity", { crewDaysPerWeek: 0 }, sup.token)).status, 200);
+    assert.equal((await save([rule(), rule({ category: "Commissioning" })])).status, 200);
+  });
+
   it("lets the supplier switch the rules off at any time; confirmations already made stay", async () => {
     const before = (await app.call("GET", "/requests", undefined, admin)).requests.filter((x) => x.status === "Contracted").length;
     const off = await save([rule({ auto: false })], false);

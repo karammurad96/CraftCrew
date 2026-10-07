@@ -458,6 +458,7 @@ async function supplierCatalog() {
         .map((k) => `<th>${c(k)}</th>`)
         .join("")}</tr></thead><tbody>${items.map(service).join("") || `<tr><td colspan="5">${c("noServices")}</td></tr>`}</tbody></table></div></section>`,
       pfPricingPanel(s, d.calibration),
+      await pfCapacityPanel(),
       await pfRulesPanel(),
       `<section class="panel"><div class="panel-title"><h3>${c("people")}</h3><span>${c("listed", { n: team.length })}</span></div><div class="cc-table-wrap"><table class="cc-table"><thead><tr>${["colName", "colRole", "colExperience", "colCerts", "colAvailability"]
         .map((k) => `<th>${c(k)}</th>`)
@@ -487,6 +488,54 @@ function pfPricingPanel(s, calibration = []) {
     fact("materials", mats.map(([cat, pct]) => `${esc(cat)} ${esc(pct)} %`).join(" · ") || k("none")),
   ].join("")}</dl></section>`;
 }
+// T245: the capacity calendar: crew-days per week, what is booked and blocked, and the next weeks
+async function pfCapacityPanel() {
+  const d = await api("/capacity"),
+    k = (key, params) => pfk("cap." + key, params),
+    n = (v) => esc(fmt.number(v, 1)),
+    week = (w) => `<tr><td>${esc(fmt.date(w.week))}</td><td>${n(w.capacity)}</td><td>${n(w.booked)}</td><td>${n(w.blocked)}</td><td><b>${n(w.free)}</b></td></tr>`;
+  return `<section class="panel"><div class="panel-title"><div><h3>${k("title")}</h3><small>${k("lead")}</small></div><button class="btn small outline" data-action="prof.editCapacity">${k("edit")}</button></div>${
+    d.crewDaysPerWeek
+      ? `<p>${k("perWeek", { n: d.crewDaysPerWeek })}</p><div class="cc-table-wrap"><table class="cc-table"><thead><tr>${["week", "capacity", "booked", "blocked", "free"].map((c) => `<th>${k("col." + c)}</th>`).join("")}</tr></thead><tbody>${d.weeks.map(week).join("")}</tbody></table></div><p class="subtle">${k("feedHint")}</p>`
+      : `<p class="subtle">${k("none")}</p>`
+  }${d.feeds.map((f) => `<p class="subtle"><bdi>${esc(f.url)}</bdi> · ${f.error ? esc(f.error) : k("feedDays", { n: f.days })}</p>`).join("")}</section>`;
+}
+actions.on("prof.editCapacity", async () => {
+  const [d, p] = await Promise.all([api("/capacity"), api("/profile")]),
+    k = (key, params) => pfk("cap." + key, params),
+    cats = [...new Set([...(p.supplier?.services || []), ...Object.keys(d.perCategory)])],
+    blocks = d.blocked.map((b) => `${b.from}${b.to !== b.from ? " " + t("prof.cap.to") + " " + b.to : ""} ${b.note || ""}`.trim()).join("\n");
+  modal(
+    t("prof.cap.title"),
+    `<form class="modal-form" data-action="prof.saveCapacity"><p class="subtle">${k("lead")}</p><label>${k("crewDays")}<input type="number" name="crewDaysPerWeek" min="0" max="500" step="0.5" value="${esc(d.crewDaysPerWeek || "")}"></label><fieldset><legend>${k("perCategory")}</legend><p class="subtle">${k("perCategoryHint")}</p><div class="cc-platform-grid">${cats
+      .map((c) => `<label><bdi>${esc(c)}</bdi><input type="number" data-cat="${esc(c)}" min="0" max="500" step="0.5" value="${esc(d.perCategory[c] || "")}"></label>`)
+      .join("")}</div></fieldset><label>${k("blockedLabel")}<textarea name="blocked" rows="4">${esc(blocks)}</textarea><small>${k("blockedHint")}</small></label><label>${k("feedsLabel")}<textarea name="feeds" rows="2">${esc(d.feeds.map((f) => f.url).join("\n"))}</textarea><small>${k("feedsHint")}</small></label><div id="pfCapError" class="form-error"></div><div class="cc-actions"><button type="button" class="btn outline" data-action="prof.closeModal">${k("cancel")}</button><button class="btn primary">${k("save")}</button></div></form>`,
+  );
+});
+actions.on("prof.saveCapacity", async (form) => {
+  const f = new FormData(form),
+    perCategory = Object.fromEntries([...form.querySelectorAll("[data-cat]")].map((el) => [el.dataset.cat, el.value || 0])),
+    blocked = String(f.get("blocked") || "")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .map((l) => {
+        const m = l.match(/^(\d{4}-\d{2}-\d{2})(?:\s+(?:to|bis)\s+(\d{4}-\d{2}-\d{2}))?\s*(.*)$/);
+        return m ? { from: m[1], to: m[2] || m[1], note: m[3] } : { from: "invalid" };
+      }),
+    feeds = String(f.get("feeds") || "")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+  try {
+    await api("/capacity", { method: "PUT", body: { crewDaysPerWeek: f.get("crewDaysPerWeek") || 0, perCategory, blocked, feeds } });
+    closeModal();
+    tToast(t("prof.cap.saved"));
+    route();
+  } catch (x) {
+    document.getElementById("pfCapError").textContent = x.message;
+  }
+});
 // T244: price rules per category: automatic confirmation of an estimate part that fits
 async function pfRulesPanel() {
   const d = await api("/price-rules"),

@@ -7,6 +7,7 @@
  */
 const geo = require("./geo");
 const calibration = require("./calibration");
+const capacity = require("./capacity");
 
 // The ranking and pricing constants. T253: the page "How suppliers are ranked and priced" reads them from here.
 const RANKING = {
@@ -80,8 +81,10 @@ module.exports = function createEstimate({ getDb, scorecard, benchmark = () => n
       // T262: a supplier who declined a package booking is not asked again for it
       .filter((s) => !(request.excludeSupplierIds || []).includes(s.id))
       .filter((s) => s.live && !["Busy", "Unavailable"].includes(s.availability) && offers(s, pkg.category))
+      // T245: with a capacity calendar the free crew-days decide (below); without one, the open-task count
       .filter(
         (s) =>
+          capacity.perDay(s, pkg.category) !== null ||
           tasks.filter(
             (t) =>
               t.assignedSupplierId === s.id &&
@@ -93,6 +96,9 @@ module.exports = function createEstimate({ getDb, scorecard, benchmark = () => n
       .map((s) => {
         const r = rateFor(s, pkg.category);
         if (!r) return null;
+        // T245: the hours spread over the free crew-days must end within the request's period
+        const sched = capacity.schedule(db, s, pkg.category, from, hours, request.dueDate);
+        if (sched && !sched.finished) return null;
         const place = geo.geocode(s.location || ""),
           km = site && place ? Math.round(geo.distanceKm(site, place)) : null,
           pr = s.pricing || {};
@@ -122,6 +128,7 @@ module.exports = function createEstimate({ getDb, scorecard, benchmark = () => n
           rate: r.rate,
           rateSource: r.source,
           hours,
+          days: sched ? sched.workdays + RANKING.startDays : daysFor(hours),
           hoursFactor,
           factor: f,
           record: rec,
@@ -141,11 +148,17 @@ module.exports = function createEstimate({ getDb, scorecard, benchmark = () => n
 
   // T241: one supplier's part: its packages' candidates, plus travel (trips × flat fee and km both ways) and the
   // supplier's minimum order. Returns the amount, the lines and a confidence level.
+  // T245: a part's time: its hours spread over the supplier's free crew-days (later when it is busy), else hours ÷ 8
+  function daysOf(s, request, items, hours) {
+    const main = [...items].sort((a, b) => (b.c.hours ?? b.pkg.hours) - (a.c.hours ?? a.pkg.hours))[0],
+      sched = capacity.schedule(getDb(), s, main?.pkg.category, request.startDate || new Date().toISOString().slice(0, 10), hours, null);
+    return sched?.finished ? sched.workdays + RANKING.startDays : daysFor(hours);
+  }
   function partOf(request, supplierId, items) {
     const s = getDb().suppliers.find((x) => x.id === supplierId) || {},
       pr = s.pricing || {},
       hours = items.reduce((n, x) => n + (x.c.hours ?? x.pkg.hours), 0),
-      days = daysFor(hours),
+      days = daysOf(s, request, items, hours),
       lines = { labour: 0, surcharge: 0, materials: 0, travel: 0, minimum: 0 };
     const baseLines = { labour: 0, surcharge: 0, materials: 0 };
     for (const { c } of items)
