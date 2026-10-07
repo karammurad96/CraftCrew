@@ -463,6 +463,16 @@ const requests = require("./requests")({
   clause,
   contractFromAward: (...a) => sourcing.contractFromAward(...a),
   cleanWeights: (w) => sourcing.cleanWeights(w),
+  deadlines: (r) => cockpit.deadlines(r),
+});
+// T242: the operator cockpit: business figures and the request queue's deadlines
+const cockpit = require("./cockpit")({
+  getDb: () => db,
+  save: () => save(),
+  send: (...a) => send(...a),
+  body: (r) => body(r),
+  activity: (...a) => activity(...a),
+  categories: () => db.settings?.serviceCategories || services,
 });
 // T260: ready-made, fixed-price packages of the suppliers
 const servicePackages = require("./servicepackages")({
@@ -4548,6 +4558,7 @@ async function api(req, res, url) {
     if (await organigram.handle(req, res, url, parts, user)) return true;
     if (await siteContent.handle(req, res, url, parts, user)) return true;
     if (await commission.handle(req, res, url, parts, user)) return true;
+    if (await cockpit.handle(req, res, url, parts, user)) return true;
     if (await payments.handle(req, res, url, parts, user)) return true;
     // Archived projects are read-only for everyone who can see them.
     if (method !== "GET" && parts[1] === "projects" && parts[2]) {
@@ -5026,6 +5037,18 @@ async function api(req, res, url) {
             i.amount,
             undefined,
             { title: ["markPaid", { number: invoiceNo(i) }], ...(i.scheduledPayment ? { sub: ["due", { date: i.scheduledPayment }] } : {}) },
+          );
+        // T242: requests past a deadline of the queue
+        for (const { r, d } of cockpit.overdue())
+          add(
+            "deadline",
+            `${{ newRequest: "New request waiting", partExpiring: "Supplier answer due soon", priceWaiting: "Price change waiting for the customer" }[d.kind]}: ${r.title}`,
+            r.customerCompany || "",
+            `/admin/requests/${r.id}`,
+            "Open",
+            undefined,
+            { requestId: r.id, deadline: d.kind },
+            { title: ["deadline" + d.kind[0].toUpperCase() + d.kind.slice(1), { title: r.title }] },
           );
       }
       // T256: a team member sees only the items of the areas their role can open

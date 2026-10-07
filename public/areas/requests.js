@@ -242,7 +242,9 @@ async function rqAdminQueue(params, query) {
       shown
         .map(
           (r) =>
-            `<tr><td><a href="#/admin/requests/${esc(r.id)}"><b><bdi>${esc(r.title)}</bdi></b></a><small><bdi>${esc(r.category)}</bdi></small></td><td><bdi>${esc(r.customerCompany || r.customerName)}</bdi></td><td>${rqChip(r.status)}</td><td>${rqk("days", { n: rqAge(r) })}</td><td>${r.operatorName ? `<bdi>${esc(r.operatorName)}</bdi>` : "—"}</td></tr>`,
+            `<tr${(r.deadlines || []).length ? ' class="rq-overdue"' : ""}><td><a href="#/admin/requests/${esc(r.id)}"><b><bdi>${esc(r.title)}</bdi></b></a><small><bdi>${esc(r.category)}</bdi></small></td><td><bdi>${esc(r.customerCompany || r.customerName)}</bdi></td><td>${rqChip(r.status)}${(r.deadlines || [])
+              .map((d) => ` <span class="status rejected rq-late">${rqk("late." + d.kind)}</span>`)
+              .join("")}</td><td>${rqk("days", { n: rqAge(r) })}</td><td>${r.operatorName ? `<bdi>${esc(r.operatorName)}</bdi>` : "—"}</td></tr>`,
         )
         .join("") || `<tr><td colspan="5">${rqk("queueEmpty")}</td></tr>`
     }</tbody></table></div></section>`,

@@ -192,6 +192,9 @@ LOCALES.de = {
     wrongAccount: "Diese Seite gehört zu einer anderen Kontoart.",
     // API error messages by code (T137): the server sends { error, code, params }; see errorCode() in server.js
     api: {
+      bizPeriod: "Prüfen Sie den Zeitraum: Das Ende kann nicht vor dem Anfang liegen.",
+      bizFilter: "Prüfen Sie den Filter: Wochen oder Monate und eine Postleitzahl mit bis zu fünf Ziffern.",
+      bizDeadlines: "Fristen: 1 bis 72 Arbeitsstunden für neue Anfragen, 1 bis 10 Arbeitstage für die anderen.",
       stNotFound: "Nicht gefunden",
       stBadSignature: "Ungültige Signatur",
       stHandlerFailed: "Verarbeitung fehlgeschlagen",
@@ -1119,6 +1122,7 @@ LOCALES.de = {
         "profile": "Profil / Abrechnung"
       },
       "admin": {
+        business: "Geschäft",
         stripe: "Stripe",
         fees: "Gebührenabrechnungen",
         site: "Website",
@@ -1182,6 +1186,9 @@ LOCALES.de = {
   dash: {
     // The action queue's words (server sends key and values, T136)
     q: {
+      deadlineNewRequest: "Neue Anfrage wartet: {title}",
+      deadlinePartExpiring: "Antwort des Anbieters bald fällig: {title}",
+      deadlinePriceWaiting: "Preisänderung wartet auf den Kunden: {title}",
       reviewInvoice: "Rechnung {number} prüfen",
       approveDocument: "Dokument {file} freigeben",
       phaseInvitation: "Phaseneinladung: {name}",
@@ -3717,6 +3724,11 @@ LOCALES.de = {
     "hours": "{n} h · {name}"
   },
   req: {
+    late: {
+      newRequest: "Wartet zu lange",
+      partExpiring: "Antwort des Anbieters fällig",
+      priceWaiting: "Preisänderung wartet",
+    },
     confidence: {
       high: "Hohe Sicherheit",
       medium: "Mittlere Sicherheit",
@@ -5790,6 +5802,76 @@ LOCALES.de = {
     reset: "Original wiederherstellen",
     saved: "Text gespeichert. Besucher sehen ihn jetzt.",
     resetDone: "Der Originaltext ist wiederhergestellt.",
+  },
+  // Das Cockpit des Betreibers (T242)
+  biz: {
+    title: "Geschäft",
+    lead: "Wie schnell Anfragen Angebote bekommen, wo sie abbrechen, wie gut die Schätzungen sind und was die Plattform verdient.",
+    from: "Von",
+    to: "Bis",
+    period: "Gruppieren nach",
+    per: { month: "Monat", week: "Woche" },
+    category: "Kategorie",
+    all: "Alle Kategorien",
+    region: "Region (Anfang der Postleitzahl)",
+    apply: "Anzeigen",
+    csv: "CSV exportieren",
+    hours: "{n} Std.",
+    speed: "Tempo: Zeit bis zu den ersten Optionen",
+    sp: {
+      instant: "Sofortschätzungen (Median)",
+      manual: "Optionen des Betreibers (Median)",
+      sub: "{n} Anfragen · Mittel {mean} Std.",
+    },
+    funnel: "Trichter",
+    step: { requests: "Anfragen", optionsReady: "Optionen bereit", chosen: "Gewählt", contracted: "Beauftragt" },
+    rate: "{n} % des vorigen Schritts",
+    estimates: "Schätzungen",
+    est: {
+      unchanged: "Ohne Preisänderung bestätigt",
+      parts: "{n} bestätigte Teile",
+      gap: "Mittlere Abweichung zum bestätigten Preis",
+      first: "Vom ersten angefragten Anbieter bestätigt",
+    },
+    liquidity: "Liquidität",
+    liq: {
+      mean: "Bepreiste Kandidaten je Paket",
+      packages: "{n} Pakete",
+      thin: "Pakete mit weniger als 3",
+      thinSub: "Eine Warnung: zu wenige Anbieter zur Auswahl",
+      thinTitle: "Pakete mit weniger als 3 Kandidaten",
+      candidates: "{n} Kandidaten",
+    },
+    money: "Geld",
+    mo: {
+      volume: "Auftragsvolumen",
+      orders: "{n} Verträge",
+      invoiced: "Gebühr in Rechnung gestellt",
+      paid: "Gebühr bezahlt",
+      take: "Take Rate",
+    },
+    retLeak: "Wiederkehr und Umgehung",
+    ret: { rate: "Kunden, die wieder bestellt haben", sub: "{n} von {of} innerhalb von sechs Monaten" },
+    leak: {
+      hints: "Hinweise auf Kontaktdaten",
+      quiet: "Ruhige vermittelte Paare",
+      quietSub: "Ein Auftrag, seit 90 Tagen keiner mehr",
+    },
+    series: {
+      month: "Nach Monat",
+      week: "Nach Woche",
+      bucket: "Zeitraum",
+      empty: "Keine Anfragen in diesem Zeitraum.",
+    },
+    dl: {
+      title: "Fristen in der Anfrage-Warteschlange",
+      lead: "Nach diesen Grenzen erscheint eine Anfrage rot in der Warteschlange und in den Aufgaben. Wochenenden zählen nicht.",
+      newHours: "Neue Anfrage wartet auf den Betreiber (Arbeitsstunden)",
+      partDays: "Warnen, bevor die Antwort eines Anbieters abläuft (Arbeitstage)",
+      priceDays: "Preisänderung wartet auf den Kunden (Arbeitstage)",
+      save: "Fristen speichern",
+      saved: "Fristen gespeichert.",
+    },
   },
   fee: {
     title: "Plattformgebühren",

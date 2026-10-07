@@ -193,6 +193,9 @@ LOCALES.en = {
     wrongAccount: "This page belongs to another type of account.",
     // API error messages by code (T137): the server sends { error, code, params }; see errorCode() in server.js
     api: {
+      bizPeriod: "Check the period: the end cannot be before the start.",
+      bizFilter: "Check the filter: weeks or months, and a postcode prefix of up to five digits.",
+      bizDeadlines: "Deadlines: 1 to 72 working hours for new requests, 1 to 10 working days for the others.",
       stNotFound: "Not found",
       stBadSignature: "Invalid signature",
       stHandlerFailed: "Handler failed",
@@ -1120,6 +1123,7 @@ LOCALES.en = {
         "profile": "Profile / Billing"
       },
       "admin": {
+        business: "Business",
         stripe: "Stripe",
         fees: "Fee statements",
         site: "Website",
@@ -1183,6 +1187,9 @@ LOCALES.en = {
   dash: {
     // The action queue's words (server sends key and values, T136)
     q: {
+      deadlineNewRequest: "New request waiting: {title}",
+      deadlinePartExpiring: "Supplier answer due soon: {title}",
+      deadlinePriceWaiting: "Price change waiting for the customer: {title}",
       reviewInvoice: "Review invoice {number}",
       approveDocument: "Approve document {file}",
       phaseInvitation: "Phase invitation: {name}",
@@ -3718,6 +3725,11 @@ LOCALES.en = {
     "hours": "{n} h · {name}"
   },
   req: {
+    late: {
+      newRequest: "Waiting too long",
+      partExpiring: "Supplier answer due",
+      priceWaiting: "Price change waiting",
+    },
     confidence: {
       high: "High confidence",
       medium: "Medium confidence",
@@ -5791,6 +5803,76 @@ LOCALES.en = {
     reset: "Back to the original",
     saved: "Text saved. Visitors see it now.",
     resetDone: "The original text is back.",
+  },
+  // The operator cockpit (T242)
+  biz: {
+    title: "Business",
+    lead: "How fast requests get options, where they drop out, how good the estimates are, and what the platform earns.",
+    from: "From",
+    to: "To",
+    period: "Group by",
+    per: { month: "Month", week: "Week" },
+    category: "Category",
+    all: "All categories",
+    region: "Region (postcode prefix)",
+    apply: "Show",
+    csv: "Export CSV",
+    hours: "{n} h",
+    speed: "Speed: time to the first options",
+    sp: {
+      instant: "Instant estimates (median)",
+      manual: "Operator's options (median)",
+      sub: "{n} requests · mean {mean} h",
+    },
+    funnel: "Funnel",
+    step: { requests: "Requests", optionsReady: "Options ready", chosen: "Chosen", contracted: "Contracted" },
+    rate: "{n} % of the step before",
+    estimates: "Estimates",
+    est: {
+      unchanged: "Confirmed without a price change",
+      parts: "{n} confirmed parts",
+      gap: "Mean gap to the confirmed price",
+      first: "Confirmed by the first supplier asked",
+    },
+    liquidity: "Liquidity",
+    liq: {
+      mean: "Priced candidates per package",
+      packages: "{n} packages",
+      thin: "Packages with fewer than 3",
+      thinSub: "A warning: too few suppliers to choose from",
+      thinTitle: "Packages with fewer than 3 candidates",
+      candidates: "{n} candidates",
+    },
+    money: "Money",
+    mo: {
+      volume: "Order volume",
+      orders: "{n} contracts",
+      invoiced: "Fee invoiced",
+      paid: "Fee paid",
+      take: "Take rate",
+    },
+    retLeak: "Retention and leakage",
+    ret: { rate: "Customers who ordered again", sub: "{n} of {of} within six months" },
+    leak: {
+      hints: "Leak hints",
+      quiet: "Quiet introduced pairs",
+      quietSub: "One order, none for 90 days",
+    },
+    series: {
+      month: "By month",
+      week: "By week",
+      bucket: "Period",
+      empty: "No requests in this period.",
+    },
+    dl: {
+      title: "Deadlines in the request queue",
+      lead: "Past these limits a request shows in red in the queue and in the action queue. Weekends do not count.",
+      newHours: "New request waiting for the operator (working hours)",
+      partDays: "Warn before a supplier's answer expires (working days)",
+      priceDays: "Price change waiting for the customer (working days)",
+      save: "Save deadlines",
+      saved: "Deadlines saved.",
+    },
   },
   fee: {
     title: "Platform fees",

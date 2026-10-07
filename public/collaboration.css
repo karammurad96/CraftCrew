@@ -1262,3 +1262,13 @@ ul.ff-check-list.pk-included { min-height: 0; gap: 4px; }
 .rq-confidence-low { background: #fde8e6; color: #8f1d14; }
 .rq-shifts { display: flex; flex-wrap: wrap; gap: 8px 20px; border: 0; padding: 0; }
 .rq-shifts legend { font-weight: 600; margin-block-end: 4px; }
+
+/* T242: the operator cockpit and the queue's deadlines */
+.rq-overdue td:first-child { border-inline-start: 3px solid #b91c1c; }
+.rq-late { margin-inline-start: 4px; }
+.bz-filter { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-block-end: 18px; }
+.bz-filter label { margin: 0; }
+.bz-section { margin-block-end: 18px; }
+.bz-section h2 { font-size: 16px; margin-block: 0 10px; }
+.bz-warn { color: #b91c1c; font-weight: 700; }
+.bz-thin ul { margin: 0; padding-inline-start: 18px; display: grid; gap: 4px; }
