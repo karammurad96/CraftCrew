@@ -381,7 +381,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 **Wave 18 — payments with Stripe, test version (asked for by Karam on 7 October 2026: Connect, Payments, Billing, Invoicing, Tax, Identity, Radar and Issuing; sandbox keys only; replaces T80; details under "Wave 18")**
 - [x] T270 Stripe foundation: SDK, keys from the environment only, test mode only, webhooks with signature check, a fake Stripe for tests · M · do first, **first test version**
 - [x] T271 Supplier payout accounts: Stripe Connect (Accounts v2), embedded onboarding, payouts page · M · **first test version**
-- [ ] T272 The customer pays an approved invoice through Stripe Checkout · M · **first test version**
+- [x] T272 The customer pays an approved invoice through Stripe Checkout · M · **first test version**
 - [ ] T273 Payout to the supplier minus the platform fee; refunds and disputes reverse it · M · **first test version**
 - [ ] T274 Milestone deposits: the customer pays before the work, the money is released on acceptance · M
 - [ ] T275 Radar: fraud rules, early fraud warnings and the admin's review list · S
@@ -6132,10 +6132,33 @@ T274–T279 add the other products. T280 is the go-live check.
    and the admin's payment list need no second model.
 
 **Done when.**
-- [ ] A test session paid through the fake Stripe's webhook marks the invoice paid, once, even when the event
+- [x] A test session paid through the fake Stripe's webhook marks the invoice paid, once, even when the event
       comes twice.
-- [ ] An unpaid completed session (bank transfer still open) does not mark it paid; the async success later does.
-- [ ] The success page alone changes nothing.
+- [x] An unpaid completed session (bank transfer still open) does not mark it paid; the async success later does.
+- [x] The success page alone changes nothing.
+
+**As built (6 October 2026).**
+- **`checkout.js`** (loaded by `payments.js`). `POST /api/invoices/:id/pay` (the customer, or a colleague with
+  invoice access) makes the Checkout Session on the platform account: `mode: "payment"`, one line with the
+  invoice's gross amount in EUR cents, the customer's Stripe customer (created once with the legal name, billing
+  email, address and an `eu_vat` tax ID when the VAT ID looks valid; kept as `stripeCustomerId` on the account),
+  `payment_intent_data.transfer_group` = the invoice id, metadata (invoice, project, supplier, payment) on the
+  session and the PaymentIntent, `integration_identifier: "craftcrew-invoice"`, success and cancel pages back to
+  the invoice. No `payment_method_types`, no `application_fee_amount`, `on_behalf_of` or `transfer_data`.
+- Only for an approved invoice whose payment is *Scheduled* and whose supplier's payouts are active (T271); else
+  the customer sees "Pay by bank transfer". An older open session of the invoice is expired before a new one, and
+  the admin's "Record paid" expires an open session too.
+- **Webhooks.** `checkout.session.completed` with `payment_status` not `unpaid` and `…async_payment_succeeded`
+  mark the invoice and the payment *Paid* (`method: "stripe"`, `stripe: { sessionId, paymentIntentId, chargeId }`,
+  the charge read from the PaymentIntent's `latest_charge`), and notify the supplier and the customer. An unpaid
+  completed session (bank transfer or direct debit on its way) only sets `stripe.processing` and tells the
+  customer; `…async_payment_failed` clears it and tells the customer. A session paid for an invoice that was
+  already paid another way is kept in `stripe.duplicates` and the admins are told to refund one payment.
+- **Pages.** The invoice page shows "Pay now", "Your payment is on its way", "Pay by bank transfer", and after
+  Stripe's redirect only "We are confirming your payment" (or "cancelled"); the redirect changes nothing.
+- Statuses unchanged (*Scheduled*, *Paid*, *Refunded*). Tests: `test/payments-checkout.test.js` with the fake
+  Stripe (`/v1/customers`, `/v1/checkout/sessions`, `…/expire`, `/v1/payment_intents/:id`). Which payment methods
+  Checkout shows is set in the Stripe Dashboard (Karam: switch on SEPA Direct Debit and bank transfer there).
 
 ### T273 · Payout to the supplier, refunds and disputes
 `P1 · M · depends on T272`

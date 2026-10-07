@@ -527,6 +527,9 @@ const payments = require("./payments")({
   now: () => now(),
   activity: (...a) => activity(...a),
   notify: (...a) => notify(...a),
+  projectFor: (...a) => projectFor(...a),
+  invoiceNo: (i) => invoiceNo(i),
+  appUrl: () => APP_URL,
 });
 const benchmarks = require("./benchmarks")({
   getDb: () => db,
@@ -6364,7 +6367,8 @@ async function api(req, res, url) {
         (user.role === "supplier" && i.supplierId !== user.supplierId)
       )
         return (send(res, 403, { error: "Forbidden" }), true);
-      return (send(res, 200, { invoice: { ...i, ...invoiceParties(i) } }), true);
+      // T272: whether the customer can pay it through Stripe Checkout
+      return (send(res, 200, { invoice: { ...i, ...invoiceParties(i), ...payments.checkout.view(i, user) } }), true);
     }
     if (parts[1] === "invoices" && parts[2] && method === "PATCH") {
       const i = db.invoices.find((x) => x.id === parts[2]);
@@ -6510,6 +6514,8 @@ async function api(req, res, url) {
         delete i.overdue;
         i.paymentDate = now();
         const pay = db.payments.find((x) => x.invoiceId === i.id);
+        // T272: an open Stripe Checkout of this invoice is closed, so the customer cannot pay it twice
+        await payments.checkout.closeOpen(pay);
         if (pay) {
           pay.status = "Paid";
           pay.paidAt = now();

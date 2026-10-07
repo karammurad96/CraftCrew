@@ -312,7 +312,7 @@ async function invoiceDetailPage(id, role = state.user.role) {
             i.resubmitNote ? `<p><b>${esc(i.supplierCompany)}:</b> ${inDom(i.resubmitNote)}</p>` : ""
           }<p>${amountChange ? k("totalChanged", { amount: (amountChange > 0 ? "+" : "−") + fmt.money(Math.abs(amountChange)) }) : `<span class="ds-ui">${k("unchanged")}</span>`}</p></div>`
         : ""
-    }${review}</aside>`;
+    }${review}${typeof stPayPanel === "function" ? stPayPanel(i, role) : ""}</aside>`;
   app.innerHTML = dashboardShell(
     role,
     "invoices",

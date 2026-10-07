@@ -129,3 +129,28 @@ actions.on("po.dashboard", async () => {
 });
 actions.on("po.refresh", () => poRefresh());
 routes.add("/supplier/payouts", poSupplierPage);
+
+
+/* T272: "Pay now" on an approved invoice. The server makes the Checkout Session and the webhook marks the invoice
+   paid; coming back from Stripe only shows a notice and changes nothing. invoiceDetailPage() calls stPayPanel(). */
+const cok = (key, params) => esc(t("checkout." + key, params));
+function stPayPanel(i, role) {
+  if (role !== "customer" || !i.checkout) return "";
+  const back = inQuery().get("checkout"),
+    notes = [];
+  if (back === "success" && i.status === "Approved") notes.push(`<div class="notice">${cok("confirming")}</div>`);
+  if (back === "cancel" && i.status === "Approved") notes.push(`<div class="notice">${cok("cancelled")}</div>`);
+  if (i.checkout.processing) notes.push(`<div class="notice">${cok("processing")}</div>`);
+  else if (i.checkout.available)
+    notes.push(`<div class="ds-inv-foot"><button class="btn primary lg" data-action="inv.pay" data-id="${esc(i.id)}">${cok("payNow")}</button><p class="subtle">${cok("payHint")}</p></div>`);
+  else if (i.status === "Approved") notes.push(`<div class="notice">${cok("bank")}</div>`);
+  return notes.join("");
+}
+actions.on("inv.pay", async (el) => {
+  try {
+    const { url } = await api(`/invoices/${encodeURIComponent(el.dataset.id)}/pay`, { method: "POST", body: {} });
+    if (/^https:\/\//.test(url)) location.assign(url);
+  } catch (x) {
+    toast(x.message, "error");
+  }
+});

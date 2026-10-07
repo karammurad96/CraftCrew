@@ -114,8 +114,11 @@ module.exports = function createPayments(ctx) {
   }
   // T271: the suppliers' connected accounts
   const payouts = require("./payouts")({ ...ctx, client, enabled, publishableKey, on });
+  // T272: the customer pays an approved invoice through Stripe Checkout
+  const checkout = require("./checkout")({ ...ctx, client, enabled, on, payouts });
   async function handle(req, res, url, parts, user) {
     if (await payouts.handle(req, res, url, parts, user)) return true;
+    if (await checkout.handle(req, res, url, parts, user)) return true;
     if (parts[1] !== "admin" || parts[2] !== "stripe") return false;
     if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
     // Check the connection: the platform's own Stripe account
@@ -140,6 +143,6 @@ module.exports = function createPayments(ctx) {
       ? { script: "https://js.stripe.com https://connect-js.stripe.com", frame: "https://*.stripe.com", connect: "https://api.stripe.com https://*.stripe.com", img: "https://*.stripe.com" }
       : null;
 
-  return { enabled, live, client, on, webhook, handle, status, cspSources, payouts };
+  return { enabled, live, client, on, webhook, handle, status, cspSources, payouts, checkout };
 };
 module.exports.KEY_RE = KEY_RE;
