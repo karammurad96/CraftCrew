@@ -13,7 +13,7 @@ async function startFakeStripe(routes = {}) {
   // T271: connected accounts (Accounts v2); `transfers` is the stripe_transfers capability's status
   const accounts = new Map(),
     transfers = new Map(),
-    counts = { customers: 0, sessions: 0 };
+    counts = { customers: 0, sessions: 0, refunds: 0, reversals: 0 };
   const notFound = (what) => ({ status: 404, error: { type: "invalid_request_error", message: "No such " + what } });
   const last = (p) => decodeURIComponent(p.split("/").filter(Boolean).at(-1));
   const v2Account = (a) => ({
@@ -52,6 +52,15 @@ async function startFakeStripe(routes = {}) {
       const tr = { id: "tr_fake" + (transfers.size + 1), object: "transfer", amount: Number(b.amount), currency: b.currency, destination: b.destination, transfer_group: b.transfer_group || null, source_transaction: b.source_transaction || null, metadata: {}, reversed: false, amount_reversed: 0 };
       transfers.set(tr.id, tr);
       return tr;
+    },
+    // T273: refunds and transfer reversals
+    "POST /v1/refunds": (b) => ({ id: "re_fake" + ++counts.refunds, object: "refund", payment_intent: b.payment_intent || null, charge: b.charge || null, status: "succeeded", metadata: {} }),
+    "POST /v1/transfers/:id/reversals": (b, p) => {
+      const tr = transfers.get(p.split("/")[3]);
+      if (!tr) return notFound("transfer");
+      tr.reversed = true;
+      tr.amount_reversed = tr.amount;
+      return { id: "trr_fake" + ++counts.reversals, object: "transfer_reversal", amount: tr.amount, transfer: tr.id };
     },
     ...routes,
   };

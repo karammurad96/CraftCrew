@@ -333,7 +333,7 @@ routes.add("/admin/profile-changes", adminProfileChanges);
 routes.add("/admin/users", adminUsers);
 
 /* ---------- Billing: payments, fees and supplier payouts (T134b) ---------- */
-const AD_INVOICE_TONE = { Paid: "completed", Refunded: "rejected", Rejected: "rejected" };
+const AD_INVOICE_TONE = { Paid: "completed", Refunded: "rejected", Rejected: "rejected", Disputed: "rejected" };
 async function adminBilling() {
   const [{ invoices = [] }, { settings }] = await Promise.all([api("/invoices"), api("/admin/settings")]),
     f = (key, params) => adk("billing." + key, params),
@@ -351,7 +351,12 @@ async function adminBilling() {
       i.amount,
     )}</td><td>${money(fee)} · ${money(payout)}<small>${f("rate", { n: rate })}</small></td><td><span class="status ${AD_INVOICE_TONE[i.status] || "submitted"}">${adValue("invStatus", i.status)}</span>${
       i.status === "Approved" && i.overdue ? ` <span class="status overdue">${inDaysLate(i.scheduledPayment)}</span>` : ""
-    }<small>${i.payment?.status ? adValue("payStatus", i.payment.status) : f("noPayout")}</small></td><td>${
+    }<small>${i.payment?.status ? adValue("payStatus", i.payment.status) : f("noPayout")}${i.payment?.method === "stripe" ? " · " + f("stripe") : ""}</small>${
+      // T273: why a Stripe payout waits, and a reversal that failed
+      i.payment?.status === "Payout pending" ? `<small>${f("payoutWhy." + (i.payment.payoutBlocked || "error"), { message: i.payment.payoutError || "" })}</small>` : ""
+    }${i.payment?.reversalProblem ? `<small class="danger-text">${f("reversalProblem", { message: i.payment.reversalProblem })}</small>` : ""}</td><td>${
+      i.payment?.status === "Payout pending" ? `<button class="btn small outline" data-action="adm.payout" data-id="${esc(i.payment.id)}">${f("retryPayout")}</button>` : ""
+    }${
       i.status === "Approved" ? `<button class="btn small success" data-action="adm.paid" data-id="${esc(i.id)}">${f("recordPaid")}</button>` : ""
     }${i.status === "Paid" ? `<button class="btn small danger" data-action="adm.refund" data-id="${esc(i.id)}">${f("recordRefund")}</button>` : ""}</td></tr>`;
   };
@@ -378,6 +383,15 @@ actions.on("adm.paid", async (el) => {
   try {
     await api(`/admin/invoices/${encodeURIComponent(el.dataset.id)}`, { method: "PATCH", body: { action: "Mark Paid" } });
     tToast(t("adm.billing.paid"));
+    adminBilling();
+  } catch (e) {
+    toast(e.message, "error");
+  }
+});
+actions.on("adm.payout", async (el) => {
+  try {
+    await api(`/admin/payments/${encodeURIComponent(el.dataset.id)}/payout`, { method: "POST", body: {} });
+    tToast(t("adm.billing.payoutRetried"));
     adminBilling();
   } catch (e) {
     toast(e.message, "error");

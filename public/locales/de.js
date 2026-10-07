@@ -102,6 +102,8 @@ LOCALES.de = {
       rejected: "Abgelehnt",
       paid: "Bezahlt",
       refunded: "Erstattet",
+      payoutPending: "Auszahlung wartet",
+      disputed: "Angefochten",
       pending: "Ausstehend",
       pendingApproval: "Freigabe ausstehend",
       pendingReview: "Prüfung ausstehend",
@@ -206,6 +208,9 @@ LOCALES.de = {
       coNotPayable: "Nur eine freigegebene, offene Rechnung kann bezahlt werden.",
       coProcessing: "Ihre Zahlung wird bearbeitet. Wir bestätigen sie, sobald sie eingeht.",
       coSupplierNotReady: "Dieser Lieferant kann noch nicht über Stripe bezahlt werden. Bitte zahlen Sie per Überweisung.",
+      trNotWaiting: "Nur eine wartende Auszahlung kann erneut gesendet werden.",
+      trPaymentNotFound: "Zahlung nicht gefunden",
+      trRefundFailed: "Stripe konnte die Zahlung nicht erstatten. Versuchen Sie es erneut oder erstatten Sie sie im Stripe-Dashboard.",
       rqShifts: "Wählen Sie Nacht-, Wochenend- oder Schichtarbeit aus der Liste.",
       rqTrips: "Geben Sie die Anzahl der Anfahrten an (1 bis 50) oder lassen Sie das Feld leer.",
       saRegions: "Geben Sie die bedienten Regionen als Postleitzahl-Anfänge mit 1 bis 5 Ziffern an.",
@@ -4010,12 +4015,14 @@ LOCALES.de = {
       "Changes Requested": "Änderungen angefordert",
       "Rejected": "Abgelehnt",
       "Paid": "Bezahlt",
-      "Refunded": "Erstattet"
+      "Refunded": "Erstattet",
+      "Disputed": "Angefochten"
     },
     "payStatus": {
       "Scheduled": "Geplant",
       "Paid": "Bezahlt",
-      "Refunded": "Erstattet"
+      "Refunded": "Erstattet",
+      "Payout pending": "Auszahlung wartet"
     },
     "disputeStatus": {
       "Open": "Öffnen",
@@ -4056,7 +4063,19 @@ LOCALES.de = {
       },
       "paid": "Zahlung als bezahlt markiert",
       "refundPrompt": "Grund für die Erstattung",
-      "refundDone": "Erstattung im Rechnungsbuch erfasst"
+      "refundDone": "Erstattung im Rechnungsbuch erfasst",
+      "stripe": "Über Stripe bezahlt",
+      "payoutWhy": {
+        "noAccount": "Der Lieferant hat noch kein Auszahlungskonto.",
+        "pending": "Stripe prüft das Auszahlungskonto des Lieferanten noch.",
+        "restricted": "Stripe hat das Auszahlungskonto des Lieferanten eingeschränkt.",
+        "off": "Zahlungen sind aus.",
+        "amount": "Nach der Gebühr bleibt nichts zu überweisen.",
+        "error": "Stripe hat die Überweisung abgelehnt: {message}"
+      },
+      "retryPayout": "Auszahlung erneut senden",
+      "payoutRetried": "Auszahlung erneut gesendet.",
+      "reversalProblem": "Die Überweisung konnte nicht zurückgeholt werden: {message}"
     },
     "disputes": {
       "title": "Eskalationen & Support",
@@ -5816,6 +5835,7 @@ LOCALES.de = {
       credit: "Gutschrift",
     },
     creditOf: "zu {number}",
+    settled: "mit der Auszahlung verrechnet",
     col: {
       number: "Nummer",
       supplier: "Lieferant",
@@ -5946,6 +5966,12 @@ LOCALES.de = {
       paymentProcessing: "Ihre Zahlung für Rechnung {number} ist unterwegs. Wir bestätigen sie, sobald das Geld eingeht.",
       paymentFailed: "Ihre Zahlung für Rechnung {number} ist nicht durchgegangen. Bitte zahlen Sie erneut oder wählen Sie eine andere Zahlungsart.",
       paymentDuplicate: "Rechnung {number} wurde zweimal bezahlt (Stripe Checkout und auf anderem Weg). Erstatten Sie eine Zahlung im Stripe-Dashboard.",
+      payoutSent: "Die Auszahlung für Rechnung {number} ist unterwegs: {amount} EUR nach der Plattformgebühr.",
+      payoutPending: "Die Auszahlung für Rechnung {number} wartet: Das Stripe-Konto des Lieferanten kann sie noch nicht empfangen.",
+      reversalFailed: "Die Überweisung für Rechnung {number} konnte nicht vom Lieferanten zurückgeholt werden. Prüfen Sie sie im Stripe-Dashboard.",
+      invoiceDisputed: "Die Bank des Kunden ficht die Zahlung von Rechnung {number} an. Die Auszahlung wurde bis zur Entscheidung zurückgeholt.",
+      disputeWon: "Die Anfechtung zu Rechnung {number} wurde zu Ihren Gunsten entschieden. Die Auszahlung wird erneut gesendet.",
+      disputeLost: "Die Anfechtung zu Rechnung {number} ging verloren. Die Zahlung ging an den Kunden zurück.",
       invoiceReminder: "Erinnerung: Rechnung {number} wartet auf Ihre Prüfung",
       invoiceReminder2: "Zweite Erinnerung: Rechnung {number} wartet seit 7 Tagen auf Ihre Prüfung",
       invoiceWaitingAdmin: "Rechnung {number} wartet seit 7 Tagen auf die Prüfung durch den Kunden",
@@ -6117,6 +6143,8 @@ LOCALES.de = {
         vat: "USt.",
         total: "Gesamt",
         reverseCharge: "Steuerschuldnerschaft des Leistungsempfängers (innergemeinschaftliche Leistung).",
+        deducted: "Mit der Auszahlung verrechnet",
+        settled: "Mit der Auszahlung über Stripe verrechnet. Nichts zu zahlen.",
         due: "Zahlbar ohne Abzug bis",
         bank: "Bank",
       },

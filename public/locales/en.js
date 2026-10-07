@@ -103,6 +103,8 @@ LOCALES.en = {
       rejected: "Rejected",
       paid: "Paid",
       refunded: "Refunded",
+      payoutPending: "Payout pending",
+      disputed: "Disputed",
       pending: "Pending",
       pendingApproval: "Pending approval",
       pendingReview: "Pending review",
@@ -207,6 +209,9 @@ LOCALES.en = {
       coNotPayable: "Only an approved, unpaid invoice can be paid.",
       coProcessing: "Your payment is being processed. We confirm it when it arrives.",
       coSupplierNotReady: "This supplier cannot be paid through Stripe yet. Please pay by bank transfer.",
+      trNotWaiting: "Only a payout that waits can be sent again.",
+      trPaymentNotFound: "Payment not found",
+      trRefundFailed: "Stripe could not refund the payment. Try again, or refund it in the Stripe Dashboard.",
       rqShifts: "Choose night, weekend or shift work from the list.",
       rqTrips: "Enter the number of trips (1 to 50), or leave it empty.",
       saRegions: "Enter the served regions as postcode prefixes of 1 to 5 digits.",
@@ -4011,12 +4016,14 @@ LOCALES.en = {
       "Changes Requested": "Changes Requested",
       "Rejected": "Rejected",
       "Paid": "Paid",
-      "Refunded": "Refunded"
+      "Refunded": "Refunded",
+      "Disputed": "Disputed"
     },
     "payStatus": {
       "Scheduled": "Scheduled",
       "Paid": "Paid",
-      "Refunded": "Refunded"
+      "Refunded": "Refunded",
+      "Payout pending": "Payout pending"
     },
     "disputeStatus": {
       "Open": "Open",
@@ -4057,7 +4064,19 @@ LOCALES.en = {
       },
       "paid": "Payment marked paid",
       "refundPrompt": "Reason for recording this refund",
-      "refundDone": "Refund recorded in the invoice ledger"
+      "refundDone": "Refund recorded in the invoice ledger",
+      "stripe": "Paid through Stripe",
+      "payoutWhy": {
+        "noAccount": "The supplier has no payout account yet.",
+        "pending": "Stripe is still checking the supplier's payout account.",
+        "restricted": "Stripe restricted the supplier's payout account.",
+        "off": "Payments are off.",
+        "amount": "Nothing to transfer after the fee.",
+        "error": "Stripe refused the transfer: {message}"
+      },
+      "retryPayout": "Send payout again",
+      "payoutRetried": "Payout sent again.",
+      "reversalProblem": "The transfer could not be taken back: {message}"
     },
     "disputes": {
       "title": "Escalations & support",
@@ -5817,6 +5836,7 @@ LOCALES.en = {
       credit: "Credit note",
     },
     creditOf: "for {number}",
+    settled: "settled by deduction from the payout",
     col: {
       number: "Number",
       supplier: "Supplier",
@@ -5947,6 +5967,12 @@ LOCALES.en = {
       paymentProcessing: "Your payment for invoice {number} is on its way. We confirm it when the money arrives.",
       paymentFailed: "Your payment for invoice {number} did not go through. Please pay again or choose another method.",
       paymentDuplicate: "Invoice {number} was paid twice (Stripe Checkout and another way). Refund one payment in the Stripe Dashboard.",
+      payoutSent: "Payout for invoice {number} is on its way: {amount} EUR after the platform fee.",
+      payoutPending: "The payout for invoice {number} waits: the supplier's Stripe account cannot receive it yet.",
+      reversalFailed: "The transfer for invoice {number} could not be taken back from the supplier. Check it in the Stripe Dashboard.",
+      invoiceDisputed: "The customer's bank disputes the payment of invoice {number}. The payout was taken back until the dispute is decided.",
+      disputeWon: "The dispute about invoice {number} was decided in your favour. The payout is sent again.",
+      disputeLost: "The dispute about invoice {number} was lost. The payment went back to the customer.",
       invoiceReminder: "Reminder: invoice {number} is waiting for your review",
       invoiceReminder2: "Second reminder: invoice {number} has been waiting for your review for 7 days",
       invoiceWaitingAdmin: "Invoice {number} has been waiting for customer review for 7 days",
@@ -6119,6 +6145,8 @@ LOCALES.en = {
         total: "Total",
         reverseCharge: "Reverse charge: the recipient owes the VAT (intra-EU service).",
         due: "Payable without deduction by",
+        deducted: "Settled by deduction from the payout",
+        settled: "Settled by deduction from the Stripe payout. Nothing to pay.",
         bank: "Bank",
       },
       invoice: {

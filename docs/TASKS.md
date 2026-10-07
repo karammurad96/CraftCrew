@@ -382,7 +382,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T270 Stripe foundation: SDK, keys from the environment only, test mode only, webhooks with signature check, a fake Stripe for tests · M · do first, **first test version**
 - [x] T271 Supplier payout accounts: Stripe Connect (Accounts v2), embedded onboarding, payouts page · M · **first test version**
 - [x] T272 The customer pays an approved invoice through Stripe Checkout · M · **first test version**
-- [ ] T273 Payout to the supplier minus the platform fee; refunds and disputes reverse it · M · **first test version**
+- [x] T273 Payout to the supplier minus the platform fee; refunds and disputes reverse it · M · **first test version**
 - [ ] T274 Milestone deposits: the customer pays before the work, the money is released on acceptance · M
 - [ ] T275 Radar: fraud rules, early fraud warnings and the admin's review list · S
 - [ ] T276 Stripe Invoicing and Stripe Tax for the platform's own invoices (fee statements) · M · **needs the tax registration in Stripe**
@@ -6177,8 +6177,34 @@ T274–T279 add the other products. T280 is the go-live check.
    escalation for the admin. `charge.dispute.closed` follows the outcome.
 
 **Done when.**
-- [ ] Tests with the fake Stripe cover: transfer amount, waiting for a restricted account, refund with reversal,
+- [x] Tests with the fake Stripe cover: transfer amount, waiting for a restricted account, refund with reversal,
       and dispute with reversal and escalation.
+
+**As built (7 October 2026).**
+- **`transfers.js`** (loaded by `payments.js`). When T272 marks a Stripe payment paid, the supplier's share goes
+  out through `payouts.transfer()` (which reads the account from Stripe first): amount = gross − platform fee in
+  cents, `currency: "eur"`, `transfer_group` = the invoice id, `source_transaction` = the charge, metadata, an
+  idempotency key per attempt. The payment keeps `stripe.transferId` and `transferAmount`.
+- **Payout pending.** When the account cannot receive it (no account, pending, restricted) or Stripe refuses, the
+  payment's status is *Payout pending* with `payoutBlocked` (and `payoutError`); the admins are notified and the
+  admin's payment list shows why, with "Send payout again" (`POST /api/admin/payments/:id/payout`). Pending payouts
+  of a supplier go out on their own when its account becomes active.
+- **Fee settled by deduction.** `commission.feeDeductible()` / `settleByDeduction()`: a fee kept from the payout is
+  billed on its own statement, marked "settled by deduction" and *Paid* at once (PDF and fee page say so); a fee
+  already on an open statement marks that line, and the statement is paid once all its lines are. A fee whose
+  statement the supplier already paid is not kept again (the whole gross is transferred). A payout that waits is
+  not billed until it is settled.
+- **Refunds.** The admin's refund of a Stripe payment calls `refunds.create` (on the PaymentIntent) and then
+  `transfers.createReversal`; Stripe's `reverse_transfer` flag only applies to destination charges, so the reversal
+  is its own call. If the refund fails, nothing changes (502); a failed reversal is kept on the payment
+  (`reversalProblem`) and the admins are notified. T240 credits a billed fee as before.
+- **Disputes.** `charge.dispute.created` reverses the transfer, sets the invoice to *Disputed* (new status),
+  opens a *Payment* escalation (`source: "stripe"`) and notifies the admins and the supplier.
+  `charge.dispute.closed`: won (or `warning_closed`) → *Paid* and the share is transferred again (from the
+  balance, without `source_transaction`); lost → *Refunded* and the fee is credited. The escalation is resolved.
+- **Open decision for Karam:** the transfer does not deduct an estimate of Stripe's own fee; the platform carries
+  it. Tests: `test/payments-transfers.test.js` (fake Stripe: `/v1/transfers`, `/v1/refunds`,
+  `/v1/transfers/:id/reversals`).
 
 ### T274 · Milestone deposits
 `P2 · M · depends on T273`

@@ -6,7 +6,7 @@ function feRows(statements, admin) {
   return statements
     .map(
       (st) =>
-        `<tr><td><b>${esc(st.number)}</b><small>${fek(st.kind === "credit" ? "kind.credit" : "kind.statement")}${st.creditOfNumber ? " · " + fek("creditOf", { number: st.creditOfNumber }) : ""}</small></td>${
+        `<tr><td><b>${esc(st.number)}</b><small>${fek(st.kind === "credit" ? "kind.credit" : "kind.statement")}${st.creditOfNumber ? " · " + fek("creditOf", { number: st.creditOfNumber }) : ""}${st.settledByDeduction ? " · " + fek("settled") : ""}</small></td>${
           admin ? `<td><bdi>${esc(st.company)}</bdi></td>` : ""
         }<td>${esc(st.period)}</td><td>${esc(fmt.date(st.issueDate))}</td><td class="num">${esc(fmt.money(st.gross, 2))}</td><td>${feChip(st.status)}</td><td class="fe-actions"><a class="btn small outline" href="/api/commission/${esc(st.id)}/pdf" download>${fek("pdf")}</a><button class="btn small ghost" data-action="fee.xml" data-id="${esc(st.id)}" data-number="${esc(st.number)}">${fek("xml")}</button>${
           admin && st.kind === "statement" && st.status === "Open"

@@ -88,6 +88,8 @@ module.exports = function createCommission(ctx) {
         (p) =>
           Number(p.platformFee) > 0 &&
           p.status !== "Refunded" &&
+          // T273: a Stripe payout that waits is billed once its fee is settled by deduction (or not)
+          p.status !== "Payout pending" &&
           !p.commissionStatementId &&
           (per ? period(p.createdAt) === per : period(p.createdAt) < thisPeriod()),
       );
@@ -95,13 +97,15 @@ module.exports = function createCommission(ctx) {
     for (const p of due) {
       const inv = db.invoices.find((i) => i.id === p.invoiceId);
       if (!inv?.supplierId) continue;
-      const key = inv.supplierId + "|" + period(p.createdAt);
+      // T273: fees settled by deduction from a Stripe payout get their own statement, paid at once
+      const key = inv.supplierId + "|" + period(p.createdAt) + "|" + (p.feeSettledByDeduction ? "deducted" : "open");
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push({ p, inv });
     }
     const made = [];
     for (const [key, rows] of groups) {
-      const [supplierId, per2] = key.split("|");
+      const [supplierId, per2, how] = key.split("|"),
+        deducted = how === "deducted";
       const lines = rows.map(({ p, inv }) => {
         const customer = db.users.find((u) => u.id === inv.customerId);
         return {
@@ -112,14 +116,34 @@ module.exports = function createCommission(ctx) {
           net: round(p.netAmount ?? inv.amount),
           feePercent: Number(p.platformFeePercent) || 0,
           fee: round(p.platformFee),
+          ...(deducted ? { settledByDeduction: true } : {}),
         };
       });
-      const st = make("statement", supplierId, per2, lines);
+      const st = make("statement", supplierId, per2, lines, deducted ? { status: "Paid", paidAt: now(), settledByDeduction: true } : {});
       for (const { p } of rows) p.commissionStatementId = st.id;
       made.push(st);
     }
     if (made.length) save();
     return made;
+  }
+  // T273: whether the fee can still be kept from the Stripe payout: not billed yet, or billed on an open statement.
+  // A statement the supplier already paid (or that was credited) is not charged again.
+  function feeDeductible(payment) {
+    if (!(Number(payment?.platformFee) > 0)) return false;
+    if (!payment.commissionStatementId) return true;
+    return list().find((x) => x.id === payment.commissionStatementId)?.status === "Open";
+  }
+  // The fee was kept from the payout: the next run bills it as settled, or the line of an open statement is marked;
+  // a statement whose fees are all settled this way is paid.
+  function settleByDeduction(payment) {
+    payment.feeSettledByDeduction = true;
+    const st = payment.commissionStatementId && list().find((x) => x.id === payment.commissionStatementId),
+      line = st?.lines.find((l) => l.paymentId === payment.id);
+    if (line) {
+      line.settledByDeduction = true;
+      if (st.status === "Open" && st.lines.every((l) => l.settledByDeduction)) Object.assign(st, { status: "Paid", paidAt: now(), settledByDeduction: true });
+    }
+    save();
   }
   // A refunded payment that was already billed: a credit note for its fee (called by the refund route)
   function onRefund(payment) {
@@ -216,6 +240,7 @@ module.exports = function createCommission(ctx) {
       text(350, y, 8, eur(l.net));
       text(430, y, 8, `${l.feePercent} %`);
       text(500, y, 8, eur(l.fee), "F2");
+      if (l.settledByDeduction) text(54, y - 9, 7, L.deducted, "F1", "0.38 0.45 0.56"), (y -= 9);
       y -= 16;
     }
     y -= 10;
@@ -229,7 +254,8 @@ module.exports = function createCommission(ctx) {
     text(500, y, 11, eur(st.gross), "F2");
     y -= 24;
     if (st.vatMode === "intraEU") text(42, y, 8, L.reverseCharge, "F1", "0.38 0.45 0.56"), (y -= 14);
-    if (st.kind !== "credit") text(42, y, 8, `${L.due} ${st.dueDate}`, "F1", "0.38 0.45 0.56"), (y -= 14);
+    if (st.settledByDeduction) text(42, y, 8, L.settled, "F1", "0.38 0.45 0.56"), (y -= 14);
+    else if (st.kind !== "credit") text(42, y, 8, `${L.due} ${st.dueDate}`, "F1", "0.38 0.45 0.56"), (y -= 14);
     if (st.seller.iban)
       text(42, y, 8, `${L.bank}: ${st.seller.accountHolder || st.seller.name || ""} · IBAN ${st.seller.iban}${st.seller.bic ? ` · BIC ${st.seller.bic}` : ""}`, "F1", "0.38 0.45 0.56");
     return pdfDocument(pages);
@@ -334,5 +360,5 @@ module.exports = function createCommission(ctx) {
     return (send(res, 404, { error: "Statement not found" }), true);
   }
 
-  return { handle, run, onRefund, statementPdf, xrechnungData };
+  return { handle, run, onRefund, feeDeductible, settleByDeduction, statementPdf, xrechnungData };
 };

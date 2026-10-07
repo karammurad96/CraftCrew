@@ -530,6 +530,8 @@ const payments = require("./payments")({
   projectFor: (...a) => projectFor(...a),
   invoiceNo: (i) => invoiceNo(i),
   appUrl: () => APP_URL,
+  id: (p) => id(p),
+  commission,
 });
 const benchmarks = require("./benchmarks")({
   getDb: () => db,
@@ -6546,6 +6548,9 @@ async function api(req, res, url) {
       if (b.action === "Refund" && i.status === "Paid") {
         const reason = String(b.reason || "").trim();
         if (!reason) return (send(res, 400, { error: "A refund reason is required" }), true);
+        // T273: a Stripe payment is refunded through Stripe and the supplier's transfer is taken back
+        if (!(await payments.transfers.refund(db.payments.find((x) => x.invoiceId === i.id), i, reason)))
+          return (send(res, 502, { error: "Stripe could not refund the payment. Try again, or refund it in the Stripe Dashboard." }), true);
         i.status = "Refunded";
         i.refundReason = reason;
         i.refundedAt = now();
