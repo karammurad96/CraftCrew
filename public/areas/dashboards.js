@@ -51,7 +51,7 @@ const DASH_ICON_PATHS = {
   dispute: '<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17v.5"/>',
   payment: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/>',
 };
-const DASH_TINT = { invoice: "blue", time: "blue", offer: "orange", document: "orange", overdue: "red", invitation: "orange", bid: "blue", compliance: "orange", application: "blue", dispute: "red", payment: "green" };
+const DASH_TINT = { invoice: "blue", time: "blue", offer: "orange", document: "orange", overdue: "red", invitation: "orange", bid: "blue", compliance: "orange", application: "blue", dispute: "red", payment: "green", deadline: "red" };
 const dashIcon = (kind) =>
   `<span class="ds-dec-icon ds-tint-${DASH_TINT[kind] || "blue"}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${DASH_ICON_PATHS[kind] || DASH_ICON_PATHS.document}</svg></span>`;
 // Labels are HTML here: either a key's text (escaped) or a server text (dashDom)

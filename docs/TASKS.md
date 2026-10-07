@@ -353,7 +353,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T241 Estimate guardrails: minimum order, travel costs, surcharges, price band and a confidence level · M
 - [x] T253 Ranking transparency: the terms and the supplier help say how suppliers are ranked and priced · S · **EU P2B Regulation 2019/1150; the text needs the lawyer**
 - [x] T255 Served area: instant estimates only in the launch region and categories, a waiting list elsewhere · S · **needs Karam's beachhead decision**
-- [ ] T242 Operator cockpit: KPIs, the funnel and deadlines for the request queue · M
+- [x] T242 Operator cockpit: KPIs, the funnel and deadlines for the request queue · M
 - [ ] T243 Estimate calibration: learn from the gap between estimate and confirmed price · M · after T242
 - [ ] T244 Supplier price rules and automatic confirmation; the answer time as a setting · M
 - [ ] T245 Capacity calendar: crew-days, booked days and calendar sync · M
@@ -5306,9 +5306,45 @@ Liquidity is local. Instant estimates should only promise what the supplier base
 3. **CSV export** of every figure.
 
 **Done when.**
-- [ ] Each figure has a test with fixed data.
-- [ ] The deadlines show in the queue and in the action queue.
-- [ ] The page loads in under a second with 10,000 requests (measured in a test).
+- [x] Each figure has a test with fixed data.
+- [x] The deadlines show in the queue and in the action queue.
+- [x] The page loads in under a second with 10,000 requests (measured in a test).
+
+**As built (7 October 2026).**
+- **Server (`cockpit.js`).** `figures(db, {from, to, period, category, region})` is a pure function of the data.
+  The period's requests are a cohort (created in the period; category = any package's category, region = a
+  postcode prefix).
+  - **Speed:** hours from the request to its first *Options ready*, median and mean; an instant estimate (history
+    note "Instant estimate") apart from the operator's options.
+  - **Funnel:** requests → options ready → chosen → contracted (a request counts for each step it ever reached),
+    with the rate to the step before.
+  - **Estimates** (estimate awards only): the share of confirmed parts at the estimated price, the mean gap
+    between estimate and confirmed price in percent, and the share of first-asked parts (not replacements) that
+    their supplier confirmed.
+  - **Liquidity:** every new request stores the priced candidates of each package (`packages[].candidates`,
+    operator only). The mean, and the packages with fewer than 3 as a warning list.
+  - **Money:** the contracts of the cohort's requests made in the period (order volume), the fee lines of the
+    statements (T240) of the period's months, credit notes subtracted (fee invoiced) and of paid statements (fee
+    paid), take rate = fee invoiced ÷ order volume.
+  - **Retention:** customers of the period with another request within six months of their first one in it.
+  - **Leakage signals:** leak hints (T226) in the period, and introduced pairs (T227) with one order and none for
+    90 days ("quiet pairs"; protected or after the protection ran out).
+  - The core figures per week (Monday) or month.
+- **API.** `GET /api/admin/business?from&to&period&category&region` (default: the last 90 days by month),
+  `GET /api/admin/business/csv` (every figure, the thin packages and the series; cells starting with `=`, `+`,
+  `-` or `@` are defused for spreadsheets), `PUT /api/admin/business/deadlines`.
+- **Deadlines** (`deadlinesOf()`, settings `queueDeadlines`, defaults 4 working hours, 1 and 2 working days;
+  weekends do not count): a *New* request waiting for the operator, a supplier's part within a working day of
+  its expiry, a price change waiting for the customer. The operator's request view carries `deadlines`; the
+  queue marks the row in red with a chip per deadline, and the admin's action queue lists them (kind `deadline`,
+  `dash.q.deadline*`).
+- **Page (`public/areas/business.js`).** *Business* (`/admin/business`, admin sidebar after *Reports*): the filter,
+  the figures as cards, the thin packages with links to their requests, the table per week or month, "Export
+  CSV" and the deadline settings.
+- **Tests.** `test/cockpit.test.js`: each figure from a fixed data set (and the category and region filter), the
+  CSV, working hours and each deadline, the API (admin only, filter checks, settings), a request waiting too long
+  in the queue and the action queue, the page in English and German, and 10,000 requests answered in under a
+  second (about 0.1 s measured).
 
 ### T243 · Estimate calibration
 `P1 · M · after T242`

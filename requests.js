@@ -34,6 +34,8 @@ module.exports = function createRequests(ctx) {
 
   // What a customer may see: no operator notes, no sourcing data (T223/T224 add more operator-only fields).
   const OPERATOR_ONLY = ["operatorNote", "suggestions", "bidId", "operatorId", "leakHints", "estimateSkipped"];
+  // T242: the candidate counts of the packages are the operator's too
+  const packagesFor = (r) => (r.packages || []).map(({ candidates, ...x }) => x);
   function view(user, r) {
     if (user.role === "admin") {
       // The operator sees who is behind each estimate part, and each part's packages by name
@@ -58,7 +60,8 @@ module.exports = function createRequests(ctx) {
           packages: packageNames(r, p.packageIds),
         })),
       };
-      return { ...r, options, award, sourcing: sourcingView(r) };
+      // T242: the queue's deadlines this request has passed
+      return { ...r, options, award, sourcing: sourcingView(r), deadlines: ctx.deadlines ? ctx.deadlines(r) : [] };
     }
     const out = { ...r };
     for (const k of OPERATOR_ONLY) delete out[k];
@@ -68,6 +71,7 @@ module.exports = function createRequests(ctx) {
       ? (r.options || []).map((o) => customerOption(o, r))
       : [];
     out.thread = (r.thread || []).map(({ byId, ...m }) => m);
+    out.packages = packagesFor(r);
     delete out.estimateGap;
     // T255: the customer only learns that the region is still being built up
     if (r.outsideArea) out.outsideArea = true;
@@ -987,6 +991,8 @@ module.exports = function createRequests(ctx) {
         createdAt: now(),
       };
       linkProject(user, r);
+      // T242: liquidity, the priced candidates each package had when the request arrived
+      for (const x of r.packages) x.candidates = estimates.candidates(r, x).length;
       move(r, "New", user);
       if (priceInstantly(r)) instantEstimate(r);
       if (getDb().settings?.autoSuggest !== false) refreshSuggestions(r);
