@@ -684,7 +684,7 @@ async function rqSupplierOrders() {
   app.innerHTML = dashboardShell(
     "supplier",
     "orders",
-    `<div class="dash-top"><div><h1>${rqk("order.title")}</h1><p>${rqk("order.lead")} <a href="#/ranking">${esc(t("public.ranking.link"))}</a></p></div></div>${
+    `<div class="dash-top"><div><h1>${rqk("order.title")}</h1><p>${rqk("order.lead")}</p><p><a href="#/ranking">${esc(t("public.ranking.link"))}</a></p></div></div>${
       orders.map(card).join("") ||
       `<div class="empty"><h2>${rqk("order.empty")}</h2><p>${rqk("order.emptyText")}</p></div>`
     }`,
