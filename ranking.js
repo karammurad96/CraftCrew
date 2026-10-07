@@ -7,6 +7,7 @@
 const { RANKING } = require("./estimate");
 const { SUGGEST, SCORE_WEIGHTS } = require("./sourcing");
 const { MIN_POINTS } = require("./benchmarks");
+const { CALIBRATION } = require("./calibration");
 
 const pct = (share) => Math.round(share * 100);
 
@@ -28,6 +29,15 @@ function facts(settings = {}) {
       bandAbove: RANKING.bandAbove,
       bandBelowPercent: pct(RANKING.bandBelow),
       benchmarkMinPoints: MIN_POINTS,
+    },
+    // T243: how confirmed prices and logged hours correct the estimate
+    calibration: {
+      months: CALIBRATION.months,
+      minParts: CALIBRATION.minParts,
+      min: CALIBRATION.min,
+      max: CALIBRATION.max,
+      minTasks: CALIBRATION.minTasks,
+      hoursMax: CALIBRATION.hoursMax,
     },
     suggestions: {
       category: SUGGEST.category,

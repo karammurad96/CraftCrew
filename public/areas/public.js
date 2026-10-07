@@ -201,6 +201,8 @@ async function pubRanking() {
           r.prices.brokerMarkupPercent ? k("priceMarkup", { n: r.prices.brokerMarkupPercent }) : k("priceSame"),
           k("fee", { n: r.prices.platformFeePercent }),
           k("confirm"),
+          k("calibration", { parts: r.calibration.minParts, months: r.calibration.months, min: r.calibration.min, max: r.calibration.max }),
+          k("calibrationHours", { tasks: r.calibration.minTasks, max: r.calibration.hoursMax }),
         ]),
       )}${section(
         "suggestTitle",

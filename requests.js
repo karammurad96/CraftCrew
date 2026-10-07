@@ -447,6 +447,11 @@ module.exports = function createRequests(ctx) {
         lines: p.lines,
         unusual: !!p.unusual,
         confidence: p.confidence,
+        // T243: the price-list amount before correction, and the factors that were applied
+        category: p.category,
+        baseAmount: p.baseAmount,
+        factor: p.factor,
+        hoursFactor: p.hoursFactor,
         profile: anonymousProfile(p.supplierId),
       }));
       return {
@@ -585,6 +590,8 @@ module.exports = function createRequests(ctx) {
           price: customerPrice(amount),
           days: priced.days,
           lines: priced.lines,
+          category: priced.category,
+          baseAmount: priced.baseAmount,
           replaces: part.id,
         });
       r.award.parts.push(next);
@@ -655,7 +662,8 @@ module.exports = function createRequests(ctx) {
           assignedSupplierId: supplier.id,
           acceptanceStatus: "Accepted",
           status: "In Progress",
-          orderAmount: Math.round((part.price * pkg.hours) / part.hours),
+          // T243: the part's hours can differ from the packages' (rough hours corrected): split by package hours
+          orderAmount: Math.round((part.price * pkg.hours) / pkgs.reduce((n, x) => n + x.hours, 0)),
         });
         task.assignmentHistory ||= [];
         task.assignmentHistory.push({
@@ -1084,6 +1092,8 @@ module.exports = function createRequests(ctx) {
             supplierAmount: p.supplierAmount,
             price: p.price,
             days: p.days,
+            category: p.category,
+            baseAmount: p.baseAmount,
           }),
         );
       r.award = {

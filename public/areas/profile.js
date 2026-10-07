@@ -457,7 +457,7 @@ async function supplierCatalog() {
       ]
         .map((k) => `<th>${c(k)}</th>`)
         .join("")}</tr></thead><tbody>${items.map(service).join("") || `<tr><td colspan="5">${c("noServices")}</td></tr>`}</tbody></table></div></section>`,
-      pfPricingPanel(s),
+      pfPricingPanel(s, d.calibration),
       `<section class="panel"><div class="panel-title"><h3>${c("people")}</h3><span>${c("listed", { n: team.length })}</span></div><div class="cc-table-wrap"><table class="cc-table"><thead><tr>${["colName", "colRole", "colExperience", "colCerts", "colAvailability"]
         .map((k) => `<th>${c(k)}</th>`)
         .join("")}</tr></thead><tbody>${team.map(person).join("") || `<tr><td colspan="5">${c("noPeople")}</td></tr>`}</tbody></table></div></section>`,
@@ -468,12 +468,17 @@ async function supplierCatalog() {
   await dcRefreshOwn().catch((e) => console.error(e));
 }
 // T241: the supplier's pricing rules for instant estimates
-function pfPricingPanel(s) {
+function pfPricingPanel(s, calibration = []) {
   const pr = s.pricing || {},
     k = (key, params) => pfk("price." + key, params),
     fact = (label, value) => `<div><dt>${k(label)}</dt><dd>${value}</dd></div>`;
   const mats = Object.entries(pr.materials || {});
-  return `<section class="panel"><div class="panel-title"><div><h3>${k("title")}</h3><small>${k("lead")}</small></div><button class="btn small outline" data-action="prof.editPricing">${k("edit")}</button></div><dl class="rq-facts">${[
+  // T243: how far the supplier's confirmed prices are from its price list
+  const cal = calibration
+    .filter((x) => x.percent)
+    .map((x) => `<div class="notice"><p>${esc(t(x.percent > 0 ? "prof.price.calibrationAbove" : "prof.price.calibrationBelow", { category: x.category, pct: Math.abs(x.percent) }))} ${k("calibrationHint")}</p><button class="btn small outline" data-action="prof.editCatalog">${k("calibrationLink")}</button></div>`)
+    .join("");
+  return `<section class="panel"><div class="panel-title"><div><h3>${k("title")}</h3><small>${k("lead")}</small></div><button class="btn small outline" data-action="prof.editPricing">${k("edit")}</button></div>${cal}<dl class="rq-facts">${[
     fact("minimum", pr.minimumOrder ? esc(fmt.money(pr.minimumOrder)) : k("none")),
     fact("travel", pr.travel?.flat || pr.travel?.perKm ? esc(t("prof.price.travelText", { flat: fmt.money(pr.travel.flat || 0), perKm: fmt.money(pr.travel.perKm || 0, 2) })) : k("none")),
     fact("radius", pr.travel?.radiusKm ? k("radiusText", { n: pr.travel.radiusKm }) : k("anywhere")),

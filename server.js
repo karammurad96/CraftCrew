@@ -7893,6 +7893,8 @@ async function api(req, res, url) {
           user: selfUser(user),
           supplier: user.supplierId ? supplierForUser(user) : null,
           companyProfile: user.companyProfile || {},
+          // T243: the supplier's own calibration factors
+          calibration: user.supplierId ? require("./calibration").forSupplier(db, user.supplierId) : [],
         }),
         true
       );

@@ -6,6 +6,7 @@
  * confirms after the customer's choice (T232).
  */
 const geo = require("./geo");
+const calibration = require("./calibration");
 
 // The ranking and pricing constants. T253: the page "How suppliers are ranked and priced" reads them from here.
 const RANKING = {
@@ -68,6 +69,9 @@ module.exports = function createEstimate({ getDb, scorecard, benchmark = () => n
   // (and listed in `skipped` for the operator); one outside the band is marked unusual.
   function candidates(request, pkg, skipped = null) {
     const db = getDb(),
+      // T243: rough hours run over: the category's hours factor corrects them
+      hoursFactor = pkg.rough ? calibration.hoursFactor(db, pkg.category).factor : 1,
+      hours = Math.round(pkg.hours * hoursFactor * 100) / 100,
       from = request.startDate || new Date().toISOString().slice(0, 10),
       to = request.dueDate || "9999-12-31",
       site = geo.geocode(request.sitePostcode || "") || geo.geocode(request.siteCity || ""),
@@ -104,18 +108,27 @@ module.exports = function createEstimate({ getDb, scorecard, benchmark = () => n
           unusual = r.rate < b.p25 || r.rate > b.p75;
         }
         // Labour, surcharges for night, weekend or shift work, and the materials share of the category
-        const labour = r.rate * pkg.hours,
+        const labour = r.rate * hours,
           pct = (request.shifts || []).reduce((n, k) => n + (Number(pr.surcharges?.[k]) || 0), 0),
           surcharge = (labour * pct) / 100,
           materials = ((labour + surcharge) * (Number(pr.materials?.[pkg.category]) || 0)) / 100;
+        // T243: the supplier's confirmed prices against its price list move the estimate (limits 0.8-1.3)
+        const rec = calibration.supplierRecord(db, s.id, pkg.category),
+          f = rec.factor;
         // Ranking: quality first, a little less for long journeys
         const rank = quality(s) - (km === null ? RANKING.unknownDistancePenalty : Math.min(RANKING.maxDistancePenalty, km / RANKING.kmPerPoint));
         return {
           supplierId: s.id,
           rate: r.rate,
           rateSource: r.source,
-          amount: Math.round(labour + surcharge + materials),
-          lines: { labour: round(labour), surcharge: round(surcharge), materials: round(materials) },
+          hours,
+          hoursFactor,
+          factor: f,
+          record: rec,
+          amount: Math.round((labour + surcharge + materials) * f),
+          baseAmount: Math.round(labour + surcharge + materials),
+          lines: { labour: round(labour * f), surcharge: round(surcharge * f), materials: round(materials * f) },
+          baseLines: { labour: round(labour), surcharge: round(surcharge), materials: round(materials) },
           unusual,
           quality: quality(s),
           km,
@@ -131,10 +144,15 @@ module.exports = function createEstimate({ getDb, scorecard, benchmark = () => n
   function partOf(request, supplierId, items) {
     const s = getDb().suppliers.find((x) => x.id === supplierId) || {},
       pr = s.pricing || {},
-      hours = items.reduce((n, x) => n + x.pkg.hours, 0),
+      hours = items.reduce((n, x) => n + (x.c.hours ?? x.pkg.hours), 0),
       days = daysFor(hours),
       lines = { labour: 0, surcharge: 0, materials: 0, travel: 0, minimum: 0 };
-    for (const { c } of items) for (const k of ["labour", "surcharge", "materials"]) lines[k] += c.lines?.[k] ?? (k === "labour" ? c.amount : 0);
+    const baseLines = { labour: 0, surcharge: 0, materials: 0 };
+    for (const { c } of items)
+      for (const k of ["labour", "surcharge", "materials"]) {
+        lines[k] += c.lines?.[k] ?? (k === "labour" ? c.amount : 0);
+        baseLines[k] += c.baseLines?.[k] ?? c.lines?.[k] ?? (k === "labour" ? c.amount : 0);
+      }
     const trips = Number(request.trips) > 0 ? Number(request.trips) : Math.max(1, Math.ceil(days / 5)),
       km = items.find((x) => x.c.km !== null && x.c.km !== undefined)?.c.km ?? null,
       flat = Number(pr.travel?.flat) || 0,
@@ -142,19 +160,31 @@ module.exports = function createEstimate({ getDb, scorecard, benchmark = () => n
     lines.travel = trips * (flat + (km !== null ? perKm * km * 2 : 0));
     const subtotal = lines.labour + lines.surcharge + lines.materials + lines.travel;
     lines.minimum = Math.max(0, (Number(pr.minimumOrder) || 0) - subtotal);
+    // T243: the part's price-list amount before any correction, to compare the confirmed price with
+    const baseSub = baseLines.labour + baseLines.surcharge + baseLines.materials + lines.travel,
+      baseAmount = Math.round(baseSub + Math.max(0, (Number(pr.minimumOrder) || 0) - baseSub));
     for (const k of Object.keys(lines)) lines[k] = round(lines[k]);
     const rough = items.some((x) => x.pkg.rough),
       profileRate = items.some((x) => x.c.rateSource === "profile"),
       unusual = items.some((x) => x.c.unusual);
+    // T243: the part's category is the one with the most hours; a supplier with an uneven track record is less sure
+    const main = [...items].sort((a, b) => (b.c.hours ?? b.pkg.hours) - (a.c.hours ?? a.pkg.hours))[0],
+      category = main?.pkg.category || "",
+      record = main?.c.record || calibration.supplierRecord(getDb(), supplierId, category),
+      weak = calibration.weakRecord(record);
     return {
       supplierId,
+      category,
+      baseAmount,
+      factor: record.factor,
+      hoursFactor: Math.max(...items.map((x) => x.c.hoursFactor || 1)),
       packageIds: items.map((x) => x.pkg.id),
       hours,
       days,
       supplierAmount: Math.round(subtotal + lines.minimum),
       lines,
       unusual,
-      confidence: rough || profileRate ? "low" : unusual ? "medium" : "high",
+      confidence: rough || profileRate ? "low" : unusual || weak ? "medium" : "high",
       quality: items[0]?.c.quality ?? RANKING.neutralQuality,
     };
   }

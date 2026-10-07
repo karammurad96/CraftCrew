@@ -354,7 +354,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [x] T253 Ranking transparency: the terms and the supplier help say how suppliers are ranked and priced · S · **EU P2B Regulation 2019/1150; the text needs the lawyer**
 - [x] T255 Served area: instant estimates only in the launch region and categories, a waiting list elsewhere · S · **needs Karam's beachhead decision**
 - [x] T242 Operator cockpit: KPIs, the funnel and deadlines for the request queue · M
-- [ ] T243 Estimate calibration: learn from the gap between estimate and confirmed price · M · after T242
+- [x] T243 Estimate calibration: learn from the gap between estimate and confirmed price · M · after T242
 - [ ] T244 Supplier price rules and automatic confirmation; the answer time as a setting · M
 - [ ] T245 Capacity calendar: crew-days, booked days and calendar sync · M
 - [ ] T246 Pages per category and region with real price ranges · S
@@ -5363,9 +5363,32 @@ Liquidity is local. Instant estimates should only promise what the supplier base
    - The ranking page (T253) explains it.
 
 **Done when.**
-- [ ] Unit tests: no factor under 3 parts, the limits, the hours factor, and old data dropping out after 12
+- [x] Unit tests: no factor under 3 parts, the limits, the hours factor, and old data dropping out after 12
       months.
-- [ ] The estimate of a supplier who always adds 10 % moves towards the confirmed price.
+- [x] The estimate of a supplier who always adds 10 % moves towards the confirmed price.
+
+**As built (7 October 2026).**
+- **`calibration.js`** (pure functions of `db` and a point in time; constants in `CALIBRATION`, also read by
+  `ranking.js`).
+  - **Learning data:** every estimate part stores `category` and `baseAmount`, its price-list amount *before* any
+    correction (also for parts that replace a declined one). The confirmed price is `supplierAmount`.
+  - **Supplier factor:** per supplier and category, the median of confirmed ÷ `baseAmount` over the parts
+    confirmed in the last 12 months, from at least 3 parts, limited to 0.8-1.3 (otherwise 1). Comparing with the
+    base, not with the corrected estimate, stops the factor drifting back to 1.
+  - **Hours factor:** per category, the median of approved time entries ÷ package hours of finished tasks (last
+    entry within 12 months), from at least 5 tasks. It only raises the hours (at most 2×, a safety limit chosen
+    here) and only for packages marked rough.
+  - **Track record:** a supplier with at least 3 parts whose share confirmed unchanged is under 50 % or whose
+    factor is more than 15 % from 1 lowers T241's confidence one step (high to medium). Both numbers are
+    constants an admin can have changed.
+- **`estimate.js`** applies the factor to labour, surcharge and materials (candidates and `partOf`; travel and
+  the minimum order are not scaled) and the hours factor to rough hours. `finalize` now splits a part's price by
+  the packages' own hours, since a corrected part's hours can differ from them.
+- **Transparency.** The supplier's price-list page shows "Your confirmed prices for X are 6 % above your price
+  list" with a button to update the price list (`GET /api/profile` returns `calibration` for suppliers). The
+  ranking page (T253) explains both factors with the numbers from `/api/ranking`.
+- **Tests:** `test/calibration.test.js` (no factor under 3 parts, the limits, the hours factor, old data dropping
+  out, a supplier who always adds 10 % moves to 1.1 and stays there, confidence).
 
 ### T244 · Supplier price rules and automatic confirmation
 `P1 · M`
