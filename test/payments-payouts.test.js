@@ -165,7 +165,7 @@ describe("payouts: a transfer checks the account with Stripe first (unit)", () =
   after(() => fake.stop());
 
   it("refuses a transfer to a restricted or pending account and sends it to an active one", async () => {
-    const db = { suppliers: [{ id: "sup1", company: "Unit GmbH" }], users: [{ id: "u1", supplierId: "sup1", email: "u@test.local" }] },
+    const db = { suppliers: [{ id: "sup1", company: "Unit GmbH" }], users: [{ id: "u1", role: "supplier", supplierId: "sup1", email: "u@test.local" }], notifications: [], outbox: [], activities: [] },
       notes = [];
     const p = createPayments({ ...require("./stripe-inbox-helper")(), getDb: () => db, save() {}, send() {}, now: () => "2026-10-06T10:00:00.000Z", activity() {}, notify: (id, spec) => notes.push(spec.key), env: fake.env });
     const created = await p.client.v2.core.accounts.create({ dashboard: "express" });
@@ -184,7 +184,8 @@ describe("payouts: a transfer checks the account with Stripe first (unit)", () =
     assert.equal(tr.destination, created.id);
     assert.equal(fake.calls.filter((c) => c.path === "/v1/transfers").length, 1);
     assert.equal(p.payouts.ready("sup1"), true);
-    assert.deepEqual(notes, ["payoutsRestricted", "payoutsActive"]);
+    assert.deepEqual(db.notifications.map((notice) => notice.text), [require("../locales").notifyText({ key: "payoutsActive" }, "en"), require("../locales").notifyText({ key: "payoutsRestricted" }, "en")]);
+    assert.deepEqual(notes, [], "legacy live notify callback is never called");
   });
 
   it("maps every capability status to active, pending or restricted", () => {
@@ -218,14 +219,16 @@ describe("payouts: delayed request bodies cannot create two accounts", () => {
     const user = { id: "owner", role: "supplier", supplierId: supplier.id, email: "owner@test.local" };
     const reads = [], answers = [], creates = [];
     let releaseCreate;
+    const db = { suppliers: [supplier], users: [user], activities: [], notifications: [], outbox: [] };
     const payouts = require("../payouts")({
-      getDb: () => ({ suppliers: [supplier], users: [user] }), save() {}, now: () => "now", notify() {}, activity() {}, on() {}, enabled: true,
+      ...require("./stripe-inbox-helper")(), getDb: () => db, save() {}, now: () => "now", notify() {}, activity() {}, on() {}, enabled: true,
       body: () => new Promise((resolve) => reads.push(resolve)),
       send: (res, status, data) => answers.push({ res, status, data }),
       client: { v2: { core: { accounts: { create: (params) => { creates.push(params); return new Promise((resolve) => { releaseCreate = () => resolve({ id: "acct_concurrent" }); }); } } } } },
     });
     const first = payouts.handle({ method: "POST" }, "first", null, ["api", "payouts", "account"], user);
     const second = payouts.handle({ method: "POST" }, "second", null, ["api", "payouts", "account"], user);
+    await new Promise((resolve) => setImmediate(resolve));
     reads[0]({ country: "PL" });
     await new Promise((resolve) => setImmediate(resolve));
     reads[1]({ country: "DE" });

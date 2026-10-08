@@ -11,7 +11,7 @@ const KEY = "sk_test_fake",
 async function startFakeStripe(routes = {}) {
   const calls = [];
   // T271: connected accounts (Accounts v2); `transfers` is the stripe_transfers capability's status
-  const accounts = new Map(),
+  const accountKeys = new Map(), accounts = new Map(),
     transfers = new Map();
   const notFound = (what) => ({ status: 404, error: { type: "invalid_request_error", message: "No such " + what } });
   const last = (p) => decodeURIComponent(p.split("/").filter(Boolean).at(-1));
@@ -31,9 +31,15 @@ async function startFakeStripe(routes = {}) {
   });
   const all = {
     "GET /v1/account": () => ({ id: "acct_platform", object: "account", country: "DE", settings: { dashboard: { display_name: "CraftCrew Test" } } }),
-    "POST /v2/core/accounts": (b) => {
+    "POST /v2/core/accounts": (b, p, req) => {
+      const key = req.headers['idempotency-key'], previous = key && accountKeys.get(key);
+      if (previous) {
+        if (previous.body !== JSON.stringify(b)) return { status: 400, error: { type: 'invalid_request_error', message: 'Idempotency parameters changed' } };
+        return v2Account(accounts.get(previous.id));
+      }
       const a = { ...b, id: "acct_fake" + (accounts.size + 1), transfers: "pending", created: new Date().toISOString() };
       accounts.set(a.id, a);
+      if (key) accountKeys.set(key, { id: a.id, body: JSON.stringify(b) });
       return v2Account(a);
     },
     "GET /v2/core/accounts/:id": (b, p) => (accounts.has(last(p)) ? v2Account(accounts.get(last(p))) : notFound("account")),

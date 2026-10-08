@@ -39,6 +39,8 @@ module.exports = function createPayments(ctx) {
     thinSecret = String(env.STRIPE_THIN_WEBHOOK_SECRET || "").trim(),
     publishableKey = enabled ? String(env.STRIPE_PUBLISHABLE_KEY || "").trim() : "";
   if (enabled && (!inbox || typeof commit !== "function")) throw new Error("Stripe requires a durable inbox and commit boundary.");
+  const gate = ctx.gate || require("./stripe-commit").gate;
+  const ownerGate = require("./payment-owner-gate")({ gate, body: ctx.body, commit, send, actor: ctx.ownerActor, refusal: ctx.ownerRefusal });
   const handlers = new Map();
   const events = () => (getDb().stripeEvents ||= []);
   const state = () => (getDb().meta ||= {}, (getDb().meta.stripe ||= {}));
@@ -155,7 +157,7 @@ module.exports = function createPayments(ctx) {
     };
   }
   // T271: the suppliers' connected accounts
-  const payouts = require("./payouts")({ ...ctx, client, enabled, publishableKey, on });
+  const payouts = require("./payouts")({ ...ctx, gate, ownerHealthy: ownerGate.healthy, client, enabled, publishableKey, on });
   async function handle(req, res, url, parts, user) {
     if (await payouts.handle(req, res, url, parts, user)) return true;
     if (parts[1] !== "admin" || parts[2] !== "stripe") return false;
@@ -183,6 +185,6 @@ module.exports = function createPayments(ctx) {
       ? { script: "https://js.stripe.com https://connect-js.stripe.com", frame: "https://*.stripe.com", connect: "https://api.stripe.com https://*.stripe.com", img: "https://*.stripe.com" }
       : null;
 
-  return { enabled, live, client, on, webhook, handle, status, cspSources, payouts };
+  return { enabled, live, client, on, webhook, handle, status, cspSources, payouts, withOwnerMutation: ownerGate.mutation, withOwnerGate: ownerGate.run };
 };
 module.exports.KEY_RE = KEY_RE;

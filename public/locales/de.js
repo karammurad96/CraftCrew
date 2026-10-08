@@ -225,6 +225,7 @@ LOCALES.de = {
       stUnreachable: "Stripe ist nicht erreichbar. Prüfen Sie den Schlüssel und das Netzwerk.",
       chatTooFast: "Sie senden sehr schnell Nachrichten. Warten Sie eine Minute und senden Sie dann erneut.",
       poOnlySuppliers: "Nur Lieferanten haben ein Auszahlungskonto.",
+      poChanged: "Das Auszahlungskonto hat sich geändert. Laden Sie diese Seite neu und versuchen Sie es erneut.",
       poMainOnly: "Nur das Hauptkonto kann Auszahlungen einrichten.",
       poBusy: "Das Auszahlungskonto wird gerade eingerichtet. Versuchen Sie es gleich noch einmal.",
       poDetails: "Stripe konnte diese Kontodaten nicht akzeptieren. Prüfen Sie Ihr Registrierungsland und kontaktieren Sie den Support.",

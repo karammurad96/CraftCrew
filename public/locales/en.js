@@ -226,6 +226,7 @@ LOCALES.en = {
       stUnreachable: "Stripe could not be reached. Check the key and the network.",
       chatTooFast: "You are sending messages very fast. Wait a minute, then send again.",
       poOnlySuppliers: "Only suppliers have a payout account.",
+      poChanged: "The payout account changed. Reload this page and try again.",
       poMainOnly: "Only the main account can set up payouts.",
       poBusy: "The payout account is being set up. Try again in a moment.",
       poDetails: "Stripe could not accept these account details. Check your registration country and contact support.",

@@ -11,12 +11,17 @@ function records(data, supplierId) {
   const suppliers = (data.suppliers || []).filter((supplier) => supplier.id === supplierId);
   const owners = (data.users || []).filter((user) => user.supplierId === supplierId && user.role === "supplier" && !user.isMember && !user.orgOwnerId);
   if (suppliers.length !== 1 || owners.length !== 1) throw new Error("Stripe payout owner binding conflict");
+  if ((data.users || []).filter((user) => user.id === owners[0].id).length !== 1)
+    throw new Error("Stripe payout owner binding conflict");
+  if (suppliers[0].stripeAccount?.id && (data.suppliers || []).filter((supplier) => supplier.stripeAccount?.id === suppliers[0].stripeAccount.id).length !== 1)
+    throw new Error("Stripe payout account binding conflict");
   return { supplier: suppliers[0], owner: owners[0] };
 }
-function captureBinding(data, supplierId) {
+function captureBinding(data, supplierId, allowMissing = false) {
   const { supplier, owner } = records(data, supplierId);
-  if (!supplier.stripeAccount?.id) throw new Error("Stripe payout account binding missing");
-  return { supplierId, ownerId: owner.id, account: clone(supplier.stripeAccount) };
+  if (!allowMissing && !supplier.stripeAccount?.id) throw new Error("Stripe payout account binding missing");
+  return { supplierId, ownerId: owner.id, account: structuredClone(supplier.stripeAccount),
+    ...(allowMissing ? { company: supplier.company, companyProfile: structuredClone(owner.companyProfile) } : {}) };
 }
 async function prepareRefresh({ getDb, supplierId, client }) {
   const binding = captureBinding(getDb(), supplierId);
@@ -24,20 +29,26 @@ async function prepareRefresh({ getDb, supplierId, client }) {
   if (!account || account.id !== binding.account.id) throw new Error("Stripe payout provider identity mismatch");
   return { binding, account: clone(account) };
 }
-function stageRefresh({ getDb, prepared, stage, ...options }) {
+function stageAccount({ getDb, prepared, stage, ...options }, creating) {
   const data = getDb(), { binding, account } = prepared;
   const { supplier, owner } = records(data, binding.supplierId);
-  if (owner.id !== binding.ownerId || !equal(supplier.stripeAccount, binding.account) || account?.id !== binding.account.id)
+  if (owner.id !== binding.ownerId || !equal(supplier.stripeAccount, binding.account) || !account?.id
+    || (creating ? !!binding.account?.id : account.id !== binding.account?.id))
     throw new Error("Stripe payout account binding conflict");
-  const before = supplier.stripeAccount.transfers, transfers = transfersOf(account);
-  const stripeAccount = { ...clone(supplier.stripeAccount), id: account.id, transfers,
+  if ((data.suppliers || []).some((other) => other.id !== supplier.id && other.stripeAccount?.id === account.id))
+    throw new Error("Stripe payout account binding conflict");
+  if (creating && (supplier.company !== binding.company || !equal(owner.companyProfile, binding.companyProfile)))
+    throw new Error("Stripe payout owner binding conflict");
+  const before = supplier.stripeAccount?.transfers, transfers = transfersOf(account);
+  const stripeAccount = { ...(supplier.stripeAccount ? clone(supplier.stripeAccount) : {}), ...(creating ? { createdAt: options.now() } : {}), id: account.id, transfers,
     requirements: account.requirements?.summary?.minimum_deadline?.status || null, updatedAt: options.now() };
   const pending = createStage();
-  pending.patch("suppliers", supplier.id, { stripeAccount }, { stripeAccount: binding.account });
-  // Guard defined recipient fields without replacing them or holding stale user objects.
+  pending.patch("suppliers", supplier.id, { stripeAccount }, { stripeAccount: binding.account, ...(creating ? { company: binding.company } : {}) });
+  // Guard absent and defined recipient fields without replacing them or holding stale user objects.
   const expected = {};
-  for (const key of ["role", "supplierId", "orgOwnerId", "isMember", "email", "language", "notificationPrefs"])
-    if (owner[key] !== undefined) expected[key] = owner[key];
+  for (const key of ["role", "supplierId", "orgOwnerId", "isMember", "email", "language", "notificationPrefs", "status"])
+    expected[key] = owner[key];
+  if (creating) expected.companyProfile = binding.companyProfile;
   pending.patch("users", owner.id, {}, expected);
   if (before !== transfers && (before || transfers === "active") && transfers !== "pending") {
     const notice = buildNotification({ userId: owner.id, spec: { key: transfers === "active" ? "payoutsActive" : "payoutsRestricted" }, link: "/supplier/payouts" }, { data, ...options });
@@ -61,4 +72,6 @@ async function runPostCommit(transition, listeners, report = () => {}) {
     }
   }
 }
-module.exports = { captureBinding, prepareRefresh, stageRefresh, runPostCommit };
+const stageRefresh = (input) => stageAccount(input, false);
+const stageCreate = (input) => stageAccount(input, true);
+module.exports = { captureBinding, prepareRefresh, stageRefresh, stageCreate, runPostCommit };

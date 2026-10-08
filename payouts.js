@@ -34,128 +34,143 @@ class PayoutRefused extends Error {
 }
 
 module.exports = function createPayouts(ctx) {
-  const { getDb, save, send, now, notify, activity, client, enabled, publishableKey, on, body } = ctx;
+  const { getDb, send, now, client, enabled, publishableKey, on, body } = ctx;
+  const { captureBinding, prepareRefresh, stageRefresh, stageCreate, runPostCommit } = require('./payout-staging');
+  const { createStage } = require('./stripe-commit');
+  const gate = ctx.gate || require('./stripe-commit').gate;
   const suppliers = () => getDb().suppliers || [];
-  const mainUser = (supplierId) => (getDb().users || []).find((u) => u.supplierId === supplierId && !u.isMember);
-  const creating = new Set();
-  // T273 retries the payouts that waited once an account becomes active
-  const listeners = [];
-
+  const creating = new Set(), listeners = [];
+  const changed = () => { const error = new Error('Stripe payout account binding conflict'); error.binding = true; return error; };
+  const healthy = () => { ctx.ownerHealthy?.(); if (typeof ctx.commitStage !== 'function') throw new Error('Stripe ordinary boundary missing'); };
+  const options = () => ({ id: ctx.id, now, appUrl: typeof ctx.appUrl === 'function' ? ctx.appUrl() : ctx.appUrl || '',
+    mailEnabled: typeof ctx.mailEnabled === 'function' ? ctx.mailEnabled() : !!ctx.mailEnabled });
+  function authorize(user, supplierId, manage) {
+    const binding = captureBinding(getDb(), supplierId, true);
+    const actors = (getDb().users || []).filter((actor) => actor.id === (user.memberId || user.id));
+    const actor = actors[0];
+    if (actors.length !== 1 || actor.role !== 'supplier' || ['Suspended', 'Deleted'].includes(actor.status)) throw changed();
+    if (user.isMember || actor.orgOwnerId || actor.isMember) {
+      if (manage || actor.orgOwnerId !== binding.ownerId || user.id !== binding.ownerId) throw changed();
+    } else if (actor.id !== binding.ownerId || actor.supplierId !== supplierId) throw changed();
+    return binding;
+  }
   const view = (s) => (s?.stripeAccount ? { id: s.stripeAccount.id, transfers: s.stripeAccount.transfers, requirements: s.stripeAccount.requirements || null, updatedAt: s.stripeAccount.updatedAt || null } : null);
-  // Stores what Stripe says; tells the supplier when payouts start or stop
-  async function apply(s, account) {
-    const before = s.stripeAccount?.transfers,
-      transfers = transfersOf(account);
-    s.stripeAccount = {
-      ...s.stripeAccount,
-      id: account.id,
-      transfers,
-      requirements: account.requirements?.summary?.minimum_deadline?.status || null,
-      updatedAt: now(),
-    };
-    const notice = transfers === "active" ? "payoutsActive" : "payoutsRestricted";
-    if (before !== transfers && (before || transfers === "active") && transfers !== "pending") notify(mainUser(s.id)?.id, { key: notice }, "/supplier/payouts");
-    save();
-    if (before !== transfers) for (const fn of listeners) await fn(s);
-    return s.stripeAccount;
-  }
-  async function refresh(s) {
-    return apply(s, await client.v2.core.accounts.retrieve(s.stripeAccount.id, { include: INCLUDE }));
-  }
-  for (const type of ACCOUNT_EVENTS)
-    on(type, async (related) => {
-      const s = suppliers().find((x) => x.stripeAccount?.id && x.stripeAccount.id === related?.id);
-      if (s) await refresh(s);
+  async function publish(prepared, user, creation = false) {
+    const transition = await gate.run(async () => {
+      healthy();
+      if (user) authorize(user, prepared.binding.supplierId, true);
+      const stage = createStage();
+      const result = (creation ? stageCreate : stageRefresh)({ getDb, prepared, stage, ...options() });
+      if (creation) stage.add('activities', { id: ctx.id('act'), actorId: user.id, text: 'Stripe payout account created', createdAt: now() });
+      try { await ctx.commitStage({ getDb, stage }); }
+      catch { const error = new Error('Stripe ordinary storage failed'); error.storage = true; throw error; }
+      return result;
     });
-
-  // Stored status, for showing "Pay now" (T272); a transfer checks again with Stripe
-  const ready = (supplierId) => enabled && suppliers().find((s) => s.id === supplierId)?.stripeAccount?.transfers === "active";
-  // The only way money goes to a supplier: refused unless Stripe says stripe_transfers is active right now
-  async function transfer(supplierId, params, options) {
-    const s = suppliers().find((x) => x.id === supplierId);
-    if (!enabled) throw new PayoutRefused("off");
-    if (!s?.stripeAccount?.id) throw new PayoutRefused("noAccount");
-    const account = await refresh(s);
-    if (account.transfers !== "active") throw new PayoutRefused(account.transfers);
-    return client.transfers.create({ ...params, destination: account.id }, options);
+    await runPostCommit(transition, listeners, () => console.error('Stripe payout committed listener failed'));
+    return transition;
   }
-
-  async function create(s, user, country) {
-    const owner = mainUser(s.id) || user,
-      cp = owner.companyProfile || {};
-    const account = await client.v2.core.accounts.create(
-      {
-        display_name: String(s.company || cp.legalName || "Supplier").slice(0, 100),
-        contact_email: cp.procurementEmail || owner.email,
-        dashboard: "express",
-        defaults: { currency: "eur", responsibilities: { fees_collector: "application", losses_collector: "application" } },
-        identity: { country: country.toLowerCase(), entity_type: "company", business_details: { registered_name: String(cp.legalName || s.company || "").slice(0, 200) } },
+  async function refresh(supplier, user) {
+    healthy();
+    const supplierId = typeof supplier === 'string' ? supplier : supplier.id;
+    if (user) await gate.run(() => authorize(user, supplierId, true));
+    const prepared = await prepareRefresh({ getDb, supplierId, client });
+    await publish(prepared, user);
+    return gate.run(() => {
+      healthy(); if (user) authorize(user, supplierId, true);
+      const current = suppliers().find((record) => record.id === supplierId);
+      if (current?.stripeAccount?.id !== prepared.account.id) throw changed();
+      return structuredClone(current.stripeAccount);
+    });
+  }
+  // Signed events remain the legacy local handlers until T282b1b3c installs the receipt boundary.
+  for (const type of ACCOUNT_EVENTS) on(type, async (related) => {
+    const matches = suppliers().filter((supplier) => supplier.stripeAccount?.id === related?.id);
+    if (matches.length > 1) throw changed();
+    if (matches.length === 1) await refresh(matches[0].id);
+  });
+  const ready = (supplierId) => enabled && suppliers().find((supplier) => supplier.id === supplierId)?.stripeAccount?.transfers === 'active';
+  async function transfer(supplierId, params, requestOptions) {
+    if (!enabled) throw new PayoutRefused('off');
+    if (!suppliers().find((supplier) => supplier.id === supplierId)?.stripeAccount?.id) throw new PayoutRefused('noAccount');
+    const account = await refresh(supplierId);
+    if (account.transfers !== 'active') throw new PayoutRefused(account.transfers);
+    return client.transfers.create({ ...params, destination: account.id }, requestOptions);
+  }
+  async function create(supplierId, user, country) {
+    const prepared = await gate.run(() => {
+      healthy(); const binding = authorize(user, supplierId, true);
+      if (binding.account?.id) return null;
+      if (creating.has(supplierId)) { const error = new Error('Stripe payout creation busy'); error.busy = true; throw error; }
+      const supplier = suppliers().find((record) => record.id === supplierId);
+      const owner = getDb().users.find((record) => record.id === binding.ownerId), cp = owner.companyProfile || {};
+      const params = {
+        display_name: String(supplier.company || cp.legalName || 'Supplier').slice(0, 100), contact_email: cp.procurementEmail || owner.email,
+        dashboard: 'express', defaults: { currency: 'eur', responsibilities: { fees_collector: 'application', losses_collector: 'application' } },
+        identity: { country: country.toLowerCase(), entity_type: 'company', business_details: { registered_name: String(cp.legalName || supplier.company || '').slice(0, 200) } },
         configuration: { recipient: { capabilities: { stripe_balance: { stripe_transfers: { requested: true } } } } },
-        include: INCLUDE,
-        metadata: { supplierId: s.id },
-      },
-      { idempotencyKey: "payout-account-" + s.id },
-    );
-    s.stripeAccount = { id: account.id, createdAt: now() };
-    activity(user, "Stripe payout account created");
-    return apply(s, account);
-  }
-
-  async function handle(req, res, url, parts, user) {
-    if (parts[1] !== "payouts") return false;
-    const method = req.method;
-    if (user.role !== "supplier") return (send(res, 403, { error: "Only suppliers have a payout account." }), true);
-    const s = suppliers().find((x) => x.id === user.supplierId);
-    if (!s) return (send(res, 404, { error: "Supplier not found" }), true);
-    const answer = (status = 200, extra = {}) =>
-      send(res, status, { enabled, publishableKey, account: view(s), countries: COUNTRIES, canManage: !user.isMember, ...extra });
-    if (parts.length === 2 && method === "GET") return (answer(), true);
-    if (method !== "POST" || parts.length !== 3) return (send(res, 404, { error: "Not found" }), true);
-    if (!enabled) return (send(res, 409, { error: "Payments are off: no Stripe key is set." }), true);
-    if (user.isMember) return (send(res, 403, { error: "Only the main account can set up payouts." }), true);
+        include: INCLUDE, metadata: { supplierId, ownerId: binding.ownerId },
+      };
+      creating.add(supplierId);
+      return { binding, params };
+    });
+    if (!prepared) return false;
     try {
-      if (parts[2] === "account") {
-        if (s.stripeAccount?.id) return (answer(), true);
-        if (creating.has(s.id)) return (send(res, 409, { error: "The payout account is being set up. Try again in a moment." }), true);
-        const b = await body(req);
-        const country = typeof b?.country === "string" ? b.country.toUpperCase() : "";
-        if (!COUNTRIES.includes(country)) return (send(res, 400, { error: "Choose the country where your company is legally registered." }), true);
-        if (s.stripeAccount?.id) return (answer(), true);
-        if (creating.has(s.id)) return (send(res, 409, { error: "The payout account is being set up. Try again in a moment." }), true);
-        creating.add(s.id);
-        try {
-          await create(s, user, country);
-        } finally {
-          creating.delete(s.id);
-        }
-        return (answer(201), true);
-      }
-      if (!s.stripeAccount?.id) return (send(res, 409, { error: "Set up the payout account first." }), true);
-      if (parts[2] === "refresh") return (await refresh(s), answer(), true);
-      if (parts[2] === "session") {
-        const features = { external_account_collection: true };
-        const session = await client.accountSessions.create({
-          account: s.stripeAccount.id,
-          components: {
-            account_onboarding: { enabled: true, features },
-            notification_banner: { enabled: true, features },
-            account_management: { enabled: true, features },
-          },
-        });
-        return (send(res, 200, { clientSecret: session.client_secret }), true);
-      }
-      if (parts[2] === "login-link") {
-        const link = await client.accounts.createLoginLink(s.stripeAccount.id);
-        return (send(res, 200, { url: link.url }), true);
-      }
-    } catch (e) {
-      console.error("Stripe payout account operation failed:", parts[2]);
-      if (e.type === "StripeInvalidRequestError") return (send(res, 422, { error: "Stripe could not accept these account details. Check your registration country and contact support." }), true);
-      return (send(res, 502, { error: "Stripe could not be reached. Check the key and the network." }), true);
-    }
-    return (send(res, 404, { error: "Not found" }), true);
+      const account = structuredClone(await client.v2.core.accounts.create(prepared.params, { idempotencyKey: 'payout-account-' + supplierId }));
+      await publish({ binding: prepared.binding, account }, user, true);
+      return true;
+    } finally { creating.delete(supplierId); }
   }
-
+  async function handle(req, res, url, parts, user) {
+    if (parts[1] !== 'payouts') return false;
+    const method = req.method;
+    if (user.role !== 'supplier') return (send(res, 403, { error: 'Only suppliers have a payout account.' }), true);
+    if (!suppliers().some((supplier) => supplier.id === user.supplierId)) return (send(res, 404, { error: 'Supplier not found' }), true);
+    const answer = (status = 200) => {
+      authorize(user, user.supplierId, false);
+      const current = suppliers().find((supplier) => supplier.id === user.supplierId);
+      send(res, status, { enabled, publishableKey, account: view(current), countries: COUNTRIES, canManage: !user.isMember });
+    };
+    if (method !== 'GET' && (method !== 'POST' || parts.length !== 3)) return (send(res, 404, { error: 'Not found' }), true);
+    if (method === 'POST' && !enabled) return (send(res, 409, { error: 'Payments are off: no Stripe key is set.' }), true);
+    if (method === 'POST' && user.isMember) return (send(res, 403, { error: 'Only the main account can set up payouts.' }), true);
+    try {
+      if (parts.length === 2 && method === 'GET') return (await gate.run(() => answer()), true);
+      if (parts[2] === 'account' && method === 'POST') {
+        const existing = await gate.run(() => { healthy(); return authorize(user, user.supplierId, true).account?.id; });
+        if (existing) return (await gate.run(() => answer()), true);
+        if (creating.has(user.supplierId)) return (send(res, 409, { error: 'The payout account is being set up. Try again in a moment.' }), true);
+        const input = await body(req), country = typeof input?.country === 'string' ? input.country.toUpperCase() : '';
+        if (!COUNTRIES.includes(country)) return (send(res, 400, { error: 'Choose the country where your company is legally registered.' }), true);
+        const created = await create(user.supplierId, user, country);
+        return (await gate.run(() => answer(created ? 201 : 200)), true);
+      }
+      if (method !== 'POST') return (send(res, 404, { error: 'Not found' }), true);
+      const binding = await gate.run(() => { healthy(); return authorize(user, user.supplierId, true); });
+      if (!binding.account?.id) return (send(res, 409, { error: 'Set up the payout account first.' }), true);
+      if (parts[2] === 'refresh') return (await refresh(user.supplierId, user), await gate.run(() => answer()), true);
+      let response;
+      if (parts[2] === 'session') {
+        const features = { external_account_collection: true };
+        const session = await client.accountSessions.create({ account: binding.account.id, components: {
+          account_onboarding: { enabled: true, features }, notification_banner: { enabled: true, features }, account_management: { enabled: true, features },
+        } });
+        response = { clientSecret: session.client_secret };
+      } else if (parts[2] === 'login-link') response = { url: (await client.accounts.createLoginLink(binding.account.id)).url };
+      else return (send(res, 404, { error: 'Not found' }), true);
+      return (await gate.run(() => {
+        healthy(); const latest = authorize(user, user.supplierId, true);
+        if (latest.ownerId !== binding.ownerId || latest.account?.id !== binding.account.id) throw changed();
+        send(res, 200, response);
+      }), true);
+    } catch (error) {
+      if (error?.busy) return (send(res, 409, { error: 'The payout account is being set up. Try again in a moment.' }), true);
+      if (error?.binding || /Stripe payout.*(binding|identity)/.test(error?.message || "")) return (send(res, 409, { error: 'The payout account changed. Reload this page and try again.' }), true);
+      if (error?.storage || /boundary/.test(error?.message || "")) return (send(res, 503, { error: 'Could not save. Please try again.' }), true);
+      console.error('Stripe payout account operation failed:', parts[2]);
+      if (error?.type === 'StripeInvalidRequestError') return (send(res, 422, { error: 'Stripe could not accept these account details. Check your registration country and contact support.' }), true);
+      return (send(res, 502, { error: 'Stripe could not be reached. Check the key and the network.' }), true);
+    }
+  }
   return { handle, ready, transfer, refresh, view, onChange: (fn) => listeners.push(fn), PayoutRefused, ACCOUNT_EVENTS };
 };
 module.exports.transfersOf = transfersOf;
