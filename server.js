@@ -1075,6 +1075,7 @@ function ensureSupplierAccounts() {
   db.notifications ||= [];
   db.activities ||= [];
   db.payments ||= [];
+  db.stripeConfigurations ||= [];
   db.disputes ||= [];
   db.sessions ||= [];
   db.rfqs ||= [];
@@ -3007,6 +3008,7 @@ for (const signal of ["SIGTERM", "SIGINT"])
 
 function publicUser(u) {
   const {
+    stripeBilling,
     passwordHash,
     salt,
     payoutDetails,

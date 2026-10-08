@@ -43,7 +43,9 @@ module.exports = function createPayments(ctx) {
     publishableKey = enabled ? String(env.STRIPE_PUBLISHABLE_KEY || "").trim() : "";
   if (enabled && (!inbox || typeof commit !== "function" || typeof commitStripe !== "function")) throw new Error("Stripe requires a durable inbox and commit boundary.");
   const gate = ctx.gate || require("./stripe-commit").gate;
-  const ownerGate = require("./payment-owner-gate")({ gate, body: ctx.body, commit, send, actor: ctx.ownerActor, refusal: ctx.ownerRefusal });
+  const checkoutOwners = new Set();
+  const ownerGate = require("./payment-owner-gate")({ gate, body: ctx.body, commit, send, actor: ctx.ownerActor, refusal: ctx.ownerRefusal,
+    financial: () => enabled, customerBilling: (actor) => checkoutOwners.has(actor?.id) || !!getDb().users?.find((user) => user.id === actor?.id)?.stripeBilling });
   const handlers = new Map(), active = new Map();
   const events = () => (getDb().stripeEvents ||= []);
   const state = () => (getDb().meta ||= {}, (getDb().meta.stripe ||= {}));
@@ -211,7 +213,9 @@ module.exports = function createPayments(ctx) {
   }
   // T271: the suppliers' connected accounts
   const payouts = require("./payouts")({ ...ctx, gate, ownerHealthy: ownerGate.healthy, client, enabled, publishableKey, on });
+  const checkout = require("./checkout")({ ...ctx, gate, ownerHealthy: ownerGate.healthy, checkoutOwners, client, enabled, live, on });
   async function handle(req, res, url, parts, user) {
+    if (await checkout.handle(req, res, url, parts, user)) return true;
     if (await payouts.handle(req, res, url, parts, user)) return true;
     if (parts[1] !== "admin" || parts[2] !== "stripe") return false;
     if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);

@@ -6404,3 +6404,40 @@ LOCALES.en = {
     },
   },
 };
+
+// T272b payment-only additions.
+LOCALES.en.common.status.creating = "Creating";
+LOCALES.en.checkout = {
+  "pay": "Pay now",
+  "resume": "Continue Checkout",
+  "confirming": "We are confirming your payment. This page does not confirm receipt of funds.",
+  "cancelled": "Checkout was cancelled. Your invoice remains unchanged.",
+  "noCharge": "No processing surcharge is added.",
+  "policyTitle": "Customer processing costs",
+  "policyOff": "OFF. Saved formulas are drafts and do not add a charge.",
+  "legal": "Legal review required: §270a BGB prohibits surcharges on SEPA direct debit, SEPA credit transfer and consumer cards, including between businesses. Checkout method selection and customer disclosure must also be approved.",
+  "rate": "Rate (%)",
+  "fixed": "Fixed amount (EUR)",
+  "save": "Save formula drafts",
+  "saved": "Formula drafts saved. Processing charges remain off.",
+  "invalid": "Enter a rate and fixed amount, or leave both empty.",
+  "invoiceTitle": "Invoice {number}",
+  "methods": {
+    "card": "Card",
+    "sepa_debit": "SEPA Direct Debit",
+    "customer_balance": "SEPA bank transfer"
+  }
+};
+Object.assign(LOCALES.en.errors.api, {
+  "ckTotals": "Only an approved EUR invoice with valid totals can be paid.",
+  "ckUnpaid": "Only an approved, unpaid invoice can be paid.",
+  "ckBilling": "Complete your company billing details before paying.",
+  "ckChanged": "Billing or invoice details changed. Ask an administrator to reconcile Checkout before trying again.",
+  "ckReconcile": "Checkout needs reconciliation before a new payment attempt. Contact an administrator.",
+  "ckMismatch": "Stripe returned payment details that do not match this invoice. Contact an administrator.",
+  "ckPending": "Your payment is being confirmed or needs reconciliation. Do not start another payment.",
+  "ckProvider": "Stripe could not be reached. Please try again.",
+  "ckFormula": "Enter valid processing-cost formulas for the supported payment methods.",
+  "ckActivation": "Processing charges cannot be enabled until pricing, payment-method selection and legal review are complete.",
+  "ckLive": "Live payments are not enabled."
+});

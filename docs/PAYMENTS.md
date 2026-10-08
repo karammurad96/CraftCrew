@@ -60,6 +60,41 @@ API references checked 8 October 2026: Stripe's Payment Method Configurations up
 `/api/v2/core/event-destinations/create`; API-v2 signing-secret include semantics match installed
 Stripe 23.0.0. Test coverage uses the real SDK pointed exclusively at `test/fake-stripe.js`.
 
+## Invoice Checkout creation (T272b)
+
+The invoice owner's customer account, or a current team member with full invoice permission,
+can start `POST /api/invoices/:id/pay` for one approved, unpaid EUR invoice. The server derives
+gross/net minor-unit totals and supplier/project associations from current records; request
+amounts, currencies and IDs cannot override them. Customer and Checkout attempt inputs are
+strictly persisted before provider calls, with stable per-attempt idempotency keys. Customer
+and Session IDs are published only after ownership, billing, invoice and payment data are
+rechecked. Restart reuses those identities; uncertain attempts older than 23 hours and expired
+or completed Sessions require reconciliation rather than automatic replacement.
+
+Checkout uses the platform's Dashboard-managed methods without `payment_method_types`,
+an existing verified Stripe Customer association, invoice gross only, and matching Session /
+PaymentIntent metadata. `STRIPE_BANK_TRANSFER_COUNTRY` optionally selects the requested EUR
+bank-account routing country (BE, DE, ES, FR, IE or NL; default DE). This is not the customer's
+or supplier's registration country and does not establish method eligibility. Name/address
+come from company billing details; a general `taxId` is never treated as an EU VAT ID.
+Only an explicitly supplied `companyProfile.vatId` is forwarded as an EU VAT ID.
+
+The customer invoice adds localized Pay now / Continue Checkout controls. Success redirects
+show confirmation pending and never change the invoice or payment status. Until T272c adds
+verified atomic fulfilment, signed payment events belonging to this integration receive a
+retryable failure instead of being acknowledged with an empty applied receipt. Manual admin
+Paid/Refund actions are blocked for invoices with Stripe Checkout attempts. T272c, T273 and
+T283/T284 provide fulfilment, monetary operations and reconciliation; this child is not a
+complete payment flow. Live Checkout is refused even with `PAYMENTS_LIVE=1`.
+
+The admin Stripe page stores per-method processing-cost formula drafts as integer basis
+points and fixed EUR minor units in `stripeConfigurations`. Settings are OFF by default and
+activation remains refused even after a draft is entered: the selected payment method,
+approved pricing, customer disclosure/refund treatment and legal review are still required.
+No surcharge is added and supplier amounts are not reduced by processing costs. German
+§270a BGB excludes SEPA direct debit, SEPA credit transfer and consumer-card surcharges,
+including between businesses; draft settings do not waive that restriction.
+
 ## Local webhook handlers (T282b1b3c)
 
 Register an explicit transaction-aware object with `payments.on(type, handler)`:
