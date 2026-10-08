@@ -400,6 +400,40 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T286 Track operator time and variable contribution per paid job · P1 · M · before wider launch, not a first invited-pilot blocker
 - [x] T287 Restore Windows JSON demo startup without weakening payment durability · P0 · S · urgent user regression, before T272b
 
+**Wave 20 — configurable industrial package catalogue (Karam approved backlog registration on 8 October 2026; implement after the agreed payment/storage sequence, not in parallel with unfinished payment tasks)**
+- [x] T288 Register the approved industrial package backlog and dependencies · P1 · S · documentation only
+- [ ] T290 Structured packages and quantity/pricing rules · P1 · group
+  - [ ] T290a Structured service offer schema and compatibility · M
+  - [ ] T290b Server-side quantity and add-on quotation · M
+- [ ] T291 Package photos with ownership and safe publication · P1 · group
+  - [ ] T291a Package media attachment and access API · M
+  - [ ] T291b Brokered-media review and publication controls · M
+- [ ] T292 Supplier package editor: details, units and add-ons · P1 · M
+- [ ] T293 Catalogue search/filter API · P1 · M
+- [ ] T294 Photo-led catalogue and detail pages · P1 · M
+- [ ] T295 Customer quantity/add-on configurator · P1 · M
+- [ ] T296 Project package basket · P1 · group
+  - [ ] T296a Persisted project basket API · M
+  - [ ] T296b Project basket interface · M
+- [ ] T297 Send independent supplier confirmation requests · P1 · M
+- [ ] T298 Supplier confirmations and customer-approved changes · P1 · group
+  - [ ] T298a Versioned confirmation/revision API · M
+  - [ ] T298b Supplier/customer confirmation interfaces · M
+- [ ] T299 Frozen order and contract integration · P1 · group
+  - [ ] T299a Immutable agreed package snapshot · M
+  - [ ] T299b Complete-contract acceptance and project integration · M
+- [ ] T300 Assign the confirmed package to the supplier’s team · P1 · M
+- [ ] T301 Two customer entry paths with shared project continuity · P1 · S
+- [ ] T302 Physical products and installation bundles · P2 · group; policy gate
+  - [ ] T302a Product/bundle specification and quantity rules · M
+  - [ ] T302b Delivery and installation commitment API · M
+  - [ ] T302c Product/bundle editor and customer summary · M
+- [ ] T303 Demo, journey verification and operating guidance · P1/P2 · group
+  - [ ] T303a Service catalogue demonstration and browser journey · M
+  - [ ] T303b Product/bundle journey and operating/legal handoff · M
+
+**Wave 20 execution gate.** Complete the agreed payment sequence T272 → T273 → T283a/T283b/T283c → T284 → T274 → T275 → T278 → T280 (checklist/tooling only; no go-live and live keys refused) before package implementation starts. T299b additionally requires the completed T200–T205 contract workflow and resolved contract/identity policy. Service packages precede physical products; product publication/activation remains gated on approved terms and tax treatment. Existing parked PRs #194/#188 and T210/T211 stay parked.
+
 ### T287 · Windows JSON demo compatibility
 
 **Problem.** Windows Node rejects directory fsync with EPERM after the atomic JSON rename, stopping the existing local demo launcher.
@@ -6679,6 +6713,298 @@ From the 7 October 2026 review. These additions address verified gaps without re
 - [ ] Operators can attribute time and variable costs without leaking internal financial information.
 - [ ] Contribution is reproducible and displays missing-input/coverage limitations.
 - [ ] API/CSV/localization/UI regressions and `npm test` pass; no automatic pricing change.
+
+---
+
+## Wave 20 — configurable industrial package catalogue
+
+**Approval and scope (8 October 2026).** Karam approved adding this package vision and its reviewed tasks to the backlog for the next phase. This approval covers two customer entry paths, richer supplier packages/photos, quantities/add-ons, a project basket, supplier confirmation with customer-approved revisions, team assignment and later physical products with installation/commissioning. It does not approve legal terms, a new identity policy, live payments or implementation before the existing payment sequence is complete.
+
+**Reuse.** Extend merged T260–T262; their completion checkboxes and historical As built notes remain unchanged. Current packages already provide owned/vetted publishing, text search and basic filters, fixed-price booking and 1–10 sequential units with an eight-hour day. Preserve historical package and booking semantics. Catalogue `servicePackages` differ from project request work packages. Reuse T230/T232/T233 request/project machinery, T245 and existing planning/team tools, T200–T205 contracts, and T272/T273/T283/T284 payments; do not build parallel order, contract or payment systems.
+
+**Sequence.** Start only after T272/T273/T283a–c/T284/T274/T275/T278/T280 checklist-only. Then T290a → T290b → T291a → T292 → T293 → T291b → T294 → T295 → T296a → T296b → T299a → T297 → T298a → T298b → T299b (after contract/policy gates) → T300 → T301 → T303a. Physical products follow as T302a → T302b → T302c → T303b after their policy gates. These are 22 implementation leaf tasks; parent groups stay unchecked until all their children merge.
+
+### Rules for every Wave 20 task
+
+- Follow CLAUDE.md: server-side validation/ownership, escaped content, CSRF, delegated data-action, logical CSS, translations in EN/DE and all required existing locales, errors.api entries, localized statuses/notifications and regression tests. No new runtime dependency; no hard deletion of financial records.
+- One S/M leaf per branch `ai/T<id>-<short-name>` and PR. If a task exceeds the M scope (about 500 changed lines), register smaller children before coding. Tick the task and Done when items only in its completion PR and add a factual As built note. Preserve parent checkboxes until their children merge.
+- Rebase onto fresh origin/main immediately before merge, preserving both sides of shared-file changes. All five CI checks must pass on the final head: test (20), test (22), test-postgres, browser-smoke and xrechnung. Run npm test on merged main. Full npm test passes before commits as required by CLAUDE.md.
+- Coordinate catalogue ownership with Claude before implementation, particularly requests/contracts/server/store wiring. Payment-owned files and migrations 009–019 remain payment-owned. Coordinate unused catalogue migration numbers within Claude's 020–059 allocation rather than assuming a number is free.
+- Existing signed-in access and brokered/marketplace identity projections remain the baseline. Catalogue browsing does not switch platform mode. Supplier claims are not platform verification. New configurable orders require manual supplier confirmation and explicit full-contract acceptance; do not globally change legacy instant offers or reuse clause-only consent as complete-contract consent.
+
+### T288 · Register the approved industrial package backlog
+`P1 · S · documentation only; no application implementation`
+
+**Do.** Add the approved Wave 20 overview and 22 manageable implementation leaves, with dependencies, Do/Tests/Done when sections, service-first/product-later rollout, existing-feature reuse and unresolved policy gates. Keep all implementation tasks unchecked and historical T260–T262 text unchanged. Schedule the phase after the agreed payment sequence. Preserve parked tasks and parallel ownership rules.
+
+**Tests.** Validate unique task IDs, 22 matching overview/detail leaf IDs, unchecked implementation items, all Do/Tests/Done when sections, dependency order and diff scope. Run required npm test and all five CI checks on the final rebased head; no application test changes are needed for backlog documentation.
+
+**Done when.**
+- [x] The overview and detailed sections contain the same 22 unique implementation leaves.
+- [x] All implementation tasks remain open; T260–T262 history, payment sequence and parked tasks are preserved.
+- [x] Founder approval is distinguished from outstanding legal/identity/product gates, and the PR changes only docs/TASKS.md.
+
+**As built (8 October 2026).** Registered the approved Wave 20 scope as 14 task groups with 22 S/M implementation leaves, all still open, and scheduled it after the agreed payment sequence through checklist-only T280. Existing T260–T262 text remains unchanged; current packages, project requests, planning, contracts and payment foundations are reused. Complete-contract/identity, media publication and physical-product terms/tax gates remain explicit. No application code, parked PR or live-payment setting changed. Structural checks confirm unique IDs, matching overview/detail leaves and required Do/Tests/Done when sections. The unchanged application source baseline passed npm test (820 passed, 0 failed, 19 expected skips); final-head CI remains the merge gate.
+
+### T290a · Structured service offer schema and compatibility
+`P1 · M · depends on T260 · Phase A`
+
+**Where.** `servicepackages.js`, focused new package helpers if needed, existing package tests and normal store wiring.
+
+**Do.** Add a versioned schema for service offers: scope/deliverables, exclusions, prerequisites, optional supported equipment/brands/specification fields, required qualifications, team size, hours per day, ordering unit, minimum/maximum/step, timing conditions and measurable completion criteria. Units initially include package, hour, person-day, crew-day, machine, visit and area (m²). Represent fixed/per-unit/quote-required pricing explicitly; unknown amounts must not become zero. Allow bounded, incomplete drafts; require applicable fields before publication. A supplier declares qualifications; verified supplier badges still come from existing vetting. Make legacy packages readable with explicit legacy defaults without rewriting earlier bookings.
+
+**Tests.** Type/range/length rejection, supplier/team permission isolation, publish completeness, untrusted status/verification fields, missing optional facts, legacy package load and unchanged historical booking duration/price.
+
+**Done when.**
+- [ ] Service packages express scope, unit, crew and duration without relying on free-text interpretation.
+- [ ] Existing packages/bookings retain their original semantics and remain usable.
+- [ ] Only the owning supplier with existing sourcing permissions edits/publishes; vetting remains enforced.
+
+### T290b · Server-side quantity and add-on quotation
+`P1 · M · depends on T290a · Phase A`
+
+**Do.** Build a bounded, pure quotation helper for base quantity and optional add-ons. Support fixed-per-order, per-base-unit and independently quantified add-ons, including quote-required extras. Validate dependency/exclusion rules, required selections, allowed quantities and dependency cycles. Calculate monetary totals in integer minor units with checked bounds; reuse current customer-price/commission policy rather than inventing a new markup. Return line items for base, extras, travel and any separately known delivery; tax derives from existing authorized tax rules, otherwise is explicitly pending. Do not infer that quantity creates parallel workers: distinguish working duration, person-days and crew-days. Quote is a preview, not a reserved slot or binding supplier promise.
+
+**Tests.** Three eight-hour electrician person-days versus three two-person crew-days; fractional m² steps; minimum/maximum/step; multiplied versus fixed add-ons; prerequisites, cycles and incompatible options; forged price/currency; rounding/overflow; quote-required unknown totals and legacy sequential units.
+
+**Done when.**
+- [ ] The same selection always produces the same checked line items and unit explanation.
+- [ ] Unknown costs remain visible and prevent an apparently complete fixed total.
+- [ ] Client-provided prices cannot change a server quote.
+
+### T291a · Package media attachment and access API
+`P1 · M · depends on T290a · Phase A`
+
+**Do.** Reuse upload safety and ownership controls for bounded raster cover/gallery attachments. Check actual file signatures, allowed formats, byte/count limits and attachment ownership; reject SVG/active content and arbitrary external URLs. Store ordered images with captions, accessibility descriptions and “previous work / illustrative / supplied item” labels. Serve through an audience-authorized media path; existing private uploads must not become public via package IDs. New and changed images start unpublished. Define and implement metadata removal using an available, approved approach without silently adding a dependency; if safe metadata removal is unavailable, publication waits for the reviewed approach. Avoid exposing original filenames, GPS/EXIF or private uploads.
+
+**Tests.** Foreign attachment IDs, disguised active content, excessive counts/bytes, direct guessed media URLs, draft/archive access, original-name/metadata exposure and image reorder/cover selection.
+
+**Done when.**
+- [ ] Suppliers can attach owned images without granting access to unrelated files.
+- [ ] Pending media remains inaccessible to customers until applicable publication checks pass.
+- [ ] Media serving does not disclose original private upload URLs or sensitive metadata.
+
+### T291b · Brokered-media review and publication controls
+`P1 · M · depends on T291a · Phase A; identity policy must be resolved before brokered image publication`
+
+**Do.** Extend existing admin package moderation with image/text review states and pause reasons. In brokered mode, require an approved anonymized version before publication: photos can disclose logos, company names, customer sites, people and contact details. Keep originals supplier/admin-only and expose only approved derivatives/captions. Editing a published image or identity-sensitive content invalidates the relevant approval. Marketplace publication follows its approved visibility policy and supplier ownership/permission attestation. Record review actor/time/reason; do not claim automated identification or automatic legal clearance. Provide a text-only fallback while media is pending; supplier attestations do not replace brokered review.
+
+**Tests.** Logo/contact/filename-bearing examples withheld before review, invalidated approval after replacement, paused supplier/package, unauthorized reviewer, direct media URL access and distinct marketplace/brokered projections.
+
+**Done when.**
+- [ ] Brokered gallery content cannot bypass the existing identity policy.
+- [ ] Approved media is traceable, withdrawable and separate from private originals.
+- [ ] Image handling has an approved technical and operational publication procedure.
+
+### T292 · Supplier package editor: details, units and add-ons
+`P1 · M · depends on T290a/T290b/T291a · Phase A`
+
+**Do.** Extend the existing editor with structured scope, prerequisites, unit/team/hour definitions, price mode, quantity limits, bounded add-on rows and dependencies. Add cover/gallery upload, reorder and labels; show media-review state. Keep a quick basic-package route and optional richer fields. Provide a customer-view preview, clear validation and completeness feedback; saving a draft remains possible without inventing missing facts. Existing publish/pause/archive controls remain. Explain how sequential duration differs from parallel team size; prevent accidental conversion of historical bookings.
+
+**Tests.** EN/DE create/edit preview, keyboard/mobile forms, unsaved changes, quantity/add-on errors, draft save, unauthorized member actions, escaped supplier descriptions and old-package editing.
+
+**Done when.**
+- [ ] A supplier can describe electrician, calibration, repair and cleaning offers with useful scope and options.
+- [ ] Editor previews match the server quote/projection and show actual publication readiness.
+
+### T293 · Catalogue search/filter API
+`P1 · M · depends on T290a/T290b · Phase A`
+
+**Do.** Extend current search across normalized title, description, category, inclusions and bounded approved specification fields. Support offer type, unit, service location, supported equipment/brand, required certification and timing filters where data exists; retain current useful filters. Add bounded pagination and deterministic sorting. Certifications used as verification come from vetted facts; package compatibility claims remain labelled supplier-declared. Return only eligible offers and audience-safe facets. Distinguish unit/base price from configured totals; do not sort quote-only offers as free. Preserve EN/DE diacritics/case handling and user-entered keywords without promising semantic translation or AI search. International location handling must not falsely confirm an unknown postcode or expand beyond T255 served-area policy.
+
+**Tests.** Existing keyword filters, multiple terms/case/diacritics, equipment/certification filter distinction, combinations, pagination ties, quote-only sorting, no results, unavailable suppliers and identity leakage through facets/JSON.
+
+**Done when.**
+- [ ] Customers can find relevant active offers and combine meaningful filters reproducibly.
+- [ ] Every displayed count/result follows the same visibility and eligibility rules.
+
+### T294 · Photo-led catalogue and detail pages
+`P1 · M · depends on T291b/T293 · Phase A`
+
+**Do.** Extend current catalogue with accessible photo cards and fallback images, title, service type, price mode/unit, supplier verification facts and location/time indications. Provide filters with active chips, reset, result count and pagination; retain state in URLs. Detail pages show approved gallery, scope/exclusions/prerequisites, team/qualifications, equipment compatibility, lead-time conditions and completion criteria. Preserve existing anonymity/identity policy. Pending or missing images do not stop text-only browsing. Rating/reliability facts come from existing actual data, not new invented badges.
+
+**Tests.** Desktop/mobile EN/DE screenshots, keyboard/gallery accessibility, filter URL navigation, empty/pending-media states, long texts, broken image fallback and brokered versus marketplace identity.
+
+**Done when.**
+- [ ] Customers can browse and understand packages visually and compare their actual unit/scope.
+- [ ] Catalogue/detail pages remain usable without images or exact prices.
+
+### T295 · Customer quantity/add-on configurator
+`P1 · M · depends on T290b/T294 · Phase A`
+
+**Do.** Add quantity and dependent add-on controls to package details. Use the authoritative server preview and show the full breakdown, known versus pending charges, person/crew quantities, site/date assumptions and prerequisites. Offer “Add to project” without claiming an order, worker reservation or contract has been created. Surface invalid selections and stale package revisions before saving; preserve valid selections when changing a nondependent option.
+
+**Tests.** Quantity changes, dependency toggles, invalid steps, quote-only travel, stale revisions, manipulated browser totals, slow/error responses, keyboard/mobile EN/DE and electrician calculation example.
+
+**Done when.**
+- [ ] A customer understands what quantity buys and what the configured price includes.
+- [ ] The saved selection corresponds to an authoritative package revision and quote.
+
+### T296a · Persisted project basket API
+`P1 · M · depends on T295/T230 · Phase A`
+
+**Do.** Persist draft selected package items in an authorized open project, with selection IDs, quantity, package revision, quote assumptions and draft task linkage. Support add/change/remove before submission with bounded item counts and optimistic conflict checking. Several suppliers may share one project basket; only customers authorized to manage that project can edit it. Keep packages distinct from generic project work packages. Mark changed/paused/deleted catalogue offers stale; never silently reprice them. Removing a draft item does not delete orders, contracts, tasks with protected history, invoices or payments.
+
+**Tests.** Project-owner/member permissions, another customer’s project, multiple suppliers, restart and JSON/PostgreSQL persistence, concurrent revisions, paused offers and protected submitted-item removal.
+
+**Done when.**
+- [ ] The project retains configurable draft selections without contacting or committing suppliers.
+- [ ] Draft editing cannot alter submitted or financially protected records.
+
+### T296b · Project basket interface
+`P1 · M · depends on T296a · Phase A`
+
+**Do.** Show selected packages in the project with quantities/options, provisional breakdowns, source-package links, supplier-safe group labels and dates/site inputs. Allow valid draft changes/removal and identify stale items needing review. Summaries distinguish confirmed prices from quote-required amounts and separate request readiness per supplier. Existing tasks/project navigation remain accessible. Do not show a project-wide total as fully committed while suppliers or extras are unconfirmed.
+
+**Tests.** Multi-supplier basket, reload, stale/quote-only items, existing/new project selection, keyboard/mobile EN/DE, authorized team member and restricted member.
+
+**Done when.**
+- [ ] Customers can collect and review several packages inside one project before requesting confirmation.
+- [ ] Each draft item clearly shows what still needs a quote or confirmation.
+
+### T297 · Send independent supplier confirmation requests
+`P1 · M · depends on T296a/T299a · Phase B`
+
+**Do.** Submit reviewed draft items as independently tracked requests per supplier, reusing project/request machinery. Persist a submission snapshot and idempotency key so repeated clicks/retries do not duplicate requests. Group compatible items for the same supplier; maintain clear item-to-request links. Validate latest eligibility, site, selected options and timing assumptions at submission. Record per-supplier success/failure; one declined or failed supplier request must not automatically cancel or finalize the others. Submission sends a confirmation request, not payment authorization, complete-contract acceptance or identity reveal. Use existing notification/outbox infrastructure. Keep current unrelated custom requests intact.
+
+**Tests.** Two suppliers, partial submission failure/retry, duplicated clicks/restart, stale quantities/prices, foreign project, supplier eligibility change and no premature contract/identity/team assignment.
+
+**Done when.**
+- [ ] Each supplier receives exactly its selected scope and each request has an independent state.
+- [ ] Retry cannot duplicate requests and partial success is visible to the customer.
+
+### T298a · Versioned confirmation/revision API
+`P1 · M · depends on T297/T299a · Phase B`
+
+**Do.** Let the owning supplier confirm the submitted scope, decline with a reason or propose a revision to price, dates, scope/options or team-size commitment. Store each proposal as a new immutable revision with actor/time/reason and expected prior revision; do not overwrite the customer’s request. Customer accepts/rejects the exact revised version. Reject stale acceptance and concurrent contradictory transitions. Separate commercial confirmation from complete-contract execution: unknown charges cannot be silently accepted. Capture a confirmed start window and duration basis, not an unsupported guaranteed delivery date. Preserve the legacy T262 fixed-price accept/decline behavior outside the new configurable mode.
+
+**Tests.** Price/date/scope revisions, stale hashes, customer rejection and counter-review, wrong supplier, team permission, repeated commands, contradictory concurrent responses and missing quote-required costs.
+
+**Done when.**
+- [ ] Every changed commercial commitment requires the customer’s explicit approval of that version.
+- [ ] Confirmation alone cannot fabricate full-contract consent or activate an unrelated project task.
+
+### T298b · Supplier/customer confirmation interfaces
+`P1 · M · depends on T298a · Phase B`
+
+**Do.** Extend supplier Platform orders and customer project/request pages with current selection, per-supplier state and clear confirm/decline/propose-change actions. Show original versus proposed scope/price/date/options, reason and breakdown; customer approves or rejects explicitly. Display timeout/expiry using existing approved settings, no invented new deadline. Retain notices/history and link to the next contract step. New configurable orders use manual supplier confirmation; show how existing legacy instant-booking offers behave, rather than silently enabling or disabling them globally.
+
+**Tests.** Full confirm and changed-offer flows in EN/DE, two suppliers in different states, stale form, permission hiding, keyboard/mobile and explicit nonbinding/contract-pending states.
+
+**Done when.**
+- [ ] Both parties can see what is being agreed and what changed.
+- [ ] No interface labels a requested or commercially confirmed package as fully contracted prematurely.
+
+### T299a · Immutable agreed package snapshot
+`P1 · M · depends on T290b · Phase B; build before T297`
+
+**Do.** Define a canonical detached snapshot of the offered package revision, scope/exclusions/prerequisites, quantity/unit/team/hours, selected add-ons, line prices/currency/tax assumptions, timing conditions, completion criteria and stable media/document references. Differentiate submitted, proposed and agreed snapshots. Give each content version a server-computed hash; retain actor/history separately. Catalogue/profile changes and media withdrawal cannot rewrite order content; preserve required authorized evidence without keeping publicly visible withdrawn material. Existing legacy bookings stay identifiable and are not retroactively presented as newly accepted snapshots.
+
+**Tests.** Edit package after request/acceptance, changed add-ons, key-order stability, tampered hash, restart/JSON/PostgreSQL/backup preservation and archive/deletion with historical references.
+
+**Done when.**
+- [ ] An agreed selection remains reproducible independently of the current catalogue.
+- [ ] Existing records are not assigned invented consent, scope or prices.
+
+### T299b · Complete-contract acceptance and project integration
+`P1 · M · depends on T299a/T298a and final T200–T205 implementation · Phase B; policy gate`
+
+**Do.** Feed the approved selection snapshot into the existing complete-contract draft/proposal mechanism, retaining lineage to the project and request. Both parties must accept the same complete-contract version under T201 before contract activation and task award. Preserve amendment/termination/PDF rules; package edits never bypass them. Respect the approved identity-introduction policy; this backlog does not resolve the pending legal-party/anonymity decision. In the new configurable confirmation mode, legacy instant clause acceptance is not reused as full-contract consent. Existing independent booking/instant flows remain unchanged unless their authorized contract migration explicitly changes them. Map agreed billable lines to existing invoicing; actual payment runs through T272 onward.
+
+**Tests.** Same-version double acceptance, revised package invalidating pending proposal, no premature reveal/assignment, no copied consent, contract PDF/snapshot linkage and regression of custom and legacy package journeys.
+
+**Done when.**
+- [ ] A configured package produces an enforceable-workflow candidate with explicit complete-contract acceptance.
+- [ ] Activated project tasks/invoice sources refer to the frozen agreed content and existing payment flow.
+- [ ] Contract/identity policy gate is recorded; code does not silently choose a legal policy.
+
+### T300 · Assign the confirmed package to the supplier’s team
+`P1 · M · depends on T299b · Phase B`
+
+**Do.** Extend existing team/capacity planning to link agreed package tasks to the supplier’s own active members/field workers. Supplier confirms commercially first; executable worker assignments occur after contract activation. Show promised qualification/team-size requirements and assignment progress. Require existing planning/project permissions, valid task access, availability checks and compliance rules; reject foreign-company workers. Assignments do not change package price/scope or expose private worker files/contact details. If a team substitution changes an agreed material condition, use the existing amendment workflow. Do not interpret person-days as labor leasing or create new employment terms.
+
+**Tests.** Qualified/available team, foreign worker, restricted supplier member, precontract attempt, scheduling conflict, archived worker, team-size shortfall and cross-supplier project privacy.
+
+**Done when.**
+- [ ] The supplier can staff each activated package using existing planning tools.
+- [ ] Customers see authorized assignment progress without access to private staff information.
+
+### T301 · Two customer entry paths with shared project continuity
+`P1 · S · depends on T294/T296b/T298b · Phase B`
+
+**Do.** Present “Describe your project / get recommended offers” and “Browse packages” as two clear choices within existing customer navigation and approved site text. Link unsuccessful catalogue searches to the custom request form with customer-approved context; do not silently submit a request. Customers can use both paths in one project. Keep manual/platform recommendations and the catalogue’s complete eligible results distinct; no AI or new ranking promise. Catalogue expansion does not turn on marketplace identity mode.
+
+**Tests.** Search-to-custom fallback, project context continuity, existing recommended-offer journey, mixed project items and EN/DE/mobile navigation.
+
+**Done when.**
+- [ ] Either entry path reaches the existing project workspace without duplication or lost context.
+- [ ] Choosing one path does not block the other or change platform visibility policy.
+
+### T302a · Product/bundle specification and quantity rules
+`P2 · M · depends on T290a/T290b/T299a · Phase C; product-policy gate`
+
+**Do.** Extend the approved schema for physical products and product-plus-installation bundles: manufacturer/model, bounded technical specifications, new/used condition where permitted, included equipment/accessories, declared compatibility and applicable safety/conformity documentation references. Suppliers can list their own machines without misusing verified badges. Define product quantities and whether installation/commissioning extras are per-unit or per-order; validate dependencies. Separate supplier-declared stock/lead-time from confirmed availability. Adapt snapshots/quote calculations without changing previous service orders. Product publishing remains disabled until the agreed product policy is configured.
+
+**Tests.** Robot unit plus mandatory commissioning, multiple machines and shared setup fee, incompatible add-ons, own-manufactured product, unsupported claims, service compatibility and policy-disabled publication.
+
+**Done when.**
+- [ ] Products and installed bundles have explicit physical scope and price/quantity semantics.
+- [ ] Publishing cannot imply platform-certified conformity or unconfirmed stock.
+
+### T302b · Delivery and installation commitment API
+`P2 · M · depends on T302a/T298a/T299b · Phase C; legal/tax gates`
+
+**Do.** Add confirmed delivery destination/window, shipping/handling responsibility, transport costs or quote requirement, unloading/site-access prerequisites and separate installation/commissioning milestones. Express timing relative to approved conditions: for example “five working days after delivery and confirmed site readiness.” Capture supplier confirmation of final product availability and qualified team commitment. Reference lawyer-approved warranty, cancellation/returns, risk/title transfer and conformity-responsibility terms in the frozen contract; do not invent standard terms, Incoterms or VAT treatment. Supplier remains the identified seller unless another role is explicitly approved. Reuse T202 changes and T63 completion/acceptance evidence; do not build inventory/warehouse/carrier software.
+
+**Tests.** Delivery delayed, site unready, unknown shipping cost, agreed start conditions, multiple units, modified supplier proposal and legal/tax configuration absent.
+
+**Done when.**
+- [ ] Delivery, installation and commissioning obligations are separately understandable and confirmable.
+- [ ] Physical orders cannot activate without required approved terms and complete applicable commercial inputs.
+
+### T302c · Product/bundle editor and customer summary
+`P2 · M · depends on T302a/T302b/T292/T295 · Phase C`
+
+**Do.** Extend existing supplier editor and catalogue/configurator for machine details, photos, condition, quantity and installation options. Customer summary separates goods, delivery, installation, commissioning/training/documentation where included, site obligations and acceptance tests. Use the same project basket and independent confirmations. Distinguish an estimate from a confirmed delivery/commissioning commitment and explain policy-disabled publishing. No separate shopping-cart payment route.
+
+**Tests.** Robot complete installation bundle, supplier’s own machine, product-only selection, multiple units/add-ons, quote-only transport and EN/DE/keyboard/mobile journey.
+
+**Done when.**
+- [ ] Customers can evaluate and request a complete installed solution with clear responsibilities.
+- [ ] Product offers use the same confirmed-order/contract/payment infrastructure as services.
+
+### T303a · Service catalogue demonstration and browser journey
+`P1 · M · depends on T300/T301 · Phase B verification`
+
+**Do.** Add bounded demo examples for electrician days, repair, calibration and industrial cleaning using permission-cleared illustrative photos or safe placeholders. Demonstrate quantity/add-on configuration and a two-supplier project where one confirms and the other proposes a change. Add a focused end-to-end regression through basket, requests, exact revised acceptance, complete contract and supplier team assignment. Extend existing browser smoke only where required. Produce desktop/mobile EN/DE screenshots and instructions for Karam to try the flow; no real purchases or provider claims.
+
+**Tests.** The complete demo journey, no real outbound mail/payment, no personal/client-site data in fixtures, user/role isolation and existing request/package regressions on JSON/PostgreSQL.
+
+**Done when.**
+- [ ] Karam can try both buying paths and inspect representative visible changes.
+- [ ] The service pilot journey passes without real Stripe keys and retains history after restart.
+
+### T303b · Product/bundle journey and operating/legal handoff
+`P2 · M · depends on T302c/T303a · Phase C verification`
+
+**Do.** Add a permission-cleared robot-plus-commissioning demo and journey test for product quantity, installation dependencies, shipping assumptions, confirmed conditions and frozen contract scope. Document package publication/media review, quote-required costs, revision handling, staffing and product-policy operation in focused catalogue documentation with links from existing launch/legal notes. Prepare the exact open product responsibilities for lawyer/tax-adviser review, including supplier legal role, conformity, warranty/returns, risk/title transfer and cross-border goods/services. Include service staffing/AÜG considerations in the existing legal review rather than claiming they are resolved. All policies remain draft until explicitly reviewed.
+
+**Tests.** Product/bundle complete journey, missing required policy blocks activation, approved-term version retained and service-only pilot unaffected by disabled products.
+
+**Done when.**
+- [ ] Product/bundle behavior is demonstrable and operating steps are concrete.
+- [ ] Founder/legal/tax decisions and actual verification limits are recorded, with no invented approvals.
+
+
+## Wave 20 — outstanding publication and contract gates
+
+These gates do not reopen the approved product vision or require further approval to implement ordinary service-schema/search work once the payment sequence is finished. Record decisions before enabling the affected behavior.
+
+1. **Identity and complete contracts.** Preserve current brokered anonymity until the existing T201 legal-party/introduction policy is resolved. Photos require a safe reviewed publication path; do not introduce public anonymous browsing or reveal supplier/customer identities merely because a package was selected.
+2. **Media.** Determine and document the approved rights/privacy attestation, brokered review responsibility and metadata-removal implementation. Unsafe or identifying originals remain unpublished. No new runtime image dependency is implicitly authorized.
+3. **Physical products.** Record lawyer-reviewed seller role, warranty/returns, shipping/unloading, risk/title transfer and conformity responsibilities before product publication/activation. Supplier-manufactured machines need the same responsibility clarity. Admin publication is not legal approval.
+4. **Tax and service staffing.** Reuse approved invoice/tax and payment policy. Resolve cross-border/mixed goods-services assumptions with the tax adviser and service staffing/AÜG concerns under existing legal tasks. Do not change platform fees, surcharge formulas or live-key restrictions.
+5. **Launch scope.** Existing T255 founder decisions govern regions/categories; the package catalogue does not silently extend served geography. Supplier-declared unit limits and draft incomplete information are implemented with validation; unknown price, stock, scope or availability must not become a confirmed zero-cost or delivery promise.
 
 ---
 
