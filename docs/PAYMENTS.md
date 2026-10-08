@@ -2,6 +2,46 @@
 
 Stripe remains a sandbox-only development integration pending the payment launch gates. Passing fake-Stripe tests does not authorize live activation.
 
+## Test-mode Stripe setup (T272a)
+
+`node tools/stripe-setup.js --url https://your-public-host` uses only the environment's
+`STRIPE_SECRET_KEY` test/restricted key. Live keys are always refused, including with
+`PAYMENTS_LIVE=1`. This tool is opt-in operator provisioning; application startup never runs it.
+The public HTTPS origin (or exact `/api/stripe/webhook` URL) must already route to the app.
+
+It discovers the platform's default active Payment Method Configuration across all pages,
+requests `sepa_debit` and `customer_balance` display preferences, and checks actual availability.
+Unavailable methods require Stripe eligibility/operator action; preferences alone are not proof
+that a method can be offered for every country, currency or amount. Checkout later uses the
+Dashboard-controlled default configuration, without a hardcoded payment-method list.
+
+Two API-v2 event destinations deliver to the same URL: snapshot payment/dispute events from
+`@self`, pinned to the installed Stripe SDK API version, and Accounts v2 thin events from
+`@accounts`, without a snapshot version. URL-bound metadata and deterministic creation keys
+identify managed destinations. Reruns keep their identities, add missing subscriptions and
+enable disabled managed destinations. Extra subscriptions and unrelated destinations are
+preserved. Conflicting scopes/identity or duplicate managed records stop setup before mutation.
+Provisioning involves separate provider calls: failure can leave a partial configuration;
+inspect Stripe and rerun rather than deleting destinations or assuming rollback.
+
+Default output contains no signing secrets. `--print-secrets` explicitly includes newly created
+destination secrets on stdout so the operator can place them directly in the host secret store:
+snapshot `STRIPE_WEBHOOK_SECRET` and thin `STRIPE_THIN_WEBHOOK_SECRET`. Keep these distinct.
+Do not redirect this output to a file or paste it in chat, logs or commits. Stripe exposes these
+secrets to public clients only during creation; reruns cannot retrieve existing secrets. Obtain
+existing signing secrets in Stripe Dashboard instead. The tool never writes files or prints
+the API key, and failures print fixed text without provider/request/error dumps.
+
+Both methods are enabled without customer surcharges. No surcharge formula is approved.
+Per-method settings remain OFF by default; German §270a BGB forbids surcharges on SEPA direct
+debit, SEPA credit transfer and consumer cards, including between businesses. Lawyer/accountant
+review and customer disclosure are T172/T280 activation gates. No real sandbox provisioning was
+performed by these tests, and T272 Checkout/fulfilment and T273 transfers remain separate tasks.
+
+API references checked 8 October 2026: Stripe's Payment Method Configurations update API and
+`/api/v2/core/event-destinations/create`; API-v2 signing-secret include semantics match installed
+Stripe 23.0.0. Test coverage uses the real SDK pointed exclusively at `test/fake-stripe.js`.
+
 ## Local webhook handlers (T282b1b3c)
 
 Register an explicit transaction-aware object with `payments.on(type, handler)`:

@@ -8,6 +8,7 @@ COPY payment-owner-gate.js payment-notifications.js payout-staging.js stripe-com
 COPY db ./db
 # The database tools (migrate, import, export), run with `docker compose run --rm craftcrew node tools/db/…`
 COPY tools/db ./tools/db
+COPY tools/stripe-setup.js ./tools/stripe-setup.js
 COPY migrations ./migrations
 COPY public ./public
 RUN mkdir -p /var/lib/craftcrew/uploads && chown -R node:node /app /var/lib/craftcrew
