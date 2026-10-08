@@ -8,5 +8,5 @@ module.exports = function inboxContext() {
   after(() => fs.rmSync(dataDir, { recursive: true, force: true }));
   const store = require("../store").openStore({ kind: "json", dataDir });
   let sequence = 0;
-  return { inbox: store.stripeInbox, commit: async () => {}, commitStage: (job) => store.commitStage(job), id: (prefix) => `${prefix}_${++sequence}` };
+  return { inbox: store.stripeInbox, commit: async () => {}, commitStripe: (job) => store.commitStripe(job), commitStage: (job) => store.commitStage(job), id: (prefix) => `${prefix}_${++sequence}` };
 };

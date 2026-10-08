@@ -46,9 +46,9 @@ describe("payments: webhooks (unit)", () => {
   it("handles a failed handler again when Stripe retries", async () => {
     const { p, sent, db } = unit(fake.env);
     let calls = 0;
-    p.on("test.event", () => {
+    p.on("test.event", { stage: () => {
       if (++calls === 1) throw new Error("provider error containing " + KEY);
-    });
+    } });
     const event = fake.signed({ id: "evt_retry", type: "test.event" });
     await p.webhook(delivery(event), {});
     assert.equal(sent.at(-1).status, 500);

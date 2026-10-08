@@ -13,10 +13,12 @@
  * related object's id) to an event destination with its own signing secret, STRIPE_THIN_WEBHOOK_SECRET; both
  * kinds arrive at the same endpoint.
  */
+const detached = (value) => value === undefined ? undefined : JSON.parse(JSON.stringify(value));
 const KEY_RE = /^(sk|rk)_(test|live)_/;
 
 module.exports = function createPayments(ctx) {
-  const { getDb, save, send, now, activity, inbox, commit } = ctx;
+  const { getDb, save, send, now, activity, inbox, commit, commitStripe } = ctx;
+  const atomic = require("./stripe-commit");
   const env = ctx.env || process.env;
   const key = String(env.STRIPE_SECRET_KEY || "").trim();
   const enabled = KEY_RE.test(key);
@@ -38,7 +40,7 @@ module.exports = function createPayments(ctx) {
   const webhookSecret = String(env.STRIPE_WEBHOOK_SECRET || "").trim(),
     thinSecret = String(env.STRIPE_THIN_WEBHOOK_SECRET || "").trim(),
     publishableKey = enabled ? String(env.STRIPE_PUBLISHABLE_KEY || "").trim() : "";
-  if (enabled && (!inbox || typeof commit !== "function")) throw new Error("Stripe requires a durable inbox and commit boundary.");
+  if (enabled && (!inbox || typeof commit !== "function" || typeof commitStripe !== "function")) throw new Error("Stripe requires a durable inbox and commit boundary.");
   const gate = ctx.gate || require("./stripe-commit").gate;
   const ownerGate = require("./payment-owner-gate")({ gate, body: ctx.body, commit, send, actor: ctx.ownerActor, refusal: ctx.ownerRefusal });
   const handlers = new Map();
@@ -47,24 +49,33 @@ module.exports = function createPayments(ctx) {
 
   let initialization = null;
   function initialize() {
-    if (!initialization) initialization = (async () => {
+    if (!initialization) initialization = gate.run(async () => {
       if (!state().inboxMigrated) {
         await require("./stripe-inbox").importInbox(inbox, events());
         state().inboxMigrated = true;
       }
       getDb().stripeEvents = (await inbox.recent(20)).map(display);
       await commit();
-    })().catch((error) => { initialization = null; throw error; });
+    }).catch((error) => { initialization = null; throw error; });
     return initialization;
   }
   const display = (record) => ({ ...record, handled: record.state === "handled" });
   function remember(record) {
     getDb().stripeEvents = [display(record), ...events().filter((e) => e.id !== record.id)].slice(0, 20);
   }
-  // Later tasks register what an event does: on("checkout.session.completed", async (object, event) => …)
-  function on(type, fn) {
+  // Provider preparation is outside the gate; stage() is synchronous and changes only its explicit stage.
+  function on(type, handler) {
+    if (typeof type !== "string" || !type || !handler || typeof handler !== "object" ||
+        typeof handler.stage !== "function" || ["AsyncFunction", "GeneratorFunction", "AsyncGeneratorFunction"].includes(handler.stage.constructor?.name) || (handler.prepare !== undefined && typeof handler.prepare !== "function") ||
+        (handler.afterCommit !== undefined && typeof handler.afterCommit !== "function"))
+      throw new Error("Stripe handlers require transaction-aware staging");
     if (!handlers.has(type)) handlers.set(type, []);
-    handlers.get(type).push(fn);
+    handlers.get(type).push(Object.freeze({ ...handler }));
+  }
+  async function repair(record, receipt) {
+    const result = await inbox.update({ ...record, state: "handled", handledAt: receipt.handledAt });
+    remember(result);
+    return result;
   }
   function readRaw(req) {
     return new Promise((resolve, reject) => {
@@ -100,48 +111,68 @@ module.exports = function createPayments(ctx) {
     // Unknown legacy livemode remains compatible; an explicit opposite mode cannot mutate this environment.
     if (typeof event.livemode === "boolean" && event.livemode !== live)
       return send(res, 400, { error: "Invalid signature" });
+    const identity = { id: event.id, type: event.type, kind: thin ? "thin" : "snapshot", livemode: !!event.livemode };
     let record;
     try {
       await initialize();
-      record = await inbox.receive({ id: event.id, type: event.type, kind: thin ? "thin" : "snapshot",
-        livemode: !!event.livemode, receivedAt: now(), state: "received", attempts: 0 });
-      if (record.type !== event.type || record.kind !== (thin ? "thin" : "snapshot") || record.livemode !== !!event.livemode)
-        return send(res, 400, { error: "Invalid signature" });
-      if (record.state === "handled") return send(res, 200, { received: true, duplicate: true });
-      // Child b adds identical-delivery serialization and atomic local-handler publication.
-      if (record.state === "processing") return send(res, 503, { error: "Could not save. Please try again." });
-      record = await inbox.update({ ...record, state: "processing", processingAt: now(), attempts: record.attempts + 1 });
-      remember(record);
-      Object.assign(state(), { lastEventAt: now(), lastEventType: event.type });
-    } catch {
-      return send(res, 503, { error: "Could not save. Please try again." });
-    }
-    try {
-      for (const fn of handlers.get(event.type) || []) await fn(thin ? event.related_object : event.data?.object, event);
-    } catch {
-      state().lastError = { at: now(), message: "Webhook handler failed" };
-      try {
-        record = await inbox.update({ ...record, state: "failed", failedAt: now(), errorCode: "handler_failed" });
+      const duplicate = await gate.run(async () => {
+        ownerGate.healthy();
+        record = await inbox.receive({ ...identity, receivedAt: now(), state: "received", attempts: 0 });
+        try { atomic.match(record, identity); }
+        catch { const error = new Error("Stripe event identity mismatch"); error.identity = true; throw error; }
+        const receipt = atomic.applied(getDb(), identity);
+        if (receipt) { await repair(record, receipt); return true; }
+        if (record.state === "handled") return true; // Historical completed events predate receipts.
+        if (record.state === "processing") throw new Error("Stripe delivery already processing");
+        record = await inbox.update({ ...record, state: "processing", processingAt: now(), attempts: record.attempts + 1 });
         remember(record);
-        await commit();
-      } catch { return send(res, 503, { error: "Could not save. Please try again." }); }
-      console.error("Stripe webhook handler failed:", event.type);
-      return send(res, 500, { error: "Handler failed" });
-    }
+        Object.assign(state(), { lastEventAt: now(), lastEventType: event.type });
+        return false;
+      });
+      if (duplicate) return send(res, 200, { received: true, duplicate: true });
+    } catch (error) { return send(res, error?.identity ? 400 : 503,
+      { error: error?.identity ? "Invalid signature" : "Could not save. Please try again." }); }
+    const registered = [...(handlers.get(event.type) || [])], prepared = [], transitions = [];
+    let committed = null, errorCode = "handler_failed";
     try {
-      // Commit local updates before the durable handled marker. Child b makes these one atomic boundary.
-      await commit();
-      record = await inbox.update({ ...record, state: "handled", handledAt: now() });
-      remember(record);
-      save();
+      for (const handler of registered) prepared.push(handler.prepare
+        ? await handler.prepare(detached(thin ? event.related_object : event.data?.object), detached(event)) : undefined);
+      committed = await gate.run(async () => {
+        ownerGate.healthy();
+        const stage = atomic.createStage(), existing = atomic.applied(getDb(), identity);
+        if (!existing) for (let index = 0; index < registered.length; index++) {
+          const transition = registered[index].stage({ stage, prepared: prepared[index],
+            object: detached(thin ? event.related_object : event.data?.object), event: detached(event) });
+          if (transition && typeof transition.then === "function") {
+            Promise.resolve(transition).catch(() => {});
+            throw new Error("Stripe staging must be synchronous");
+          }
+          if (transition && typeof transition.next === "function") throw new Error("Stripe staging must execute synchronously");
+          transitions.push(transition);
+        }
+        errorCode = "storage_failed";
+        return commitStripe({ getDb, event: { ...identity, handledAt: now() }, stage });
+      });
     } catch {
       try {
-        record = await inbox.update({ ...record, state: "failed", failedAt: now(), errorCode: "storage_failed" });
-        remember(record);
+        await gate.run(async () => {
+          // An uncertain storage failure never permits a business retry without durable receipt proof.
+          record = await inbox.update({ ...record, state: "failed", failedAt: now(), errorCode });
+          remember(record);
+          state().lastError = { at: now(), message: errorCode === "handler_failed" ? "Webhook handler failed" : "Webhook storage failed" };
+        });
       } catch {}
-      return send(res, 503, { error: "Could not save. Please try again." });
+      return send(res, errorCode === "handler_failed" ? 500 : 503,
+        { error: errorCode === "handler_failed" ? "Handler failed" : "Could not save. Please try again." });
     }
-    return send(res, 200, { received: true });
+    // Durable listeners run after releasing the gate; they cannot cause retries of committed effects.
+    if (committed.applied) for (let index = 0; index < registered.length; index++) {
+      try { await registered[index].afterCommit?.(transitions[index]); }
+      catch { console.error("Stripe committed listener failed"); }
+    }
+    try { await gate.run(() => repair(record, committed.receipt)); }
+    catch { return send(res, 503, { error: "Could not save. Please try again." }); }
+    return send(res, 200, { received: true, ...(!committed.applied ? { duplicate: true } : {}) });
   }
   // What the admin sees: never the key itself
   function status() {
