@@ -62,7 +62,7 @@ async function startFakeStripe(routes = {}) {
       calls.push({ method: req.method, path: p, query, body, headers: req.headers });
       const fn = all[`${req.method} ${p}`] || Object.entries(all).find(([k]) => k.includes(":") && new RegExp("^" + k.replace(/:[a-z]+/g, "[^/]+") + "$").test(`${req.method} ${p}`))?.[1];
       const out = fn ? fn(body, p, req) : { status: 404, error: { type: "invalid_request_error", message: "No such route in the fake Stripe: " + p } };
-      const status = out?.status || 200;
+      const status = typeof out?.status === "number" ? out.status : 200;
       res.writeHead(status, { "Content-Type": "application/json", "Request-Id": "req_fake" });
       res.end(JSON.stringify(out?.error ? { error: out.error } : out));
     });
