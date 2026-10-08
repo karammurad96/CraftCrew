@@ -26,9 +26,12 @@ const SUGGEST = {
   workedBefore: 5, // has worked for this customer before
 };
 const geo = require("./geo");
+const createContractDoc = require("./contractdoc");
 
 module.exports = function createSourcing(ctx) {
   const { getDb, save, send, body, id, now, notify, projectFor, supplierForUser } = ctx;
+  // T200a1: the structured contract (16 sections, snapshots, completion check, audience-safe view)
+  const cdoc = createContractDoc({ getDb, id, now });
 
   function cleanWeights(w) {
     const out = {};
@@ -38,7 +41,10 @@ module.exports = function createSourcing(ctx) {
   }
 
   /* Contracts carry a stored lifecycle state; "Expiring"/"Expired" are derived from dates. */
-  function contractView(c) {
+  function contractView(c, user) {
+    // The structured part (T200a1) is projected for the audience; without a user it is left out
+    const { doc, language, customClauses, internalNote, docUpdatedAt, ...legacy } = c;
+    const audience = user?.role === "supplier" ? "supplier" : "customer";
     const db = getDb(),
       days = c.endDate ? Math.ceil((Date.parse(c.endDate) - Date.now()) / 86400000) : null;
     const noticeBy =
@@ -51,7 +57,9 @@ module.exports = function createSourcing(ctx) {
     const supplier = db.suppliers.find((s) => s.id === c.supplierId),
       project = db.projects.find((p) => p.id === c.projectId);
     return {
-      ...c,
+      ...legacy,
+      ...(user && doc ? { structured: cdoc.project(c, audience), docUpdatedAt } : {}),
+      ...(user && audience === "customer" ? { completion: cdoc.completion(c) } : {}),
       state,
       daysToEnd: days,
       noticeBy,
@@ -229,7 +237,7 @@ module.exports = function createSourcing(ctx) {
       method = req.method;
     if (parts[1] === "contracts" && parts.length === 2 && method === "GET") {
       return (
-        send(res, 200, { contracts: (db.contracts || []).filter((c) => canSee(user, c)).map(contractView) }),
+        send(res, 200, { contracts: (db.contracts || []).filter((c) => canSee(user, c)).map((c) => contractView(c, user)) }),
         true
       );
     }
@@ -263,7 +271,27 @@ module.exports = function createSourcing(ctx) {
           { key: "contractNew", params: { company: user.company || user.name, title: c.title } },
           "/supplier/contracts",
         );
-      return (send(res, 201, { contract: contractView(c) }), true);
+      return (send(res, 201, { contract: contractView(c, user) }), true);
+    }
+    // T200a1: one contract with its structured sections
+    if (parts[1] === "contracts" && parts[2] && parts.length === 3 && method === "GET") {
+      const c = (db.contracts || []).find((x) => x.id === parts[2]);
+      if (!c || !canSee(user, c)) return (send(res, 404, { error: "Contract not found" }), true);
+      return (send(res, 200, { contract: contractView(c, user) }), true);
+    }
+    // T200a1: the customer edits the sections of a draft; incomplete drafts are fine, invalid values are not
+    if (parts[1] === "contracts" && parts[2] && parts[3] === "doc" && parts.length === 4 && method === "PUT") {
+      const c = (db.contracts || []).find((x) => x.id === parts[2]);
+      if (!c || !canSee(user, c)) return (send(res, 404, { error: "Contract not found" }), true);
+      if (user.role !== "customer")
+        return (send(res, 403, { error: "Only the customer can change a contract" }), true);
+      if (c.status !== "Draft") return (send(res, 409, { error: "Only a draft contract can be edited." }), true);
+      const checked = cdoc.clean(c, await body(req), user, projectFor);
+      if (checked.error) return (send(res, 400, { error: checked.error, field: checked.field }), true);
+      Object.assign(c, checked.fields, { updatedAt: now() });
+      if (checked.fields.projectId && !c.projectId) c.projectId = checked.fields.projectId;
+      save();
+      return (send(res, 200, { contract: contractView(c, user) }), true);
     }
     if (parts[1] === "contracts" && parts[2] && method === "PATCH") {
       const c = (db.contracts || []).find((x) => x.id === parts[2]);
@@ -282,7 +310,7 @@ module.exports = function createSourcing(ctx) {
           { key: "contractActivated", params: { title: c.title } },
           "/supplier/contracts",
         );
-      return (send(res, 200, { contract: contractView(c) }), true);
+      return (send(res, 200, { contract: contractView(c, user) }), true);
     }
     if (parts[1] === "suppliers" && parts[2] && parts[3] === "scorecard" && method === "GET") {
       if (user.role === "supplier" && user.supplierId !== parts[2])

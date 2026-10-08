@@ -3890,11 +3890,39 @@ when both companies have accepted exactly the same text.
 
 **Child tasks (one branch/PR each).**
 - [ ] **T200a Structured contract drafts, validation and editor** · P1 · L · grouping only; remains open until T200a1 and T200a2 merge. No separate parent implementation PR.
-- [ ] **T200a1 Structured contract schema and validated API** · P1 · M · first child. Implement all 16 sections in Do 1 and server validation in Do 4, authorized company/project/phase/task/compliance/document snapshots and preserved custom clauses. Allow incomplete drafts; require complete parties, signatories, price/rates and start date through a completion validator consumed later by T201 when proposing a new structured contract; do not introduce a proposal transition or new lifecycle in this child. Validate types, enums, lengths, monetary values and linked-record ownership on the server before mutating anything. Keep legacy editor, acceptance, disclosure and lifecycle behavior additive and unchanged. Return an audience-safe contract projection rather than spreading the stored record: hidden supplier/customer identities and private compliance evidence must remain protected under the existing access policy. **Tests:** round-trip every section and custom clauses; completion validator reports missing mandatory parties/signatories; invalid types/values/rates/start dates and foreign linked records are refused without mutations; permitted incomplete drafts remain editable; customer/supplier/team/outsider responses cannot expose forbidden identities or evidence. **Done when:** all 16 sections persist, authorized snapshots and completion validation work, existing flows pass, and full `npm test` passes.
+- [x] **T200a1 Structured contract schema and validated API** · P1 · M · first child. Implement all 16 sections in Do 1 and server validation in Do 4, authorized company/project/phase/task/compliance/document snapshots and preserved custom clauses. Allow incomplete drafts; require complete parties, signatories, price/rates and start date through a completion validator consumed later by T201 when proposing a new structured contract; do not introduce a proposal transition or new lifecycle in this child. Validate types, enums, lengths, monetary values and linked-record ownership on the server before mutating anything. Keep legacy editor, acceptance, disclosure and lifecycle behavior additive and unchanged. Return an audience-safe contract projection rather than spreading the stored record: hidden supplier/customer identities and private compliance evidence must remain protected under the existing access policy. **Tests:** round-trip every section and custom clauses; completion validator reports missing mandatory parties/signatories; invalid types/values/rates/start dates and foreign linked records are refused without mutations; permitted incomplete drafts remain editable; customer/supplier/team/outsider responses cannot expose forbidden identities or evidence. **Done when:** all 16 sections persist, authorized snapshots and completion validation work, existing flows pass, and full `npm test` passes.
 - [ ] **T200a2 Complete contract editor and preview** · P1 · M · depends on T200a1. Provide editing and escaped preview for all 16 sections, custom clauses, fixed-price/time-and-materials/unit-price modes and EN/DE contract language. Preserve every existing control and draft flow, use delegated `data-action` handlers and logical CSS, and keep UI text in translation keys with required locale coverage. Do not change acceptance/disclosure/lifecycle. **Tests:** edit/save/reload all sections and pricing modes, preserve custom clauses, refuse unsafe inputs through the API, render malicious text safely, and check locale/CSP/RTL plus EN/DE desktop/390 px phone controls and overflow. **Done when:** complete drafts can be edited and previewed in both languages, control/browser checks and full `npm test` pass.
 - [ ] **T200b Versioned EN/DE templates and frozen rendered snapshots** · P1 · M · depends on T200a. Implement Do 2–3: explicit `contractTemplates` store collection, immutable published versions and admin-only publication, shipped EN/DE templates labeled "draft – to be reviewed by a lawyer". Render and retain the pinned template version, parameters, authorized party/scope/attachment snapshots and custom clauses with canonical serialization and a SHA-256 hash reusable by T201/T203. Tests cover both languages/parameters, unauthorized publication, stable hashes and new template/profile/project data never rewriting existing contract snapshots. Publication does not assert legal approval.
 
 The parent T200 remains open until all three implementation children merge (T200a1, T200a2 and T200b) and the original scope/tests pass. T201 owns mutual acceptance and brokered integration; T203 owns PDF output and dedicated-table protections. Do not duplicate those tasks in T200. Complete T205 immediately after T201 to prevent legacy activation paths bypassing mutual acceptance.
+
+**As built T200a1 (8 October 2026).**
+- **`contractdoc.js`** holds the schema, the server checks and the audience view; `sourcing.js` mounts it. A contract
+  record keeps its legacy fields and gets, additively, `doc` (the 16 sections: parties, scope, price, payment,
+  schedule, acceptance, warranty, liability, insurance, site, confidentiality (with rights to the results), data
+  protection, changes, term, law, attachments), `language` (`en`/`de`), `customClauses` (title, text, placed after a
+  section) and the customer's private `internalNote`.
+- **API.** `GET /api/contracts/:id` (one contract), `PUT /api/contracts/:id/doc` (the customer edits sections of a
+  *draft*; omitted sections stay, 409 once it is no longer a draft, so brokered and active contracts are untouched).
+  `GET /api/contracts` and the existing POST/PATCH answers use the same projection. The legacy editor, PATCH,
+  statuses, acceptance and disclosure behaviour are unchanged.
+- **Validation** (types, enums, lengths, amounts 0 to 100 million, dates, percentages, at most 30 clauses, milestones,
+  items, attachments, a payment plan of at most 100 %) happens before anything is changed; a 400 names the `field`.
+  An incomplete draft is accepted.
+- **Snapshots come from the platform, not the client.** Party names, address, VAT ID and register number come from
+  the company profiles and the supplier's latest application (the customer only fills what a profile lacks, and the
+  signatory of each side); project, phase and task names and deliverables only for the customer's own project;
+  document names only from that project's document desk; the site only if it is the customer's; the insurance
+  cover (amount, expiry, whether it meets the required minimum) from the supplier's vetting evidence.
+- **Completion validator** (`completion` in the customer's view): missing party names and addresses, signatories,
+  the price for the chosen mode (a fixed amount, a time-and-materials rate or a unit price) and the start date. T201
+  uses it when a structured contract is proposed; nothing here proposes or changes a status.
+- **Audience-safe view.** The stored record is no longer spread into the answer: the supplier never gets the private
+  note or the completion list, nobody gets the raw vetting evidence (no insurer, policy number or files), and a
+  draft stays invisible to the supplier. Identity disclosure is unchanged (decision pending, see T201).
+- **Tests:** `test/contract-doc.test.js` (round trip of all sections and clauses, profile-sourced parties, invalid
+  input refused without changes, incomplete drafts, completion, the views of customer, supplier, admin and outsider,
+  legacy editor).
 
 **Do.**
 1. **Sections** of a contract, each filled from the platform where possible and editable while it is a draft:
