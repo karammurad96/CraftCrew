@@ -3489,7 +3489,30 @@ function queueEmail(to, template, subject, text) {
     attempts: 0,
     createdAt: now(),
   });
-  db.outbox = db.outbox.slice(0, 2000);
+  pruneOutbox();
+}
+// T285: only the history of delivered emails is bounded. Queued, retrying, failed and not-sent messages stay
+// until they are delivered or someone resolves them; they are never dropped to keep the list short.
+const OUTBOX_SENT_HISTORY = Number(process.env.OUTBOX_SENT_HISTORY) || 2000;
+function pruneOutbox() {
+  const list = db.outbox || [];
+  if (list.length <= OUTBOX_SENT_HISTORY) return;
+  let sent = 0;
+  const kept = list.filter((m) => m.status !== "Sent" || ++sent <= OUTBOX_SENT_HISTORY);
+  if (kept.length !== list.length) db.outbox = kept;
+}
+// The outbox by state, for the admin view and the monitoring check (T182)
+function outboxSummary() {
+  const sum = { queued: 0, failed: 0, notSent: 0, sent: 0, oldestQueuedAt: null };
+  for (const m of db.outbox || []) {
+    if (m.status === "Queued") {
+      sum.queued++;
+      if (!sum.oldestQueuedAt || m.createdAt < sum.oldestQueuedAt) sum.oldestQueuedAt = m.createdAt;
+    } else if (m.status === "Failed") sum.failed++;
+    else if (m.status === "Sent") sum.sent++;
+    else sum.notSent++;
+  }
+  return sum;
 }
 let outboxBusy = false;
 async function processOutbox() {
@@ -3518,7 +3541,10 @@ async function processOutbox() {
         console.error("Email delivery failed:", m.to, e.message);
       }
     }
-    if (due.length) save();
+    if (due.length) {
+      pruneOutbox();
+      save();
+    }
   } finally {
     outboxBusy = false;
   }
@@ -8335,7 +8361,14 @@ async function api(req, res, url) {
     }
     if (parts[1] === "admin" && parts[2] === "outbox" && method === "GET") {
       if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
-      return (send(res, 200, { emails: (db.outbox || []).slice(0, 300) }), true);
+      const only = url.searchParams.get("status");
+      return (
+        send(res, 200, {
+          emails: (db.outbox || []).filter((m) => !only || m.status === only).slice(0, 300),
+          summary: outboxSummary(),
+        }),
+        true
+      );
     }
     if (parts[1] === "projects" && parts[2] && parts[3] === "reviews" && method === "GET") {
       const p = projectFor(user, parts[2]);

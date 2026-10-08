@@ -396,7 +396,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T282 Durable Stripe webhook processing and restart recovery · P0 · L (T282a, T282b1a, T282b1b1–b1b3, T282b2) · follows T270/T271, before live payments
 - [ ] T283 Durable monetary operation identities and atomic settlement · P0 · L (T283a–c) · follows T272/T273 and T282, before live payments
 - [ ] T284 Stripe settlement reconciliation and operator exception list · P0 · M · follows T283, before live payments
-- [ ] T285 Preserve pending and failed emails when pruning the outbox · P0 · S · before operational emails
+- [x] T285 Preserve pending and failed emails when pruning the outbox · P0 · S · before operational emails
 - [ ] T286 Track operator time and variable contribution per paid job · P1 · M · before wider launch, not a first invited-pilot blocker
 
 **Launch focus, 7 October 2026.** Preserve existing waves and IDs, but prioritize the paid-pilot journey: inspect existing work; T282a/T282b1a/T282b1b1/T282b1b2/T282b1b3/T282b2; T200a1 data/API; T200a2 editor; T200b versioned templates; T201 then T205, followed by T202–T204 one at a time; T272; T273; T283; T284; T285; T281; T182/T184; then T180/T181 and the full-journey/restore checks in T174. Reuse T171/T172/T255/T280 for founder decisions, legal review, served scope and payment activation. T271 code is merged in PR #181; real embedded-component sandbox verification remains outstanding. Validate current Stripe documentation and the customer-paid processing-fee decision before implementing T272/T273; do not silently change money formulas.
@@ -6563,8 +6563,20 @@ From the 7 October 2026 review. These additions address verified gaps without re
 **Tests.** More than 2,000 mixed queued/failed/sent messages, oldest pending survives pruning and is delivered, retry failure survives additional inserts, restart preservation, and bounded delivered history.
 
 **Done when.**
-- [ ] Enqueueing beyond the history limit never silently deletes an undelivered/failed message.
-- [ ] Delivery order, retries and delivered-history retention pass regression tests and `npm test`.
+- [x] Enqueueing beyond the history limit never silently deletes an undelivered/failed message.
+- [x] Delivery order, retries and delivered-history retention pass regression tests and `npm test`.
+
+**As built (8 October 2026).**
+- `queueEmail()` no longer cuts the list to 2,000. `pruneOutbox()` keeps the newest 2,000 delivered (`Sent`) messages
+  (`OUTBOX_SENT_HISTORY` changes the number) and every other message: queued, retrying, failed and not-sent. It runs
+  when a message is queued and after a delivery round. Delivery order and retry semantics are unchanged (oldest due
+  first, five at a time, five attempts, growing waits).
+- `GET /admin/outbox` returns `summary` (queued, failed, notSent, sent, age of the oldest queued message) and takes
+  `?status=`; the T182 checks read the same summary. `DEPLOY.md` has the backlog watch and recovery steps and says
+  plainly that SMTP delivery is not exactly-once.
+- **Tests.** `test/outbox-pruning.test.js`: 2,100 delivered plus old queued, retrying, failed and not-sent messages;
+  all undelivered ones survive new inserts, the oldest queued one is delivered, the retrying one keeps its attempts
+  and error, a restart changes nothing, and delivered history stays bounded.
 
 ### T286 · Track operator time and variable contribution per paid job
 `P1 · M · depends on T281 and T273 · before wider launch, not required for the first invited pilot`

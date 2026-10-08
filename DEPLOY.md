@@ -137,6 +137,19 @@ sees "saved" and allows real database backups. Uploaded files stay in the data v
   ```
   The export prints the same checksums per collection as the import did.
 
+## Email outbox: backlog and recovery
+
+Every email is first stored in the outbox and then sent by a background worker (oldest first, five at a time, up to
+five attempts with growing waits). Only the history of **delivered** emails is limited (the newest 2,000, or
+`OUTBOX_SENT_HISTORY`); queued, retrying, failed and "not sent" messages are never removed to make room.
+SMTP gives no exactly-once guarantee: a message that was sent just before a crash may be sent again.
+
+- **Watch:** Platform → Email outbox, or `GET /api/admin/outbox` (`summary`: queued, failed, notSent, sent and the
+  age of the oldest queued message). A growing `queued` count or any `failed` message needs attention.
+- **Recover:** fix the cause (SMTP settings, quota, a wrong address), then set the failed messages back to
+  `Queued` (status `Queued`, `attempts` 0, no `nextAttemptAt`) with a database edit while the app is stopped,
+  or send the affected notice again by hand. Queued messages are picked up again after a restart.
+
 ## Security built in
 - HTTPS with HSTS, Content-Security-Policy, frame and referrer protection.
 - Passwords hashed with scrypt; sessions expire after 7 days and are revoked on logout, password change and suspension.
