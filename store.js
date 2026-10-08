@@ -13,12 +13,32 @@
  *   close()      optional: releases connections.
  *   ping()       optional: rejects when the store cannot be reached (/api/health).
  *   waitsForCommit  true when replies to changes must wait for flush() (server.js).
+ *   commitStripe({getDb,event,stage}) strict local commit; returns {receipt,applied}. Callers must hold
+ *                stripe-commit.gate through stage construction, commit and publication; all affected
+ *                field writers/imports share that gate. Unrelated field writes may continue.
  */
 const fs = require("fs");
 const path = require("path");
 
 function jsonStore(dataDir) {
   const file = path.join(dataDir, "db.json");
+  const atomic = require('./stripe-commit');
+  let blocked = false;
+  function directorySync() {
+    const fd = fs.openSync(dataDir, 'r');
+    try { fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+  }
+  function write(data) {
+    if (blocked) throw new Error('Stripe commit outcome requires reconciliation');
+    fs.mkdirSync(dataDir, { recursive: true });
+    const temp = file + '.tmp', fd = fs.openSync(temp, 'w', 0o600);
+    try { fs.writeFileSync(fd, JSON.stringify(data)); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+    fs.renameSync(temp, file);
+    try { directorySync(); } catch (e) {
+      // A visible rename is not sufficient durability proof. Retry only the directory boundary.
+      try { directorySync(); } catch { blocked = true; throw e; }
+    }
+  }
   return {
     kind: "json",
     file,
@@ -48,18 +68,26 @@ function jsonStore(dataDir) {
       }
     },
     save(data) {
-      fs.mkdirSync(dataDir, { recursive: true });
-      const temp = file + ".tmp",
-        fd = fs.openSync(temp, "w", 0o600);
-      try {
-        fs.writeSync(fd, JSON.stringify(data));
-        fs.fsyncSync(fd);
-      } finally {
-        fs.closeSync(fd);
-      }
-      fs.renameSync(temp, file);
+      if (blocked) throw new Error('Stripe commit outcome requires reconciliation');
+      let previous;
+      try { previous = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+      atomic.retain(previous, data);
+      write(data);
     },
-    async flush() {},
+    async commitStripe({ getDb, event, stage }) {
+      if (blocked) throw new Error('Stripe commit outcome requires reconciliation');
+      const ledger = await this.stripeInbox.get(event.id);
+      const current = this.loadSync(), existing = atomic.applied(current, event);
+      if (existing) return { receipt: existing, applied: false };
+      if (!ledger) throw new Error('Stripe inbox identity missing');
+      atomic.match(ledger, atomic.receipt(event));
+      const input = atomic.prepare(getDb(), stage, event);
+      atomic.retain(current, input.snapshot);
+      write(input.snapshot);
+      atomic.publish(getDb(), input.stage, input.receipt);
+      return { receipt: input.receipt, applied: true };
+    },
+    async flush() { if (blocked) throw new Error('Stripe commit outcome requires reconciliation'); },
   };
 }
 
