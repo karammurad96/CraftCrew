@@ -288,6 +288,8 @@ LOCALES.en = {
       pkPauseReason: "Tell the supplier why the package is paused.",
       pkValidAction: "Choose a valid action for this package.",
       couldNotSavePleaseTry: "Could not save. Please try again.",
+      backupReceiptMismatch: "This backup omits or changes completed Stripe events. Reconcile payments before importing it.",
+      backupChangedDuringRestore: "Data changed while preparing the restore. Export a fresh backup and try again.",
       thisInvoiceIsApprovedAnd: "This invoice is approved and can no longer be changed.",
       invoicesAreKeptFor10: "Invoices are kept for 10 years and cannot be deleted.",
       paymentsAreNeverChangedOr: "Payments are never changed or deleted: a correction is a new entry.",

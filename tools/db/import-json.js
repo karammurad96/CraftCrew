@@ -13,7 +13,7 @@
  */
 const fs = require("fs");
 const path = require("path");
-const { jsonInbox, postgresInbox, importInbox, fold, merge, ordered } = require("../../stripe-inbox");
+const { jsonInbox, postgresInbox, importInbox, fold, ordered } = require("../../stripe-inbox");
 const { createPool } = require("../../db/pg");
 const { migrate } = require("../../db/migrate");
 const { changes, write, readAll, assemble, TABLES } = require("../../store-postgres");
@@ -46,6 +46,10 @@ async function main() {
   try {
     await migrate(client);
     await client.query("begin");
+    await require('../../db/writer-barrier').transaction(client);
+    const ledger = postgresInbox(() => client);
+    const prepared = require('../../stripe-commit').backup(assemble(await readAll(client)).data, data, await ledger.export(), inboxBackup);
+    data = prepared.data;
     const tables = ["records", "kv", ...TABLES.map((t) => t.table)],
       { rows } = await client.query(
         `select ${tables.map((t) => `(select count(*) from ${t})`).join(" + ")} as n`,
@@ -62,11 +66,8 @@ async function main() {
       await client.query("delete from invoice_counters");
     }
     await write(client, changes(data, { records: new Map(), values: new Map() }));
-    const ledger = postgresInbox(() => client);
-    const before = await ledger.export();
-    const expected = new Map(before.map((record) => [record.id, record]));
-    for (const record of inboxBackup) expected.set(record.id, merge(expected.get(record.id), record));
-    await importInbox(ledger, inboxBackup);
+    const expected = new Map(prepared.records.map((record) => [record.id, record]));
+    await importInbox(ledger, prepared.records);
     const ledgerBack = await ledger.export();
     if (JSON.stringify([...expected.values()].sort(ordered)) !== JSON.stringify(ledgerBack.sort(ordered)))
       throw new Error("The Stripe inbox read back differs. Nothing was imported.");

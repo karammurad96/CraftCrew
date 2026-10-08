@@ -28,6 +28,22 @@ function retain(previous, next) {
     if (!kept || !equal(receipt(kept), receipt(old))) throw new Error('Stripe applied receipts cannot be removed or changed');
   }
 }
+function backup(previous, incoming, existing, imported = []) {
+  retain(previous, incoming);
+  const data = clone(incoming), records = require('./stripe-inbox').fold([...existing, ...imported]);
+  delete data.stripeWebhookInbox;
+  const byId = new Map(records.map((record) => [record.id, record]));
+  for (const [id, applied] of Object.entries(data.meta?.stripe?.appliedReceipts || {})) {
+    if (typeof applied.handledAt !== 'string' || !Number.isFinite(Date.parse(applied.handledAt)))
+      throw new Error('Invalid Stripe backup receipt timestamp');
+    const identity = receipt(applied), ledger = byId.get(id);
+    if (id !== identity.id || !ledger) throw new Error('Stripe backup receipt has no identity');
+    match(ledger, identity);
+    // JSON can commit the receipt before its sidecar display is completed; the receipt proves application.
+    if (ledger.state !== 'handled') Object.assign(ledger, { state: 'handled', handledAt: identity.handledAt });
+  }
+  return { data, records };
+}
 function createStage() {
   return { patches: [], additions: [],
     patch(collection, id, fields, expected = {}) { this.patches.push({ collection, id, fields: clone(fields), expected: clone(expected) }); },
@@ -71,4 +87,4 @@ function prepare(data, stage, event) {
   publish(snapshot, prepared, committed);
   return { stage: prepared, snapshot, receipt: committed };
 }
-module.exports = { createGate, gate: createGate(), createStage, receipt, match, applied, retain, prepare, validate, publish };
+module.exports = { createGate, gate: createGate(), createStage, receipt, match, applied, retain, backup, prepare, validate, publish };

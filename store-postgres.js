@@ -731,6 +731,7 @@ function postgresStore({ url = process.env.DATABASE_URL } = {}) {
     let committing = false, released = false, c, input;
     try {
       await client.query('begin');
+      await require('./db/writer-barrier').transaction(client);
       const prior = await client.query("select data from kv where name='meta'");
       const existing = atomic.applied({ meta: prior.rows[0]?.data }, job.event);
       if (existing) { await client.query('rollback'); return { receipt: existing, applied: false }; }
@@ -774,6 +775,29 @@ function postgresStore({ url = process.env.DATABASE_URL } = {}) {
     return { receipt: input.receipt, applied: true };
   }
 
+  async function applyBackup(job) {
+    const client = await getPool().connect();
+    let committing = false;
+    try {
+      await client.query('begin');
+      await require('./db/writer-barrier').transaction(client);
+      const ledger = require('./stripe-inbox').postgresInbox(() => client);
+      const input = atomic.backup(assemble(await readAll(client)).data, job.data, await ledger.export(), job.inbox);
+      const c = changes(input.data, saved);
+      await write(client, c);
+      await require('./stripe-inbox').importInbox(ledger, input.records);
+      committing = true;
+      await client.query('commit');
+      remember(c);
+      job.publish(input.data);
+      data = job.getDb();
+    } catch (e) {
+      if (committing) blocked = true;
+      else await client.query('rollback').catch(() => {});
+      throw e;
+    } finally { client.release(committing && blocked); }
+  }
+
   async function run() {
     if (running) return;
     running = true;
@@ -786,7 +810,7 @@ function postgresStore({ url = process.env.DATABASE_URL } = {}) {
         if (strict.length && committed >= strict[0].before) {
           const job = strict.shift();
           activeStrict = job;
-          try { job.resolve(await applyStrict(job)); } catch (e) { job.reject(e); }
+          try { job.resolve(await (job.backup ? applyBackup(job) : applyStrict(job))); } catch (e) { job.reject(e); }
           finally { activeStrict = null; }
           continue;
         }
@@ -885,6 +909,7 @@ function postgresStore({ url = process.env.DATABASE_URL } = {}) {
       strict.push(task); run();
       return task.promise;
     },
+    importBackup(job) { return this.commitStripe({ ...job, backup: true }); },
     async ping() {
       await getPool().query("select 1");
     },

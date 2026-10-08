@@ -43,6 +43,7 @@ async function tx(work, on = getPool()) {
   const client = await on.connect();
   try {
     await client.query("begin");
+    await require('./writer-barrier').transaction(client);
     const result = await work(client);
     await client.query("commit");
     return result;

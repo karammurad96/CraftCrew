@@ -6,14 +6,21 @@
 const { createPool } = require("./pg");
 const { migrate } = require("./migrate");
 const { readAll } = require("../store-postgres");
+const barrier = require('./writer-barrier');
 
 async function main() {
   const pool = createPool(),
     client = await pool.connect();
   try {
+    await barrier.session(client);
     await migrate(client);
-    process.stdout.write(JSON.stringify(await readAll(client)));
+    await client.query('begin isolation level repeatable read read only');
+    const data = await readAll(client);
+    await client.query('commit');
+    process.stdout.write(JSON.stringify(data));
   } finally {
+    await client.query('rollback').catch(() => {});
+    await barrier.release(client).catch(() => {});
     client.release();
     await pool.end();
   }

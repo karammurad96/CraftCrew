@@ -87,6 +87,17 @@ function jsonStore(dataDir) {
       atomic.publish(getDb(), input.stage, input.receipt);
       return { receipt: input.receipt, applied: true };
     },
+    async importBackup({ data, inbox, publish }) {
+      if (blocked) throw new Error('Stripe commit outcome requires reconciliation');
+      const existing = await this.stripeInbox.export();
+      const input = atomic.backup(this.loadSync(), data, existing, inbox);
+      // The embedded ledger and business data share one durable file. A failed hydration can recover
+      // from that file at startup; block ordinary writes so they cannot discard the embedded ledger.
+      write({ ...input.data, stripeWebhookInbox: input.records });
+      try { this.stripeInbox.restoreSync(input.records); }
+      catch (e) { blocked = true; throw e; }
+      publish(input.data);
+    },
     async flush() { if (blocked) throw new Error('Stripe commit outcome requires reconciliation'); },
   };
 }
