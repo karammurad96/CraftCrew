@@ -43,7 +43,7 @@ module.exports = function createPayments(ctx) {
   if (enabled && (!inbox || typeof commit !== "function" || typeof commitStripe !== "function")) throw new Error("Stripe requires a durable inbox and commit boundary.");
   const gate = ctx.gate || require("./stripe-commit").gate;
   const ownerGate = require("./payment-owner-gate")({ gate, body: ctx.body, commit, send, actor: ctx.ownerActor, refusal: ctx.ownerRefusal });
-  const handlers = new Map();
+  const handlers = new Map(), active = new Map();
   const events = () => (getDb().stripeEvents ||= []);
   const state = () => (getDb().meta ||= {}, (getDb().meta.stripe ||= {}));
 
@@ -112,6 +112,23 @@ module.exports = function createPayments(ctx) {
     if (typeof event.livemode === "boolean" && event.livemode !== live)
       return send(res, 400, { error: "Invalid signature" });
     const identity = { id: event.id, type: event.type, kind: thin ? "thin" : "snapshot", livemode: !!event.livemode };
+    // Claim before the first await: signed identical deliveries share the entire durable outcome.
+    const pending = active.get(identity.id);
+    if (pending) {
+      try { atomic.match(pending.identity, identity); }
+      catch { return send(res, 400, { error: "Invalid signature" }); }
+      const result = await pending.result;
+      return send(res, result.status, { ...result.body, ...(result.status === 200 ? { duplicate: true } : {}) });
+    }
+    const result = Promise.resolve().then(() => processEvent(event, identity, thin))
+      .catch(() => ({ status: 503, body: { error: "Could not save. Please try again." } }));
+    active.set(identity.id, { identity, result });
+    try {
+      const outcome = await result;
+      return send(res, outcome.status, outcome.body);
+    } finally { active.delete(identity.id); }
+  }
+  async function processEvent(event, identity, thin) {
     let record;
     try {
       await initialize();
@@ -123,15 +140,19 @@ module.exports = function createPayments(ctx) {
         const receipt = atomic.applied(getDb(), identity);
         if (receipt) { await repair(record, receipt); return true; }
         if (record.state === "handled") return true; // Historical completed events predate receipts.
-        if (record.state === "processing") throw new Error("Stripe delivery already processing");
-        record = await inbox.update({ ...record, state: "processing", processingAt: now(), attempts: record.attempts + 1 });
+        // No active owner exists for this verified redelivery. Metadata alone cannot replay the event;
+        // use its fresh signed payload and retain prior fixed diagnosis when resuming interrupted work.
+        const interrupted = record.state === "processing"
+          ? { errorCode: record.errorCode || "interrupted", failedAt: record.failedAt || now() } : {};
+        if (record.attempts >= Number.MAX_SAFE_INTEGER) throw new Error("Stripe attempts exhausted");
+        record = await inbox.update({ ...record, ...interrupted, state: "processing", processingAt: now(), attempts: record.attempts + 1 });
         remember(record);
         Object.assign(state(), { lastEventAt: now(), lastEventType: event.type });
         return false;
       });
-      if (duplicate) return send(res, 200, { received: true, duplicate: true });
-    } catch (error) { return send(res, error?.identity ? 400 : 503,
-      { error: error?.identity ? "Invalid signature" : "Could not save. Please try again." }); }
+      if (duplicate) return { status: 200, body: { received: true, duplicate: true } };
+    } catch (error) { return { status: error?.identity ? 400 : 503,
+      body: { error: error?.identity ? "Invalid signature" : "Could not save. Please try again." } }; }
     const registered = [...(handlers.get(event.type) || [])], prepared = [], transitions = [];
     let committed = null, errorCode = "handler_failed";
     try {
@@ -162,8 +183,8 @@ module.exports = function createPayments(ctx) {
           state().lastError = { at: now(), message: errorCode === "handler_failed" ? "Webhook handler failed" : "Webhook storage failed" };
         });
       } catch {}
-      return send(res, errorCode === "handler_failed" ? 500 : 503,
-        { error: errorCode === "handler_failed" ? "Handler failed" : "Could not save. Please try again." });
+      return { status: errorCode === "handler_failed" ? 500 : 503,
+        body: { error: errorCode === "handler_failed" ? "Handler failed" : "Could not save. Please try again." } };
     }
     // Durable listeners run after releasing the gate; they cannot cause retries of committed effects.
     if (committed.applied) for (let index = 0; index < registered.length; index++) {
@@ -171,8 +192,8 @@ module.exports = function createPayments(ctx) {
       catch { console.error("Stripe committed listener failed"); }
     }
     try { await gate.run(() => repair(record, committed.receipt)); }
-    catch { return send(res, 503, { error: "Could not save. Please try again." }); }
-    return send(res, 200, { received: true, ...(!committed.applied ? { duplicate: true } : {}) });
+    catch { return { status: 503, body: { error: "Could not save. Please try again." } }; }
+    return { status: 200, body: { received: true, ...(!committed.applied ? { duplicate: true } : {}) } };
   }
   // What the admin sees: never the key itself
   function status() {
