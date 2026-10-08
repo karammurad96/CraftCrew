@@ -2,6 +2,24 @@
 
 Stripe remains a sandbox-only development integration pending the payment launch gates. Passing fake-Stripe tests does not authorize live activation.
 
+## Windows local demo storage (T287)
+
+Windows JSON demos use file fsync and atomic rename. Node's Windows filesystem interface
+does not support the directory fsync used for strict payment durability; this demo path
+does not claim the same power-loss guarantees as the POSIX payment store. File fsync and
+rename failures still stop the save. POSIX directory errors still retry and fail closed.
+
+Configured Stripe startup, strict payout/event commits and nonempty inbox mutations refuse
+Windows JSON before provider activity or storage publication. Existing or incoming applied
+receipts, historical Stripe events and persisted inbox identities also block demo replacement;
+empty migrated metadata is allowed. Existing data is preserved, never deleted or reset.
+For payment work on Windows use `STORE=postgres` with PostgreSQL, or run JSON storage on
+Linux. Back up and use the documented migration tools rather than copying incomplete ledgers.
+
+The existing Windows launcher remains valid: rerun it after updating to the merged fix.
+Tests simulate Windows on Linux and cover demo startup/login/restart plus strict refusal;
+an actual Windows machine has not been verified by these tests.
+
 ## Test-mode Stripe setup (T272a)
 
 `node tools/stripe-setup.js --url https://your-public-host` uses only the environment's

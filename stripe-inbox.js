@@ -37,7 +37,10 @@ function recentLimit(limit) {
   return limit;
 }
 const ordered = (a, b) => String(b.receivedAt || "").localeCompare(String(a.receivedAt || "")) || a.id.localeCompare(b.id);
-function jsonInbox(dataDir) {
+function assertJsonDurability(platform = process.platform) {
+  if (platform === 'win32') throw new Error('Stripe and strict payout storage require STORE=postgres on Windows, or JSON storage on Linux. Existing data has not been changed.');
+}
+function jsonInbox(dataDir, platform = process.platform) {
   const directory = path.join(dataDir, "stripe-webhooks");
   const filename = (id) => path.join(directory, crypto.createHash("sha256").update(id).digest("hex") + ".json");
   function get(id) {
@@ -49,10 +52,12 @@ function jsonInbox(dataDir) {
   }
   function prepare() {
     fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
+    if (platform === 'win32') return; // Empty demo migration only; financial writes preflight below.
     const parent = fs.openSync(dataDir, "r");
     try { fs.fsyncSync(parent); } finally { fs.closeSync(parent); }
   }
   function write(input) {
+    assertJsonDurability(platform);
     const record = metadata(input);
     prepare();
     const file = filename(record.id), temp = file + ".tmp", fd = fs.openSync(temp, "w", 0o600);
@@ -76,10 +81,12 @@ function jsonInbox(dataDir) {
     return records.sort(ordered);
   }
   return {
+    assertDurability() { assertJsonDurability(platform); },
     async prepare() { prepare(); },
     async get(id) { return get(id); },
-    async receive(input) { const record = metadata(input); return get(record.id) || write(record); },
+    async receive(input) { assertJsonDurability(platform); const record = metadata(input); return get(record.id) || write(record); },
     async update(input) {
+      assertJsonDurability(platform);
       const record = metadata(input), existing = get(record.id);
       if (!existing) throw new Error("Stripe event identity missing");
       merge(existing, record);
@@ -88,6 +95,7 @@ function jsonInbox(dataDir) {
     async recent(limit = 20) { return scan(recentLimit(limit)); },
     restoreSync(records) {
       if (!Array.isArray(records)) throw new Error("Invalid Stripe inbox backup");
+      if (records.length) assertJsonDurability(platform);
       const planned = fold(records).map((record) => merge(get(record.id), record));
       prepare();
       for (const record of planned) write(record);
@@ -146,4 +154,4 @@ async function importInbox(inbox, records = []) {
     else if (merged !== existing) await inbox.update(merged);
   }
 }
-module.exports = { jsonInbox, postgresInbox, metadata, importInbox, fold, merge, ordered, exportPostgresInbox };
+module.exports = { jsonInbox, postgresInbox, metadata, importInbox, fold, merge, ordered, exportPostgresInbox, assertJsonDurability };

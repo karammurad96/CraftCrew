@@ -398,6 +398,23 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T284 Stripe settlement reconciliation and operator exception list · P0 · M · follows T283, before live payments
 - [ ] T285 Preserve pending and failed emails when pruning the outbox · P0 · S · before operational emails
 - [ ] T286 Track operator time and variable contribution per paid job · P1 · M · before wider launch, not a first invited-pilot blocker
+- [x] T287 Restore Windows JSON demo startup without weakening payment durability · P0 · S · urgent user regression, before T272b
+
+### T287 · Windows JSON demo compatibility
+
+**Problem.** Windows Node rejects directory fsync with EPERM after the atomic JSON rename, stopping the existing local demo launcher.
+
+**Do.** On Windows only, ordinary JSON demo saves retain file fsync and atomic rename without unsupported directory fsync. Refuse strict payout/Stripe commits, inbox writes and receipt-bearing/ledger-bearing JSON replacements before mutation; refuse configured Stripe startup with actionable PostgreSQL/Linux guidance. Empty legacy inbox metadata remains compatible. POSIX durability failures still retry and latch closed; PostgreSQL remains supported. Preserve existing local data and the working launcher.
+
+**Tests / Done when.**
+- [x] Simulated Windows ordinary saves, reload and demo startup/API succeed without directory fsync.
+- [x] Strict store/inbox/provider preflight and prior/incoming financial receipt protection reject before mutation.
+- [x] POSIX EPERM, file fsync and rename failures remain observable, with existing durability latch intact.
+- [x] Full JSON/real PostgreSQL suites, secret scan and independent review pass. No actual Windows verification claimed.
+
+**Merge gate.** All five CI checks must pass on the final rebased head; this urgent fix does not bypass the existing merge rules.
+
+**T287 as built (8 October 2026).** Windows JSON demo saves retain file fsync and rename while omitting unsupported directory fsync; file fsync/rename errors remain visible. Configured Stripe startup preflights before SDK construction, and strict payout/event commits and nonempty inbox writes refuse Windows JSON before reading stages or publishing data. Ordinary loads/saves/imports reject prior or incoming applied receipts, legacy events, embedded ledgers and persisted sidecars (including incomplete temporary sidecars); empty ledger migration/import remains supported. POSIX directory EPERM still retries twice then blocks later writes/flush, and PostgreSQL is unchanged. Existing data and the Windows launcher are preserved: rerun the same launcher after this PR merges. Independent Windows simulation tests passed 12/12; combined storage targets passed 57/0/12 expected PostgreSQL skips; full JSON passed 820/0/19 expected skips and full real PostgreSQL passed 904/0/1 skip. The required clean merged-main baseline also passed 808/0/19 after executor recovery. Secret scan and diff check are clean. Actual Windows/OneDrive verification remains the user's rerun; no native Windows execution or real Stripe activation is claimed.
 
 **Parallel-agent ownership, 8 October 2026 (Karam).** Payments/storage work proceeds in this order: T282b1b2, T282b1b3, T282b2; T272/T273; T283a/T283b/T283c; T284; T274/T275/T278; T280 checklist/tooling only. Claude owns contracts T200a1–T205, T285 outbox, T281 cockpit/take-rate, T286 and monitoring/load-test implementation. Preserve both sides of shared TASKS/locales/server/Docker wiring changes; payment migrations use 009–019 and Claude uses 020–059. Leave PR #194 (T191–T196), PR #188 (T246/T247) and T210/T211 parked. No live activation or live keys. Customer processing-cost settings remain OFF until a formula is entered per payment method; flag §270a BGB for legal review (no surcharge on SEPA direct debit, SEPA credit transfer or consumer cards, including between businesses). T272/T273 add the setup tool and payment implementations; this helper task does not activate them.
 

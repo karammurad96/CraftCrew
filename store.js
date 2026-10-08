@@ -22,9 +22,20 @@
 const fs = require("fs");
 const path = require("path");
 
-function jsonStore(dataDir) {
+function jsonStore(dataDir, platform) {
   const file = path.join(dataDir, "db.json");
   const atomic = require('./stripe-commit');
+  const ledger = require('./stripe-inbox').jsonInbox(dataDir, platform);
+  const strict = () => ledger.assertDurability();
+  function demoOnly(...snapshots) {
+    if (platform !== 'win32') return;
+    for (const data of snapshots) {
+      if (Object.keys(data?.meta?.stripe?.appliedReceipts || {}).length || data?.stripeEvents?.length || data?.stripeWebhookInbox?.length) strict();
+    }
+    // Never downgrade an existing durable inbox when the incoming snapshot omits it.
+    try { if (fs.readdirSync(path.join(dataDir, 'stripe-webhooks')).some((name) => /^[a-f0-9]{64}\.json(?:\.tmp)?$/.test(name))) strict(); }
+    catch (e) { if (e.code !== 'ENOENT') throw e; }
+  }
   let blocked = false;
   function directorySync() {
     const fd = fs.openSync(dataDir, 'r');
@@ -36,6 +47,7 @@ function jsonStore(dataDir) {
     const temp = file + '.tmp', fd = fs.openSync(temp, 'w', 0o600);
     try { fs.writeFileSync(fd, JSON.stringify(data)); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
     fs.renameSync(temp, file);
+    if (platform === 'win32') return; // File fsync + rename supports demos, not strict payment durability.
     try { directorySync(); } catch (e) {
       // A visible rename is not sufficient durability proof. Retry only the directory boundary.
       try { directorySync(); } catch { blocked = true; throw e; }
@@ -44,7 +56,7 @@ function jsonStore(dataDir) {
   return {
     kind: "json",
     file,
-    stripeInbox: require("./stripe-inbox").jsonInbox(dataDir),
+    stripeInbox: ledger,
     loadSync() {
       let text;
       try {
@@ -55,6 +67,7 @@ function jsonStore(dataDir) {
       }
       try {
         const data = JSON.parse(text);
+        demoOnly(data);
         if (data.meta?.stripe?.inboxMigrated && data.stripeWebhookInbox === undefined && !fs.existsSync(path.join(dataDir, "stripe-webhooks")))
           throw new Error("The migrated Stripe inbox is missing. Restore the complete data-folder backup.");
         if (data.stripeWebhookInbox !== undefined) {
@@ -73,10 +86,12 @@ function jsonStore(dataDir) {
       if (blocked) throw new Error('Stripe commit outcome requires reconciliation');
       let previous;
       try { previous = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+      demoOnly(previous, data);
       atomic.retain(previous, data);
       write(data);
     },
     async commitStripe({ getDb, event, stage }) {
+      strict();
       if (blocked) throw new Error('Stripe commit outcome requires reconciliation');
       const ledger = await this.stripeInbox.get(event.id);
       const current = this.loadSync(), existing = atomic.applied(current, event);
@@ -90,6 +105,7 @@ function jsonStore(dataDir) {
       return { receipt: input.receipt, applied: true };
     },
     async commitStage({ getDb, stage }) {
+      strict();
       if (blocked) throw new Error('Stripe commit outcome requires reconciliation');
       const current = this.loadSync(), input = atomic.prepareStage(getDb(), stage);
       atomic.retain(current, input.snapshot);
@@ -98,6 +114,7 @@ function jsonStore(dataDir) {
       return { applied: true };
     },
     async importBackup({ data, inbox, publish }) {
+      demoOnly(data, { stripeWebhookInbox: inbox });
       if (blocked) throw new Error('Stripe commit outcome requires reconciliation');
       const existing = await this.stripeInbox.export();
       const input = atomic.backup(this.loadSync(), data, existing, inbox);
@@ -113,8 +130,8 @@ function jsonStore(dataDir) {
 }
 
 // The store this process uses: STORE (json or postgres) and DATA_DIR / DATABASE_URL from the environment.
-function openStore({ dataDir, kind = process.env.STORE || "json", url = process.env.DATABASE_URL } = {}) {
-  if (kind === "json") return jsonStore(dataDir);
+function openStore({ dataDir, kind = process.env.STORE || "json", url = process.env.DATABASE_URL, platform = process.platform } = {}) {
+  if (kind === "json") return jsonStore(dataDir, platform);
   if (kind === "postgres") return require("./store-postgres").postgresStore({ url });
   throw new Error(`Unknown STORE "${kind}": use json or postgres.`);
 }
