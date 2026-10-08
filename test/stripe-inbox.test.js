@@ -29,8 +29,9 @@ async function fixture(kind, test) {
     store = open();
     let db = store.loadSync() || { meta: {}, stripeEvents: [] };
     fake = await startFakeStripe();
+    fake.env.STRIPE_THIN_WEBHOOK_SECRET = "whsec_thin";
     const sent = [];
-    const makePayments = () => createPayments({ inbox: store.stripeInbox, getDb: () => db,
+    const makePayments = () => createPayments({ inbox: store.stripeInbox, commitStage: (job) => store.commitStage(job), commitStripe: (job) => store.commitStripe(job), getDb: () => db,
       save() {}, commit: async () => { store.save(db); await store.flush(); },
       send: (res, status, body) => sent.push({ status, body }), now: () => new Date().toISOString(),
       activity() {}, env: fake.env });
@@ -58,10 +59,10 @@ for (const kind of ["json", "postgres"]) describe(`durable Stripe inbox (${kind}
     assert.equal((await c.deliver("evt_after_empty_restart")).status, 200);
   }));
   it("persists verified processing identity before handlers and keeps only sanitized metadata", async () => fixture(kind, async (c) => {
-    c.payments.on("test.event", async () => {
+    c.payments.on("test.event", { prepare: async () => {
       const durable = await c.store.stripeInbox.get("evt_before");
       assert.equal(durable.state, "processing"); assert.equal(durable.attempts, 1);
-    });
+    }, stage() {} });
     const result = await c.deliver("evt_before", "test.event", { data: { object: { secret: KEY, number: "4242424242424242" } } });
     assert.equal(result.status, 200);
     const record = await c.store.stripeInbox.get("evt_before");
@@ -71,20 +72,20 @@ for (const kind of ["json", "postgres"]) describe(`durable Stripe inbox (${kind}
   }));
   it("does not rerun an old identity after 2001 later events, restart and display trimming", async () => fixture(kind, async (c) => {
     let calls = 0;
-    c.payments.on("test.event", () => calls++);
+    c.payments.on("test.event", { stage: () => calls++ });
     await c.deliver("evt_old");
     for (let n = 0; n < 2001; n++) assert.equal((await c.deliver(`evt_later_${n}`)).status, 200);
     assert.equal(calls, 2002); assert.equal(c.db.stripeEvents.length, 20);
-    await c.restart(); c.payments.on("test.event", () => calls++);
+    await c.restart(); c.payments.on("test.event", { stage: () => calls++ });
     assert.equal((await c.deliver("evt_old")).body.duplicate, true); assert.equal(calls, 2002);
     assert.equal((await c.store.stripeInbox.export()).length, 2002);
   }));
   it("retains failed work and retries with durable attempts and sanitized errors", async () => fixture(kind, async (c) => {
     let calls = 0;
-    c.payments.on("test.event", () => { if (++calls === 1) throw new Error(KEY); });
+    c.payments.on("test.event", { stage: () => { if (++calls === 1) throw new Error(KEY); } });
     assert.equal((await c.deliver("evt_failed")).status, 500);
     assert.equal((await c.store.stripeInbox.get("evt_failed")).state, "failed");
-    await c.restart(); c.payments.on("test.event", () => calls++);
+    await c.restart(); c.payments.on("test.event", { stage: () => calls++ });
     assert.equal((await c.deliver("evt_failed")).status, 200);
     const record = await c.store.stripeInbox.get("evt_failed");
     assert.equal(record.attempts, 2); assert.equal(record.state, "handled"); assert.equal(calls, 2);
@@ -99,7 +100,7 @@ for (const kind of ["json", "postgres"]) describe(`durable Stripe inbox (${kind}
   it("a real inbox write failure prevents handler execution and success acknowledgement", async () => fixture(kind, async (c) => {
     // Initialize successfully first, then fail the actual identity writer rather than the handler.
     await c.deliver("evt_initialize");
-    let calls = 0; c.payments.on("test.event", () => calls++);
+    let calls = 0; c.payments.on("test.event", { stage: () => calls++ });
     if (kind === "json") {
       fs.renameSync(path.join(c.dataDir, "stripe-webhooks"), path.join(c.dataDir, "ledger-kept"));
       fs.writeFileSync(path.join(c.dataDir, "stripe-webhooks"), "blocked");
@@ -121,9 +122,108 @@ for (const kind of ["json", "postgres"]) describe(`durable Stripe inbox (${kind}
       return update(record);
     };
     assert.equal((await c.deliver("evt_completion_failed")).status, 503);
-    assert.equal((await c.store.stripeInbox.get("evt_completion_failed")).state, "failed");
+    assert.ok(c.db.meta.stripe.appliedReceipts.evt_completion_failed, "business application has a durable receipt even if bookkeeping fails");
     c.store.stripeInbox.update = update;
     assert.equal((await c.deliver("evt_completion_failed")).status, 200);
+  }));
+  it("rejects legacy and asynchronous handlers before registration", async () => fixture(kind, async (c) => {
+    assert.throws(() => c.payments.on("test.event", () => {}), /transaction-aware/);
+    assert.throws(() => c.payments.on("test.event", { stage: async () => {} }), /transaction-aware/);
+    assert.throws(() => c.payments.on("test.event", { *stage() {} }), /transaction-aware/);
+    assert.throws(() => c.payments.on("test.event", { async *stage() {} }), /transaction-aware/);
+  }));
+  it("all handlers stage together: a later throw publishes no fields, notice, mail or receipt", async () => fixture(kind, async (c) => {
+    Object.assign(c.db, { suppliers: [{ id: "sup", stripeAccount: { id: "acct", transfers: "pending" } }], notifications: [], outbox: [] });
+    let failing = true, callbacks = 0;
+    c.payments.on("test.event", { stage({ stage }) {
+      stage.patch("suppliers", "sup", { stripeAccount: { id: "acct", transfers: "active" } });
+      stage.add("notifications", { id: "notice" }); stage.add("outbox", { id: "mail", status: "Queued" });
+    }, afterCommit() { callbacks++; } });
+    c.payments.on("test.event", { stage() { if (failing) throw new Error(KEY); } });
+    assert.equal((await c.deliver("evt_atomic_handlers")).status, 500);
+    assert.equal(c.db.suppliers[0].stripeAccount.transfers, "pending");
+    assert.deepEqual(c.db.notifications, []); assert.deepEqual(c.db.outbox, []);
+    assert.equal(c.db.meta.stripe.appliedReceipts?.evt_atomic_handlers, undefined); assert.equal(callbacks, 0);
+    failing = false; assert.equal((await c.deliver("evt_atomic_handlers")).status, 200);
+    assert.equal(c.db.notifications.length, 1); assert.equal(c.db.outbox.length, 1); assert.equal(callbacks, 1);
+    await c.restart(); assert.equal(c.db.suppliers[0].stripeAccount.transfers, "active");
+    assert.equal((await c.deliver("evt_atomic_handlers")).body.duplicate, true); assert.equal(callbacks, 1);
+  }));
+  it("receipt repairs interrupted completion after restart without preparing, staging or notifying again", async () => fixture(kind, async (c) => {
+    c.db.notifications = []; let provider = 0, stages = 0, callbacks = 0;
+    const handler = { prepare() { provider++; }, stage({ stage }) { stages++; stage.add("notifications", { id: "repaired_notice" }); },
+      afterCommit() { callbacks++; throw new Error(KEY); } };
+    c.payments.on("test.event", handler);
+    const update = c.store.stripeInbox.update.bind(c.store.stripeInbox);
+    c.store.stripeInbox.update = (record) => record.state === "handled" ? Promise.reject(new Error("sidecar refused")) : update(record);
+    assert.equal((await c.deliver("evt_receipt_repair")).status, 503);
+    assert.deepEqual([provider, stages, callbacks], [1, 1, 1]);
+    await c.restart(); c.payments.on("test.event", handler);
+    assert.equal((await c.deliver("evt_receipt_repair")).body.duplicate, true);
+    assert.deepEqual([provider, stages, callbacks], [1, 1, 1]);
+    assert.equal(c.db.notifications.length, 1);
+    assert.equal((await c.store.stripeInbox.get("evt_receipt_repair")).state, "handled");
+  }));
+  it("actual strict store failure publishes no staged fields/mail and verified retry applies once", async () => fixture(kind, async (c) => {
+    Object.assign(c.db, { notifications: [], outbox: [] });
+    await c.deliver("evt_fault_initialize"); let callbacks = 0;
+    c.payments.on("test.event", { stage({ stage }) { stage.add("notifications", { id: "fault_notice" }); stage.add("outbox", { id: "fault_mail", status: "Queued" }); },
+      afterCommit() { callbacks++; } });
+    if (kind === "json") fs.mkdirSync(path.join(c.dataDir, "db.json.tmp"));
+    else {
+      await c.admin.query(`create function ${c.schema}.refuse_notice() returns trigger language plpgsql as $$ begin if new.collection='notifications' then raise exception 'notice refused'; end if; return new; end $$`);
+      await c.admin.query(`create trigger refuse_notice before insert or update on ${c.schema}.records for each row execute function ${c.schema}.refuse_notice()`);
+    }
+    assert.equal((await c.deliver("evt_store_refused")).status, 503);
+    assert.deepEqual(c.db.notifications, []); assert.deepEqual(c.db.outbox, []); assert.equal(callbacks, 0);
+    assert.equal(c.db.meta.stripe.appliedReceipts?.evt_store_refused, undefined);
+    if (kind === "json") fs.rmdirSync(path.join(c.dataDir, "db.json.tmp"));
+    else await c.admin.query(`drop trigger refuse_notice on ${c.schema}.records`);
+    assert.equal((await c.deliver("evt_store_refused")).status, 200); assert.equal(callbacks, 1);
+    assert.equal(c.db.outbox.length, 1); await c.restart(); assert.equal(c.db.notifications.length, 1);
+  }));
+  it("thin preparation holds no gate and rejects changed owner or imported account bindings", async () => fixture(kind, async (c) => {
+    const account = await c.payments.client.v2.core.accounts.create({ dashboard: "express" });
+    for (const change of ["owner", "account"]) {
+      Object.assign(c.db, { suppliers: [{ id: "sup", stripeAccount: { id: account.id, transfers: "pending" } }],
+        users: [{ id: "owner", role: "supplier", supplierId: "sup", email: "owner@example.test" }], notifications: [], outbox: [] });
+      let entered, release;
+      const entering = new Promise((resolve) => entered = resolve), waiting = new Promise((resolve) => release = resolve);
+      const retrieve = c.payments.client.v2.core.accounts.retrieve.bind(c.payments.client.v2.core.accounts);
+      c.payments.client.v2.core.accounts.retrieve = async (...args) => { const result = await retrieve(...args); entered(); await waiting; return result; };
+      const type = "v2.core.account.updated", signed = c.fake.signedThin({ id: `evt_binding_${change}`, type,
+        related_object: { id: account.id, type: "v2.core.account" } }, c.fake.env.STRIPE_THIN_WEBHOOK_SECRET);
+      const pending = c.payments.webhook(request(signed), {}); await entering;
+      await c.payments.withOwnerGate(() => {
+        if (change === "owner") Object.assign(c.db.users[0], { id: "replacement_owner", email: "replacement@example.test" });
+        else c.db.suppliers[0].stripeAccount = { id: "acct_replacement", transfers: "pending" };
+      });
+      release(); await pending; c.payments.client.v2.core.accounts.retrieve = retrieve;
+      assert.equal(c.sent.at(-1).status, 500);
+      assert.deepEqual(c.db.notifications, []); assert.deepEqual(c.db.outbox, []);
+      assert.equal(c.db.meta.stripe.appliedReceipts?.[`evt_binding_${change}`], undefined);
+      assert.equal(c.db.suppliers[0].stripeAccount.transfers, "pending");
+    }
+  }));
+  it("committed callbacks run outside the gate, isolate throws and suppress duplicate callbacks", async () => fixture(kind, async (c) => {
+    let callbacks = 0;
+    c.payments.on("test.event", { stage() {}, async afterCommit() {
+      await c.payments.withOwnerGate(() => { callbacks++; }); throw new Error(KEY);
+    } });
+    assert.equal((await c.deliver("evt_listener")).status, 200);
+    assert.equal((await c.deliver("evt_listener")).body.duplicate, true); assert.equal(callbacks, 1);
+  }));
+  it("a receipt arriving during preparation suppresses staging and applied:false listeners", async () => fixture(kind, async (c) => {
+    const identity = { id: "evt_late_receipt", type: "test.event", kind: "snapshot", livemode: false, handledAt: new Date().toISOString() };
+    c.payments.on("test.event", {
+      async prepare() { await c.payments.withOwnerGate(() => c.store.commitStripe({ getDb: () => c.db, event: identity, stage: require("../stripe-commit").createStage() })); },
+      stage() { assert.fail("an already applied receipt must not stage again"); },
+      afterCommit() { assert.fail("applied:false must not notify"); },
+    });
+    assert.equal((await c.deliver(identity.id)).body.duplicate, true);
+    assert.equal((await c.store.stripeInbox.get(identity.id)).state, "handled");
+    assert.equal((await c.deliver(identity.id, "different.event")).status, 400);
+    assert.equal(c.db.meta.stripe.appliedReceipts[identity.id].type, "test.event");
   }));
   it("uniquely stores identities and merges backups with handled state dominant", async () => fixture(kind, async (c) => {
     const ledger = c.store.stripeInbox;
@@ -172,7 +272,7 @@ it("corrupt JSON identity fails closed without overwriting it or executing a han
   await c.deliver("evt_corrupt");
   const file = path.join(c.dataDir, "stripe-webhooks", require("crypto").createHash("sha256").update("evt_corrupt").digest("hex") + ".json");
   fs.writeFileSync(file, "{damaged");
-  let calls = 0; c.payments.on("test.event", () => calls++);
+  let calls = 0; c.payments.on("test.event", { stage: () => calls++ });
   assert.equal((await c.deliver("evt_corrupt")).status, 503);
   assert.equal(calls, 0); assert.equal(fs.readFileSync(file, "utf8"), "{damaged");
 }));

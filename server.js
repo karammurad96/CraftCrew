@@ -566,7 +566,7 @@ const commission = require("./commission")({
 });
 // T270: payments with Stripe (Wave 18); off unless STRIPE_SECRET_KEY is set in the environment
 const payments = require("./payments")({
-  inbox: store.stripeInbox, ownerActor: (req) => auth(req), ownerRefusal: (error) => refusalMessage(error), commitStage: (job) => store.commitStage(job), gate: stripeCommit.gate, id: (p) => id(p), mailEnabled: () => mailer.enabled, appUrl: () => APP_URL,
+  inbox: store.stripeInbox, commitStripe: (job) => store.commitStripe(job), ownerActor: (req) => auth(req), ownerRefusal: (error) => refusalMessage(error), commitStage: (job) => store.commitStage(job), gate: stripeCommit.gate, id: (p) => id(p), mailEnabled: () => mailer.enabled, appUrl: () => APP_URL,
   commit: async () => { saveNow(); await store.flush(); },
   body,
   getDb: () => db,

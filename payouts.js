@@ -82,11 +82,25 @@ module.exports = function createPayouts(ctx) {
       return structuredClone(current.stripeAccount);
     });
   }
-  // Signed events remain the legacy local handlers until T282b1b3c installs the receipt boundary.
-  for (const type of ACCOUNT_EVENTS) on(type, async (related) => {
-    const matches = suppliers().filter((supplier) => supplier.stripeAccount?.id === related?.id);
-    if (matches.length > 1) throw changed();
-    if (matches.length === 1) await refresh(matches[0].id);
+  for (const type of ACCOUNT_EVENTS) on(type, {
+    async prepare(related) {
+      healthy();
+      if (typeof related?.id !== "string" || !related.id) throw changed();
+      const matches = suppliers().filter((supplier) => supplier.stripeAccount?.id === related?.id);
+      if (matches.length > 1) throw changed();
+      return matches.length ? prepareRefresh({ getDb, supplierId: matches[0].id, client }) : { ignored: related?.id };
+    },
+    stage({ prepared, stage }) {
+      healthy();
+      if (Object.hasOwn(prepared, 'ignored')) {
+        if (suppliers().some((supplier) => supplier.stripeAccount?.id === prepared.ignored)) throw changed();
+        return null;
+      }
+      return stageRefresh({ getDb, prepared, stage, ...options() });
+    },
+    afterCommit(transition) {
+      if (transition) return runPostCommit(transition, listeners, () => console.error('Stripe payout committed listener failed'));
+    },
   });
   const ready = (supplierId) => enabled && suppliers().find((supplier) => supplier.id === supplierId)?.stripeAccount?.transfers === 'active';
   async function transfer(supplierId, params, requestOptions) {
