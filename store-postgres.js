@@ -692,7 +692,11 @@ function postgresStore({ url = process.env.DATABASE_URL } = {}) {
     committed = 0,
     running = false,
     retry = null,
-    waiters = [];
+    waiters = [],
+    strict = [],
+    blocked = false,
+    activeStrict = null;
+  const atomic = require('./stripe-commit');
   const getPool = () => (pool ||= require("./db/pg").createPool(url));
   const stats = { writes: 0, rowsWritten: 0, rowsDeleted: 0, last: null, refused: 0 };
 
@@ -722,6 +726,54 @@ function postgresStore({ url = process.env.DATABASE_URL } = {}) {
     }
   }
 
+  async function applyStrict(job) {
+    const client = await getPool().connect();
+    let committing = false, released = false, c, input;
+    try {
+      await client.query('begin');
+      const prior = await client.query("select data from kv where name='meta'");
+      const existing = atomic.applied({ meta: prior.rows[0]?.data }, job.event);
+      if (existing) { await client.query('rollback'); return { receipt: existing, applied: false }; }
+      input = atomic.prepare(job.getDb(), job.stage, job.event);
+      atomic.retain({ meta: prior.rows[0]?.data }, input.snapshot);
+      const id = input.receipt.id;
+      c = changes(input.snapshot, saved);
+      await write(client, c);
+      const marker = await client.query(`update stripe_webhook_inbox set data=data || $2::jsonb
+        where event_id=$1 and data->>'type'=$3 and data->>'kind'=$4
+        and (data->>'livemode')::boolean=$5 returning event_id`,
+        [id, JSON.stringify({ state: 'handled', handledAt: input.receipt.handledAt }), input.receipt.type, input.receipt.kind, input.receipt.livemode]);
+      if (marker.rows.length !== 1) throw new Error('Stripe inbox identity missing or mismatched');
+      atomic.validate(job.getDb(), input.stage);
+      committing = true;
+      await client.query('commit');
+    } catch (error) {
+      if (!committing) { await client.query('rollback').catch(() => {}); throw error; }
+      // COMMIT may have succeeded. A fresh connection must prove the same applied receipt.
+      client.release(true);
+      released = true;
+      try {
+        const resolved = await getPool().query(`select (select data from kv where name='meta') as meta,
+          (select data from stripe_webhook_inbox where event_id=$1) as inbox`, [input.receipt.id]);
+        const row = resolved.rows[0];
+        if (!atomic.applied({ meta: row?.meta }, job.event) || row?.inbox?.state !== 'handled' || !atomic.match(row.inbox, input.receipt)) {
+          // The original backend may still be committing. Absence is not rollback proof.
+          blocked = true;
+          throw error;
+        }
+      } catch (resolution) {
+        if (resolution !== error) blocked = true;
+        throw resolution;
+      }
+    } finally {
+      if (!released) client.release();
+    }
+    remember(c);
+    atomic.publish(job.getDb(), input.stage, input.receipt);
+    data = job.getDb();
+    return { receipt: input.receipt, applied: true };
+  }
+
   async function run() {
     if (running) return;
     running = true;
@@ -729,11 +781,20 @@ function postgresStore({ url = process.env.DATABASE_URL } = {}) {
     retry = null;
     const { tx } = require("./db/pg");
     try {
-      while (committed < requested) {
-        const covers = requested,
+      while (committed < requested || strict.length) {
+        if (blocked) { const error = new Error('Stripe commit outcome requires reconciliation'); settle(error); for (const job of strict.splice(0)) job.reject(error); return; }
+        if (strict.length && committed >= strict[0].before) {
+          const job = strict.shift();
+          activeStrict = job;
+          try { job.resolve(await applyStrict(job)); } catch (e) { job.reject(e); }
+          finally { activeStrict = null; }
+          continue;
+        }
+        const covers = strict.length ? Math.min(requested, strict[0].before) : requested,
           c = changes(data, saved);
         let refused = [];
         try {
+          atomic.retain({ meta: JSON.parse(saved.values.get('meta') || 'null') }, data);
           if (!empty(c))
             try {
               await tx((client) => write(client, c), getPool());
@@ -745,6 +806,7 @@ function postgresStore({ url = process.env.DATABASE_URL } = {}) {
           // The changes stay in memory and are written with the next save, or by the retry below.
           console.error("Could not save to PostgreSQL:", e.code || e.message);
           settle(e);
+          for (const job of strict.splice(0)) job.reject(e);
           retry = setTimeout(() => run(), 5000);
           return;
         }
@@ -802,24 +864,34 @@ function postgresStore({ url = process.env.DATABASE_URL } = {}) {
       return result.data;
     },
     save(next) {
+      if (blocked) throw new Error('Stripe commit outcome requires reconciliation');
       data = next;
       requested++;
       run();
     },
     flush() {
-      if (committed >= requested) return Promise.resolve();
+      if (blocked) return Promise.reject(new Error('Stripe commit outcome requires reconciliation'));
+      const pending = [...(activeStrict ? [activeStrict.promise] : []), ...strict.map((job) => job.promise)];
+      if (committed >= requested) return Promise.all(pending).then(() => {});
       const target = requested;
       const done = new Promise((resolve, reject) => waiters.push({ target, resolve, reject }));
       run();
-      return done;
+      return Promise.all([done, ...pending]).then(() => {});
+    },
+    commitStripe(job) {
+      if (blocked) return Promise.reject(new Error('Stripe commit outcome requires reconciliation'));
+      const task = { ...job, before: requested };
+      task.promise = new Promise((resolve, reject) => Object.assign(task, { resolve, reject }));
+      strict.push(task); run();
+      return task.promise;
     },
     async ping() {
       await getPool().query("select 1");
     },
     async close() {
       clearTimeout(retry);
-      if (pool) await pool.end();
-      pool = null;
+      try { await this.flush(); }
+      finally { clearTimeout(retry); retry = null; if (pool) await pool.end(); pool = null; }
     },
   };
 }
