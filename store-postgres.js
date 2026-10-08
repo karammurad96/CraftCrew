@@ -733,18 +733,20 @@ function postgresStore({ url = process.env.DATABASE_URL } = {}) {
       await client.query('begin');
       await require('./db/writer-barrier').transaction(client);
       const prior = await client.query("select data from kv where name='meta'");
-      const existing = atomic.applied({ meta: prior.rows[0]?.data }, job.event);
+      const existing = !job.ordinary && atomic.applied({ meta: prior.rows[0]?.data }, job.event);
       if (existing) { await client.query('rollback'); return { receipt: existing, applied: false }; }
-      input = atomic.prepare(job.getDb(), job.stage, job.event);
+      input = job.ordinary ? atomic.prepareStage(job.getDb(), job.stage) : atomic.prepare(job.getDb(), job.stage, job.event);
       atomic.retain({ meta: prior.rows[0]?.data }, input.snapshot);
-      const id = input.receipt.id;
       c = changes(input.snapshot, saved);
       await write(client, c);
-      const marker = await client.query(`update stripe_webhook_inbox set data=data || $2::jsonb
-        where event_id=$1 and data->>'type'=$3 and data->>'kind'=$4
-        and (data->>'livemode')::boolean=$5 returning event_id`,
-        [id, JSON.stringify({ state: 'handled', handledAt: input.receipt.handledAt }), input.receipt.type, input.receipt.kind, input.receipt.livemode]);
-      if (marker.rows.length !== 1) throw new Error('Stripe inbox identity missing or mismatched');
+      if (!job.ordinary) {
+        const id = input.receipt.id;
+        const marker = await client.query(`update stripe_webhook_inbox set data=data || $2::jsonb
+          where event_id=$1 and data->>'type'=$3 and data->>'kind'=$4
+          and (data->>'livemode')::boolean=$5 returning event_id`,
+          [id, JSON.stringify({ state: 'handled', handledAt: input.receipt.handledAt }), input.receipt.type, input.receipt.kind, input.receipt.livemode]);
+        if (marker.rows.length !== 1) throw new Error('Stripe inbox identity missing or mismatched');
+      }
       atomic.validate(job.getDb(), input.stage);
       committing = true;
       await client.query('commit');
@@ -753,6 +755,9 @@ function postgresStore({ url = process.env.DATABASE_URL } = {}) {
       // COMMIT may have succeeded. A fresh connection must prove the same applied receipt.
       client.release(true);
       released = true;
+      // An ordinary operation has no unique event receipt to prove an ambiguous outcome.
+      // Refuse further writes; startup's writer barrier/reload establishes the stable state.
+      if (job.ordinary) { blocked = true; throw error; }
       try {
         const resolved = await getPool().query(`select (select data from kv where name='meta') as meta,
           (select data from stripe_webhook_inbox where event_id=$1) as inbox`, [input.receipt.id]);
@@ -772,7 +777,7 @@ function postgresStore({ url = process.env.DATABASE_URL } = {}) {
     remember(c);
     atomic.publish(job.getDb(), input.stage, input.receipt);
     data = job.getDb();
-    return { receipt: input.receipt, applied: true };
+    return job.ordinary ? { applied: true } : { receipt: input.receipt, applied: true };
   }
 
   async function applyBackup(job) {
@@ -909,6 +914,7 @@ function postgresStore({ url = process.env.DATABASE_URL } = {}) {
       strict.push(task); run();
       return task.promise;
     },
+    commitStage({ getDb, stage }) { return this.commitStripe({ getDb, stage, ordinary: true }); },
     importBackup(job) { return this.commitStripe({ ...job, backup: true }); },
     async ping() {
       await getPool().query("select 1");
