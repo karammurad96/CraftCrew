@@ -28,6 +28,7 @@ module.exports = function createPayments(ctx) {
     throw new Error("A live Stripe key needs PAYMENTS_LIVE=1, set only after the go-live checklist (T280).");
   let client = null;
   if (enabled) {
+    inbox?.assertDurability?.(); // Refuse unsupported JSON durability before SDK/provider activity.
     const Stripe = require("stripe"),
       base = env.STRIPE_API_BASE ? new URL(env.STRIPE_API_BASE) : null;
     client = new Stripe(key, {
