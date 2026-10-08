@@ -566,7 +566,7 @@ const commission = require("./commission")({
 });
 // T270: payments with Stripe (Wave 18); off unless STRIPE_SECRET_KEY is set in the environment
 const payments = require("./payments")({
-  inbox: store.stripeInbox,
+  inbox: store.stripeInbox, ownerActor: (req) => auth(req), ownerRefusal: (error) => refusalMessage(error), commitStage: (job) => store.commitStage(job), gate: stripeCommit.gate, id: (p) => id(p), mailEnabled: () => mailer.enabled, appUrl: () => APP_URL,
   commit: async () => { saveNow(); await store.flush(); },
   body,
   getDb: () => db,
@@ -3588,7 +3588,7 @@ setTimeout(() => background(() => commission.run()), 5000).unref();
 setInterval(() => background(() => commission.run()), 6 * 3600000).unref();
 // GDPR: accounts whose 14-day grace period is over are anonymised (T122).
 gdpr.runDeletions();
-setInterval(() => background(() => gdpr.runDeletions()), 3600000).unref();
+setInterval(() => background(() => payments.withOwnerGate(() => gdpr.runDeletions())), 3600000).unref();
 // T245: the iCal feeds of blocked days are refreshed every hour
 setInterval(() => background(() => capacity.refreshAll()), 3600000).unref();
 // One-time links for email verification and password reset (only the hash is stored).
@@ -8631,7 +8631,7 @@ const server = http.createServer(async (req, res) => {
       if (store.waitsForCommit) replyAfterCommit(res);
     }
     const finished = new Promise((resolve) => { res.once('finish', resolve); res.once('close', resolve); });
-    const work = api(req, res, url), done = Promise.all([work, finished]);
+    const work = payments.withOwnerMutation(req, res, url, () => api(req, res, url)), done = Promise.all([work, finished]);
     activeApi.set(req, done);
     done.then(() => activeApi.delete(req), () => activeApi.delete(req));
     return work;

@@ -6,5 +6,7 @@ const { after } = require("node:test");
 module.exports = function inboxContext() {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "craftcrew-stripe-unit-"));
   after(() => fs.rmSync(dataDir, { recursive: true, force: true }));
-  return { inbox: require("../stripe-inbox").jsonInbox(dataDir), commit: async () => {} };
+  const store = require("../store").openStore({ kind: "json", dataDir });
+  let sequence = 0;
+  return { inbox: store.stripeInbox, commit: async () => {}, commitStage: (job) => store.commitStage(job), id: (prefix) => `${prefix}_${++sequence}` };
 };
