@@ -4,7 +4,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { Readable } = require("node:stream");
-const { execFileSync } = require("node:child_process");
+const { execFileSync, spawn } = require("node:child_process");
 const { openStore } = require("../store");
 const { importInbox } = require("../stripe-inbox");
 const createPayments = require("../payments");
@@ -27,19 +27,20 @@ async function fixture(kind, test) {
     }
     const open = () => openStore({ kind, dataDir, url });
     store = open();
-    let db = store.loadSync() || { meta: {}, stripeEvents: [] };
+    let db = store.loadSync() || { meta: {}, stripeEvents: [], notifications: [] };
     fake = await startFakeStripe();
     fake.env.STRIPE_THIN_WEBHOOK_SECRET = "whsec_thin";
     const sent = [];
     const makePayments = () => createPayments({ inbox: store.stripeInbox, commitStage: (job) => store.commitStage(job), commitStripe: (job) => store.commitStripe(job), getDb: () => db,
       save() {}, commit: async () => { store.save(db); await store.flush(); },
-      send: (res, status, body) => sent.push({ status, body }), now: () => new Date().toISOString(),
+      send: (res, status, body) => { res.result = { status, body }; sent.push(res.result); }, now: () => new Date().toISOString(),
       activity() {}, env: fake.env });
     let payments = makePayments();
     const ctx = {
       kind, dataDir, fake, sent, admin, schema, url,
       get store() { return store; }, get db() { return db; }, get payments() { return payments; },
-      async deliver(id, type = "test.event", extra = {}) { await payments.webhook(request(fake.signed({ id, type, ...extra })), {}); return sent.at(-1); },
+      async deliver(id, type = "test.event", extra = {}) { const res = {}; await payments.webhook(request(fake.signed({ id, type, ...extra })), res); return res.result; },
+      async signed(signed) { const res = {}; await payments.webhook(request(signed), res); return res.result; },
       async restart() { await store.close?.(); store = open(); db = store.loadSync(); payments = makePayments(); },
     };
     await test(ctx);
@@ -225,6 +226,87 @@ for (const kind of ["json", "postgres"]) describe(`durable Stripe inbox (${kind}
     assert.equal((await c.deliver(identity.id, "different.event")).status, 400);
     assert.equal(c.db.meta.stripe.appliedReceipts[identity.id].type, "test.event");
   }));
+  for (const thin of [false, true]) for (const failure of [false, true])
+    it(`joins active ${thin ? "thin" : "snapshot"} deliveries through ${failure ? "failure" : "durable success"}`, async () => fixture(kind, async (c) => {
+      const type = thin ? "v2.core.test.updated" : "test.event", id = `evt_join_${thin}_${failure}`;
+      const signed = () => thin ? c.fake.signedThin({ id, type, related_object: { id: "acct_test" } }, c.fake.env.STRIPE_THIN_WEBHOOK_SECRET)
+        : c.fake.signed({ id, type });
+      let entered, release, prepares = 0, stages = 0, callbacks = 0, firstDone = false, secondDone = false;
+      const entering = new Promise((r) => entered = r), waiting = new Promise((r) => release = r);
+      c.payments.on(type, { async prepare() { prepares++; entered(); await waiting; },
+        stage({ stage }) { stages++; if (failure) throw new Error(KEY); stage.add("notifications", { id: "joined_notice" }); },
+        afterCommit() { callbacks++; } });
+      const first = c.signed(signed()).then((r) => { firstDone = true; return r; }); await entering;
+      const second = c.signed(signed()).then((r) => { secondDone = true; return r; });
+      await new Promise((r) => setTimeout(r, 20));
+      assert.equal(firstDone, false); assert.equal(secondDone, false);
+      assert.equal((await c.store.stripeInbox.get(id)).attempts, 1);
+      // Signature checks and identity binding happen before joining, even during active preparation.
+      assert.equal((await c.signed(c.fake.signed({ id, type }, "whsec_wrong"))).status, 400);
+      assert.equal((await c.signed(c.fake.signed({ id, type: "different.event" }))).status, 400);
+      release(); const results = await Promise.all([first, second]);
+      assert.deepEqual(results.map((r) => r.status), [failure ? 500 : 200, failure ? 500 : 200]);
+      assert.deepEqual([prepares, stages, callbacks], [1, 1, failure ? 0 : 1]);
+      assert.equal((await c.store.stripeInbox.get(id)).attempts, 1);
+      if (!failure) {
+        assert.equal(results[1].body.duplicate, true); await c.restart();
+        assert.equal((await c.signed(signed())).body.duplicate, true);
+        assert.equal(c.db.notifications.length, 1);
+      } else {
+        await c.restart(); c.payments.on(type, { stage() { stages++; } });
+        assert.equal((await c.signed(signed())).status, 200);
+        const record = await c.store.stripeInbox.get(id);
+        assert.equal(record.attempts, 2); assert.equal(record.errorCode, "handler_failed"); assert.ok(record.failedAt);
+      }
+    }));
+  it("joins through late inbox completion failure, then repairs without provider or listener rerun", async () => fixture(kind, async (c) => {
+    let entered, release, calls = 0, callbacks = 0, joinedDone = false;
+    const entering = new Promise((r) => entered = r), waiting = new Promise((r) => release = r);
+    c.payments.on("test.event", { prepare() { calls++; }, stage() {}, async afterCommit() { callbacks++; entered(); await waiting; } });
+    const update = c.store.stripeInbox.update.bind(c.store.stripeInbox);
+    c.store.stripeInbox.update = (record) => record.state === "handled" ? Promise.reject(new Error("completion refused")) : update(record);
+    const first = c.deliver("evt_join_completion"); await entering;
+    const joined = c.deliver("evt_join_completion").then((r) => { joinedDone = true; return r; });
+    await new Promise((r) => setTimeout(r, 20)); assert.equal(joinedDone, false);
+    release(); assert.deepEqual((await Promise.all([first, joined])).map((r) => r.status), [503, 503]);
+    c.store.stripeInbox.update = update;
+    assert.equal((await c.deliver("evt_join_completion")).body.duplicate, true);
+    assert.deepEqual([calls, callbacks], [1, 1]);
+  }));
+  for (const thin of [false, true])
+    it(`fresh verified ${thin ? "thin" : "snapshot"} redelivery resumes interrupted metadata after restart`, async () => fixture(kind, async (c) => {
+      const id = `evt_interrupted_${thin}`, type = thin ? "v2.core.test.updated" : "test.event";
+      await c.deliver("evt_initialize_interruption");
+      await c.store.stripeInbox.receive({ ...entry(id, "processing"), type, kind: thin ? "thin" : "snapshot", attempts: 3,
+        processingAt: "2026-10-07T10:00:01.000Z" });
+      await c.restart(); let calls = 0;
+      c.payments.on(type, { stage({ stage }) { calls++; stage.add("notifications", { id: "resumed_notice" }); } });
+      const signed = (secret) => thin ? c.fake.signedThin({ id, type, related_object: { id: "acct_test" } }, secret || c.fake.env.STRIPE_THIN_WEBHOOK_SECRET)
+        : c.fake.signed({ id, type }, secret);
+      assert.equal((await c.signed(signed("whsec_wrong"))).status, 400);
+      assert.equal((await c.store.stripeInbox.get(id)).attempts, 3); assert.equal(calls, 0);
+      assert.equal((await c.signed(signed())).status, 200);
+      const record = await c.store.stripeInbox.get(id);
+      assert.equal(record.attempts, 4); assert.equal(record.state, "handled"); assert.equal(record.errorCode, "interrupted"); assert.ok(record.failedAt);
+      await c.restart(); assert.equal((await c.signed(signed())).body.duplicate, true);
+      assert.equal(c.db.notifications.length, 1); assert.equal(calls, 1);
+    }));
+  for (const boundary of ["prepare", "applied"])
+    it(`killed worker at ${boundary} boundary recovers through verified redelivery`, async () => fixture(kind, async (c) => {
+      await c.deliver("evt_worker_initialize");
+      const id = `evt_worker_${boundary}`, child = recoveryWorker(c, id, boundary);
+      try { await child.ready; } finally { await child.kill(); }
+      const before = await c.store.stripeInbox.get(id);
+      assert.equal(before.state, kind === "postgres" && boundary === "applied" ? "handled" : "processing");
+      await c.restart(); let calls = 0;
+      c.payments.on("test.event", { prepare() { calls++; }, stage({ stage }) { stage.add("notifications", { id: id + "_notice" }); } });
+      const result = await c.deliver(id);
+      assert.equal(result.status, 200); assert.equal(!!result.body.duplicate, boundary === "applied");
+      assert.equal(calls, boundary === "applied" ? 0 : 1);
+      assert.equal((await c.store.stripeInbox.get(id)).attempts, boundary === "applied" ? 1 : 2);
+      assert.equal(c.db.notifications.filter((n) => n.id === id + "_notice").length, 1);
+      await c.restart(); assert.equal((await c.deliver(id)).body.duplicate, true);
+    }));
   it("uniquely stores identities and merges backups with handled state dominant", async () => fixture(kind, async (c) => {
     const ledger = c.store.stripeInbox;
     await Promise.all([ledger.receive(entry("evt_unique")), ledger.receive(entry("evt_unique"))]);
@@ -328,4 +410,60 @@ it("historical pre-inbox PostgreSQL exports remain readable, while missing migra
   c.db.meta.stripe = { inboxMigrated: true }; c.store.save(c.db); await c.store.flush();
   for (const args of [["tools/db/export-json.js"], ["tools/db/verify.js", "--save", checksum]])
     assert.throws(() => execFileSync(process.execPath, args, { env, stdio: "pipe" }), (e) => /migrated Stripe inbox is missing/.test(String(e.stderr)));
+}));
+
+function recoveryWorker(c, id, mode, applicationName) {
+  const parsed = c.url ? new URL(c.url) : null;
+  if (applicationName) parsed.searchParams.set("application_name", applicationName);
+  const child = spawn(process.execPath, [path.join(__dirname, "fixtures", "stripe-recovery-worker.js")], {
+    cwd: path.join(__dirname, ".."), env: { ...process.env, ...c.fake.env, STORE: c.kind, DATA_DIR: c.dataDir,
+      ...(parsed ? { DATABASE_URL: parsed.toString() } : {}), RECOVERY_MODE: mode,
+      RECOVERY_EVENT: JSON.stringify(c.fake.signed({ id, type: "test.event" })) }, stdio: ["ignore", "pipe", "pipe"],
+  });
+  let output = "", readyResolve, readyReject;
+  const ready = new Promise((resolve, reject) => { readyResolve = resolve; readyReject = reject; });
+  const done = new Promise((resolve, reject) => {
+    child.on("error", (e) => { readyReject(e); reject(e); });
+    child.on("exit", (code, signal) => {
+      readyReject(new Error("Recovery worker exited before reaching boundary"));
+      if (signal === "SIGKILL") resolve(); else if (code === 0) resolve(); else reject(new Error("Recovery worker failed"));
+    });
+  });
+  // Attach rejection handlers immediately; callers wait after observing the database/worker boundary.
+  done.catch(() => {}); ready.catch(() => {});
+  child.stdout.on("data", (part) => { output += part; if (output.includes("READY\n")) readyResolve(); });
+  const timer = setTimeout(() => { readyReject(new Error("Recovery worker timed out")); child.kill("SIGKILL"); }, 15000);
+  done.finally(() => clearTimeout(timer)).catch(() => {});
+  return { ready, done, get output() { return output; }, async kill() { child.kill("SIGKILL"); await done; } };
+}
+async function until(query) {
+  const deadline = Date.now() + 10000;
+  while (Date.now() < deadline) { if (await query()) return; await new Promise((r) => setTimeout(r, 20)); }
+  throw new Error("Expected PostgreSQL recovery barrier was not reached");
+}
+it("pending real PostgreSQL webhook COMMIT fences restart loading, normal save and duplicate reapplication", { skip: !process.env.DATABASE_URL }, async () => fixture("postgres", async (c) => {
+  await c.deliver("evt_pending_initialize");
+  const id = "evt_pending_webhook", control = 2000000 + process.pid * 10 + serial;
+  let child, pending;
+  await c.admin.query("select pg_advisory_lock($1)", [control]);
+  await c.admin.query(`create function ${c.schema}.hold_webhook_commit() returns trigger language plpgsql as $$ begin if new.name='meta' and new.data->'stripe'->'appliedReceipts' ? '${id}' then perform pg_advisory_xact_lock(${control}); end if; return new; end $$`);
+  await c.admin.query(`create constraint trigger hold_webhook_commit after insert or update on ${c.schema}.kv deferrable initially deferred for each row execute function ${c.schema}.hold_webhook_commit()`);
+  c.payments.on("test.event", { stage({ stage }) { stage.add("notifications", { id: id + "_notice" }); } });
+  try {
+    pending = c.deliver(id);
+    await until(async () => Number((await c.admin.query("select count(*) as n from pg_locks where locktype='advisory' and not granted and objid=$1", [control])).rows[0].n) > 0);
+    const name = `webhook_restart_${process.pid}_${serial}`;
+    child = recoveryWorker(c, id, "recover", name);
+    await until(async () => Number((await c.admin.query("select count(*) as n from pg_stat_activity where application_name=$1 and wait_event='advisory'", [name])).rows[0].n) > 0);
+    assert.equal(child.output, "");
+    await c.admin.query("select pg_advisory_unlock($1)", [control]);
+    assert.equal((await pending).status, 200); await child.done;
+    const result = JSON.parse(child.output);
+    assert.equal(result.status, 200); assert.equal(result.body.duplicate, true);
+    assert.equal(result.prepares, 0); assert.equal(result.stages, 0); assert.equal(result.notices, 1); assert.equal(result.attempts, 1);
+    await c.restart(); assert.equal(c.db.notifications.filter((n) => n.id === id + "_notice").length, 1);
+    assert.equal((await c.deliver(id)).body.duplicate, true);
+  } finally {
+    await c.admin.query("select pg_advisory_unlock($1)", [control]); await child?.kill(); await pending;
+  }
 }));
