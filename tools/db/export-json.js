@@ -19,6 +19,10 @@ async function main() {
     await client.query("begin isolation level repeatable read read only");
     const exists = (await client.query("select to_regclass('records') is not null as ok")).rows[0].ok;
     data = exists ? assemble(await readAll(client)).data : null;
+    if (data) {
+      const inbox = await require("../../stripe-inbox").exportPostgresInbox(client, data);
+      if (inbox.length || data.meta?.stripe?.inboxMigrated) data.stripeWebhookInbox = inbox;
+    }
     await client.query("commit");
   } finally {
     client.release();

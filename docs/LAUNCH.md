@@ -179,3 +179,21 @@ question for the lawyer, `docs/LEGAL-FACTS.md` section 8.
 | T225 choice, contract, reveal | #152 |
 | T226 messages through the platform | #153 |
 | T228 rollback | #154 |
+
+### Stripe inbox backup and recovery (T282a)
+
+Verified event identities are operational metadata, kept independently of the last 20 events shown to admins.
+JSON stores keep them in `DATA_DIR/stripe-webhooks/`; PostgreSQL keeps them in `stripe_webhook_inbox`.
+The existing full-folder backup includes the JSON ledger; `pg_dump` includes the PostgreSQL table.
+Admin backup exports and `tools/db/export-json.js` include a metadata-only `stripeWebhookInbox` field.
+Imports merge identities, reject incompatible identities and preserve handled state; an older backup does not
+downgrade an already handled identity. JSON-to-PostgreSQL import reads the sidecar directory beside `db.json`.
+Copying only a migrated runtime `db.json` is not a complete backup: preserve the sidecar directory or use an
+export containing `stripeWebhookInbox`. Migrated JSON data without its ledger fails closed. Restore checksums
+include inbox metadata; no raw webhook payload, signing header or payment credentials are retained.
+
+T282a persists receipt/state and removes capped deduplication. T282b remains required for interrupted-processing
+recovery, identical-delivery serialization and atomic publication of handler mutations. Neither this inbox nor
+a restored historical snapshot proves exactly-once external money movement. Replay suppression covers only
+identities present in the restored backup (and preserved target ledger). Reconcile external Stripe state under
+T284 and complete T280 operational checks before resuming real payments after a historical restore.

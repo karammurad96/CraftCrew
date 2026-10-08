@@ -22,6 +22,7 @@ function jsonStore(dataDir) {
   return {
     kind: "json",
     file,
+    stripeInbox: require("./stripe-inbox").jsonInbox(dataDir),
     loadSync() {
       let text;
       try {
@@ -31,7 +32,14 @@ function jsonStore(dataDir) {
         throw e;
       }
       try {
-        return JSON.parse(text);
+        const data = JSON.parse(text);
+        if (data.meta?.stripe?.inboxMigrated && data.stripeWebhookInbox === undefined && !fs.existsSync(path.join(dataDir, "stripe-webhooks")))
+          throw new Error("The migrated Stripe inbox is missing. Restore the complete data-folder backup.");
+        if (data.stripeWebhookInbox !== undefined) {
+          this.stripeInbox.restoreSync(data.stripeWebhookInbox);
+          delete data.stripeWebhookInbox;
+        }
+        return data;
       } catch (e) {
         // A damaged file must never be replaced by an empty or demo store
         throw new Error(
