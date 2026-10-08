@@ -266,8 +266,9 @@ module.exports = function createCompliance(ctx) {
     }
     if (changed) save();
   }
-  setInterval(sweep, 6 * 3600000).unref();
-  setTimeout(sweep, 6000).unref();
+  const scheduled = () => (ctx.background || ((work) => work()))(sweep);
+  setInterval(scheduled, 6 * 3600000).unref();
+  setTimeout(scheduled, 6000).unref();
 
   /* ---------- API ---------- */
   async function handle(req, res, url, parts, user) {

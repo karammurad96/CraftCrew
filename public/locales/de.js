@@ -287,6 +287,8 @@ LOCALES.de = {
       pkPauseReason: "Sagen Sie dem Lieferanten, warum das Paket pausiert wird.",
       pkValidAction: "Wählen Sie eine gültige Aktion für dieses Paket.",
       couldNotSavePleaseTry: "Die Änderung konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
+      backupReceiptMismatch: "Diese Sicherung enthält abgeschlossene Stripe-Ereignisse nicht oder verändert sie. Gleichen Sie die Zahlungen vor dem Import ab.",
+      backupChangedDuringRestore: "Die Daten wurden während der Vorbereitung verändert. Exportieren Sie eine aktuelle Sicherung und versuchen Sie es erneut.",
       thisInvoiceIsApprovedAnd: "Diese Rechnung ist freigegeben und kann nicht mehr geändert werden.",
       invoicesAreKeptFor10: "Rechnungen werden 10 Jahre aufbewahrt und können nicht gelöscht werden.",
       paymentsAreNeverChangedOr: "Zahlungen werden nie geändert oder gelöscht: Eine Korrektur ist ein neuer Eintrag.",

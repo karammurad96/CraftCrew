@@ -192,6 +192,20 @@ Copying only a migrated runtime `db.json` is not a complete backup: preserve the
 export containing `stripeWebhookInbox`. Migrated JSON data without its ledger fails closed. Restore checksums
 include inbox metadata; no raw webhook payload, signing header or payment credentials are retained.
 
+T282b1b1 also preserves the business snapshot's applied-receipt map. Online and offline replacement reject
+missing or conflicting completed receipts before changing business rows or the ledger; matching applied
+receipts repair interrupted inbox bookkeeping to handled. Online import briefly refuses new requests and
+pauses scheduled mutations while accepted requests/jobs finish. If that drain changes data, import returns
+409 without replacing it; export a fresh backup and retry. Export captures a detached snapshot under the
+local mutation gate. These guarantees assume the supported single application server.
+
+PostgreSQL startup and all application writer transactions share a schema-scoped advisory barrier.
+Startup waits before opening its consistent read transaction, so a retiring writer's pending COMMIT settles
+before loaded data can be saved again. This cannot fence transactions from older application versions that
+did not take the barrier: explicitly reconcile uncertain outcomes before upgrading/reusing that database.
+Blind restart alone does not establish reconciliation. A full-folder historical restore still requires the
+external-payment reconciliation below.
+
 T282a persists receipt/state and removes capped deduplication. T282b remains required for interrupted-processing
 recovery, identical-delivery serialization and atomic publication of handler mutations. Neither this inbox nor
 a restored historical snapshot proves exactly-once external money movement. Replay suppression covers only

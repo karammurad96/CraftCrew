@@ -17,6 +17,15 @@ const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT, "data"));
 const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
 // Where the data is saved: DATA_DIR/db.json or PostgreSQL (T160, T162)
 const store = require("./store").openStore({ dataDir: DATA_DIR });
+const stripeCommit = require('./stripe-commit');
+let backupImporting = false;
+const activeApi = new Map(), backgroundWork = new Set();
+function background(work) {
+  if (backupImporting) return;
+  const task = Promise.resolve().then(work).catch((e) => console.error('Background task failed:', e))
+    .finally(() => backgroundWork.delete(task));
+  backgroundWork.add(task);
+}
 const PORT = Number(process.env.PORT || 3000);
 // Demo/showcase data and demo logins exist only outside production.
 const DEMO_MODE = process.env.NODE_ENV !== "production";
@@ -294,6 +303,7 @@ function cleanSupplierProfile(b) {
 }
 // Strategic sourcing module (contracts, scorecards, bid evaluation helpers).
 const sourcing = require("./sourcing")({
+  background,
   getDb: () => db,
   save: () => save(),
   send: (...a) => send(...a),
@@ -343,6 +353,7 @@ const gdpr = require("./gdpr")({
   id: (p) => id(p),
 });
 const compliance = require("./compliance")({
+  background,
   getDb: () => db,
   save: () => save(),
   send: (...a) => send(...a),
@@ -3512,7 +3523,7 @@ async function processOutbox() {
     outboxBusy = false;
   }
 }
-setInterval(() => processOutbox().catch((e) => console.error(e)), 10000).unref();
+setInterval(() => background(() => processOutbox()), 10000).unref();
 /* Invoice reminders: customers are reminded after 3 and 7 days in review (admins too at 7), and approved
    invoices past their scheduled payment date are marked overdue. remindersSent makes each one go out once. */
 function runInvoiceReminders(at = Date.now()) {
@@ -3571,15 +3582,15 @@ function runInvoiceReminders(at = Date.now()) {
   if (changed) save();
 }
 runInvoiceReminders();
-setInterval(() => runInvoiceReminders(), 3600000).unref();
+setInterval(() => background(() => runInvoiceReminders()), 3600000).unref();
 // T240: the commission statements of the months before this one, once (it adds only what is not billed yet)
-setTimeout(() => commission.run(), 5000).unref();
-setInterval(() => commission.run(), 6 * 3600000).unref();
+setTimeout(() => background(() => commission.run()), 5000).unref();
+setInterval(() => background(() => commission.run()), 6 * 3600000).unref();
 // GDPR: accounts whose 14-day grace period is over are anonymised (T122).
 gdpr.runDeletions();
-setInterval(() => gdpr.runDeletions(), 3600000).unref();
+setInterval(() => background(() => gdpr.runDeletions()), 3600000).unref();
 // T245: the iCal feeds of blocked days are refreshed every hour
-setInterval(() => capacity.refreshAll().catch((e) => console.error(e)), 3600000).unref();
+setInterval(() => background(() => capacity.refreshAll()), 3600000).unref();
 // One-time links for email verification and password reset (only the hash is stored).
 function issueAuthToken(userId, type, ttlMs) {
   const token = crypto.randomBytes(32).toString("base64url");
@@ -3666,10 +3677,10 @@ function newSession(u) {
   }
   return token;
 }
-setInterval(() => {
+setInterval(() => background(() => {
   if (purgeSessions()) save();
   pruneNotifications();
-}, 3600000).unref();
+}), 3600000).unref();
 pruneNotifications();
 function emailSubject(key, fallback) {
   return db.settings?.emailTemplates?.[key] || fallback;
@@ -8062,9 +8073,13 @@ async function api(req, res, url) {
     // Backups never contain sign-in sessions or one-time email tokens.
     if (parts[1] === "backup" && parts[2] === "export" && method === "GET") {
       if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
-      const { sessions, authTokens, ...data } = db;
-      data.stripeWebhookInbox = await store.stripeInbox.export();
-      return (send(res, 200, { exportedAt: now(), data }), true);
+      return await stripeCommit.gate.run(async () => {
+        saveNow();
+        await store.flush();
+        const { sessions, authTokens, ...data } = structuredClone(db);
+        data.stripeWebhookInbox = await store.stripeInbox.export();
+        return (send(res, 200, { exportedAt: now(), data }), true);
+      });
     }
     if (parts[1] === "backup" && parts[2] === "import" && method === "POST") {
       if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
@@ -8083,24 +8098,41 @@ async function api(req, res, url) {
           send(res, 400, { error: "The backup has no active admin account, so nobody could sign in." }),
           true
         );
-      // Keep a copy of the current data, then keep everyone signed in.
+      if (backupImporting) return (send(res, 503, { error: "Could not save. Please try again." }), true);
+      backupImporting = true;
+      const revision = JSON.stringify(db);
+      try {
+      // Drain before taking the Stripe gate: an existing account handler may need that gate to finish.
+      await Promise.all([...activeApi].filter(([request]) => request !== req).map(([, done]) => done).concat([...backgroundWork]));
+      if (JSON.stringify(db) !== revision) return (send(res, 409, { error: "Data changed while preparing the restore. Export a fresh backup and try again." }), true);
+      return await stripeCommit.gate.run(async () => {
+      const existingInbox = await store.stripeInbox.export();
+      try { stripeCommit.backup(db, data, existingInbox, data.stripeWebhookInbox || []); }
+      catch { return (send(res, 409, { error: "This backup omits or changes completed Stripe events. Reconcile payments before importing it." }), true); }
+      // Validate before changing either the ledger or business records; preserve a detached current copy.
       const backupDir = path.join(DATA_DIR, "backups");
       fs.mkdirSync(backupDir, { recursive: true });
       const copy = path.join(backupDir, `pre-import-${now().replace(/[:.]/g, "-")}.json`);
-      fs.writeFileSync(copy, JSON.stringify({ ...db, stripeWebhookInbox: await store.stripeInbox.export() }), { mode: 0o600 });
-      await require("./stripe-inbox").importInbox(store.stripeInbox, data.stripeWebhookInbox || []);
+      const previous = structuredClone(db);
+      previous.stripeWebhookInbox = existingInbox;
+      fs.writeFileSync(copy, JSON.stringify(previous), { mode: 0o600 });
+      const inbox = data.stripeWebhookInbox || [];
       delete data.stripeWebhookInbox;
       const sessions = db.sessions || [];
       delete data.authTokens;
-      db = { ...data, sessions };
+      await store.importBackup({ getDb: () => db, data: { ...data, sessions }, inbox,
+        publish: (restored) => { db = { ...restored, sessions: db.sessions || [] }; } });
       numberInvoices();
       saveNow();
+      await store.flush();
       const counts = Object.fromEntries(
         Object.entries(db)
           .filter(([k, v]) => Array.isArray(v) && k !== "sessions")
           .map(([k, v]) => [k, v.length]),
       );
       return (send(res, 200, { ok: true, counts, previousDataSavedAs: path.basename(copy) }), true);
+      });
+      } finally { backupImporting = false; }
     }
     /* ---------------------------------------------------------------
        Platform additions: audit trail, account security & preferences,
@@ -8591,12 +8623,18 @@ function replyAfterCommit(res) {
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+  // During replacement, refuse requests before auth/session touches or audit work can mutate the DB.
+  if (backupImporting) return send(res, 503, { error: "Could not save. Please try again." });
   if (url.pathname.startsWith("/api/")) {
     if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
       trackAudit(req, res, url);
       if (store.waitsForCommit) replyAfterCommit(res);
     }
-    return api(req, res, url);
+    const finished = new Promise((resolve) => { res.once('finish', resolve); res.once('close', resolve); });
+    const work = api(req, res, url), done = Promise.all([work, finished]);
+    activeApi.set(req, done);
+    done.then(() => activeApi.delete(req), () => activeApi.delete(req));
+    return work;
   }
   // T264: the site editor's published texts and settings, always fresh
   if (url.pathname === "/site-content.js") return siteContent.serveScript(req, res);

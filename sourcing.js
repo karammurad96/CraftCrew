@@ -220,8 +220,9 @@ module.exports = function createSourcing(ctx) {
     }
     if (changed) save();
   }
-  setInterval(renewalSweep, 6 * 3600000).unref();
-  setTimeout(renewalSweep, 5000).unref();
+  const scheduled = () => (ctx.background || ((work) => work()))(renewalSweep);
+  setInterval(scheduled, 6 * 3600000).unref();
+  setTimeout(scheduled, 5000).unref();
 
   async function handle(req, res, url, parts, user) {
     const db = getDb(),
