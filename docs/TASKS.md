@@ -6475,7 +6475,7 @@ From the 7 October 2026 review. These additions address verified gaps without re
 `P0 · L · depends on T270 and T271 · before real-money payments`
 
 **Child tasks (one branch/PR each).**
-- [ ] **T282a Durable inbox:** implement Do 1–2, signature/type preservation, unique identities, storage-failure and old-replay tests.
+- [x] **T282a Durable inbox:** implement Do 1–2, signature/type preservation, unique identities, storage-failure and old-replay tests.
 - [ ] **T282b Recovery and delivery:** after T282a, implement Do 3–4, concurrent handling, retry/restart recovery and JSON/PostgreSQL crash tests. Tick T282 only after both child tasks merge and all acceptance criteria pass.
 
 **Where.** `payments.js`, supported store interfaces/migrations, `test/payments.test.js` and payout webhook tests.
@@ -6492,6 +6492,8 @@ From the 7 October 2026 review. These additions address verified gaps without re
 - [ ] An acknowledged event is handled durably or remains recoverable after a crash.
 - [ ] Concurrent/old deliveries do not rerun completed handlers; failed work is retained and retriable.
 - [ ] JSON/PostgreSQL durability tests and the complete test suite pass; both webhook types remain supported.
+
+**T282a as built (8 October 2026).** A metadata-only inbox persists verified identities before handlers: fsynced JSON sidecars and PostgreSQL migration 008 with an event-ID primary key. Receipt states, attempts, timestamps and fixed error codes survive independently of the bounded admin display. Snapshot/thin signing secrets and explicit environment-mode checks remain separate. Legacy history migrates idempotently, including an empty inbox; handled identities dominate backup merges. Data-folder restore, portable exports and JSON/PostgreSQL import/verification preserve the ledger and reject a missing migrated ledger. Regression tests cover replay after 2,001 later events, restart, signature/mode rejection, real-backend receipt failures and completion faults, sanitization and restore/tool roundtrips. Full suites passed with JSON (738 passed, 0 failed, 4 skipped) and a real PostgreSQL database (779 passed, 0 failed, 1 skipped). T282b remains open: atomic local-handler publication, concurrent-delivery serialization and interrupted-processing recovery are not supplied by this child; T282 and live-payment readiness remain open.
 
 ### T283 · Durable monetary operation identities and atomic settlement
 `P0 · L · depends on T272, T273 and T282 · before real-money payments`

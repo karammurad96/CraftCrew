@@ -6,7 +6,7 @@
  * - Test mode only: a live key (sk_live_ / rk_live_) is refused unless PAYMENTS_LIVE=1 (set by Karam after T280).
  * - One StripeClient instance with the SDK's pinned API version. STRIPE_API_BASE points it at a fake Stripe in tests.
  * - Webhooks: POST /api/stripe/webhook, raw body, signature checked with STRIPE_WEBHOOK_SECRET; every event is
- *   stored once in db.stripeEvents and handled once by the handlers that later tasks register with on().
+ *   persisted in the store inbox before processing. db.stripeEvents holds bounded display metadata only.
  * - Keys never appear in logs, errors or API answers.
  *
  * T271: suppliers' connected accounts (payouts.js). Accounts v2 sends thin events (`v2.core.event`, only the
@@ -16,7 +16,7 @@
 const KEY_RE = /^(sk|rk)_(test|live)_/;
 
 module.exports = function createPayments(ctx) {
-  const { getDb, save, send, now, activity } = ctx;
+  const { getDb, save, send, now, activity, inbox, commit } = ctx;
   const env = ctx.env || process.env;
   const key = String(env.STRIPE_SECRET_KEY || "").trim();
   const enabled = KEY_RE.test(key);
@@ -38,10 +38,27 @@ module.exports = function createPayments(ctx) {
   const webhookSecret = String(env.STRIPE_WEBHOOK_SECRET || "").trim(),
     thinSecret = String(env.STRIPE_THIN_WEBHOOK_SECRET || "").trim(),
     publishableKey = enabled ? String(env.STRIPE_PUBLISHABLE_KEY || "").trim() : "";
+  if (enabled && (!inbox || typeof commit !== "function")) throw new Error("Stripe requires a durable inbox and commit boundary.");
   const handlers = new Map();
   const events = () => (getDb().stripeEvents ||= []);
   const state = () => (getDb().meta ||= {}, (getDb().meta.stripe ||= {}));
 
+  let initialization = null;
+  function initialize() {
+    if (!initialization) initialization = (async () => {
+      if (!state().inboxMigrated) {
+        await require("./stripe-inbox").importInbox(inbox, events());
+        state().inboxMigrated = true;
+      }
+      getDb().stripeEvents = (await inbox.recent(20)).map(display);
+      await commit();
+    })().catch((error) => { initialization = null; throw error; });
+    return initialization;
+  }
+  const display = (record) => ({ ...record, handled: record.state === "handled" });
+  function remember(record) {
+    getDb().stripeEvents = [display(record), ...events().filter((e) => e.id !== record.id)].slice(0, 20);
+  }
   // Later tasks register what an event does: on("checkout.session.completed", async (object, event) => …)
   function on(type, fn) {
     if (!handlers.has(type)) handlers.set(type, []);
@@ -78,24 +95,50 @@ module.exports = function createPayments(ctx) {
       state().lastError = { at: now(), message: "Signature check failed" };
       return send(res, 400, { error: "Invalid signature" });
     }
-    const list = events();
-    if (list.some((e) => e.id === event.id)) return send(res, 200, { received: true, duplicate: true });
-    const record = { id: event.id, type: event.type, livemode: !!event.livemode, receivedAt: now(), handled: false };
-    list.unshift(record);
-    if (list.length > 2000) list.length = 2000;
-    Object.assign(state(), { lastEventAt: now(), lastEventType: event.type });
+    // Unknown legacy livemode remains compatible; an explicit opposite mode cannot mutate this environment.
+    if (typeof event.livemode === "boolean" && event.livemode !== live)
+      return send(res, 400, { error: "Invalid signature" });
+    let record;
+    try {
+      await initialize();
+      record = await inbox.receive({ id: event.id, type: event.type, kind: thin ? "thin" : "snapshot",
+        livemode: !!event.livemode, receivedAt: now(), state: "received", attempts: 0 });
+      if (record.type !== event.type || record.kind !== (thin ? "thin" : "snapshot") || record.livemode !== !!event.livemode)
+        return send(res, 400, { error: "Invalid signature" });
+      if (record.state === "handled") return send(res, 200, { received: true, duplicate: true });
+      // Child b adds identical-delivery serialization and atomic local-handler publication.
+      if (record.state === "processing") return send(res, 503, { error: "Could not save. Please try again." });
+      record = await inbox.update({ ...record, state: "processing", processingAt: now(), attempts: record.attempts + 1 });
+      remember(record);
+      Object.assign(state(), { lastEventAt: now(), lastEventType: event.type });
+    } catch {
+      return send(res, 503, { error: "Could not save. Please try again." });
+    }
     try {
       for (const fn of handlers.get(event.type) || []) await fn(thin ? event.related_object : event.data?.object, event);
-      record.handled = true;
-    } catch (e) {
-      // Stripe retries a failed delivery; the record is removed so the retry is handled again
-      list.splice(list.indexOf(record), 1);
+    } catch {
       state().lastError = { at: now(), message: "Webhook handler failed" };
-      save();
+      try {
+        record = await inbox.update({ ...record, state: "failed", failedAt: now(), errorCode: "handler_failed" });
+        remember(record);
+        await commit();
+      } catch { return send(res, 503, { error: "Could not save. Please try again." }); }
       console.error("Stripe webhook handler failed:", event.type);
       return send(res, 500, { error: "Handler failed" });
     }
-    save();
+    try {
+      // Commit local updates before the durable handled marker. Child b makes these one atomic boundary.
+      await commit();
+      record = await inbox.update({ ...record, state: "handled", handledAt: now() });
+      remember(record);
+      save();
+    } catch {
+      try {
+        record = await inbox.update({ ...record, state: "failed", failedAt: now(), errorCode: "storage_failed" });
+        remember(record);
+      } catch {}
+      return send(res, 503, { error: "Could not save. Please try again." });
+    }
     return send(res, 200, { received: true });
   }
   // What the admin sees: never the key itself
@@ -117,6 +160,7 @@ module.exports = function createPayments(ctx) {
     if (await payouts.handle(req, res, url, parts, user)) return true;
     if (parts[1] !== "admin" || parts[2] !== "stripe") return false;
     if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
+    if (enabled) try { await initialize(); } catch { return (send(res, 503, { error: "Could not save. Please try again." }), true); }
     // Check the connection: the platform's own Stripe account
     if (parts[3] === "check" && req.method === "POST") {
       if (!enabled) return (send(res, 409, { error: "Payments are off: no Stripe key is set." }), true);

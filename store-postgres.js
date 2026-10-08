@@ -775,6 +775,7 @@ function postgresStore({ url = process.env.DATABASE_URL } = {}) {
 
   return {
     kind: "postgres",
+    stripeInbox: require("./stripe-inbox").postgresInbox(getPool),
     // Replies to changes wait for flush() (server.js), so a change is committed before the user sees it saved.
     waitsForCommit: true,
     stats,

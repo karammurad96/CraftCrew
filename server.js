@@ -555,6 +555,8 @@ const commission = require("./commission")({
 });
 // T270: payments with Stripe (Wave 18); off unless STRIPE_SECRET_KEY is set in the environment
 const payments = require("./payments")({
+  inbox: store.stripeInbox,
+  commit: async () => { saveNow(); await store.flush(); },
   body,
   getDb: () => db,
   save: () => save(),
@@ -8061,6 +8063,7 @@ async function api(req, res, url) {
     if (parts[1] === "backup" && parts[2] === "export" && method === "GET") {
       if (user.role !== "admin") return (send(res, 403, { error: "Admin only" }), true);
       const { sessions, authTokens, ...data } = db;
+      data.stripeWebhookInbox = await store.stripeInbox.export();
       return (send(res, 200, { exportedAt: now(), data }), true);
     }
     if (parts[1] === "backup" && parts[2] === "import" && method === "POST") {
@@ -8084,7 +8087,9 @@ async function api(req, res, url) {
       const backupDir = path.join(DATA_DIR, "backups");
       fs.mkdirSync(backupDir, { recursive: true });
       const copy = path.join(backupDir, `pre-import-${now().replace(/[:.]/g, "-")}.json`);
-      fs.writeFileSync(copy, JSON.stringify(db), { mode: 0o600 });
+      fs.writeFileSync(copy, JSON.stringify({ ...db, stripeWebhookInbox: await store.stripeInbox.export() }), { mode: 0o600 });
+      await require("./stripe-inbox").importInbox(store.stripeInbox, data.stripeWebhookInbox || []);
+      delete data.stripeWebhookInbox;
       const sessions = db.sessions || [];
       delete data.authTokens;
       db = { ...data, sessions };

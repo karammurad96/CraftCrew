@@ -12,6 +12,8 @@
  * - Uploaded files stay where they are (DATA_DIR/uploads); only the data moves.
  */
 const fs = require("fs");
+const path = require("path");
+const { jsonInbox, postgresInbox, importInbox, fold, merge, ordered } = require("../../stripe-inbox");
 const { createPool } = require("../../db/pg");
 const { migrate } = require("../../db/migrate");
 const { changes, write, readAll, assemble, TABLES } = require("../../store-postgres");
@@ -32,6 +34,12 @@ async function main() {
   }
   if (!data || typeof data !== "object" || !Array.isArray(data.users))
     throw new Error(`${file} is not a CraftCrew data file: it has no users.`);
+
+  const ledgerDirectory = path.join(path.dirname(file), "stripe-webhooks");
+  if (data.meta?.stripe?.inboxMigrated && data.stripeWebhookInbox === undefined && !fs.existsSync(ledgerDirectory))
+    throw new Error("The migrated Stripe inbox is missing. Use a full data-folder backup or an export containing stripeWebhookInbox.");
+  const inboxBackup = fold([...(data.stripeWebhookInbox || []), ...await jsonInbox(path.dirname(file)).export()]);
+  delete data.stripeWebhookInbox;
 
   const pool = createPool(),
     client = await pool.connect();
@@ -54,6 +62,14 @@ async function main() {
       await client.query("delete from invoice_counters");
     }
     await write(client, changes(data, { records: new Map(), values: new Map() }));
+    const ledger = postgresInbox(() => client);
+    const before = await ledger.export();
+    const expected = new Map(before.map((record) => [record.id, record]));
+    for (const record of inboxBackup) expected.set(record.id, merge(expected.get(record.id), record));
+    await importInbox(ledger, inboxBackup);
+    const ledgerBack = await ledger.export();
+    if (JSON.stringify([...expected.values()].sort(ordered)) !== JSON.stringify(ledgerBack.sort(ordered)))
+      throw new Error("The Stripe inbox read back differs. Nothing was imported.");
     const back = assemble(await readAll(client)).data,
       { lines, different } = compare(checksums(data), checksums(back));
     console.log(lines.join("\n"));

@@ -25,13 +25,22 @@ const arg = (name) => {
 };
 
 async function readData(dataDir, json) {
-  if (json) return JSON.parse(fs.readFileSync(path.join(dataDir, "db.json"), "utf8"));
+  if (json) {
+    const store = require("../../store").openStore({ kind: "json", dataDir });
+    const data = store.loadSync();
+    const inbox = await store.stripeInbox.export();
+    if (inbox.length || data?.meta?.stripe?.inboxMigrated) data.stripeWebhookInbox = inbox;
+    return data;
+  }
   const { createPool } = require("../../db/pg"),
     { readAll, assemble } = require("../../store-postgres"),
     pool = createPool(),
     client = await pool.connect();
   try {
-    return assemble(await readAll(client)).data;
+    const data = assemble(await readAll(client)).data;
+    const inbox = await require("../../stripe-inbox").exportPostgresInbox(client, data);
+    if (data && (inbox.length || data.meta?.stripe?.inboxMigrated)) data.stripeWebhookInbox = inbox;
+    return data;
   } finally {
     client.release();
     await pool.end();

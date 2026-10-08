@@ -10,7 +10,7 @@ const createPayments = require("../payments");
 
 const unit = (env, db = {}) => {
   const sent = [];
-  const p = createPayments({ getDb: () => db, save() {}, send: (res, status, body) => sent.push({ status, body }), now: () => "2026-10-06T10:00:00.000Z", activity() {}, env });
+  const p = createPayments({ ...require("./stripe-inbox-helper")(), getDb: () => db, save() {}, send: (res, status, body) => sent.push({ status, body }), now: () => "2026-10-06T10:00:00.000Z", activity() {}, env });
   return { p, sent, db };
 };
 const delivery = ({ payload, header }) => Object.assign(Readable.from([Buffer.from(payload)]), { headers: { "stripe-signature": header } });
@@ -52,7 +52,9 @@ describe("payments: webhooks (unit)", () => {
     const event = fake.signed({ id: "evt_retry", type: "test.event" });
     await p.webhook(delivery(event), {});
     assert.equal(sent.at(-1).status, 500);
-    assert.equal(db.stripeEvents.length, 0, "not recorded, so the retry is handled");
+    assert.equal(db.stripeEvents.length, 1, "failed identity retained for a retry");
+    assert.equal(db.stripeEvents[0].state, "failed");
+    assert.equal(db.stripeEvents[0].errorCode, "handler_failed");
     assert.equal(db.meta.stripe.lastError.message, "Webhook handler failed");
     assert.ok(!JSON.stringify(p.status()).includes(KEY));
     await p.webhook(delivery(fake.signed({ id: "evt_retry", type: "test.event" })), {});

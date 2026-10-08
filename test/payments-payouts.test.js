@@ -167,7 +167,7 @@ describe("payouts: a transfer checks the account with Stripe first (unit)", () =
   it("refuses a transfer to a restricted or pending account and sends it to an active one", async () => {
     const db = { suppliers: [{ id: "sup1", company: "Unit GmbH" }], users: [{ id: "u1", supplierId: "sup1", email: "u@test.local" }] },
       notes = [];
-    const p = createPayments({ getDb: () => db, save() {}, send() {}, now: () => "2026-10-06T10:00:00.000Z", activity() {}, notify: (id, spec) => notes.push(spec.key), env: fake.env });
+    const p = createPayments({ ...require("./stripe-inbox-helper")(), getDb: () => db, save() {}, send() {}, now: () => "2026-10-06T10:00:00.000Z", activity() {}, notify: (id, spec) => notes.push(spec.key), env: fake.env });
     const created = await p.client.v2.core.accounts.create({ dashboard: "express" });
     db.suppliers[0].stripeAccount = { id: created.id, transfers: "active" };
     fake.setTransfers(created.id, "restricted");
