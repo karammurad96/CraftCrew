@@ -46,7 +46,7 @@ function backup(previous, incoming, existing, imported = []) {
 }
 function createStage() {
   return { patches: [], additions: [],
-    patch(collection, id, fields, expected = {}) { this.patches.push({ collection, id, fields: clone(fields), expected: clone(expected) }); },
+    patch(collection, id, fields, expected = {}) { this.patches.push({ collection, id, fields: clone(fields), expected: structuredClone(expected) }); },
     add(collection, record) { this.additions.push({ collection, record: clone(record) }); },
   };
 }
@@ -69,10 +69,12 @@ function validate(data, stage) {
 function publish(data, stage, committed) {
   for (const p of stage.patches) Object.assign(data[p.collection].find((r) => r.id === p.id), clone(p.fields));
   for (const a of stage.additions) data[a.collection].unshift(clone(a.record));
-  data.meta ||= {}; data.meta.stripe ||= {};
-  data.meta.stripe.appliedReceipts = { ...data.meta.stripe.appliedReceipts, [committed.id]: committed };
+  if (committed) {
+    data.meta ||= {}; data.meta.stripe ||= {};
+    data.meta.stripe.appliedReceipts = { ...data.meta.stripe.appliedReceipts, [committed.id]: committed };
+  }
 }
-function prepare(data, stage, event) {
+function prepareStage(data, stage) {
   validate(data, stage);
   const prepared = createStage();
   for (const p of stage.patches) {
@@ -83,8 +85,13 @@ function prepare(data, stage, event) {
     for (const key of Object.keys(p.fields)) prepared.patches.at(-1).expected[key] = current[key] === undefined ? undefined : clone(current[key]);
   }
   prepared.additions = clone(stage.additions);
-  const committed = receipt(event), snapshot = clone(data);
-  publish(snapshot, prepared, committed);
-  return { stage: prepared, snapshot, receipt: committed };
+  const snapshot = clone(data);
+  publish(snapshot, prepared);
+  return { stage: prepared, snapshot };
 }
-module.exports = { createGate, gate: createGate(), createStage, receipt, match, applied, retain, backup, prepare, validate, publish };
+function prepare(data, stage, event) {
+  const input = prepareStage(data, stage), committed = receipt(event);
+  publish(input.snapshot, createStage(), committed);
+  return { ...input, receipt: committed };
+}
+module.exports = { createGate, gate: createGate(), createStage, receipt, match, applied, retain, backup, prepare, prepareStage, validate, publish };

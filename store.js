@@ -16,6 +16,8 @@
  *   commitStripe({getDb,event,stage}) strict local commit; returns {receipt,applied}. Callers must hold
  *                stripe-commit.gate through stage construction, commit and publication; all affected
  *                field writers/imports share that gate. Unrelated field writes may continue.
+ *   commitStage({getDb,stage}) strict ordinary field publication without an event receipt. Uses the same
+ *                mutation gate; an uncertain durable outcome blocks writes until reconciled on restart.
  */
 const fs = require("fs");
 const path = require("path");
@@ -86,6 +88,14 @@ function jsonStore(dataDir) {
       write(input.snapshot);
       atomic.publish(getDb(), input.stage, input.receipt);
       return { receipt: input.receipt, applied: true };
+    },
+    async commitStage({ getDb, stage }) {
+      if (blocked) throw new Error('Stripe commit outcome requires reconciliation');
+      const current = this.loadSync(), input = atomic.prepareStage(getDb(), stage);
+      atomic.retain(current, input.snapshot);
+      write(input.snapshot);
+      atomic.publish(getDb(), input.stage);
+      return { applied: true };
     },
     async importBackup({ data, inbox, publish }) {
       if (blocked) throw new Error('Stripe commit outcome requires reconciliation');
