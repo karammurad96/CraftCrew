@@ -306,7 +306,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 
 **Wave 12 — a large supplier base before launch (decided with Karam on 5 October 2026: source = an existing register that is legal to reuse; "Listed" suppliers are shown to signed-in customers, clearly marked; details under "Wave 12")**
 - [x] T190 Three supplier levels: Listed, Registered, Vetted · M · do first
-- [ ] T191 Import Listed suppliers from EU public procurement awards (TED) · M · **free, licence 2011/833/EU, attribution needed**
+- [x] T191 Import Listed suppliers from EU public procurement awards (TED) · M · **free, licence 2011/833/EU, attribution needed**
 - [ ] T192 Check imported companies against the GLEIF LEI register (CC0) · S
 - [ ] T193 "Is this your company?": claim or remove a listing, and a do-not-list register · M · **privacy texts need Karam's lawyer (Art. 14 GDPR)**
 - [ ] T194 Customers ask a Listed supplier to quote: requests wait until the company joins · S
@@ -3798,6 +3798,40 @@ mapping, skipping persons and duplicates, the do-not-list skip, the review batch
 
 **Done when.**
 - [ ] A dry run for Germany since 2023 gives a CSV; Karam has looked at it before the first real import.
+
+**As built (7 October 2026).**
+- **Tool.** `tools/suppliers/import-ted.js --country DEU --since 2023-01-01 [--cpv …] [--dry-run] [--out file.csv]
+  [--max-pages N] [--delay-ms N]`. `tools/suppliers/ted.js` holds the query, the reader and the CPV table (the six
+  default codes of this spec, longest-prefix match, one table): 50000000 → Mechanical Engineering, 51000000 →
+  Installation, 45300000 → Installation + Electrical Engineering, 42000000 → Manufacturing, 71300000 → Mechanical
+  Engineering, 72000000 → PLC Programming. It pages through the anonymous TED search API (POST `/v3/notices/search`,
+  `TED_API_URL` to change the address), pauses between calls and waits and retries on 429 and 5xx (honours
+  Retry-After). A dry run writes the CSV (formula-safe) and sends nothing. A real run needs `CRAFTCREW_URL` and
+  `CRAFTCREW_ADMIN_TOKEN` and otherwise stops ("Not configured"); nothing runs by itself.
+- **Clean-up (`supplierbase.js`, also used by the server).** No legal form in the name (GmbH, AG, KG, UG, SE, Ltd,
+  S.A.R.L. …) means a person: skipped. Sole traders (e.K.) are skipped too, although the spec lists e.K. among the
+  forms: a name like "Peter Schulz e.K." is a person's name and Wave 12 rule 2 is stricter. De-duplication by VAT
+  number, else normalised name (no legal form, accents or punctuation) + post code, categories merged, the latest
+  notice is the source. Skipped: the do-not-list register (`db.doNotList`, hashes; T193 fills it) and anything the
+  platform already has (same VAT number, or same name with the same or an unknown post code).
+- **Review batch.** `POST /admin/supplier-imports` (`candidates`, `source.register`; `batchId` adds to a batch in
+  review, up to 5000 per call) cleans and stores a batch; `GET /admin/supplier-imports[/id]` gives counts per
+  category and city, the skip counts and a sample of 20; `POST …/publish` cleans again against the current register
+  and creates the listed suppliers (`level: listed`, `published`, `source`, a private 10-character claim code, key
+  hashes); `…/discard` stores nothing. Page `/admin/supplier-imports` (nav "Supplier imports"). Only published
+  batches appear for customers (T190).
+- **Attribution.** Each listing stores `source: { register: "TED", notice, awardDate, url }`; the directory card and
+  profile show "Source: EU public procurement (TED), notice …, © European Union" (German too).
+- **Tests.** `test/ted-import.test.js` (parsing, CPV table, query, paging and rate limit, CSV, clean-up, tool dry
+  run / off unless configured / real run, batch flow and rights), `test/area-supplier-base.test.js`.
+- **Not verifiable here.** TED is blocked in this environment, so the recorded answer in `test/fixtures/ted/` is
+  hand-made after the documented v3 answer shape, and the field names (`winner-name`, `winner-post-code`,
+  `winner-identifier`, `classification-cpv` …) must be checked against the live API at the first dry run.
+- **Open decision for Karam.** Look at the first dry-run CSV before the first real import (this task's Done-when).
+
+**Done when.**
+- [ ] A dry run for Germany since 2023 gives a CSV; Karam has looked at it before the first real import.
+  (The tool is ready; the dry run needs network access to TED.)
 
 ### T192 · Check imported companies against the GLEIF LEI register
 `P2 · S · depends on T191 · free (CC0)`

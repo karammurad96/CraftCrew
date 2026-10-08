@@ -108,6 +108,8 @@ LOCALES.en = {
       pendingReview: "Pending review",
       accepted: "Accepted",
       declined: "Declined",
+      review: "In review",
+      discarded: "Discarded",
       notSelected: "Not selected",
       withdrawn: "Withdrawn",
       awarded: "Awarded",
@@ -595,6 +597,10 @@ LOCALES.en = {
       onlyVettedSuppliersCanBid: "Only vetted suppliers can bid on this task",
       listedNotOnPlatform: "This company is not on the platform yet. Ask it to quote instead.",
       notVettedConfirm: "This supplier is not vetted yet. Confirm that you want to continue.",
+      importBatchSize: "Send between 1 and 5000 companies per call",
+      importNeedsRegister: "Name the register the companies come from",
+      importBatchNotFound: "Import batch not found",
+      importBatchDecided: "This import batch was already decided",
       thisBidIsLimitedTo: "This bid is limited to invited suppliers",
       enterAValidOfferAmount: "Enter a valid offer amount and delivery schedule",
       enterTheHourlyRateIn: "Enter the hourly rate in euros, or leave it empty",
@@ -1167,6 +1173,7 @@ LOCALES.en = {
         "audit": "Audit log",
         "platform": "Platform Management",
         "profile-changes": "Profile changes",
+        "supplier-imports": "Supplier imports",
         "profile": "Settings"
       }
     },
@@ -5992,6 +5999,40 @@ LOCALES.en = {
       save: "Save deadlines",
       saved: "Deadlines saved.",
     },
+  },
+  // The supplier base (Wave 12, T190–T195)
+  sb: {
+    imports: {
+      title: "Supplier imports",
+      lead: "Companies from public registers wait here for your review. Only a published batch shows up for customers, as Listed suppliers.",
+      empty: "No import batches yet",
+      emptyText: "Run tools/suppliers/import-ted.js to read EU public procurement awards into a batch.",
+      summary: "{total} companies",
+      status: { Review: "In review", Published: "Published", Discarded: "Discarded" },
+      skipped: "Left out:",
+      skip: {
+        invalid: "{n} without a name or country",
+        person: "{n} that look like a person",
+        doNotList: "{n} on the do-not-list register",
+        existing: "{n} already on the platform",
+        duplicate: "{n} duplicates"
+      },
+      byCategory: "Category",
+      byCity: "City",
+      count: "Companies",
+      sample: "A sample of {n}",
+      company: "Company",
+      city: "City",
+      categories: "Categories",
+      source: "Source",
+      noItems: "Nothing is left to import in this batch.",
+      publish: "Publish",
+      discard: "Discard",
+      publishConfirm: "Publish this batch? Its companies appear for signed-in customers as Listed suppliers.",
+      discardConfirm: "Discard this batch? Nothing is stored from it.",
+      published: "Batch published",
+      discarded: "Batch discarded"
+    }
   },
   fee: {
     title: "Platform fees",
