@@ -400,6 +400,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T286 Track operator time and variable contribution per paid job · P1 · M · before wider launch, not a first invited-pilot blocker
 - [x] T287 Restore Windows JSON demo startup without weakening payment durability · P0 · S · urgent user regression, before T272b
 - [x] T289 Restore deterministic CI image pulls and lockout fixture networking · P0 · S · prerequisite while CI blocks T283a
+- [x] T289b Consistent loopback address in the shared API test helper · P0 · S · prerequisite while Node 20 lockout CI blocks T283a
 
 **Wave 20 — configurable industrial package catalogue (Karam approved backlog registration on 8 October 2026; implement after the agreed payment/storage sequence, not in parallel with unfinished payment tasks)**
 - [x] T288 Register the approved industrial package backlog and dependencies · P1 · S · documentation only
@@ -434,6 +435,20 @@ Every task depends on **T00** and **T01** unless it says otherwise.
   - [ ] T303b Product/bundle journey and operating/legal handoff · M
 
 **Wave 20 execution gate.** Complete the agreed payment sequence T272 → T273 → T283a/T283b/T283c → T284 → T274 → T275 → T278 → T280 (checklist/tooling only; no go-live and live keys refused) before package implementation starts. T299b additionally requires the completed T200–T205 contract workflow and resolved contract/identity policy. Service packages precede physical products; product publication/activation remains gated on approved terms and tax treatment. Existing parked PRs #194/#188 and T210/T211 stay parked.
+
+### T289b · Consistent loopback address in the shared API test helper
+`P0 · S · registered 9 October 2026 before implementation`
+
+**Problem.** After T289, T283a's Node 20 CI exposed the same per-network assumption in `test/api.test.js`: the ninth wrong-password attempt returned 401 instead of 429. `localhost` can alternate between IPv4 and IPv6. Fixing only the two-factor helper leaves other API fixtures exposed.
+
+**Where / Do.** `test/helpers.js` and this file. Use explicit `127.0.0.1` for the test application's default public URL, readiness request and returned base URL. Preserve caller environment overrides, server binding, SMTP setup and production authentication. Existing lockout assertions must remain unchanged.
+
+**Done when.**
+- [x] Existing password and two-factor lockout tests pass using a single loopback family.
+- [x] Full JSON and focused PostgreSQL tests, secret scan and diff checks pass.
+- [x] Keep all five CI checks mandatory on the final commit before merge; rebase the paused T283a PR afterwards.
+
+**As built (9 October 2026).** The shared API fixture uses IPv4 loopback for its default `APP_URL`, readiness request and returned base. All caller overrides and authentication assertions remain intact; production code and SMTP configuration are unchanged. Full JSON passed 830/0/19 expected skips; focused real PostgreSQL API/two-factor passed 25/25. Secret scan and diff checks pass. All five final-head CI checks remain mandatory before merge.
 
 ### T289 · Deterministic CI prerequisites
 `P0 · S · registered 9 October 2026 before implementation`
