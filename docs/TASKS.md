@@ -6689,8 +6689,12 @@ From the 7 October 2026 review. These additions address verified gaps without re
 `P0 · L · depends on T272, T273 and T282 · before real-money payments`
 
 **Child tasks (one branch/PR each).**
-- [ ] **T283a Operation identities:** implement stable intent/key records and reuse across money calls from Do 1; permissions/partial-refund/concurrent-call tests.
+- [x] **T283a Operation identities:** implement stable intent/key records and reuse across money calls from Do 1; permissions/partial-refund/concurrent-call tests. Include a regression proving Checkout's settlement listener derives its own transition and reserves the transfer identity before calling Stripe.
+- [x] T283a Done when: stable pre-call identities, concurrent/repeated request, partial-refund, restart and permission regressions pass; signed Checkout HTTP dispatch reaches supplier settlement and refunds without deadlock.
+- [x] T283a Done when: full JSON/real PostgreSQL suites, localized statuses/errors, secret scan and diff checks pass; T283b/T283c and live activation remain open.
 - [ ] **T283b Atomic settlement:** after T283a, implement Do 3 and JSON/PostgreSQL all-or-nothing failure tests.
+  - [ ] **T283b1 Atomic monetary records** · M · depends on T283a. Commit payment/invoice, immutable refund history and monetary operation outcomes together through the strict staged path; keep provider work outside the gate and preserve pre-call intents on failure. **Done when:** JSON refusal, real PostgreSQL constraint rollback, successful retry and linked-record tests pass; normal persistence behavior remains unchanged.
+  - [ ] **T283b2 Atomic fee statements and credits** · M · depends on T283b1. Stage pinned fee collection/outstanding VAT and commission credits with their payment/outcome, preserving statement numbers and historical financial records. Integrate existing fee statement generation through minimal wiring and payment-owned helpers. **Done when:** German fee VAT/reverse-charge, partial/full credits, no duplicate net-fee billing and injected JSON/PostgreSQL all-or-nothing failures pass. No fee-VAT policy or live activation is approved by this task.
 - [ ] **T283c Recovery and event ordering:** after T283b, implement Do 2 and 4, timeout/restart/provider-lookup and out-of-order tests. Tick T283 only after all child tasks merge and all acceptance criteria pass.
 
 **Where.** Payment/checkout/refund handlers from T272/T273, `payouts.js`, supported store interfaces/migrations and fake-Stripe tests.
@@ -6707,6 +6711,8 @@ From the 7 October 2026 review. These additions address verified gaps without re
 - [ ] Retrying one logical monetary operation never creates another transfer/refund/session unintentionally.
 - [ ] Crash/storage-failure recovery preserves provider references and coherent financial records.
 - [ ] Fake-Stripe fault tests, real PostgreSQL rollback tests and `npm test` pass.
+
+**T283a as built (9 October 2026).** Metadata-only operation records reserve deterministic identities before customer/session, transfer, refund and reversal calls; existing successful references are retrieved on retry. Partial refunds require a distinct request ID per deliberately new refund, reused on retry; changed amount/reason bindings are refused. Per-invoice serialization prevents concurrent requests from double-applying local totals, and full refund retries reuse the completed result. Tests cover concurrent reservation/settlement/refunds, partial refunds, ownership permissions, timeout/restart identity preservation and bounded nested metadata. Signed Checkout HTTP dispatch now derives the supplier listener's own transition from the verified stage; staged refunds avoid nesting the ordinary writer gate and still refuse a latched boundary. Refund amounts use the correct minor-to-major conversion; dispute reversal identities use the dispute object rather than delivery ID. Full JSON passed 843/0/19 expected skips; full real PostgreSQL passed 927/0/1 expected skip, and final targeted PostgreSQL passed 26/26. EN/DE statuses/errors, secret scan and diff checks pass. T283b is split before implementation into monetary-record and fee-statement/credit children; atomic settlement, recovery/event ordering and live activation remain open.
 
 ### T284 · Stripe settlement reconciliation and operator exception list
 `P0 · M · depends on T283 · before real-money payments`

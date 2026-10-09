@@ -45,7 +45,11 @@ module.exports = function createPayments(ctx) {
   const gate = ctx.gate || require("./stripe-commit").gate;
   const checkoutOwners = new Set();
   const ownerGate = require("./payment-owner-gate")({ gate, body: ctx.body, commit, send, actor: ctx.ownerActor, refusal: ctx.ownerRefusal,
-    financial: () => enabled, customerBilling: (actor) => checkoutOwners.has(actor?.id) || !!getDb().users?.find((user) => user.id === actor?.id)?.stripeBilling });
+    financial: () => enabled, stagedFinancial: (req, url, input) => {
+      const parts = url.pathname.split("/").filter(Boolean);
+      return enabled && req.method === "PATCH" && parts[1] === "admin" && parts[2] === "invoices" &&
+        input?.action === "Refund" && getDb().payments?.some((payment) => payment.invoiceId === parts[3] && payment.stripe?.checkout?.chargeId);
+    }, customerBilling: (actor) => checkoutOwners.has(actor?.id) || !!getDb().users?.find((user) => user.id === actor?.id)?.stripeBilling });
   const handlers = new Map(), active = new Map();
   const events = () => (getDb().stripeEvents ||= []);
   const state = () => (getDb().meta ||= {}, (getDb().meta.stripe ||= {}));
@@ -213,8 +217,9 @@ module.exports = function createPayments(ctx) {
   }
   // T271: the suppliers' connected accounts
   const payouts = require("./payouts")({ ...ctx, gate, ownerHealthy: ownerGate.healthy, client, enabled, publishableKey, on });
-  const checkout = require("./checkout")({ ...ctx, gate, ownerHealthy: ownerGate.healthy, checkoutOwners, client, enabled, live, on });
-  const payoutOperations = require("./payout-operations")({ ...ctx, gate, client, enabled, payouts, on });
+  const operations = require("./stripe-operations")({ ...ctx, gate });
+  const checkout = require("./checkout")({ ...ctx, gate, ownerHealthy: ownerGate.healthy, checkoutOwners, client, enabled, live, on, operations });
+  const payoutOperations = require("./payout-operations")({ ...ctx, gate, client, enabled, payouts, on, operations });
   async function handle(req, res, url, parts, user) {
     if (await payoutOperations.handle(req, res, url, parts, user)) return true;
     if (await checkout.handle(req, res, url, parts, user)) return true;

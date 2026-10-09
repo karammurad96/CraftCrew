@@ -1,5 +1,5 @@
 /* T282b1b3b: only account/owner/recipient writers share the payment gate. Application routes stay elsewhere. */
-module.exports = function ownerGate({ gate, body, commit, send, actor, refusal, financial = () => false, customerBilling = () => false }) {
+module.exports = function ownerGate({ gate, body, commit, send, actor, refusal, financial = () => false, stagedFinancial = () => false, customerBilling = () => false }) {
   let blocked = false;
   function healthy() {
     if (blocked) throw new Error('Stripe owner boundary requires reconciliation');
@@ -28,7 +28,14 @@ module.exports = function ownerGate({ gate, body, commit, send, actor, refusal, 
   async function mutation(req, res, url, work) {
     if (!guards(req, url)) return work();
     // Routes reuse body()'s request cache. Slow/malformed request bodies never hold the shared gate.
-    try { await body(req); } catch {}
+    let input;
+    try { input = await body(req); } catch {}
+    // Staged monetary handlers own their short gate sections. Holding this ordinary-writer
+    // gate through their provider requests would deadlock their durable intent reservation.
+    if (stagedFinancial(req, url, input)) {
+      if (blocked) return (send(res, 503, { error: 'Could not save. Please try again.' }), true);
+      return work();
+    }
     return gate.run(async () => {
       if (blocked) return (send(res, 503, { error: 'Could not save. Please try again.' }), true);
       const original = { writeHead: res.writeHead, write: res.write, end: res.end }, chunks = [];
