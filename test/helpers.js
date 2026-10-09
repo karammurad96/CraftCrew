@@ -128,7 +128,8 @@ async function startApp({ smtp, env = {}, dataDir: keepDir } = {}) {
         NODE_ENV: "production",
         DATA_DIR: dataDir,
         PORT: String(port),
-        APP_URL: `http://localhost:${port}`,
+        // A per-network rate limit needs one loopback family across all fixture requests.
+        APP_URL: `http://127.0.0.1:${port}`,
         ...(POSTGRES ? { STORE: "postgres", DATABASE_URL: databaseUrl(dataDir) } : {}),
         BOOTSTRAP_ADMIN_EMAIL: "admin@test.local",
         BOOTSTRAP_ADMIN_PASSWORD: "Admin-Password-2026!",
@@ -161,8 +162,8 @@ async function startApp({ smtp, env = {}, dataDir: keepDir } = {}) {
     proc.stderr.on("data", (d) => (stderr += d));
     for (let i = 0; i < 150 && !exited; i++) {
       try {
-        if ((await fetch(`http://localhost:${port}/api/health`, { signal: AbortSignal.timeout(1000) })).ok) {
-          base = `http://localhost:${port}`;
+        if ((await fetch(`http://127.0.0.1:${port}/api/health`, { signal: AbortSignal.timeout(1000) })).ok) {
+          base = `http://127.0.0.1:${port}`;
           break;
         }
       } catch {}
