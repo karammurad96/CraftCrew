@@ -2,6 +2,9 @@
 
 Stripe remains a sandbox-only development integration pending the payment launch gates. Passing fake-Stripe tests does not authorize live activation.
 
+The runtime refuses both secret and restricted live keys before constructing the SDK, even
+with `PAYMENTS_LIVE=1`. T280 prepares checklist/tooling only and does not remove this refusal.
+
 ## Monetary operation identities (T283a)
 
 `stripeOperations` stores deterministic operation IDs and provider idempotency keys before

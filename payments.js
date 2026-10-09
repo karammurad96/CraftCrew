@@ -3,7 +3,7 @@
  *
  * - Off unless STRIPE_SECRET_KEY is set. Keys come only from the environment (or the host's secret store), never
  *   from the code, the repository or the database. A restricted key (rk_…) is preferred over a secret key (sk_…).
- * - Test mode only: a live key (sk_live_ / rk_live_) is refused unless PAYMENTS_LIVE=1 (set by Karam after T280).
+ * - Test mode only: live keys are refused even with PAYMENTS_LIVE=1. T280 is checklist/tooling only.
  * - One StripeClient instance with the SDK's pinned API version. STRIPE_API_BASE points it at a fake Stripe in tests.
  * - Webhooks: POST /api/stripe/webhook, raw body, signature checked with STRIPE_WEBHOOK_SECRET; every event is
  *   persisted in the store inbox before processing. db.stripeEvents holds bounded display metadata only.
@@ -24,8 +24,7 @@ module.exports = function createPayments(ctx) {
   const enabled = KEY_RE.test(key);
   const live = /^(sk|rk)_live_/.test(key);
   if (key && !enabled) throw new Error("STRIPE_SECRET_KEY is not a Stripe secret or restricted key.");
-  if (live && env.PAYMENTS_LIVE !== "1")
-    throw new Error("A live Stripe key needs PAYMENTS_LIVE=1, set only after the go-live checklist (T280).");
+  if (live) throw new Error("Live payments are not enabled.");
   let client = null;
   if (enabled) {
     inbox?.assertDurability?.(); // Refuse unsupported JSON durability before SDK/provider activity.
