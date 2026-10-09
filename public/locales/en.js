@@ -6136,6 +6136,7 @@ LOCALES.en = {
       invoiceStatus: "Invoice {number}: {status}",
       invoiceResubmitted: "Invoice {number} was corrected and resubmitted{note}",
       invoicePaid: "Invoice {number} has been paid",
+      invoicePaymentFailed: "Payment for invoice {number} could not be completed",
       invoiceRefunded: "Invoice {number} payment was refunded",
       payoutsActive: "Your payout account is active. Customers can now pay your invoices through Stripe.",
       payoutsRestricted: "Stripe needs more information before your payouts can continue. Open Payouts to complete it.",

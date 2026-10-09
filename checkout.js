@@ -45,14 +45,114 @@ function cleanPolicy(body) {
 }
 
 module.exports = function createCheckout(ctx) {
-  const { getDb, client, enabled, live, send, body, now, gate, commitStage, ownerHealthy, appUrl } = ctx;
+  const { getDb, client, enabled, live, send, body, now, gate, commitStage, ownerHealthy, appUrl, id } = ctx;
   const checkoutOwners = ctx.checkoutOwners || new Set();
-  // Until T272c rolls out verified fulfilment, never acknowledge our payment events as no-op receipts.
-  for (const type of ["checkout.session.completed", "checkout.session.async_payment_succeeded", "checkout.session.async_payment_failed"])
-    ctx.on(type, { stage({ object }) {
-      if (object?.integration_identifier === INTEGRATION || object?.metadata?.checkoutAttemptId)
-        throw new Error("Checkout fulfilment is not rolled out");
-    } });
+  const fulfilmentTypes = new Set(["checkout.session.completed", "checkout.session.async_payment_succeeded", "checkout.session.async_payment_failed"]);
+  const eventFailure = (code) => { const error = new Error("Checkout provider data could not be verified"); error.code = code; return error; };
+  const expectedMetadata = (invoice, payment, checkout) => ({
+    invoiceId: invoice.id, projectId: invoice.projectId || "", supplierId: invoice.supplierId || "",
+    paymentId: payment.id, customerId: invoice.customerId, checkoutAttemptId: checkout.attemptId,
+  });
+  const exactMetadata = (actual, expected) => equal(actual || {}, expected);
+  function checkoutRecord(object) {
+    if (!object || object.object !== "checkout.session" || !/^cs_[A-Za-z0-9_]+$/.test(object.id) ||
+        object.integration_identifier !== INTEGRATION || !object.metadata?.checkoutAttemptId)
+      throw eventFailure("provider_identity");
+    const rows = (getDb().payments || []).filter((payment) => payment.stripe?.checkout?.sessionId === object.id ||
+      payment.stripe?.checkout?.attemptId === object.metadata.checkoutAttemptId);
+    if (rows.length !== 1) throw eventFailure("payment_binding");
+    const payment = rows[0], invoice = (getDb().invoices || []).find((item) => item.id === payment.invoiceId), checkout = payment.stripe.checkout;
+    if (!invoice || !checkout || checkout.sessionId !== object.id || checkout.attemptId !== object.metadata.checkoutAttemptId ||
+        invoice.customerId !== object.metadata.customerId || payment.id !== object.metadata.paymentId ||
+        invoice.id !== object.metadata.invoiceId || !exactMetadata(object.metadata, expectedMetadata(invoice, payment, checkout)))
+      throw eventFailure("payment_binding");
+    return { payment, invoice, checkout };
+  }
+  function verifyFulfilmentSession(session, record) {
+    const expected = expectedMetadata(record.invoice, record.payment, record.checkout);
+    if (!session || session.id !== record.checkout.sessionId || session.livemode !== false || session.mode !== "payment" || session.status !== "complete" ||
+        session.currency !== "eur" || session.amount_total !== record.checkout.amount ||
+        session.customer !== record.checkout.customerId || session.client_reference_id !== record.invoice.id ||
+        session.integration_identifier !== INTEGRATION || !exactMetadata(session.metadata, expected)) throw eventFailure("session_mismatch");
+    return session;
+  }
+  async function retrievePayment(session, record) {
+    if (!session.payment_intent) throw eventFailure("payment_intent_missing");
+    const intentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent.id;
+    if (!/^pi_[A-Za-z0-9_]+$/.test(intentId)) throw eventFailure("payment_intent_identity");
+    let intent = typeof session.payment_intent === "object" ? session.payment_intent : null;
+    if (!intent || intent.id !== intentId || !intent.charges) intent = await client.paymentIntents.retrieve(intentId, { expand: ["latest_charge", "charges.data"] });
+    const expected = expectedMetadata(record.invoice, record.payment, record.checkout);
+    if (!intent || intent.id !== intentId || intent.livemode !== false || intent.amount !== record.checkout.amount ||
+        intent.currency !== "eur" || intent.customer !== record.checkout.customerId || !exactMetadata(intent.metadata, expected) || intent.status !== "succeeded")
+      throw eventFailure("payment_intent_mismatch");
+    let charge = intent.latest_charge;
+    if (!charge && intent.charges?.data?.length) charge = intent.charges.data[0];
+    if (typeof charge === "string") charge = await client.charges.retrieve(charge);
+    if (!charge || charge.object !== "charge" || charge.livemode !== false || charge.payment_intent !== intent.id ||
+        charge.amount !== intent.amount || charge.currency !== "eur" || charge.paid !== true || charge.status !== "succeeded")
+      throw eventFailure("charge_mismatch");
+    return { intent, charge };
+  }
+  const recipientUsers = (invoice) => [
+    (getDb().users || []).find((user) => user.id === invoice.customerId),
+    (getDb().users || []).find((user) => user.supplierId === invoice.supplierId && !user.orgOwnerId),
+  ].filter(Boolean).filter((user, index, all) => all.findIndex((candidate) => candidate.id === user.id) === index);
+  function notificationStage(stage, invoice, key, event, params) {
+    for (const user of recipientUsers(invoice)) stage.add("notifications", {
+      id: `stripe-${event.id}-${user.id}`,
+      userId: user.id,
+      text: locales.notifyText({ key, params }, user.language),
+      link: `/${user.role === "supplier" ? "supplier" : "customer"}/invoice/${invoice.id}`,
+      read: false,
+      createdAt: now(),
+    });
+  }
+  for (const type of fulfilmentTypes) ctx.on(type, {
+    async prepare(object, event) {
+      const record = checkoutRecord(object);
+      verifyFulfilmentSession(object, record);
+      const session = verifyFulfilmentSession(await client.checkout.sessions.retrieve(object.id, { expand: ["payment_intent"] }), record);
+      if (object.payment_status !== undefined && object.payment_status !== session.payment_status)
+        throw eventFailure("event_session_status");
+      const failed = type.endsWith("async_payment_failed");
+      let provider = null;
+      if (!failed && (type.endsWith("async_payment_succeeded") || session.payment_status !== "unpaid")) provider = await retrievePayment(session, record);
+      if (failed && session.payment_status === "paid") throw eventFailure("failure_after_success");
+      return { record, session, provider, failed, eventId: event.id };
+    },
+    stage({ stage, prepared, event }) {
+      if (!prepared?.record || !fulfilmentTypes.has(event.type)) throw eventFailure("prepared");
+      const { payment, invoice, checkout } = checkoutRecord(prepared.session), current = getDb();
+      const latestPayment = (current.payments || []).find((row) => row.id === payment.id), latestInvoice = (current.invoices || []).find((row) => row.id === invoice.id);
+      if (!latestPayment || !latestInvoice || latestPayment.invoiceId !== latestInvoice.id) throw eventFailure("payment_binding");
+      if (prepared.failed) {
+        if (latestPayment.status === "Paid" || latestInvoice.status === "Paid") throw eventFailure("failure_after_success");
+        stage.patch("payments", payment.id, { stripe: { ...latestPayment.stripe, checkout: { ...checkout, status: "failed", failedAt: now(), failureCode: "async_payment_failed" } } }, { status: latestPayment.status, stripe: latestPayment.stripe });
+        stage.patch("invoices", invoice.id, {}, { status: latestInvoice.status });
+        notificationStage(stage, invoice, "invoicePaymentFailed", event, { number: invoice.number || invoice.id });
+        return { status: "failed", invoiceId: invoice.id };
+      }
+      if (prepared.session.payment_status === "unpaid") {
+        if (latestPayment.status === "Paid" || latestInvoice.status === "Paid") throw eventFailure("paid_session_unpaid");
+        stage.patch("payments", payment.id, { stripe: { ...latestPayment.stripe, checkout: { ...checkout, status: "pending", pendingAt: now() } } }, { status: latestPayment.status, stripe: latestPayment.stripe });
+        stage.patch("invoices", invoice.id, {}, { status: latestInvoice.status });
+        return { status: "pending", invoiceId: invoice.id };
+      }
+      if (!prepared.provider) throw eventFailure("payment_missing");
+      if (latestPayment.status === "Paid" || latestInvoice.status === "Paid") {
+        if (latestPayment.status !== "Paid" || latestInvoice.status !== "Paid") throw eventFailure("paid_binding");
+        stage.patch("payments", payment.id, {}, { status: latestPayment.status });
+        stage.patch("invoices", invoice.id, {}, { status: latestInvoice.status });
+        return { status: "paid", invoiceId: invoice.id, duplicate: true };
+      }
+      const paidAt = now();
+      stage.patch("payments", payment.id, { status: "Paid", paidAt, stripe: { ...latestPayment.stripe, checkout: { ...checkout, status: "paid", paidAt, paymentIntentId: prepared.provider.intent.id, chargeId: prepared.provider.charge.id } } }, { status: latestPayment.status, stripe: latestPayment.stripe });
+      stage.patch("invoices", invoice.id, { status: "Paid", paymentDate: paidAt, updatedAt: paidAt }, { status: latestInvoice.status });
+      notificationStage(stage, invoice, "invoicePaid", event, { number: invoice.number || invoice.id });
+      return { status: "paid", invoiceId: invoice.id };
+    },
+  });
   const active = new Map();
   const data = () => getDb();
   const find = (invoiceId, actor) => {

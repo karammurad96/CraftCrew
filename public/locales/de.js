@@ -6135,6 +6135,7 @@ LOCALES.de = {
       invoiceStatus: "Rechnung {number}: {status}",
       invoiceResubmitted: "Rechnung {number} wurde korrigiert und erneut eingereicht{note}",
       invoicePaid: "Rechnung {number} wurde bezahlt",
+      invoicePaymentFailed: "Die Zahlung für Rechnung {number} konnte nicht abgeschlossen werden",
       invoiceRefunded: "Zahlung für Rechnung {number} wurde erstattet",
       payoutsActive: "Ihr Auszahlungskonto ist aktiv. Kunden können Ihre Rechnungen jetzt über Stripe bezahlen.",
       payoutsRestricted: "Stripe braucht weitere Angaben, bevor Ihre Auszahlungen weitergehen können. Öffnen Sie Auszahlungen, um sie zu ergänzen.",

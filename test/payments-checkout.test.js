@@ -133,3 +133,55 @@ test("unapproved currency/totals, aged uncertain attempts and live mode fail clo
   await assert.rejects(state.checkout.pay("invoice", state.actor), /reconciliation/);
   assert.equal(state.fake.calls.length, 0);
 });
+
+test("T272c verifies Checkout associations before atomically fulfilling paid, pending and failed events", async () => {
+  const db = {
+    users: [
+      { id: "owner", role: "customer", status: "Active", email: "owner@example.com", language: "en" },
+      { id: "supplier-user", role: "supplier", supplierId: "supplier", status: "Active", language: "de" },
+    ],
+    suppliers: [{ id: "supplier" }],
+    invoices: [{ id: "invoice", number: "INV-1", customerId: "owner", supplierId: "supplier", projectId: "project", status: "Approved", amount: 1190, grossAmount: 1190, netAmount: 1000 }],
+    payments: [{ id: "payment", invoiceId: "invoice", status: "Scheduled", amount: 119000, netAmount: 100000,
+      stripe: { checkout: { attemptId: "attempt", sessionId: "cs_test_1", customerId: "cus_1", amount: 119000, status: "open" } } }],
+    notifications: [],
+  };
+  const session = { id: "cs_test_1", object: "checkout.session", mode: "payment", livemode: false, currency: "eur", amount_total: 119000,
+    customer: "cus_1", client_reference_id: "invoice", integration_identifier: "craftcrew-invoice",
+    metadata: { invoiceId: "invoice", projectId: "project", supplierId: "supplier", paymentId: "payment", customerId: "owner", checkoutAttemptId: "attempt" },
+    status: "complete", payment_status: "paid", payment_intent: "pi_test_1" };
+  const intent = { id: "pi_test_1", object: "payment_intent", livemode: false, amount: 119000, currency: "eur", customer: "cus_1", status: "succeeded",
+    metadata: session.metadata, latest_charge: "ch_test_1" };
+  const charge = { id: "ch_test_1", object: "charge", livemode: false, payment_intent: "pi_test_1", amount: 119000, currency: "eur", paid: true, status: "succeeded" };
+  const handlers = new Map(), gate = atomic.createGate();
+  const ctx = { getDb: () => db, client: {
+    checkout: { sessions: { retrieve: async () => structuredClone(session) } },
+    paymentIntents: { retrieve: async () => structuredClone(intent) },
+    charges: { retrieve: async () => structuredClone(charge) },
+  }, enabled: true, on: (type, handler) => handlers.set(type, handler), gate, ownerHealthy() {}, now: () => "2026-10-09T00:00:00.000Z",
+    appUrl: () => "https://app.example.com", commitStage: async ({ stage }) => { atomic.validate(db, stage); atomic.publish(db, stage); } };
+  createCheckout(ctx);
+  const event = { id: "evt_paid", type: "checkout.session.completed" };
+  const prepared = await handlers.get(event.type).prepare(session, event);
+  const stage = atomic.createStage(), transition = handlers.get(event.type).stage({ stage, prepared, event });
+  atomic.validate(db, stage); atomic.publish(db, stage);
+  assert.equal(transition.status, "paid"); assert.equal(db.invoices[0].status, "Paid"); assert.equal(db.payments[0].status, "Paid");
+  assert.equal(db.payments[0].stripe.checkout.chargeId, "ch_test_1"); assert.equal(db.notifications.length, 2);
+
+  const pending = structuredClone(db);
+  pending.invoices[0].status = "Approved"; pending.payments[0].status = "Scheduled";
+  pending.payments[0].stripe.checkout.status = "open"; session.payment_status = "unpaid"; session.payment_intent = null;
+  const pendingCtx = { ...ctx, getDb: () => pending }; const pendingHandlers = new Map(); pendingCtx.on = (type, handler) => pendingHandlers.set(type, handler); createCheckout(pendingCtx);
+  const pendingEvent = { id: "evt_pending", type: "checkout.session.completed" }, pendingPrepared = await pendingHandlers.get(pendingEvent.type).prepare(session, pendingEvent);
+  const pendingStage = atomic.createStage(); assert.equal(pendingHandlers.get(pendingEvent.type).stage({ stage: pendingStage, prepared: pendingPrepared, event: pendingEvent }).status, "pending");
+  atomic.validate(pending, pendingStage); atomic.publish(pending, pendingStage); assert.equal(pending.payments[0].status, "Scheduled"); assert.equal(pending.payments[0].stripe.checkout.status, "pending");
+
+  const failed = structuredClone(pending); failed.notifications = []; session.payment_status = "unpaid"; session.status = "complete";
+  const failedCtx = { ...ctx, getDb: () => failed }; const failedHandlers = new Map(); failedCtx.on = (type, handler) => failedHandlers.set(type, handler); createCheckout(failedCtx);
+  const failedEvent = { id: "evt_failed", type: "checkout.session.async_payment_failed" }, failedPrepared = await failedHandlers.get(failedEvent.type).prepare(session, failedEvent);
+  const failedStage = atomic.createStage(); assert.equal(failedHandlers.get(failedEvent.type).stage({ stage: failedStage, prepared: failedPrepared, event: failedEvent }).status, "failed");
+  atomic.validate(failed, failedStage); atomic.publish(failed, failedStage); assert.equal(failed.payments[0].stripe.checkout.status, "failed"); assert.equal(failed.notifications.length, 2);
+
+  const forged = structuredClone(session); forged.amount_total = 1;
+  await assert.rejects(handlers.get("checkout.session.completed").prepare(forged, { id: "evt_forged", type: "checkout.session.completed" }), /verified/);
+});
