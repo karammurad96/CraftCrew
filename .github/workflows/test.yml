@@ -22,6 +22,12 @@ jobs:
       # T270: the Stripe SDK is a dependency the payment tests load
       - run: npm ci
       - run: npm test
+      # Google's Docker Hub mirror serves the same official base without shared-runner Hub rate limits.
+      - name: Prefetch the official Node base through the Docker Hub mirror
+        if: matrix.node == 20
+        run: |
+          docker pull mirror.gcr.io/library/node:20-alpine
+          docker tag mirror.gcr.io/library/node:20-alpine node:20-alpine
       - name: Docker image builds
         if: matrix.node == 20
         run: docker build -t craftcrew-test .
@@ -38,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16
+        image: mirror.gcr.io/library/postgres:16
         env:
           POSTGRES_DB: craftcrew_test
           POSTGRES_USER: craftcrew

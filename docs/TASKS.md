@@ -399,6 +399,7 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 - [ ] T285 Preserve pending and failed emails when pruning the outbox · P0 · S · before operational emails
 - [ ] T286 Track operator time and variable contribution per paid job · P1 · M · before wider launch, not a first invited-pilot blocker
 - [x] T287 Restore Windows JSON demo startup without weakening payment durability · P0 · S · urgent user regression, before T272b
+- [x] T289 Restore CI image availability using Google's Docker Hub mirror · P0 · S · prerequisite while Docker Hub rate limits block T283a
 
 **Wave 20 — configurable industrial package catalogue (Karam approved backlog registration on 8 October 2026; implement after the agreed payment/storage sequence, not in parallel with unfinished payment tasks)**
 - [x] T288 Register the approved industrial package backlog and dependencies · P1 · S · documentation only
@@ -433,6 +434,22 @@ Every task depends on **T00** and **T01** unless it says otherwise.
   - [ ] T303b Product/bundle journey and operating/legal handoff · M
 
 **Wave 20 execution gate.** Complete the agreed payment sequence T272 → T273 → T283a/T283b/T283c → T284 → T274 → T275 → T278 → T280 (checklist/tooling only; no go-live and live keys refused) before package implementation starts. T299b additionally requires the completed T200–T205 contract workflow and resolved contract/identity policy. Service packages precede physical products; product publication/activation remains gated on approved terms and tax treatment. Existing parked PRs #194/#188 and T210/T211 stay parked.
+
+### T289 · CI image availability
+`P0 · S · registered 9 October 2026 before implementation`
+
+**Problem.** Two final-head T283a workflow attempts fail before PostgreSQL tests or Docker startup because unauthenticated Docker Hub pulls return HTTP 429. Application tests pass; retries on new runners do not resolve the registry limit.
+
+**Where.** `.github/workflows/test.yml` and this task file only. Preserve the application Dockerfile, runtime versions and all five required checks.
+
+**Do.** Use Google's Docker Hub pull-through mirror for the official `postgres:16` service image and prefetch/tag the official `node:20-alpine` base before the existing Docker build. Preserve TLS and Docker's layer/digest verification, locked npm dependencies and real PostgreSQL/browser/XRechnung checks. Do not use arbitrary third-party images, add credentials, skip tests or weaken the final-head merge gate.
+
+**Tests / Done when.**
+- [x] Both mirrored official image manifests/pulls succeed and the unchanged Dockerfile builds/starts with the prefetched base.
+- [x] `npm test`, secret scan and diff checks pass; no application files or keys change.
+- [x] Retain all five CI checks, mirrored PostgreSQL service tests and unchanged Docker build/start checks; all must pass on the final head before merge.
+
+**As built (9 October 2026).** PostgreSQL 16 uses Google's Docker Hub mirror of the official library image; Node 20 Alpine is pulled through that mirror and tagged locally before the unchanged Dockerfile builds. No application/Dockerfile/dependency files or credentials changed. Both mirrored manifests and checksum-verified pulls succeeded. The PostgreSQL container reports 16.15; the application Docker build, health request and authenticated admin login passed. Temporary validation containers were stopped. The full JSON baseline passed 830/0/19 expected skips; secret scan and diff checks pass. All five final-head CI checks remain mandatory. After this prerequisite merges, rebase the paused T283a PR on main and re-run its checks before merging it.
 
 ### T287 · Windows JSON demo compatibility
 
