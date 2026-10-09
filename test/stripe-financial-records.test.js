@@ -22,7 +22,7 @@ async function fixture(kind, work) {
     const open = () => openStore({ kind, dataDir: dir, url }); store = open(); store.loadSync();
     let db = { settings: { platformFeePercent: 3 }, users: [], suppliers: [{ id: 'supplier', stripeAccount: { id: 'acct_fake1', transfers: 'active' } }],
       invoices: [{ id: 'invoice', supplierId: 'supplier', customerId: 'buyer', status: 'Paid', amount: 1190, grossAmount: 1190, netAmount: 1000 }],
-      payments: [{ id: 'payment', invoiceId: 'invoice', status: 'Paid', amount: 1190, stripe: { checkout: { chargeId: 'ch_1' } } }],
+      payments: [{ id: 'payment', invoiceId: 'invoice', status: 'Paid', amount: 1190, netAmount: 1000, platformFee: 30, platformFeePercent: 3, stripe: { checkout: { chargeId: 'ch_1' } } }],
       disputes: [], stripeFinancialRecords: [], stripeOperations: [], meta: {} };
     store.save(db); await store.flush();
     const endpoint = new URL(fake.base), client = new Stripe('sk_test_fake', { host: endpoint.hostname, port: Number(endpoint.port), protocol: 'http', maxNetworkRetries: 0 });

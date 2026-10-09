@@ -24,7 +24,12 @@ test("T283a signed Checkout delivery reaches supplier settlement exactly once th
   const customer = await app.login("settlement.customer@test.local", "Test-Password-2026");
   const { project, phase, tasks } = await projectWithTasks(app, customer, { tasks: ["Settlement"] });
   await assignAndAccept(app, customer, supplier.token, project, tasks[0]);
+  const before = await app.call("GET", "/invoices", undefined, supplier.token);
+  const malformed = await app.call("POST", "/invoices/not-a-creation-route", { projectId: project.id, phaseId: phase.id, taskId: tasks[0].id, amount: 1000, vatMode: "standard", description: "Malformed invoice route" }, supplier.token);
+  assert.equal(malformed.status, 404);
+  assert.equal((await app.call("GET", "/invoices", undefined, supplier.token)).invoices.length, before.invoices.length);
   const invoice = await submitInvoice(app, supplier.token, project, phase, tasks[0], 1000);
+  assert.match(invoice.number, /-0001$/, 'the malformed route must not consume an invoice number');
   assert.equal((await app.call("PATCH", `/invoices/${invoice.id}`, { action: "Approve" }, customer)).status, 200);
   const checkout = await app.call("POST", `/invoices/${invoice.id}/pay`, {}, customer);
   assert.equal(checkout.status, 200, checkout.error);

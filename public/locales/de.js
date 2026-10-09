@@ -195,6 +195,7 @@ LOCALES.de = {
     wrongAccount: "Diese Seite gehört zu einer anderen Kontoart.",
     // API error messages by code (T137): the server sends { error, code, params }; see errorCode() in server.js
     api: {
+      feeSettlementAmounts: "Eingezogener Betrag und Restbetrag müssen der Rechnungssumme entsprechen.",
       bizPeriod: "Prüfen Sie den Zeitraum: Das Ende kann nicht vor dem Anfang liegen.",
       bizFilter: "Prüfen Sie den Filter: Wochen oder Monate und eine Postleitzahl mit bis zu fünf Ziffern.",
       bizDeadlines: "Fristen: 1 bis 72 Arbeitsstunden für neue Anfragen, 1 bis 10 Arbeitstage für die anderen.",
@@ -6011,6 +6012,11 @@ LOCALES.de = {
     },
   },
   fee: {
+    collected: "Eingezogen",
+    appliedCredits: "Verrechnete Gutschriften",
+    reviewRequired: "Einzugshistorie muss geprüft werden; kein verifizierter Zahlbetrag.",
+    creditBalance: "Guthaben zur Prüfung",
+    outstanding: "Restbetrag",
     title: "Plattformgebühren",
     lead: "Einmal im Monat stellt die Plattform ihre Gebühr auf Ihre freigegebenen Rechnungen in Rechnung. Laden Sie jede Abrechnung als PDF oder E-Rechnung (XRechnung) herunter.",
     adminTitle: "Gebührenabrechnungen",
@@ -6302,6 +6308,11 @@ LOCALES.de = {
     },
     pdf: {
       statement: {
+        collected: "Eingezogen",
+        appliedCredits: "Verrechnete Gutschriften",
+        reviewRequired: "Einzugshistorie muss geprüft werden; kein verifizierter Zahlbetrag.",
+    creditBalance: "Guthaben zur Prüfung",
+        outstanding: "Restbetrag",
         title: "Gebührenabrechnung",
         credit: "Gutschrift",
         no: "Nr.",

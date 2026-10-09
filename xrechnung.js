@@ -79,6 +79,11 @@ function parseAddress(text) {
 const isVatId = (id) => /^[A-Z]{2}[0-9A-Z+*.]{2,13}$/.test(String(id || "").replace(/\s/g, ""));
 
 function xrechnungProblem(d) {
+  if (d.prepaidAmount !== undefined || d.dueAmount !== undefined) {
+    const prepaid = d.prepaidAmount ?? 0, due = d.dueAmount ?? Number(d.vat?.gross) - prepaid;
+    if (![prepaid, due].every((n) => typeof n === 'number' && Number.isFinite(n) && n >= 0 && Math.abs(n * 100 - Math.round(n * 100)) < 0.00001) || !Number.isFinite(d.vat?.gross) || Math.abs(prepaid + due - d.vat.gross) > 0.00001)
+      return "The collected amount and remaining balance must match the invoice total.";
+  }
   const seller = parseAddress(d.seller.address),
     buyer = parseAddress(d.buyer.address);
   if (!d.vat?.mode)
@@ -148,7 +153,7 @@ function buildXRechnung(d) {
     headerTax,
     period,
     `<ram:SpecifiedTradePaymentTerms><ram:Description>${xml(d.paymentTerms || "Zahlbar gemäß Projektauftrag")}</ram:Description>${d.dueDate ? `<ram:DueDateDateTime><udt:DateTimeString format="102">${day(d.dueDate)}</udt:DateTimeString></ram:DueDateDateTime>` : ""}</ram:SpecifiedTradePaymentTerms>`,
-    `<ram:SpecifiedTradeSettlementHeaderMonetarySummation><ram:LineTotalAmount>${amount(d.vat.net)}</ram:LineTotalAmount><ram:TaxBasisTotalAmount>${amount(d.vat.net)}</ram:TaxBasisTotalAmount><ram:TaxTotalAmount currencyID="EUR">${amount(d.vat.vat)}</ram:TaxTotalAmount><ram:GrandTotalAmount>${amount(d.vat.gross)}</ram:GrandTotalAmount><ram:DuePayableAmount>${amount(d.vat.gross)}</ram:DuePayableAmount></ram:SpecifiedTradeSettlementHeaderMonetarySummation>`,
+    `<ram:SpecifiedTradeSettlementHeaderMonetarySummation><ram:LineTotalAmount>${amount(d.vat.net)}</ram:LineTotalAmount><ram:TaxBasisTotalAmount>${amount(d.vat.net)}</ram:TaxBasisTotalAmount><ram:TaxTotalAmount currencyID="EUR">${amount(d.vat.vat)}</ram:TaxTotalAmount><ram:GrandTotalAmount>${amount(d.vat.gross)}</ram:GrandTotalAmount>${d.prepaidAmount !== undefined ? `<ram:TotalPrepaidAmount>${amount(d.prepaidAmount)}</ram:TotalPrepaidAmount>` : ""}<ram:DuePayableAmount>${amount(d.dueAmount ?? Math.round((d.vat.gross - (d.prepaidAmount ?? 0)) * 100) / 100)}</ram:DuePayableAmount></ram:SpecifiedTradeSettlementHeaderMonetarySummation>`,
     `</ram:ApplicableHeaderTradeSettlement>`,
     `</rsm:SupplyChainTradeTransaction>`,
     `</rsm:CrossIndustryInvoice>`,

@@ -196,6 +196,7 @@ LOCALES.en = {
     wrongAccount: "This page belongs to another type of account.",
     // API error messages by code (T137): the server sends { error, code, params }; see errorCode() in server.js
     api: {
+      feeSettlementAmounts: "The collected amount and remaining balance must match the invoice total.",
       bizPeriod: "Check the period: the end cannot be before the start.",
       bizFilter: "Check the filter: weeks or months, and a postcode prefix of up to five digits.",
       bizDeadlines: "Deadlines: 1 to 72 working hours for new requests, 1 to 10 working days for the others.",
@@ -6012,6 +6013,11 @@ LOCALES.en = {
     },
   },
   fee: {
+    collected: "Collected",
+    appliedCredits: "Applied credits",
+    reviewRequired: "Collection history requires review; no verified payable balance.",
+    creditBalance: "Credit balance for review",
+    outstanding: "Remaining balance",
     title: "Platform fees",
     lead: "Once a month the platform invoices its fee on your approved invoices. Download each statement as a PDF or an e-invoice (XRechnung).",
     adminTitle: "Fee statements",
@@ -6303,6 +6309,11 @@ LOCALES.en = {
     },
     pdf: {
       statement: {
+        collected: "Collected",
+        appliedCredits: "Applied credits",
+        reviewRequired: "Collection history requires review; no verified payable balance.",
+    creditBalance: "Credit balance for review",
+        outstanding: "Remaining balance",
         title: "Fee statement",
         credit: "Credit note",
         no: "No.",

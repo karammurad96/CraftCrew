@@ -49,12 +49,17 @@ function backup(previous, incoming, existing, imported = []) {
   return { data, records };
 }
 function createStage() {
-  return { patches: [], additions: [],
+  return { patches: [], additions: [], values: [],
     patch(collection, id, fields, expected = {}) { this.patches.push({ collection, id, fields: clone(fields), expected: structuredClone(expected) }); },
     add(collection, record) { this.additions.push({ collection, record: clone(record) }); },
+    value(name, fields, expected = {}) { this.values.push({ name, fields: clone(fields), expected: structuredClone(expected) }); },
   };
 }
 function validate(data, stage) {
+  for (const v of stage.values || []) {
+    if (v.name !== 'counters' || Object.keys(v.fields).some((key) => ['__proto__','constructor','prototype'].includes(key)) || Object.entries(v.expected).some(([key, value]) => !equal(data[v.name]?.[key], value)))
+      throw new Error('Stripe staged value conflict');
+  }
   for (const p of stage.patches) {
     if (p.collection === 'stripeFinancialRecords') throw new Error('Stripe financial history cannot be changed');
     const rows = data[p.collection], matches = Array.isArray(rows) ? rows.filter((r) => r.id === p.id) : [];
@@ -72,6 +77,7 @@ function validate(data, stage) {
   }
 }
 function publish(data, stage, committed) {
+  for (const v of stage.values || []) Object.assign(data[v.name] ||= {}, clone(v.fields));
   for (const p of stage.patches) Object.assign(data[p.collection].find((r) => r.id === p.id), clone(p.fields));
   for (const a of stage.additions) data[a.collection].unshift(clone(a.record));
   if (committed) {
@@ -90,6 +96,11 @@ function prepareStage(data, stage) {
     for (const key of Object.keys(p.fields)) prepared.patches.at(-1).expected[key] = current[key] === undefined ? undefined : clone(current[key]);
   }
   prepared.additions = clone(stage.additions);
+  for (const v of stage.values || []) {
+    const expected = { ...v.expected };
+    for (const key of Object.keys(v.fields)) expected[key] = structuredClone(data[v.name]?.[key]);
+    prepared.value(v.name, v.fields, expected);
+  }
   const snapshot = clone(data);
   publish(snapshot, prepared);
   return { stage: prepared, snapshot };

@@ -8,7 +8,7 @@ function feRows(statements, admin) {
       (st) =>
         `<tr><td><b>${esc(st.number)}</b><small>${fek(st.kind === "credit" ? "kind.credit" : "kind.statement")}${st.creditOfNumber ? " · " + fek("creditOf", { number: st.creditOfNumber }) : ""}</small></td>${
           admin ? `<td><bdi>${esc(st.company)}</bdi></td>` : ""
-        }<td>${esc(st.period)}</td><td>${esc(fmt.date(st.issueDate))}</td><td class="num">${esc(fmt.money(st.gross, 2))}</td><td>${feChip(st.status)}</td><td class="fe-actions"><a class="btn small outline" href="/api/commission/${esc(st.id)}/pdf" download>${fek("pdf")}</a><button class="btn small ghost" data-action="fee.xml" data-id="${esc(st.id)}" data-number="${esc(st.number)}">${fek("xml")}</button>${
+        }<td>${esc(st.period)}</td><td>${esc(fmt.date(st.issueDate))}</td><td class="num">${esc(fmt.money(st.gross, 2))}${st.feeReviewRequired ? `<small>${fek("reviewRequired")}</small>` : st.outstandingAmount !== undefined ? `<small>${fek("collected")}: ${esc(fmt.money(st.collectedAmount || 0, 2))}${st.creditedAmount ? `<br>${fek("appliedCredits")}: ${esc(fmt.money(st.creditedAmount, 2))}` : ""}<br>${fek("outstanding")}: ${esc(fmt.money(st.outstandingAmount, 2))}${st.creditBalanceAmount ? `<br>${fek("creditBalance")}: ${esc(fmt.money(st.creditBalanceAmount, 2))}` : ""}</small>` : ""}</td><td>${feChip(st.status)}</td><td class="fe-actions"><a class="btn small outline" href="/api/commission/${esc(st.id)}/pdf" download>${fek("pdf")}</a><button class="btn small ghost" data-action="fee.xml" data-id="${esc(st.id)}" data-number="${esc(st.number)}">${fek("xml")}</button>${
           admin && st.kind === "statement" && st.status === "Open"
             ? `<button class="btn small primary" data-action="fee.paid" data-id="${esc(st.id)}">${fek("markPaid")}</button>`
             : ""
@@ -23,7 +23,7 @@ function feTable(statements, admin) {
 }
 async function feSupplierPage() {
   const { statements = [] } = await api("/commission");
-  const open = statements.filter((s) => s.status === "Open").reduce((n, s) => n + s.gross, 0);
+  const open = statements.filter((s) => s.status === "Open" && !s.feeReviewRequired).reduce((n, s) => n + (s.outstandingAmount ?? s.gross), 0);
   app.innerHTML = dashboardShell(
     "supplier",
     "fees",
