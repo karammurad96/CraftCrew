@@ -103,6 +103,8 @@ LOCALES.en = {
       rejected: "Rejected",
       paid: "Paid",
       refunded: "Refunded",
+      disputed: "Disputed",
+      transferred: "Transferred",
       pending: "Pending",
       pendingApproval: "Pending approval",
       pendingReview: "Pending review",
@@ -224,6 +226,9 @@ LOCALES.en = {
       stHandlerFailed: "Handler failed",
       stOff: "Payments are off: no Stripe key is set.",
       stUnreachable: "Stripe could not be reached. Check the key and the network.",
+      t273Payment: "The Stripe payment could not be verified for this operation.",
+      t273RefundAmount: "The refund amount is invalid.",
+      t273RefundOnlyStripe: "Only a verified Stripe payment can be refunded.",
       chatTooFast: "You are sending messages very fast. Wait a minute, then send again.",
       poOnlySuppliers: "Only suppliers have a payout account.",
       poChanged: "The payout account changed. Reload this page and try again.",
@@ -4076,12 +4081,14 @@ LOCALES.en = {
       "Changes Requested": "Changes Requested",
       "Rejected": "Rejected",
       "Paid": "Paid",
-      "Refunded": "Refunded"
+      "Refunded": "Refunded",
+      "Disputed": "Disputed"
     },
     "payStatus": {
       "Scheduled": "Scheduled",
       "Paid": "Paid",
       "Refunded": "Refunded"
+      ,"Disputed": "Disputed"
     },
     "disputeStatus": {
       "Open": "Open",

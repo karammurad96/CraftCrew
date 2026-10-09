@@ -381,8 +381,8 @@ Every task depends on **T00** and **T01** unless it says otherwise.
 **Wave 18 — payments with Stripe, test version (asked for by Karam on 7 October 2026: Connect, Payments, Billing, Invoicing, Tax, Identity, Radar and Issuing; sandbox keys only; replaces T80; details under "Wave 18")**
 - [x] T270 Stripe foundation: SDK, keys from the environment only, test mode only, webhooks with signature check, a fake Stripe for tests · M · do first, **first test version**
 - [x] T271 Supplier payout accounts: Stripe Connect (Accounts v2), embedded onboarding, payouts page · M · **first test version**
-- [ ] T272 The customer pays an approved invoice through Stripe Checkout · M · **first test version**
-- [ ] T273 Payout to the supplier minus the platform fee; refunds and disputes reverse it · M · **first test version**
+- [x] T272 The customer pays an approved invoice through Stripe Checkout · M · **first test version**
+- [x] T273 Payout to the supplier minus the platform fee; refunds and disputes reverse it · M · **first test version**
 - [ ] T274 Milestone deposits: the customer pays before the work, the money is released on acceptance · M
 - [ ] T275 Radar: fraud rules, early fraud warnings and the admin's review list · S
 - [ ] T276 Stripe Invoicing and Stripe Tax for the platform's own invoices (fee statements) · M · **needs the tax registration in Stripe**
@@ -6424,8 +6424,12 @@ T274–T279 add the other products. T280 is the go-live check.
    escalation for the admin. `charge.dispute.closed` follows the outcome.
 
 **Done when.**
-- [ ] Tests with the fake Stripe cover: transfer amount, waiting for a restricted account, refund with reversal,
+- [x] Tests with the fake Stripe cover: transfer amount, waiting for a restricted account, refund with reversal,
       and dispute with reversal and escalation. Cover gross/net/platform-fee arithmetic, no supplier processing-fee deduction, unpaid Checkout/SEPA pending and asynchronous success; German fee VAT, reverse-charge treatment and minor-unit rounding; no uncollected gross statement marked paid and no duplicate fee billing. Customer surcharge remains disabled without the approved pricing/legal gate. If provider settlement plus tax accounting exceeds M scope, register child tasks before coding without omitting acceptance criteria.
+
+**T272 as built (9 October 2026).** T272a setup tooling, T272b authorized Checkout and disabled-by-default processing-cost policy, and T272c verified atomic fulfilment are merged. Paid and asynchronous Checkout events verify the Session, PaymentIntent and Charge before staging invoice/payment state; SEPA and bank-transfer sessions remain pending until verified success. No customer surcharge is active, and live provider activation remains gated by T280/legal/accounting review. Full JSON and PostgreSQL suites passed on the child PRs; no real Stripe operation was performed.
+
+**T273 as built (9 October 2026).** Verified paid Checkout events now settle the supplier through separate charges and transfers with `transfer_group` and `source_transaction`, configured net platform-fee arithmetic in minor units, and a pinned fee/tax breakdown that leaves uncollected fee VAT outstanding. Restricted connected accounts remain payout-pending. Admin refunds call `refunds.create` and separately `transfers.createReversal`; dispute creation reverses the supplier transfer and creates an admin Payment escalation, while dispute closure updates the dispute monotonically. Stable provider idempotency keys are used at this stage; T283 remains the durable operation-identity/exactly-once gate. Fake-Stripe transfer, arithmetic, refund/reversal, dispute, Checkout compatibility and commission regression coverage pass. Clean full JSON suite: 830 passed, 0 failed, 19 expected skips. No real Stripe operation or live activation occurred.
 
 ### T274 · Milestone deposits
 `P2 · M · depends on T273`

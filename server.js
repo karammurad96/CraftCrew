@@ -575,6 +575,7 @@ const payments = require("./payments")({
   now: () => now(),
   activity: (...a) => activity(...a),
   notify: (...a) => notify(...a),
+  onRefund: (payment) => commission.onRefund(payment),
 });
 const benchmarks = require("./benchmarks")({
   getDb: () => db,
