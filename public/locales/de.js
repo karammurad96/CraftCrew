@@ -6403,3 +6403,40 @@ LOCALES.de = {
     },
   },
 };
+
+// T272b payment-only additions.
+LOCALES.de.common.status.creating = "Wird erstellt";
+LOCALES.de.checkout = {
+  "pay": "Jetzt bezahlen",
+  "resume": "Checkout fortsetzen",
+  "confirming": "Wir bestätigen deinen Zahlungseingang. Diese Seite bestätigt noch keinen Geldeingang.",
+  "cancelled": "Checkout wurde abgebrochen. Deine Rechnung bleibt unverändert.",
+  "noCharge": "Es wird kein Zahlungsabwicklungszuschlag erhoben.",
+  "policyTitle": "Zahlungsabwicklungskosten des Kunden",
+  "policyOff": "AUS. Gespeicherte Formeln sind Entwürfe und erheben keinen Zuschlag.",
+  "legal": "Juristische Prüfung erforderlich: §270a BGB verbietet Zuschläge auf SEPA-Lastschrift, SEPA-Überweisung und Verbraucherkarten, auch zwischen Unternehmen. Zahlungsartauswahl und Kundeninformation müssen ebenfalls freigegeben werden.",
+  "rate": "Satz (%)",
+  "fixed": "Festbetrag (EUR)",
+  "save": "Formelentwürfe speichern",
+  "saved": "Formelentwürfe gespeichert. Zahlungszuschläge bleiben ausgeschaltet.",
+  "invalid": "Satz und Festbetrag eingeben oder beide Felder leer lassen.",
+  "invoiceTitle": "Rechnung {number}",
+  "methods": {
+    "card": "Karte",
+    "sepa_debit": "SEPA-Lastschrift",
+    "customer_balance": "SEPA-Überweisung"
+  }
+};
+Object.assign(LOCALES.de.errors.api, {
+  "ckTotals": "Nur eine freigegebene EUR-Rechnung mit gültigen Beträgen kann bezahlt werden.",
+  "ckUnpaid": "Nur eine freigegebene, unbezahlte Rechnung kann bezahlt werden.",
+  "ckBilling": "Vervollständige deine Unternehmensdaten vor der Zahlung.",
+  "ckChanged": "Rechnungs- oder Unternehmensdaten wurden geändert. Bitte einen Administrator um Checkout-Abgleich vor einem neuen Versuch.",
+  "ckReconcile": "Checkout muss vor einem neuen Zahlungsversuch abgeglichen werden. Kontaktiere einen Administrator.",
+  "ckMismatch": "Stripe hat Zahlungsdaten geliefert, die nicht zur Rechnung passen. Kontaktiere einen Administrator.",
+  "ckPending": "Deine Zahlung wird bestätigt oder muss abgeglichen werden. Starte keine weitere Zahlung.",
+  "ckProvider": "Stripe konnte nicht erreicht werden. Bitte versuche es erneut.",
+  "ckFormula": "Gib gültige Kostenformeln für die unterstützten Zahlungsarten ein.",
+  "ckActivation": "Zahlungszuschläge können erst nach Freigabe von Preisformel, Zahlungsartauswahl und rechtlicher Prüfung aktiviert werden.",
+  "ckLive": "Live-Zahlungen sind nicht aktiviert."
+});

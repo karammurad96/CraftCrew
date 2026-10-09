@@ -12,7 +12,8 @@ async function startFakeStripe(routes = {}) {
   const calls = [];
   // T271: connected accounts (Accounts v2); `transfers` is the stripe_transfers capability's status
   const accountKeys = new Map(), accounts = new Map(),
-    transfers = new Map();
+    transfers = new Map(), customers = new Map(), checkoutSessions = new Map(), customerKeys = new Map(), checkoutKeys = new Map();
+  const metadata = (body) => Object.fromEntries(Object.entries(body).filter(([key]) => key.startsWith("metadata[")).map(([key, value]) => [key.slice(9, -1), value]));
   const notFound = (what) => ({ status: 404, error: { type: "invalid_request_error", message: "No such " + what } });
   const last = (p) => decodeURIComponent(p.split("/").filter(Boolean).at(-1));
   const v2Account = (a) => ({
@@ -31,6 +32,23 @@ async function startFakeStripe(routes = {}) {
   });
   const all = {
     "GET /v1/account": () => ({ id: "acct_platform", object: "account", country: "DE", settings: { dashboard: { display_name: "CraftCrew Test" } } }),
+    "POST /v1/customers": (b, p, req) => {
+      const key = req.headers['idempotency-key'];
+      if (key && customerKeys.has(key)) return customers.get(customerKeys.get(key));
+      const customer = { id: 'cus_fake' + (customers.size + 1), object: 'customer', name: b.name, email: b.email, metadata: metadata(b), livemode: false };
+      customers.set(customer.id, customer); if (key) customerKeys.set(key, customer.id); return customer;
+    },
+    "GET /v1/customers/:id": (b, p) => customers.get(last(p)) || notFound('customer'),
+    "POST /v1/checkout/sessions": (b, p, req) => {
+      const key = req.headers['idempotency-key'];
+      if (key && checkoutKeys.has(key)) return checkoutSessions.get(checkoutKeys.get(key));
+      const session = { id: 'cs_test_fake' + (checkoutSessions.size + 1), object: 'checkout.session', mode: b.mode, customer: b.customer,
+        client_reference_id: b.client_reference_id, integration_identifier: b.integration_identifier, currency: b['line_items[0][price_data][currency]'],
+        amount_total: Number(b['line_items[0][price_data][unit_amount]']), metadata: metadata(b), payment_intent: null, livemode: false,
+        status: 'open', payment_status: 'unpaid', url: 'https://checkout.stripe.com/c/pay/fake' + (checkoutSessions.size + 1) };
+      checkoutSessions.set(session.id, session); if (key) checkoutKeys.set(key, session.id); return session;
+    },
+    "GET /v1/checkout/sessions/:id": (b, p) => checkoutSessions.get(last(p)) || notFound('session'),
     "POST /v2/core/accounts": (b, p, req) => {
       const key = req.headers['idempotency-key'], previous = key && accountKeys.get(key);
       if (previous) {
@@ -75,6 +93,8 @@ async function startFakeStripe(routes = {}) {
     calls,
     accounts,
     transfers,
+    customers,
+    checkoutSessions,
     // T271: Stripe changes a connected account's stripe_transfers capability
     setTransfers(id, status) {
       accounts.get(id).transfers = status;

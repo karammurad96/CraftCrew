@@ -1,5 +1,5 @@
 /* T282b1b3b: only account/owner/recipient writers share the payment gate. Application routes stay elsewhere. */
-module.exports = function ownerGate({ gate, body, commit, send, actor, refusal }) {
+module.exports = function ownerGate({ gate, body, commit, send, actor, refusal, financial = () => false, customerBilling = () => false }) {
   let blocked = false;
   function healthy() {
     if (blocked) throw new Error('Stripe owner boundary requires reconciliation');
@@ -8,7 +8,10 @@ module.exports = function ownerGate({ gate, body, commit, send, actor, refusal }
     if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return false;
     const [, area, action] = url.pathname.split('/').filter(Boolean);
     const supplier = !actor || actor(req)?.role === 'supplier';
+    const customer = actor?.(req)?.role === 'customer' && customerBilling(actor(req));
+    if (financial() && req.method === 'PATCH' && (area === 'invoices' || (area === 'admin' && action === 'invoices'))) return true;
     return (area === 'auth' && ['signup', 'verify', 'login'].includes(action)) || (supplier && ['profile', 'team'].includes(area))
+      || (customer && ['profile', 'team'].includes(area)) || (customer && area === 'account' && ['preferences', 'deletion'].includes(action))
       || (supplier && area === 'account' && ['preferences', 'deletion'].includes(action))
       || (area === 'admin' && ['applications', 'users', 'suppliers', 'profile-changes'].includes(action));
   };
