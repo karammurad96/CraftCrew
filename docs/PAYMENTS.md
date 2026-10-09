@@ -2,6 +2,38 @@
 
 Stripe remains a sandbox-only development integration pending the payment launch gates. Passing fake-Stripe tests does not authorize live activation.
 
+The runtime refuses both secret and restricted live keys before constructing the SDK, even
+with `PAYMENTS_LIVE=1`. T280 prepares checklist/tooling only and does not remove this refusal.
+
+## Monetary operation identities (T283a)
+
+`stripeOperations` stores deterministic operation IDs and provider idempotency keys before
+customer/session creation, supplier transfers, refunds and transfer reversals. These records
+contain bounded metadata and provider references, not raw Stripe payloads or credentials.
+Existing successful transfer/refund/reversal objects are retrieved by reference on retry;
+failed or uncertain attempts retain their original identity. Checkout still refuses uncertain
+creation attempts older than 23 hours. General recovery beyond the provider idempotency window
+remains T283c and must not be replaced by blind replay or a newly generated key.
+
+Admin full-refund retries reuse one full-refund identity per payment. Partial refunds require
+a `requestId` (8–100 ASCII letters, digits, `_` or `-`) on the existing admin invoice Refund
+request. Keep that ID unchanged on retry; use a distinct ID only for a separately authorized
+partial refund. The server validates the current charge, owner, amount and remaining balance.
+Changing the amount or reason of an existing request is refused. A completed retry returns its
+previous refund reference without making a second refund. Financial operations on the same
+invoice are serialized within the supported single application process.
+
+Stripe refund handlers reserve and publish through their own short strict gate sections. The
+ordinary invoice writer wrapper delegates these handlers without holding the same gate across
+provider requests; manual/offline invoice writers retain their original durable boundary.
+The signed Checkout dispatcher derives the settlement listener's transition from the verified
+staged payment, so supplier transfer execution is covered by an end-to-end HTTP regression.
+
+This child supplies operation identities, not complete atomic financial settlement or event
+ordering. T283b links outcomes and all local financial records in one strict commit; T283c adds
+recovery and monotonic state handling. Multiple application servers and live payments remain
+unsupported pending those tasks and the other launch gates.
+
 ## Windows local demo storage (T287)
 
 Windows JSON demos use file fsync and atomic rename. Node's Windows filesystem interface

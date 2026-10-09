@@ -11,7 +11,7 @@ const KEY = "sk_test_fake",
 async function startFakeStripe(routes = {}) {
   const calls = [];
   // T271: connected accounts (Accounts v2); `transfers` is the stripe_transfers capability's status
-  const accountKeys = new Map(), accounts = new Map(),
+  const accountKeys = new Map(), accounts = new Map(), transferKeys = new Map(),
     transfers = new Map(), refunds = new Map(), reversals = new Map(), customers = new Map(), checkoutSessions = new Map(), customerKeys = new Map(), checkoutKeys = new Map();
   const metadata = (body) => Object.fromEntries(Object.entries(body).filter(([key]) => key.startsWith("metadata[")).map(([key, value]) => [key.slice(9, -1), value]));
   const notFound = (what) => ({ status: 404, error: { type: "invalid_request_error", message: "No such " + what } });
@@ -63,9 +63,12 @@ async function startFakeStripe(routes = {}) {
     "GET /v2/core/accounts/:id": (b, p) => (accounts.has(last(p)) ? v2Account(accounts.get(last(p))) : notFound("account")),
     "POST /v1/account_sessions": (b) => ({ object: "account_session", account: b.account, client_secret: "accs_fake_" + b.account, expires_at: Math.floor(Date.now() / 1000) + 1800, livemode: false, components: {} }),
     "POST /v1/accounts/:id/login_links": (b, p) => ({ object: "login_link", created: Math.floor(Date.now() / 1000), url: "https://connect.stripe.com/express/fake/" + p.split("/")[3] }),
-    "POST /v1/transfers": (b) => {
+    "POST /v1/transfers": (b, p, req) => {
+      const key = req.headers["idempotency-key"], prior = key && transferKeys.get(key);
+      if (prior) return transfers.get(prior);
       const tr = { id: "tr_fake" + (transfers.size + 1), object: "transfer", amount: Number(b.amount), currency: b.currency, destination: b.destination, transfer_group: b.transfer_group || null, source_transaction: b.source_transaction || null, metadata: b.metadata || {}, reversed: false, amount_reversed: 0 };
       transfers.set(tr.id, tr);
+      if (key) transferKeys.set(key, tr.id);
       return tr;
     },
     "POST /v1/refunds": (b, p, req) => {
@@ -88,6 +91,7 @@ async function startFakeStripe(routes = {}) {
       return reversal;
     },
     "GET /v1/transfers/:id": (b, p) => transfers.get(p.split("/")[3]) || notFound("transfer"),
+    "GET /v1/transfers/:id/reversals/:reversal": (b, p) => [...reversals.values()].find((r) => r.id === last(p)) || notFound("transfer reversal"),
     "GET /v1/refunds/:id": (b, p) => [...refunds.values()].find((r) => r.id === p.split("/")[3]) || notFound("refund"),
     ...routes,
   };

@@ -52,6 +52,23 @@ test('owner gate covers actual binding writers and excludes separately gated/pay
   assert.equal(boundary.guards({ method: 'GET' }, new URL('https://example.test/api/profile')), false);
 });
 
+test('T283a staged refunds release the ordinary writer gate but still refuse a latched boundary', async () => {
+  const gate = createGate(); let refuse = false;
+  const boundary = ownerGate({ gate, body: async () => ({ action: 'Refund' }), financial: () => true,
+    stagedFinancial: (req, url, input) => url.pathname.includes('/admin/invoices/') && input.action === 'Refund', commit: async () => {
+      if (refuse) throw new Error('storage failed');
+    }, send });
+  const req = { method: 'PATCH' }, url = new URL('https://example.test/api/admin/invoices/invoice');
+  let reserved = false;
+  await boundary.mutation(req, response(), url, () => gate.run(() => { reserved = true; }));
+  assert.equal(reserved, true, 'a staged handler can reserve under its own gate without deadlock');
+  refuse = true;
+  await boundary.mutation({ method: 'PUT' }, response(), new URL('https://example.test/api/profile'), () => {});
+  const res = response();
+  await boundary.mutation(req, res, url, () => assert.fail('latched boundary must not call Stripe'));
+  assert.equal(res.head[0], 503);
+});
+
 async function accountFault(app, enabled) {
   if (!POSTGRES) {
     const target = path.join(app.dataDir, 'db.json.tmp');

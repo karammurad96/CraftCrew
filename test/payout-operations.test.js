@@ -34,8 +34,79 @@ test("T273 refunds and reverses a separate transfer, with retry-safe provider id
   await f.handlers.get("checkout.session.completed").afterCommit({ status: "paid", invoiceId: "invoice" });
   const first = await f.ops.refundInvoice("invoice", "Customer cancellation");
   assert.equal(first.status, "Refunded"); assert.equal(fake.refunds.size, 1); assert.equal(fake.reversals.size, 1);
+  assert.equal(first.amount, 1190);
   assert.equal(fake.transfers.values().next().value.amount_reversed, 119000 - 3000);
   assert.equal(f.db.payments[0].stripe.payout.refundStatus, "refunded");
+});
+
+test("T283a Checkout listener derives its own transition from verified staged payment", async (t) => {
+  const fake = await startFakeStripe(); t.after(() => fake.stop()); const f = fixture(fake);
+  const payment = f.db.payments[0]; payment.status = "Scheduled";
+  const stage = atomic.createStage();
+  stage.patch("payments", payment.id, { status: "Paid", stripe: { ...payment.stripe, checkout: { ...payment.stripe.checkout, sessionId: "cs_verified" } } }, { status: "Scheduled" });
+  const handler = f.handlers.get("checkout.session.completed");
+  const transition = handler.stage({ stage, object: { id: "cs_verified", metadata: { invoiceId: "invoice", paymentId: "payment" } } });
+  assert.deepEqual(transition, { status: "paid", invoiceId: "invoice" });
+  atomic.validate(f.db, stage); atomic.publish(f.db, stage);
+  await handler.afterCommit(transition);
+  assert.equal(fake.transfers.size, 1);
+  assert.equal(f.db.stripeOperations.find((row) => row.kind === "transfer").status, "succeeded");
+  assert.equal(handler.stage({ stage: atomic.createStage(), object: { id: "cs_wrong", metadata: { invoiceId: "invoice", paymentId: "payment" } } }), undefined);
+});
+
+test("T283a concurrent settlement creates one supplier transfer and reuses its identity", async (t) => {
+  const fake = await startFakeStripe(); t.after(() => fake.stop()); const f = fixture(fake);
+  await Promise.all([f.ops.settle(f.db.payments[0], f.db.invoices[0], "ch_1"), f.ops.settle(f.db.payments[0], f.db.invoices[0], "ch_1")]);
+  assert.equal(fake.transfers.size, 1);
+  const intents = f.db.stripeOperations.filter((row) => row.kind === "transfer");
+  assert.equal(intents.length, 1);
+  assert.equal(intents[0].providerRef, [...fake.transfers.values()][0].id);
+  assert.equal(f.db.payments[0].stripe.payout.transferId, intents[0].providerRef);
+});
+
+test("T283a deliberate partial refunds get distinct identities and retain cumulative totals", async (t) => {
+  const fake = await startFakeStripe(); t.after(() => fake.stop()); const f = fixture(fake);
+  await f.ops.settle(f.db.payments[0], f.db.invoices[0], "ch_1");
+  const first = await f.ops.refundInvoice("invoice", "First agreed partial refund", 100, "partial_one");
+  const second = await f.ops.refundInvoice("invoice", "Second agreed partial refund", 100, "partial_two");
+  assert.equal(first.amount, 100); assert.equal(second.amount, 100);
+  assert.notEqual(first.refundId, second.refundId);
+  assert.equal(fake.refunds.size, 2);
+  assert.equal(f.db.payments[0].stripe.payout.refundedMinor, 20000);
+  const records = f.db.stripeOperations.filter((row) => row.kind === "refund");
+  assert.equal(records.length, 2); assert.notEqual(records[0].idempotencyKey, records[1].idempotencyKey);
+  await assert.rejects(f.ops.refundInvoice("invoice", "Over-refund", 1000, "partial_over"), /invalid/);
+  assert.equal(fake.refunds.size, 2);
+});
+
+test("T283a simultaneous retries of one partial refund apply once, even after success", async (t) => {
+  const fake = await startFakeStripe(); t.after(() => fake.stop()); const f = fixture(fake);
+  await f.ops.settle(f.db.payments[0], f.db.invoices[0], "ch_1");
+  const refunds = await Promise.all([f.ops.refundInvoice("invoice", "Agreed refund", 100, "request_same"), f.ops.refundInvoice("invoice", "Agreed refund", 100, "request_same")]);
+  assert.equal(refunds[0].refundId, refunds[1].refundId);
+  assert.equal(f.db.payments[0].stripe.payout.refundedMinor, 10000);
+  assert.equal(fake.refunds.size, 1); assert.equal(fake.reversals.size, 1);
+  await assert.rejects(f.ops.refundInvoice("invoice", "Agreed refund", 200, "request_same"), /invalid/);
+  await assert.rejects(f.ops.refundInvoice("invoice", "Agreed refund", 100), /request ID/);
+  assert.equal(fake.refunds.size, 1);
+});
+
+test("T283a full refund retries preserve the same refund after payment becomes Refunded", async (t) => {
+  const fake = await startFakeStripe(); t.after(() => fake.stop()); const f = fixture(fake);
+  await f.ops.settle(f.db.payments[0], f.db.invoices[0], "ch_1");
+  const first = await f.ops.refundInvoice("invoice", "Full refund");
+  const second = await f.ops.refundInvoice("invoice", "Full refund");
+  assert.equal(first.refundId, second.refundId); assert.equal(fake.refunds.size, 1);
+  assert.equal(second.status, "Refunded");
+});
+
+test("T283a supplier and customer actors cannot request administrative refunds", async (t) => {
+  const fake = await startFakeStripe(); t.after(() => fake.stop()); const f = fixture(fake);
+  for (const role of ["supplier", "customer"]) {
+    const handled = await f.ops.handle({ method: "PATCH" }, {}, {}, ["api", "admin", "invoices", "invoice"], { id: "unauthorized", role });
+    assert.equal(handled, false);
+  }
+  assert.equal(fake.calls.length, 0);
 });
 
 test("T273 disputes reverse the transfer and create an admin escalation", async (t) => {

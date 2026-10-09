@@ -46,6 +46,7 @@ function cleanPolicy(body) {
 
 module.exports = function createCheckout(ctx) {
   const { getDb, client, enabled, live, send, body, now, gate, commitStage, ownerHealthy, appUrl, id } = ctx;
+  const operations = ctx.operations || require("./stripe-operations")({ ...ctx, gate });
   const checkoutOwners = ctx.checkoutOwners || new Set();
   const fulfilmentTypes = new Set(["checkout.session.completed", "checkout.session.async_payment_succeeded", "checkout.session.async_payment_failed"]);
   const eventFailure = (code) => { const error = new Error("Checkout provider data could not be verified"); error.code = code; return error; };
@@ -197,6 +198,8 @@ module.exports = function createCheckout(ctx) {
       const found = find(invoiceId, actor), params = customerParams(found.owner), stage = atomic.createStage();
       checkoutOwners.add(found.owner.id);
       let billing = found.owner.stripeBilling;
+      const customerOperation = operations.record({ kind: "customer", logicalKey: `customer:${found.owner.id}`, ownerId: found.owner.id, metadata: { ownerId: found.owner.id } });
+      const checkoutOperation = operations.record({ kind: "checkout_session", logicalKey: `checkout:${found.payment.id}`, ownerId: found.owner.id, amountMinor: found.amount, currency: "eur", metadata: { invoiceId, paymentId: found.payment.id } });
       if (!billing) {
         billing = { attemptId: crypto.randomUUID(), params, startedAt: now(), customerId: null };
         stage.patch("users", found.owner.id, { stripeBilling: billing }, { stripeBilling: undefined, ...ownerBinding(found.owner) });
@@ -215,10 +218,12 @@ module.exports = function createCheckout(ctx) {
         checkout = { ...checkout, customerId: billing.customerId };
         stage.patch("payments", found.payment.id, { stripe: { ...found.payment.stripe, checkout } }, { stripe: clone(found.payment.stripe), status: "Scheduled" });
       }
+      operations.stageAdd(stage, customerOperation);
+      operations.stageAdd(stage, checkoutOperation);
       stage.patch("invoices", found.invoice.id, {}, binding(found.invoice));
-      if (stage.patches.some((patch) => Object.keys(patch.fields).length)) await publish(stage);
+      if (stage.additions.length || stage.patches.some((patch) => Object.keys(patch.fields).length)) await publish(stage);
       return { invoiceId, paymentId: found.payment.id, invoiceBinding: binding(found.invoice), ownerBinding: ownerBinding(found.owner),
-        ownerId: found.owner.id, billing: clone(billing), checkout: clone(checkout), amount: found.amount };
+        ownerId: found.owner.id, billing: clone(billing), checkout: clone(checkout), amount: found.amount, customerOperation, checkoutOperation };
     });
   }
   function recent(startedAt) {
@@ -241,12 +246,16 @@ module.exports = function createCheckout(ctx) {
     let prepared = await reserve(invoiceId, actor);
     if (!prepared.billing.customerId) {
       recent(prepared.billing.startedAt);
-      const customer = await client.customers.create(prepared.billing.params, { idempotencyKey: "craftcrew-customer-" + prepared.billing.attemptId });
+      const customerOperation = prepared.customerOperation;
+      let customer;
+      if (customerOperation.status === "succeeded" && customerOperation.providerRef) customer = await client.customers.retrieve(customerOperation.providerRef);
+      else customer = await client.customers.create(prepared.billing.params, { idempotencyKey: customerOperation.idempotencyKey });
       if (!/^cus_[A-Za-z0-9]+$/.test(customer?.id || "") || customer.livemode !== false || customer.metadata?.craftcrewCustomerId !== prepared.ownerId)
         throw new Error("Stripe returned payment details that do not match this invoice. Contact an administrator.");
       prepared = await gate.run(async () => {
         const latest = current(prepared, actor), stage = atomic.createStage();
         const billing = { ...prepared.billing, customerId: customer.id }, checkout = { ...prepared.checkout, customerId: customer.id };
+        operations.stageOutcome(stage, customerOperation, { status: "succeeded", providerRef: customer.id, providerType: "customer" });
         stage.patch("users", latest.owner.id, { stripeBilling: billing }, { stripeBilling: prepared.billing, ...prepared.ownerBinding });
         stage.patch("payments", latest.payment.id, { stripe: { ...latest.payment.stripe, checkout } }, { stripe: clone(latest.payment.stripe), status: "Scheduled" });
         stage.patch("invoices", latest.invoice.id, {}, prepared.invoiceBinding);
@@ -257,18 +266,19 @@ module.exports = function createCheckout(ctx) {
     const customer = await client.customers.retrieve(prepared.billing.customerId);
     if (customer.id !== prepared.billing.customerId || customer.deleted || customer.livemode !== false || customer.metadata?.craftcrewCustomerId !== prepared.ownerId)
       throw new Error("Stripe returned payment details that do not match this invoice. Contact an administrator.");
-    let session;
+    let session, sessionOperation = prepared.checkoutOperation;
     if (prepared.checkout.sessionId) session = await client.checkout.sessions.retrieve(prepared.checkout.sessionId);
     else {
       recent(prepared.checkout.startedAt);
       const back = prepared.checkout.returnUrl;
-      session = await client.checkout.sessions.create({ mode: "payment", customer: prepared.billing.customerId,
+      if (sessionOperation.status === "succeeded" && sessionOperation.providerRef) session = await client.checkout.sessions.retrieve(sessionOperation.providerRef);
+      else session = await client.checkout.sessions.create({ mode: "payment", customer: prepared.billing.customerId,
         client_reference_id: invoiceId, integration_identifier: INTEGRATION, metadata: metadata(prepared),
         line_items: [{ quantity: 1, price_data: { currency: "eur", unit_amount: prepared.amount, product_data: { name: prepared.checkout.productName } } }],
         payment_intent_data: { transfer_group: invoiceId, metadata: metadata(prepared) },
         payment_method_options: { customer_balance: { funding_type: "bank_transfer", bank_transfer: { type: "eu_bank_transfer", eu_bank_transfer: { country: prepared.checkout.bankTransferCountry } } } },
         success_url: back + "?checkout=success", cancel_url: back + "?checkout=cancel",
-      }, { idempotencyKey: "craftcrew-checkout-" + prepared.checkout.attemptId });
+      }, { idempotencyKey: sessionOperation.idempotencyKey });
     }
     verifySession(session, prepared);
     if (session.status !== "open" || session.payment_status !== "unpaid")
@@ -277,6 +287,7 @@ module.exports = function createCheckout(ctx) {
     return gate.run(async () => {
       const latest = current(prepared, actor), stage = atomic.createStage();
       if (!prepared.checkout.sessionId) {
+        operations.stageOutcome(stage, sessionOperation, { status: "succeeded", providerRef: session.id, providerType: "checkout_session" });
         stage.patch("payments", latest.payment.id, { stripe: { ...latest.payment.stripe,
           checkout: { ...prepared.checkout, sessionId: session.id, status: "open", publishedAt: now() } } }, { stripe: clone(latest.payment.stripe), status: "Scheduled" });
         stage.patch("invoices", latest.invoice.id, {}, prepared.invoiceBinding);

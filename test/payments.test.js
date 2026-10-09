@@ -1,5 +1,5 @@
 // T270: the Stripe foundation. Payments are off without a key; keys come only from the environment and never
-// show in answers; a live key is refused unless PAYMENTS_LIVE=1; webhooks need a valid signature and each event is
+// show in answers; live keys remain refused even with PAYMENTS_LIVE=1; webhooks need a valid signature and each event is
 // handled once; the admin sees the status and can check the connection; the page allows Stripe.js only when on.
 const { describe, it, before, after } = require("node:test");
 const assert = require("node:assert/strict");
@@ -23,11 +23,9 @@ describe("payments: keys and mode", () => {
     assert.throws(() => unit({ STRIPE_SECRET_KEY: "pk_test_fake" }), /not a Stripe secret or restricted key/);
   });
 
-  it("refuses a live key unless PAYMENTS_LIVE=1", () => {
-    assert.throws(() => unit({ STRIPE_SECRET_KEY: "rk_live_fake" }), /PAYMENTS_LIVE=1/);
-    const { p } = unit({ STRIPE_SECRET_KEY: "rk_live_fake", PAYMENTS_LIVE: "1" });
-    assert.equal(p.status().mode, "live");
-    assert.equal(p.status().keyType, "restricted");
+  it("refuses secret and restricted live keys before SDK construction, even with PAYMENTS_LIVE=1", () => {
+    for (const key of ["rk_live_fake", "sk_live_fake"]) for (const flag of [undefined, "1"])
+      assert.throws(() => unit({ STRIPE_SECRET_KEY: key, PAYMENTS_LIVE: flag }), /Live payments are not enabled/);
   });
 
   it("finds no Stripe key or webhook secret in the repository", () => {
