@@ -10,6 +10,7 @@ module.exports = function ownerGate({ gate, body, commit, send, actor, refusal, 
     const supplier = !actor || actor(req)?.role === 'supplier';
     const customer = actor?.(req)?.role === 'customer' && customerBilling(actor(req));
     if (financial() && req.method === 'PATCH' && (area === 'invoices' || (area === 'admin' && action === 'invoices'))) return true;
+    if (financial() && ((area === 'invoices' && req.method === 'POST' && !action) || area === 'commission' || (area === 'admin' && action === 'commission'))) return true;
     return (area === 'auth' && ['signup', 'verify', 'login'].includes(action)) || (supplier && ['profile', 'team'].includes(area))
       || (customer && ['profile', 'team'].includes(area)) || (customer && area === 'account' && ['preferences', 'deletion'].includes(action))
       || (supplier && area === 'account' && ['preferences', 'deletion'].includes(action))

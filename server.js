@@ -550,6 +550,10 @@ const siteContent = require("./sitecontent")({
 locales.setOverride((lang, key) => siteContent.override(lang, key));
 // T240: monthly commission statements to the suppliers, until real payments (T80) take the fee from the payout
 const commission = require("./commission")({
+  runFees: (per, legacy) => payments.enabled ? payments.fees.run(per).then((made) => [...made, ...legacy()]) : legacy(), feeFilter: (payment) => !payments.enabled || !require("./payment-fees").stripePayment(payment),
+  feeSnapshot: (statement) => payments.enabled && require("./payment-fees").preserveCredit(statement, db),
+  feeAction: (req, res, parts, statement) => payments.enabled ? payments.fees.handleStatement(req, res, parts, statement) : false,
+  feeView: (statement) => payments.enabled ? payments.fees.viewStatement(statement) : statement,
   getDb: () => db,
   save: () => save(),
   send: (...a) => send(...a),
@@ -3587,8 +3591,8 @@ function runInvoiceReminders(at = Date.now()) {
 runInvoiceReminders();
 setInterval(() => background(() => runInvoiceReminders()), 3600000).unref();
 // T240: the commission statements of the months before this one, once (it adds only what is not billed yet)
-setTimeout(() => background(() => commission.run()), 5000).unref();
-setInterval(() => background(() => commission.run()), 6 * 3600000).unref();
+setTimeout(() => background(() => payments.enabled ? payments.withOwnerGate(() => commission.run()) : commission.run()), 5000).unref();
+setInterval(() => background(() => payments.enabled ? payments.withOwnerGate(() => commission.run()) : commission.run()), 6 * 3600000).unref();
 // GDPR: accounts whose 14-day grace period is over are anonymised (T122).
 gdpr.runDeletions();
 setInterval(() => background(() => payments.withOwnerGate(() => gdpr.runDeletions())), 3600000).unref();
@@ -6222,7 +6226,7 @@ async function api(req, res, url) {
         true
       );
     }
-    if (parts[1] === "invoices" && method === "POST") {
+    if (parts[1] === "invoices" && parts.length === 2 && method === "POST") {
       if (user.role !== "supplier")
         return (send(res, 403, { error: "Only suppliers create invoices" }), true);
       const b = await body(req),

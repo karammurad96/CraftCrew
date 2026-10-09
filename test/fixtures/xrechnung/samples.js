@@ -32,6 +32,22 @@ const base = {
 };
 
 const samples = {
+  "credited-prepaid-fee": {
+    ...base, number: "CC-PROV-2026-0002", note: "Collected amounts and credit offsets applied; only the remaining balance is due",
+    vat: { mode: "standard", rate: 19, net: 30, vat: 5.7, gross: 35.7 }, prepaidAmount: 30.48, dueAmount: 5.22,
+    lines: [{ name: "Platform fee", quantity: 1, unit: "units", unitPrice: 30, total: 30 }],
+  },
+  "rounded-fee-credit": {
+    ...base, number: "CC-GUT-2026-0001", typeCode: '381', note: "Cumulative credit VAT allocated from original statement",
+    vat: { mode: "standard", rate: 19, net: 0.02, vat: 0.01, gross: 0.03 },
+    lines: [{ name: "Platform fee credit", quantity: 1, unit: "units", unitPrice: 0.02, total: 0.02 }],
+  },
+  "prepaid-fee": {
+    ...base, number: "CC-PROV-2026-0001", note: "Platform fee; net fee already collected from payout",
+    vat: { mode: "standard", rate: 19, net: 30, vat: 5.7, gross: 35.7 },
+    prepaidAmount: 30, dueAmount: 5.7,
+    lines: [{ name: "Platform fee", quantity: 1, unit: "units", unitPrice: 30, total: 30 }],
+  },
   standard: {
     ...base,
     number: "2026-0001",

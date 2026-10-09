@@ -11,14 +11,11 @@ const minor = (value) => {
   return Math.round(number * 100);
 };
 const euros = (value) => value / 100;
-const safePercent = (value) => {
-  const percent = Number(value);
-  return Number.isFinite(percent) && percent >= 0 && percent <= 100 ? percent : 3;
-};
 
 module.exports = function createPayoutOperations(ctx) {
-  const { getDb, client, enabled, gate, on, now, commitStage, send, body, onRefund, activity } = ctx;
+  const { getDb, client, enabled, gate, on, now, commitStage, send, body, activity } = ctx;
   const operations = ctx.operations || require("./stripe-operations")({ ...ctx, gate });
+  const fees = ctx.fees || require("./payment-fees")(ctx);
   const payouts = ctx.payouts;
   const moneyGates = new Map();
   function serialized(invoiceId, work) {
@@ -43,27 +40,24 @@ module.exports = function createPayoutOperations(ctx) {
   async function financialCommit(payment, invoice, fields, invoiceFields, entries) {
     return gate.run(async () => {
       const stage = atomic.createStage();
-      stage.patch("payments", payment.id, fields, { status: payment.status, stripe: clone(payment.stripe), invoiceId: invoice.id, amount: payment.amount });
+      stage.patch("payments", payment.id, fields, { status: payment.status, stripe: clone(payment.stripe), invoiceId: invoice.id, amount: payment.amount,
+        netAmount: payment.netAmount, platformFee: payment.platformFee, platformFeePercent: payment.platformFeePercent,
+        commissionStatementId: payment.commissionStatementId, commissionCreditId: payment.commissionCreditId, commissionCreditIds: clone(payment.commissionCreditIds) });
       stage.patch("invoices", invoice.id, invoiceFields, invoiceBinding(invoice));
       for (const [operation, provider] of entries) history(stage, operation, payment, invoice, provider);
+      if (entries[0]?.[0]?.kind === "transfer") fees.stageTransfer(stage, payment, fields);
+      if (entries[0]?.[0]?.kind === "refund") {
+        const total = fields.stripe.payout.refundedMinor, before = Number(payment.stripe?.payout?.refundedMinor || 0);
+        fees.stageRefund(stage, payment, invoice, entries[0][0], total, before, minor(invoice.grossAmount ?? invoice.amount), fields);
+      }
+      stage.patches.find((p) => p.collection === "payments" && p.id === payment.id).fields = clone(fields);
       await commitStage({ getDb, stage });
     });
   }
   const paymentForCharge = (chargeId) => (data().payments || []).find((payment) => payment.stripe?.checkout?.chargeId === chargeId);
   const paymentForInvoice = (invoiceId) => (data().payments || []).find((payment) => payment.invoiceId === invoiceId);
   const invoiceForPayment = (payment) => (data().invoices || []).find((invoice) => invoice.id === payment?.invoiceId);
-  const transferBreakdown = (invoice) => {
-    const grossMinor = minor(invoice.grossAmount ?? invoice.amount);
-    const netMinor = minor(invoice.netAmount ?? invoice.amount);
-    const platformFeePercent = safePercent(data().settings?.platformFeePercent);
-    const platformFeeMinor = Math.round(netMinor * platformFeePercent / 100);
-    const owner = (data().users || []).find((user) => user.supplierId === invoice.supplierId && !user.orgOwnerId),
-      taxId = String(owner?.companyProfile?.vatId || owner?.companyProfile?.taxId || "").replace(/\s/g, "").toUpperCase(),
-      euNonGerman = /^(AT|BE|BG|CY|CZ|DK|EE|EL|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK)[A-Z0-9]{2,13}$/.test(taxId),
-      feeVatRate = euNonGerman ? 0 : 19,
-      feeVatMinor = Math.round(platformFeeMinor * feeVatRate / 100);
-    return { grossMinor, netMinor, platformFeePercent, platformFeeMinor, supplierMinor: Math.max(0, grossMinor - platformFeeMinor), currency: "eur", feeVatRate, feeVatMinor };
-  };
+  const transferBreakdown = (invoice, payment = paymentForInvoice(invoice.id)) => fees.breakdown(invoice, payment);
   const accountReason = (error) => error?.reason || "provider";
   async function persist(payment, fields, expected = payment) {
     const binding = { status: expected.status, stripe: clone(expected.stripe) };
@@ -97,7 +91,7 @@ module.exports = function createPayoutOperations(ctx) {
         breakdown: { grossMinor: breakdown.grossMinor, netMinor: breakdown.netMinor, platformFeeMinor: breakdown.platformFeeMinor,
           platformFeePercent: breakdown.platformFeePercent, supplierMinor: breakdown.supplierMinor, currency: breakdown.currency,
           vatMode: breakdown.feeVatRate ? "standard" : "reverse_charge", vatRate: breakdown.feeVatRate,
-          feeVatMinor: breakdown.feeVatMinor, outstandingFeeVatMinor: breakdown.feeVatMinor, feeCollectionStatus: "net_collected_vat_outstanding" },
+          feeVatMinor: breakdown.feeVatMinor, feeVatId: breakdown.feeVatId, outstandingFeeVatMinor: breakdown.feeVatMinor, feeCollectionStatus: breakdown.feeVatMinor ? "net_collected_vat_outstanding" : "collected" },
       } } }, {}, [[transferOperation, transfer]]);
     } catch (error) {
       const latest = paymentForInvoice(invoice.id);
@@ -150,7 +144,6 @@ module.exports = function createPayoutOperations(ctx) {
     if (!latest) throw new Error("The Stripe payment could not be verified for this operation.");
     await financialCommit(payment, invoice, { status: full ? "Refunded" : payment.status, refundReason: String(reason).slice(0, 500), refundedAt: full ? now() : payment.refundedAt,
       stripe: { ...payment.stripe, payout: { ...payment.stripe?.payout, refundedMinor: total, refundId: refund.id, reversalId: reversal?.id || null, refundStatus: full ? "refunded" : "partially_refunded" } } }, full ? { status: "Refunded", updatedAt: now() } : {}, [[refundOperation, refund], ...(reversal ? [[reversal.operation, reversal]] : [])]);
-    if (full && onRefund) onRefund({ ...latest, status: "Refunded" });
     return { invoiceId, refundId: refund.id, reversalId: reversal?.id || null, amount: euros(refundMinor), status: full ? "Refunded" : "Partially refunded" };
   }
   function paymentForDispute(object) {

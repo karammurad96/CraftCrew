@@ -215,10 +215,11 @@ module.exports = function createPayments(ctx) {
     };
   }
   // T271: the suppliers' connected accounts
+  const fees = require("./payment-fees")({ ...ctx, gate });
   const payouts = require("./payouts")({ ...ctx, gate, ownerHealthy: ownerGate.healthy, client, enabled, publishableKey, on });
   const operations = require("./stripe-operations")({ ...ctx, gate });
   const checkout = require("./checkout")({ ...ctx, gate, ownerHealthy: ownerGate.healthy, checkoutOwners, client, enabled, live, on, operations });
-  const payoutOperations = require("./payout-operations")({ ...ctx, gate, client, enabled, payouts, on, operations });
+  const payoutOperations = require("./payout-operations")({ ...ctx, gate, client, enabled, payouts, on, operations, fees });
   async function handle(req, res, url, parts, user) {
     if (await payoutOperations.handle(req, res, url, parts, user)) return true;
     if (await checkout.handle(req, res, url, parts, user)) return true;
@@ -248,6 +249,6 @@ module.exports = function createPayments(ctx) {
       ? { script: "https://js.stripe.com https://connect-js.stripe.com", frame: "https://*.stripe.com", connect: "https://api.stripe.com https://*.stripe.com", img: "https://*.stripe.com" }
       : null;
 
-  return { enabled, live, client, on, webhook, handle, status, cspSources, payouts, payoutOperations, withOwnerMutation: ownerGate.mutation, withOwnerGate: ownerGate.run };
+  return { enabled, live, client, on, webhook, handle, status, cspSources, payouts, payoutOperations, fees, withOwnerMutation: ownerGate.mutation, withOwnerGate: ownerGate.run };
 };
 module.exports.KEY_RE = KEY_RE;

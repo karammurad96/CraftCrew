@@ -9,7 +9,7 @@ function fixture(fake, afterTransfer = () => {}) {
   const db = { settings: { platformFeePercent: 3 }, users: [{ id: "buyer", role: "customer" }],
     suppliers: [{ id: "supplier", stripeAccount: { id: "acct_fake1", transfers: "active" } }],
     invoices: [{ id: "invoice", projectId: "project", customerId: "buyer", supplierId: "supplier", status: "Paid", amount: 1190, grossAmount: 1190, netAmount: 1000, vatMode: "standard", vatRate: 19 }],
-    payments: [{ id: "payment", invoiceId: "invoice", status: "Paid", amount: 1190, stripe: { checkout: { chargeId: "ch_1", paymentIntentId: "pi_1" } } }], disputes: [], meta: {} };
+    payments: [{ id: "payment", invoiceId: "invoice", status: "Paid", amount: 1190, netAmount: 1000, platformFee: 30, platformFeePercent: 3, stripe: { checkout: { chargeId: "ch_1", paymentIntentId: "pi_1" } } }], disputes: [], meta: {} };
   const url = new URL(fake.base), client = new Stripe("sk_test_fake", { host: url.hostname, port: Number(url.port), protocol: "http", maxNetworkRetries: 0 });
   const handlers = new Map(), gate = atomic.createGate();
   const ctx = { getDb: () => db, client, enabled: true, payouts: { transfer: async (supplierId, params, options) => {
@@ -139,4 +139,11 @@ test("T283b1 an existing history identity with different binding refuses publica
   await f.ops.settle(f.db.payments[0], f.db.invoices[0], "ch_1");
   assert.equal(fake.transfers.size, 1); assert.equal(f.db.stripeFinancialRecords.length, 1);
   assert.equal(f.db.payments[0].stripe.payout.transferId, undefined);
+});
+test("T283b2 approved payment fee changes during transfer refuse linked settlement", async (t) => {
+  const fake = await startFakeStripe(); t.after(() => fake.stop());
+  const f = fixture(fake, (db) => { db.payments[0].platformFee = 60; db.payments[0].platformFeePercent = 6; });
+  await f.ops.settle(f.db.payments[0], f.db.invoices[0], "ch_1");
+  assert.equal(fake.transfers.size, 1); assert.equal(f.db.stripeOperations[0].status, "unknown");
+  assert.equal(f.db.payments[0].stripe.payout?.transferId, undefined); assert.equal(f.db.stripeFinancialRecords?.length || 0, 0);
 });

@@ -75,6 +75,7 @@ module.exports = function createCommission(ctx) {
         ...extra,
       };
     totals(st);
+    ctx.feeSnapshot?.(st);
     list().unshift(st);
     for (const u of getDb().users.filter((x) => x.supplierId === supplierId))
       notify(u.id, { key: NOTICE[kind], params: { number: st.number } }, "/supplier/fees");
@@ -83,10 +84,14 @@ module.exports = function createCommission(ctx) {
 
   // The statements of one month (or every month before this one that still has unbilled fees)
   function run(per = null) {
+    return ctx.runFees ? ctx.runFees(per, () => runLegacy(per)) : runLegacy(per);
+  }
+  function runLegacy(per = null) {
     const db = getDb(),
       due = (db.payments || []).filter(
         (p) =>
           Number(p.platformFee) > 0 &&
+          (!ctx.feeFilter || ctx.feeFilter(p)) &&
           p.status !== "Refunded" &&
           !p.commissionStatementId &&
           (per ? period(p.createdAt) === per : period(p.createdAt) < thisPeriod()),
@@ -139,6 +144,7 @@ module.exports = function createCommission(ctx) {
 
   /* ---------- documents ---------- */
   function xrechnungData(st) {
+    st = ctx.feeView?.(st) || st;
     const credit = st.kind === "credit",
       abs = (n) => Math.abs(n);
     return {
@@ -153,6 +159,7 @@ module.exports = function createCommission(ctx) {
       buyer: st.buyer,
       servicePeriod: { from: st.period + "-01", to: lastDay(st.period) },
       vat: { mode: st.vatMode, rate: st.vatRate, net: abs(st.net), vat: abs(st.vat), gross: abs(st.gross) },
+      ...(st.kind === "statement" && st.collectedAmount !== undefined ? { prepaidAmount: Math.min(st.gross, Math.round((st.collectedAmount + Number(st.creditedAmount || 0)) * 100) / 100), dueAmount: st.outstandingAmount ?? Math.max(0, st.gross - st.collectedAmount - Number(st.creditedAmount || 0)), paymentTerms: "Bereits eingezogene Beträge und Gutschriften sind verrechnet; zahlbar ist ausschließlich der Restbetrag." } : {}),
       lines: st.lines.map((l) => ({
         name: `Plattformgebühr ${l.feePercent} % auf Rechnung ${l.invoiceNo}`,
         quantity: 1,
@@ -167,6 +174,7 @@ module.exports = function createCommission(ctx) {
     return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
   }
   function statementPdf(st, lang = "en") {
+    st = ctx.feeView?.(st) || st;
     const L = locales.group(lang, "server.pdf.statement"),
       locale = locales.localeOf(lang),
       eur = (n) => "€ " + Number(n || 0).toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
@@ -227,10 +235,17 @@ module.exports = function createCommission(ctx) {
     y -= 16;
     text(350, y, 11, L.total, "F2");
     text(500, y, 11, eur(st.gross), "F2");
+    if (st.kind === "statement" && st.collectedAmount !== undefined) {
+      y -= 16; text(350, y, 9, L.collected, "F2"); text(500, y, 9, eur(st.collectedAmount));
+      if (st.creditedAmount) { y -= 14; text(350, y, 9, L.appliedCredits, "F2"); text(500, y, 9, eur(st.creditedAmount)); }
+      if (st.creditBalanceAmount) { y -= 14; text(350, y, 9, L.creditBalance, "F2"); text(500, y, 9, eur(st.creditBalanceAmount)); }
+      y -= 14; text(350, y, 9, L.outstanding, "F2"); text(500, y, 9, eur(st.outstandingAmount ?? st.gross - st.collectedAmount));
+    }
     y -= 24;
     if (st.vatMode === "intraEU") text(42, y, 8, L.reverseCharge, "F1", "0.38 0.45 0.56"), (y -= 14);
-    if (st.kind !== "credit") text(42, y, 8, `${L.due} ${st.dueDate}`, "F1", "0.38 0.45 0.56"), (y -= 14);
-    if (st.seller.iban)
+    if (st.feeReviewRequired) text(42, y, 8, L.reviewRequired, "F2"), (y -= 14);
+    if (st.kind !== "credit" && !st.feeReviewRequired) text(42, y, 8, `${L.due} ${st.dueDate}`, "F1", "0.38 0.45 0.56"), (y -= 14);
+    if (st.seller.iban && !st.feeReviewRequired)
       text(42, y, 8, `${L.bank}: ${st.seller.accountHolder || st.seller.name || ""} · IBAN ${st.seller.iban}${st.seller.bic ? ` · BIC ${st.seller.bic}` : ""}`, "F1", "0.38 0.45 0.56");
     return pdfDocument(pages);
   }
@@ -238,7 +253,7 @@ module.exports = function createCommission(ctx) {
   /* ---------- API ---------- */
   const view = (st) => {
     const company = getDb().suppliers.find((s) => s.id === st.supplierId)?.company || "";
-    return { ...st, company };
+    return { ...(ctx.feeView?.(st) || st), company };
   };
   const PLATFORM_FIELDS = ["legalName", "address", "taxId", "email", "phone", "iban", "bic", "accountHolder", "contactName"];
   async function handle(req, res, url, parts, user) {
@@ -263,7 +278,7 @@ module.exports = function createCommission(ctx) {
         per = b.period ? String(b.period) : null;
       if (per && (!/^\d{4}-\d{2}$/.test(per) || per > thisPeriod()))
         return (send(res, 400, { error: "Choose a month that has started, for example 2026-09." }), true);
-      const made = run(per);
+      const made = await run(per);
       activity(user, `Commission statements created: ${made.length}`);
       return (send(res, 200, { statements: made.map(view) }), true);
     }
@@ -274,6 +289,7 @@ module.exports = function createCommission(ctx) {
       return (send(res, 200, { statements: list().filter(mine).map(view), platformDetails: user.role === "admin" ? platform() : undefined }), true);
     const st = list().find((x) => x.id === parts[2] && mine(x));
     if (!st) return (send(res, 404, { error: "Statement not found" }), true);
+    if (user.role === "admin" && ctx.feeAction && await ctx.feeAction(req, res, parts, st)) return true;
     if (method === "DELETE")
       return (send(res, 405, { error: "Statements cannot be deleted. Issue a credit note instead." }), true);
     if (parts[3] === "pdf" && method === "GET") {
@@ -289,6 +305,7 @@ module.exports = function createCommission(ctx) {
       return true;
     }
     if (parts[3] === "xrechnung" && method === "GET") {
+      if (ctx.feeView?.(st)?.feeReviewRequired) return (send(res, 409, { error: "The Stripe payment could not be verified for this operation." }), true);
       const data = xrechnungData(st),
         problem = xrechnungProblem(data);
       if (problem) return (send(res, 400, { error: problem }), true);

@@ -5,6 +5,39 @@ Stripe remains a sandbox-only development integration pending the payment launch
 The runtime refuses both secret and restricted live keys before constructing the SDK, even
 with `PAYMENTS_LIVE=1`. T280 prepares checklist/tooling only and does not remove this refusal.
 
+## Atomic fee statements and credits (T283b2)
+
+Stripe payouts use the approved payment's net amount, platform fee and percentage, rather than
+recalculating from current settings. New Stripe fee statements use explicit supplier VAT IDs and
+retain the payout VAT snapshot. A generic tax number does not establish reverse-charge eligibility.
+This implements existing arithmetic only; an accountant must approve the fee VAT treatment before
+live payments.
+
+New Stripe statements and refund credits commit through strict detached stages with numbered
+counter fields, payment references and notifications/outbox. Issued numbers, parties, VAT modes and
+totals remain unchanged. Partial refunds before issuance reduce the later statement's fee. Later
+refunds issue only the remaining uncredited fee, allocating original statement VAT cumulatively so
+cent-sized partials and multiple payments cancel the original gross exactly. Per-payment statement
+VAT allocations preserve the original payout VAT estimates. Mixed/inconsistent VAT groups receive
+`feeReviewRequired` without a guessed numbered statement. Historical Stripe-linked statements preserve issued VAT and parties. Proven stored payout references can supply missing collection metadata; otherwise manual actions and XML export refuse verification, and the list/PDF identify review-required history without claiming a new payable balance.
+
+The statement retains its full invoice gross, separately showing collected cash, applied accounting
+credits and remaining due. German net-fee collection leaves fee VAT outstanding; reverse charge
+with zero VAT may be fully collected. PDF/UI and XRechnung expose the remaining balance; electronic
+settlement includes applied credits and is capped at invoice gross. Optional prepaid/due inputs are
+validated, and official KoSIT fixtures cover prepaid fees, credited settlement and a rounded credit.
+
+For Stripe statements, admin marking paid records only the remaining due as manual collection;
+it makes no Stripe call. An admin accounting credit retains captured cash and exposes excess credit
+balance for operator/accountant review. Later customer refunds reduce actual retained cash without
+issuing the same accounting credit twice. Manually collected VAT stays paid and may become an
+excess credit balance after a refund; this feature does not claim that cash was returned to the supplier.
+Legacy offline statements and actions retain their existing behavior. Invoice creation and all fee
+counter writers share the payment gate; Checkout owns its short staged sections.
+
+General recovery/event ordering remains T283c and operator reconciliation T284. Live keys remain
+refused; test success does not authorize activation.
+
 ## Atomic monetary records (T283b1)
 
 Supplier transfers, customer refunds and transfer reversals retain the provider reference as
@@ -21,9 +54,9 @@ retain historical records; PostgreSQL migration 009 refuses history changes/dele
 list-position changes. `Disputed` invoices retain their financial-field lock. Windows JSON demos
 refuse saved monetary operations/history because directory durability is unavailable.
 
-Fee statement/commission credit publication remains T283b2. The existing post-refund commission
-callback is not part of this atomic boundary yet. Broad event ordering and reconciliation remain
-T283c/T284; this task does not establish live-payment readiness.
+T283b1 alone excluded fee statements/commission credits; T283b2 above supplies that boundary and
+removes the Stripe post-refund callback. Broad event ordering and reconciliation remain T283c/T284;
+this task does not establish live-payment readiness.
 
 ## Monetary operation identities (T283a)
 
