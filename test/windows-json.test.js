@@ -46,6 +46,7 @@ it('Windows configured Stripe refuses before constructing the SDK/provider', asy
 for (const payload of [
   { meta: { stripe: { appliedReceipts: { evt_windows: event } } } },
   { stripeEvents: [event] }, { stripeWebhookInbox: [event] },
+  { stripeOperations: [{ id: 'operation' }] }, { stripeFinancialRecords: [{ id: 'history' }] },
 ]) it('Windows refuses incoming and prior financial metadata before replacing the snapshot', async () => fixture(async (store, dir) => {
   store.save({ projects: [{ id: 'keep' }] }); const before = fs.readFileSync(store.file, 'utf8');
   assert.throws(() => store.save(payload), message);

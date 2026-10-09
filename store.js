@@ -30,7 +30,7 @@ function jsonStore(dataDir, platform) {
   function demoOnly(...snapshots) {
     if (platform !== 'win32') return;
     for (const data of snapshots) {
-      if (Object.keys(data?.meta?.stripe?.appliedReceipts || {}).length || data?.stripeEvents?.length || data?.stripeWebhookInbox?.length) strict();
+      if (Object.keys(data?.meta?.stripe?.appliedReceipts || {}).length || data?.stripeEvents?.length || data?.stripeWebhookInbox?.length || data?.stripeOperations?.length || data?.stripeFinancialRecords?.length) strict();
     }
     // Never downgrade an existing durable inbox when the incoming snapshot omits it.
     try { if (fs.readdirSync(path.join(dataDir, 'stripe-webhooks')).some((name) => /^[a-f0-9]{64}\.json(?:\.tmp)?$/.test(name))) strict(); }

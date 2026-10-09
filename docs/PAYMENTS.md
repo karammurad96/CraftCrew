@@ -5,6 +5,26 @@ Stripe remains a sandbox-only development integration pending the payment launch
 The runtime refuses both secret and restricted live keys before constructing the SDK, even
 with `PAYMENTS_LIVE=1`. T280 prepares checklist/tooling only and does not remove this refusal.
 
+## Atomic monetary records (T283b1)
+
+Supplier transfers, customer refunds and transfer reversals retain the provider reference as
+`unknown` until one strict local commit publishes their operation success, linked payment/invoice
+state and immutable `stripeFinancialRecords` history. A retry retrieves a known reference before
+making any new monetary call. History identifies the operation, provider object, payment, invoice,
+parties, currency and minor-unit amount; it contains no raw Stripe payloads.
+
+Pre-call invoice/payment bindings are checked again at publication. A final financial-commit refusal
+after reference persistence leaves those references available without claiming local settlement
+succeeded. If first-reference publication fails, the original durable intent/key remains; a durable
+provider reference is not guaranteed during the I/O outage. JSON saves
+retain historical records; PostgreSQL migration 009 refuses history changes/deletion while allowing
+list-position changes. `Disputed` invoices retain their financial-field lock. Windows JSON demos
+refuse saved monetary operations/history because directory durability is unavailable.
+
+Fee statement/commission credit publication remains T283b2. The existing post-refund commission
+callback is not part of this atomic boundary yet. Broad event ordering and reconciliation remain
+T283c/T284; this task does not establish live-payment readiness.
+
 ## Monetary operation identities (T283a)
 
 `stripeOperations` stores deterministic operation IDs and provider idempotency keys before

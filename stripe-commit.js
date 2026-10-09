@@ -23,6 +23,10 @@ function applied(data, event) {
   return match(records && Object.hasOwn(records, r.id) ? records[r.id] : null, r);
 }
 function retain(previous, next) {
+  for (const old of previous?.stripeFinancialRecords || []) {
+    const kept = (next?.stripeFinancialRecords || []).find((row) => row.id === old.id);
+    if (!kept || !equal(kept, old)) throw new Error('Stripe financial history cannot be removed or changed');
+  }
   for (const old of Object.values(previous?.meta?.stripe?.appliedReceipts || {})) {
     const kept = applied(next, old);
     if (!kept || !equal(receipt(kept), receipt(old))) throw new Error('Stripe applied receipts cannot be removed or changed');
@@ -52,6 +56,7 @@ function createStage() {
 }
 function validate(data, stage) {
   for (const p of stage.patches) {
+    if (p.collection === 'stripeFinancialRecords') throw new Error('Stripe financial history cannot be changed');
     const rows = data[p.collection], matches = Array.isArray(rows) ? rows.filter((r) => r.id === p.id) : [];
     if (matches.length !== 1 || Object.entries(p.expected).some(([key, value]) => !equal(matches[0][key], value)))
       throw new Error('Stripe staged record conflict');

@@ -5,14 +5,17 @@ const { startFakeStripe } = require("./fake-stripe");
 const atomic = require("../stripe-commit");
 const createPayoutOperations = require("../payout-operations");
 
-function fixture(fake) {
+function fixture(fake, afterTransfer = () => {}) {
   const db = { settings: { platformFeePercent: 3 }, users: [{ id: "buyer", role: "customer" }],
     suppliers: [{ id: "supplier", stripeAccount: { id: "acct_fake1", transfers: "active" } }],
     invoices: [{ id: "invoice", projectId: "project", customerId: "buyer", supplierId: "supplier", status: "Paid", amount: 1190, grossAmount: 1190, netAmount: 1000, vatMode: "standard", vatRate: 19 }],
     payments: [{ id: "payment", invoiceId: "invoice", status: "Paid", amount: 1190, stripe: { checkout: { chargeId: "ch_1", paymentIntentId: "pi_1" } } }], disputes: [], meta: {} };
   const url = new URL(fake.base), client = new Stripe("sk_test_fake", { host: url.hostname, port: Number(url.port), protocol: "http", maxNetworkRetries: 0 });
   const handlers = new Map(), gate = atomic.createGate();
-  const ctx = { getDb: () => db, client, enabled: true, payouts: { transfer: (supplierId, params, options) => client.transfers.create({ ...params, destination: db.suppliers.find((s) => s.id === supplierId).stripeAccount.id }, options) },
+  const ctx = { getDb: () => db, client, enabled: true, payouts: { transfer: async (supplierId, params, options) => {
+    const result = await client.transfers.create({ ...params, destination: db.suppliers.find((s) => s.id === supplierId).stripeAccount.id }, options);
+    afterTransfer(db); return result;
+  } },
     on: (type, handler) => handlers.set(type, handler), gate, now: () => "2026-10-09T00:00:00.000Z", send() {}, body: async () => ({}), activity() {},
     commitStage: async ({ stage }) => { atomic.validate(db, stage); atomic.publish(db, stage); } };
   return { db, handlers, ops: createPayoutOperations(ctx) };
@@ -118,4 +121,22 @@ test("T273 disputes reverse the transfer and create an admin escalation", async 
   assert.equal(f.db.invoices[0].status, "Disputed"); assert.equal(f.db.disputes[0].status, "Open");
   assert.equal(f.db.payments[0].stripe.payout.disputeReversalId, prepared.reversal.id);
   assert.equal(fake.reversals.size, 1);
+});
+
+for (const [field, value] of [["customerId", "different-buyer"], ["number", "changed-number"], ["vatRate", 0]]) test(`T283b1 changed invoice ${field} while provider works refuses local settlement success`, async (t) => {
+  const fake = await startFakeStripe(); t.after(() => fake.stop());
+  const f = fixture(fake, (db) => { db.invoices[0][field] = value; });
+  await f.ops.settle(f.db.payments[0], f.db.invoices[0], "ch_1");
+  assert.equal(fake.transfers.size, 1); assert.equal(f.db.stripeFinancialRecords?.length || 0, 0);
+  assert.equal(f.db.stripeOperations[0].status, "unknown"); assert.equal(f.db.payments[0].stripe.payout?.transferId, undefined);
+});
+
+test("T283b1 an existing history identity with different binding refuses publication", async (t) => {
+  const fake = await startFakeStripe(); t.after(() => fake.stop()); const f = fixture(fake);
+  await f.ops.settle(f.db.payments[0], f.db.invoices[0], "ch_1");
+  f.db.stripeFinancialRecords[0].providerRef = "tr_other";
+  delete f.db.payments[0].stripe.payout.transferId;
+  await f.ops.settle(f.db.payments[0], f.db.invoices[0], "ch_1");
+  assert.equal(fake.transfers.size, 1); assert.equal(f.db.stripeFinancialRecords.length, 1);
+  assert.equal(f.db.payments[0].stripe.payout.transferId, undefined);
 });
