@@ -43,7 +43,18 @@ describe("two-factor sign-in", () => {
   let app, token, secret, recovery;
   const email = "buyer@test.local",
     password = "Test-Password-2026";
-  const login = (code) => app.call("POST", "/auth/login", { email, password, ...(code ? { code } : {}) });
+  // The eight-failure threshold is per account AND network. localhost may resolve to either
+  // loopback family, so every request in this fixture must use the same explicit address.
+  const login = async (code) => {
+    const endpoint = new URL("/api/auth/login", app.base);
+    endpoint.hostname = "127.0.0.1";
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Client": "api" },
+      body: JSON.stringify({ email, password, ...(code ? { code } : {}) }),
+    });
+    return { ...(await response.json()), status: response.status };
+  };
   before(async () => {
     app = await startApp();
     token = (await app.signup("customer", email)).token;
