@@ -4,7 +4,7 @@ WORKDIR /app
 # Runtime dependencies (only `pg`), installed exactly as locked
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
-COPY payment-owner-gate.js payment-notifications.js payout-staging.js stripe-commit.js stripe-inbox.js server.js store.js store-postgres.js mailer.js sourcing.js compliance.js team.js documents.js planning.js xrechnung.js vies.js geo.js pdf.js acceptance.js punchlist.js sitereports.js calendar.js twofactor.js preferred.js requests.js servicepackages.js organigram.js sitecontent.js commission.js cockpit.js payments.js payouts.js clause.js estimate.js calibration.js pricerules.js capacity.js contractdoc.js servedarea.js ranking.js demo-brokered.js benchmarks.js gdpr.js supplierbase.js locales.js ./
+COPY payment-owner-gate.js payment-notifications.js payout-staging.js stripe-commit.js stripe-inbox.js payout-operations.js server.js store.js store-postgres.js mailer.js sourcing.js compliance.js team.js documents.js planning.js xrechnung.js vies.js geo.js pdf.js acceptance.js punchlist.js sitereports.js calendar.js twofactor.js preferred.js requests.js servicepackages.js organigram.js sitecontent.js commission.js cockpit.js payments.js payouts.js clause.js estimate.js calibration.js pricerules.js capacity.js contractdoc.js servedarea.js ranking.js demo-brokered.js benchmarks.js gdpr.js supplierbase.js locales.js ./
 COPY db ./db
 COPY checkout.js ./
 # The database tools (migrate, import, export), run with `docker compose run --rm craftcrew node tools/db/…`

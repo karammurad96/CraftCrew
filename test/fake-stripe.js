@@ -12,7 +12,7 @@ async function startFakeStripe(routes = {}) {
   const calls = [];
   // T271: connected accounts (Accounts v2); `transfers` is the stripe_transfers capability's status
   const accountKeys = new Map(), accounts = new Map(),
-    transfers = new Map(), customers = new Map(), checkoutSessions = new Map(), customerKeys = new Map(), checkoutKeys = new Map();
+    transfers = new Map(), refunds = new Map(), reversals = new Map(), customers = new Map(), checkoutSessions = new Map(), customerKeys = new Map(), checkoutKeys = new Map();
   const metadata = (body) => Object.fromEntries(Object.entries(body).filter(([key]) => key.startsWith("metadata[")).map(([key, value]) => [key.slice(9, -1), value]));
   const notFound = (what) => ({ status: 404, error: { type: "invalid_request_error", message: "No such " + what } });
   const last = (p) => decodeURIComponent(p.split("/").filter(Boolean).at(-1));
@@ -64,10 +64,31 @@ async function startFakeStripe(routes = {}) {
     "POST /v1/account_sessions": (b) => ({ object: "account_session", account: b.account, client_secret: "accs_fake_" + b.account, expires_at: Math.floor(Date.now() / 1000) + 1800, livemode: false, components: {} }),
     "POST /v1/accounts/:id/login_links": (b, p) => ({ object: "login_link", created: Math.floor(Date.now() / 1000), url: "https://connect.stripe.com/express/fake/" + p.split("/")[3] }),
     "POST /v1/transfers": (b) => {
-      const tr = { id: "tr_fake" + (transfers.size + 1), object: "transfer", amount: Number(b.amount), currency: b.currency, destination: b.destination, transfer_group: b.transfer_group || null, source_transaction: b.source_transaction || null, metadata: {}, reversed: false, amount_reversed: 0 };
+      const tr = { id: "tr_fake" + (transfers.size + 1), object: "transfer", amount: Number(b.amount), currency: b.currency, destination: b.destination, transfer_group: b.transfer_group || null, source_transaction: b.source_transaction || null, metadata: b.metadata || {}, reversed: false, amount_reversed: 0 };
       transfers.set(tr.id, tr);
       return tr;
     },
+    "POST /v1/refunds": (b, p, req) => {
+      const key = req.headers["idempotency-key"], prior = key && refunds.get(key);
+      if (prior) return prior;
+      const refund = { id: "re_fake" + (refunds.size + 1), object: "refund", charge: b.charge, amount: Number(b.amount), currency: b.currency || "eur", status: "succeeded", metadata: b.metadata || {} };
+      if (key) refunds.set(key, refund); else refunds.set(refund.id, refund);
+      return refund;
+    },
+    "POST /v1/transfers/:id/reversals": (b, p, req) => {
+      const key = req.headers["idempotency-key"], prior = key && reversals.get(key);
+      if (prior) return prior;
+      const transfer = transfers.get(p.split("/")[3]);
+      if (!transfer) return { status: 404, error: { type: "invalid_request_error", message: "transfer not found" } };
+      const amount = Number(b.amount || (transfer.amount - transfer.amount_reversed));
+      if (amount <= 0 || amount > transfer.amount - transfer.amount_reversed) return { status: 400, error: { type: "invalid_request_error", message: "invalid reversal amount" } };
+      transfer.amount_reversed += amount; transfer.reversed = transfer.amount_reversed === transfer.amount;
+      const reversal = { id: "trr_fake" + (reversals.size + 1), object: "transfer_reversal", transfer: transfer.id, amount, currency: transfer.currency, metadata: b.metadata || {} };
+      if (key) reversals.set(key, reversal); else reversals.set(reversal.id, reversal);
+      return reversal;
+    },
+    "GET /v1/transfers/:id": (b, p) => transfers.get(p.split("/")[3]) || notFound("transfer"),
+    "GET /v1/refunds/:id": (b, p) => [...refunds.values()].find((r) => r.id === p.split("/")[3]) || notFound("refund"),
     ...routes,
   };
   const server = http.createServer((req, res) => {
@@ -93,6 +114,8 @@ async function startFakeStripe(routes = {}) {
     calls,
     accounts,
     transfers,
+    refunds,
+    reversals,
     customers,
     checkoutSessions,
     // T271: Stripe changes a connected account's stripe_transfers capability

@@ -102,6 +102,8 @@ LOCALES.de = {
       rejected: "Abgelehnt",
       paid: "Bezahlt",
       refunded: "Erstattet",
+      disputed: "Angefochten",
+      transferred: "Überwiesen",
       pending: "Ausstehend",
       pendingApproval: "Freigabe ausstehend",
       pendingReview: "Prüfung ausstehend",
@@ -223,6 +225,9 @@ LOCALES.de = {
       stHandlerFailed: "Verarbeitung fehlgeschlagen",
       stOff: "Zahlungen sind aus: Es ist kein Stripe-Schlüssel gesetzt.",
       stUnreachable: "Stripe ist nicht erreichbar. Prüfen Sie den Schlüssel und das Netzwerk.",
+      t273Payment: "Die Stripe-Zahlung konnte für diesen Vorgang nicht verifiziert werden.",
+      t273RefundAmount: "Der Erstattungsbetrag ist ungültig.",
+      t273RefundOnlyStripe: "Nur eine verifizierte Stripe-Zahlung kann erstattet werden.",
       chatTooFast: "Sie senden sehr schnell Nachrichten. Warten Sie eine Minute und senden Sie dann erneut.",
       poOnlySuppliers: "Nur Lieferanten haben ein Auszahlungskonto.",
       poChanged: "Das Auszahlungskonto hat sich geändert. Laden Sie diese Seite neu und versuchen Sie es erneut.",
@@ -4075,12 +4080,14 @@ LOCALES.de = {
       "Changes Requested": "Änderungen angefordert",
       "Rejected": "Abgelehnt",
       "Paid": "Bezahlt",
-      "Refunded": "Erstattet"
+      "Refunded": "Erstattet",
+      "Disputed": "Angefochten"
     },
     "payStatus": {
       "Scheduled": "Geplant",
       "Paid": "Bezahlt",
       "Refunded": "Erstattet"
+      ,"Disputed": "Angefochten"
     },
     "disputeStatus": {
       "Open": "Öffnen",
