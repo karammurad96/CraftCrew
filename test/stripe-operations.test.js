@@ -61,3 +61,25 @@ test("T283a timeout after provider acceptance preserves the operation key across
   assert.equal(restored.stripeOperations.length, 1);
   assert.equal(restored.stripeOperations[0].providerRef, "re_accepted");
 });
+
+test("T283b1 accepted provider result remains unknown until the linked commit and local failure is not rejection", async () => {
+  const f = fixture(), op = await f.operations.reserve({ kind: "refund", logicalKey: "refund:deferred", ownerId: "buyer", amountMinor: 100 });
+  await f.operations.call(op, async () => ({ id: "re_known" }), "refund", { deferSuccess: true });
+  assert.equal(op.status, "unknown"); assert.equal(op.providerRef, "re_known");
+  let commits = 0;
+  const failing = createOperations({ getDb: () => f.db, gate: atomic.createGate(), commitStage: async () => { commits++; throw new Error("local I/O refusal"); } });
+  await assert.rejects(failing.call(op, async () => ({ id: "re_known" }), "refund", { deferSuccess: true }), /local I\/O/);
+  assert.equal(commits, 1); assert.equal(f.db.stripeOperations[0].status, "unknown");
+});
+
+test("T283b1 first reference publication failure retains pending intent and retries its original key", async () => {
+  const f = fixture(), op = await f.operations.reserve({ kind: "refund", logicalKey: "refund:first-local-failure", ownerId: "buyer", amountMinor: 100 });
+  const original = structuredClone(op), keys = []; let commits = 0;
+  const failing = createOperations({ getDb: () => f.db, gate: atomic.createGate(), commitStage: async () => { commits++; throw new Error("local I/O refusal"); } });
+  await assert.rejects(failing.call(op, async (key) => { keys.push(key); return { id: "re_accepted" }; }, "refund", { deferSuccess: true }), /local I\/O/);
+  assert.equal(commits, 1); assert.deepEqual(f.db.stripeOperations[0], original);
+  const retry = await f.operations.reserve({ kind: "refund", logicalKey: "refund:first-local-failure", ownerId: "buyer", amountMinor: 100 });
+  await f.operations.call(retry, async (key) => { keys.push(key); return { id: "re_accepted" }; }, "refund", { deferSuccess: true });
+  assert.deepEqual(keys, [original.idempotencyKey, original.idempotencyKey]);
+  assert.equal(f.db.stripeOperations[0].status, "unknown"); assert.equal(f.db.stripeOperations[0].providerRef, "re_accepted");
+});

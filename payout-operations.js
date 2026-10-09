@@ -26,6 +26,29 @@ module.exports = function createPayoutOperations(ctx) {
     return moneyGates.get(invoiceId).run(work);
   }
   const data = () => getDb();
+  const invoiceBinding = (invoice) => Object.fromEntries(["status", "customerId", "supplierId", "grossAmount", "netAmount", "amount", "number", "vatAmount", "vatMode", "vatRate"].map((key) => [key, clone(invoice[key])]));
+  function history(stage, operation, payment, invoice, provider) {
+    data().stripeFinancialRecords ||= [];
+    const id = `financial-${operation.id}`;
+    const record = {
+      id, operationId: operation.id, kind: operation.kind, paymentId: payment.id, invoiceId: invoice.id,
+      customerId: invoice.customerId, supplierId: invoice.supplierId, amountMinor: operation.amountMinor,
+      currency: operation.currency, providerRef: provider.id, recordedAt: now(),
+    };
+    const existing = data().stripeFinancialRecords.find((row) => row.id === id);
+    if (existing && Object.keys(record).some((key) => key !== "recordedAt" && existing[key] !== record[key])) throw new Error("Stripe financial history binding conflict");
+    if (!existing) stage.add("stripeFinancialRecords", record);
+    operations.stageOutcome(stage, operation, { status: "succeeded", providerRef: provider.id, providerType: operation.kind });
+  }
+  async function financialCommit(payment, invoice, fields, invoiceFields, entries) {
+    return gate.run(async () => {
+      const stage = atomic.createStage();
+      stage.patch("payments", payment.id, fields, { status: payment.status, stripe: clone(payment.stripe), invoiceId: invoice.id, amount: payment.amount });
+      stage.patch("invoices", invoice.id, invoiceFields, invoiceBinding(invoice));
+      for (const [operation, provider] of entries) history(stage, operation, payment, invoice, provider);
+      await commitStage({ getDb, stage });
+    });
+  }
   const paymentForCharge = (chargeId) => (data().payments || []).find((payment) => payment.stripe?.checkout?.chargeId === chargeId);
   const paymentForInvoice = (invoiceId) => (data().payments || []).find((payment) => payment.invoiceId === invoiceId);
   const invoiceForPayment = (payment) => (data().invoices || []).find((invoice) => invoice.id === payment?.invoiceId);
@@ -55,26 +78,27 @@ module.exports = function createPayoutOperations(ctx) {
   }
   async function settleOnce(payment, invoice, chargeId) {
     if (!payment || !invoice) return;
+    payment = clone(payment); invoice = clone(invoice);
     if (!enabled || !payouts || payment.status !== "Paid" || invoice.status !== "Paid" || !chargeId || chargeId !== payment.stripe?.checkout?.chargeId || payment.stripe?.payout?.transferId) return;
     const breakdown = transferBreakdown(invoice), checkout = payment.stripe?.checkout || {};
     const common = { currency: breakdown.currency, transfer_group: invoice.id, source_transaction: chargeId,
       amount: breakdown.supplierMinor, metadata: { craftcrew: "T273", invoiceId: invoice.id, paymentId: payment.id, supplierId: invoice.supplierId } };
     try {
       const transferOperation = await operations.reserve({ kind: "transfer", logicalKey: `transfer:${payment.id}`, ownerId: invoice.supplierId, amountMinor: breakdown.supplierMinor, currency: breakdown.currency, metadata: { invoiceId: invoice.id, paymentId: payment.id, supplierId: invoice.supplierId } });
-      const transfer = transferOperation.status === "succeeded" && transferOperation.providerRef
+      const transfer = transferOperation.providerRef
         ? await client.transfers.retrieve(transferOperation.providerRef)
-        : await operations.call(transferOperation, (key) => payouts.transfer(invoice.supplierId, common, { idempotencyKey: key }), "transfer");
-      if (!transfer?.id || transfer.amount !== breakdown.supplierMinor || transfer.currency !== "eur" || transfer.destination !== data().suppliers?.find((s) => s.id === invoice.supplierId)?.stripeAccount?.id)
+        : await operations.call(transferOperation, (key) => payouts.transfer(invoice.supplierId, common, { idempotencyKey: key }), "transfer", { deferSuccess: true });
+      if (!transfer?.id || transfer.amount !== breakdown.supplierMinor || transfer.currency !== "eur" || transfer.source_transaction !== chargeId || transfer.transfer_group !== invoice.id || transfer.destination !== data().suppliers?.find((s) => s.id === invoice.supplierId)?.stripeAccount?.id)
         throw new Error("The Stripe payment could not be verified for this operation.");
       const latest = paymentForInvoice(invoice.id);
       if (!latest) return;
-      await persist(latest, { stripe: { ...latest.stripe, payout: {
+      await financialCommit(payment, invoice, { stripe: { ...payment.stripe, payout: {
         status: "transferred", transferId: transfer.id, transferredAt: now(), actualDeductedMinor: breakdown.platformFeeMinor,
         breakdown: { grossMinor: breakdown.grossMinor, netMinor: breakdown.netMinor, platformFeeMinor: breakdown.platformFeeMinor,
           platformFeePercent: breakdown.platformFeePercent, supplierMinor: breakdown.supplierMinor, currency: breakdown.currency,
           vatMode: breakdown.feeVatRate ? "standard" : "reverse_charge", vatRate: breakdown.feeVatRate,
           feeVatMinor: breakdown.feeVatMinor, outstandingFeeVatMinor: breakdown.feeVatMinor, feeCollectionStatus: "net_collected_vat_outstanding" },
-      } } }, latest);
+      } } }, {}, [[transferOperation, transfer]]);
     } catch (error) {
       const latest = paymentForInvoice(invoice.id);
       if (latest && !latest.stripe?.payout?.transferId) try { await persist(latest, { stripe: { ...latest.stripe, payout: { ...latest.stripe?.payout, status: "pending", reason: accountReason(error), pendingAt: now(), amountMinor: breakdown.supplierMinor, currency: "eur" } } }, latest); } catch {}
@@ -85,18 +109,18 @@ module.exports = function createPayoutOperations(ctx) {
     if (!transferId || amountMinor === 0) return null;
     if (!client?.transfers?.createReversal) throw new Error("The Stripe payment could not be verified for this operation.");
     const reversalOperation = operation || await operations.reserve({ kind: "transfer_reversal", logicalKey: `reversal:${payment.id}:${key}`, ownerId: payment.id, amountMinor, currency: "eur", metadata });
-    const reversal = reversalOperation.status === "succeeded" && reversalOperation.providerRef
+    const reversal = reversalOperation.providerRef
       ? await client.transfers.retrieveReversal(transferId, reversalOperation.providerRef)
-      : await operations.call(reversalOperation, (idempotency) => client.transfers.createReversal(transferId, { amount: amountMinor, metadata }, { idempotencyKey: idempotency }), "transfer_reversal");
-    if (!reversal?.id || Number(reversal.amount) !== amountMinor) throw new Error("Stripe returned an invalid transfer reversal");
-    return reversal;
+      : await operations.call(reversalOperation, (idempotency) => client.transfers.createReversal(transferId, { amount: amountMinor, metadata }, { idempotencyKey: idempotency }), "transfer_reversal", { deferSuccess: true });
+    if (!reversal?.id || Number(reversal.amount) !== amountMinor || reversal.currency !== "eur" || reversal.transfer !== transferId) throw new Error("Stripe returned an invalid transfer reversal");
+    return { ...reversal, operation: reversalOperation };
   }
   function refundInvoice(invoiceId, reason, amount, requestId) {
     return serialized(invoiceId, () => refundOnce(invoiceId, reason, amount, requestId));
   }
   async function refundOnce(invoiceId, reason, amount, requestId) {
     if (!enabled || !client) throw new Error("Payments are off: no Stripe key is set.");
-    const invoice = (data().invoices || []).find((row) => row.id === invoiceId), payment = paymentForInvoice(invoiceId);
+    const invoice = clone((data().invoices || []).find((row) => row.id === invoiceId)), payment = clone(paymentForInvoice(invoiceId));
     const checkout = payment?.stripe?.checkout;
     if (!invoice || !payment || !["Paid", "Refunded"].includes(payment.status) || !checkout?.chargeId) throw new Error("Only a verified Stripe payment can be refunded.");
     if (typeof reason !== "string" || !reason.trim() || reason.length > 500) throw new Error("A refund reason is required");
@@ -114,18 +138,18 @@ module.exports = function createPayoutOperations(ctx) {
     if (payment.status !== "Paid" || already !== before) throw new Error("The refund amount is invalid.");
     const refundMetadata = { craftcrew: "T273", invoiceId, paymentId: payment.id, reason: reason.trim(), chargeId: checkout.chargeId, originalMinor: original, refundedBeforeMinor: before };
     const refundOperation = await operations.reserve({ kind: "refund", logicalKey: `refund:${refundKey}`, ownerId: invoice.customerId, amountMinor: refundMinor, currency: "eur", metadata: refundMetadata });
-    const refund = refundOperation.status === "succeeded" && refundOperation.providerRef
+    const refund = refundOperation.providerRef
       ? await client.refunds.retrieve(refundOperation.providerRef)
-      : await operations.call(refundOperation, (key) => client.refunds.create({ charge: checkout.chargeId, amount: refundMinor, metadata: refundMetadata }, { idempotencyKey: key }), "refund");
-    if (!refund?.id || Number(refund.amount) !== refundMinor || refund.status !== "succeeded") throw new Error("The Stripe payment could not be verified for this operation.");
+      : await operations.call(refundOperation, (key) => client.refunds.create({ charge: checkout.chargeId, amount: refundMinor, metadata: refundMetadata }, { idempotencyKey: key }), "refund", { deferSuccess: true });
+    if (!refund?.id || Number(refund.amount) !== refundMinor || refund.status !== "succeeded" || refund.currency !== "eur" || refund.charge !== checkout.chargeId) throw new Error("The Stripe payment could not be verified for this operation.");
     const supplierMinor = payment.stripe?.payout?.breakdown?.supplierMinor ?? transferBreakdown(invoice).supplierMinor;
     const reversalMinor = Math.round(supplierMinor * total / original) - Math.round(supplierMinor * before / original);
     const reversalKey = refundKey;
     const reversal = await reverseTransfer(payment, reversalMinor, reversalKey, { craftcrew: "T273", invoiceId, paymentId: payment.id, refundId: refund.id });
     const latest = paymentForInvoice(invoiceId);
     if (!latest) throw new Error("The Stripe payment could not be verified for this operation.");
-    await persist(latest, { status: full ? "Refunded" : latest.status, refundReason: String(reason).slice(0, 500), refundedAt: full ? now() : latest.refundedAt,
-      stripe: { ...latest.stripe, payout: { ...latest.stripe?.payout, refundedMinor: total, refundId: refund.id, reversalId: reversal?.id || null, refundStatus: full ? "refunded" : "partially_refunded" } } }, latest);
+    await financialCommit(payment, invoice, { status: full ? "Refunded" : payment.status, refundReason: String(reason).slice(0, 500), refundedAt: full ? now() : payment.refundedAt,
+      stripe: { ...payment.stripe, payout: { ...payment.stripe?.payout, refundedMinor: total, refundId: refund.id, reversalId: reversal?.id || null, refundStatus: full ? "refunded" : "partially_refunded" } } }, full ? { status: "Refunded", updatedAt: now() } : {}, [[refundOperation, refund], ...(reversal ? [[reversal.operation, reversal]] : [])]);
     if (full && onRefund) onRefund({ ...latest, status: "Refunded" });
     return { invoiceId, refundId: refund.id, reversalId: reversal?.id || null, amount: euros(refundMinor), status: full ? "Refunded" : "Partially refunded" };
   }
@@ -155,7 +179,7 @@ module.exports = function createPayoutOperations(ctx) {
   } });
   on("charge.dispute.created", {
     async prepare(object, event) {
-      const payment = paymentForDispute(object), invoice = invoiceForPayment(payment);
+      const payment = clone(paymentForDispute(object)), invoice = clone(invoiceForPayment(payment));
       if (!payment || !invoice) throw new Error("Dispute payment binding failed");
       const transfer = payment.stripe?.payout?.transferId, amount = transfer ? transferBreakdown(invoice).supplierMinor : 0;
       const reversal = transfer ? await reverseTransfer(payment, amount, `dispute:${object.id}`, { craftcrew: "T273", invoiceId: invoice.id, paymentId: payment.id, disputeId: object.id }) : null;
@@ -165,8 +189,9 @@ module.exports = function createPayoutOperations(ctx) {
       const current = paymentForInvoice(prepared.invoice.id); if (!current) throw new Error("Dispute payment binding failed");
       const existing = (data().disputes || []).find((d) => d.stripeDisputeId === prepared.object.id);
       if (!existing) stage.add("disputes", { id: `stripe-dispute-${prepared.object.id}`, stripeDisputeId: prepared.object.id, projectId: prepared.invoice.projectId, customerId: prepared.invoice.customerId, supplierId: prepared.invoice.supplierId, createdBy: "stripe", type: "Payment", description: "Stripe payment dispute requires review.", status: "Open", createdAt: now(), updatedAt: now() });
-      stage.patch("payments", current.id, { stripe: { ...current.stripe, payout: { ...current.stripe?.payout, disputeId: prepared.object.id, disputeReversalId: prepared.reversal?.id || null, disputeStatus: "open" } } }, { status: current.status, stripe: clone(current.stripe) });
-      stage.patch("invoices", prepared.invoice.id, { status: "Disputed", updatedAt: now() }, { status: prepared.invoice.status });
+      stage.patch("payments", current.id, { stripe: { ...prepared.payment.stripe, payout: { ...prepared.payment.stripe?.payout, disputeId: prepared.object.id, disputeReversalId: prepared.reversal?.id || null, disputeStatus: "open" } } }, { status: prepared.payment.status, stripe: clone(prepared.payment.stripe), invoiceId: prepared.invoice.id, amount: prepared.payment.amount });
+      stage.patch("invoices", prepared.invoice.id, { status: "Disputed", updatedAt: now() }, invoiceBinding(prepared.invoice));
+      if (prepared.reversal) history(stage, prepared.reversal.operation, current, prepared.invoice, prepared.reversal);
       return { status: "disputed" };
     },
   });

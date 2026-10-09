@@ -75,7 +75,7 @@ module.exports = function createOperations(ctx) {
     return sharedGate.run(async () => {
       const rows = ensure(), current = rows.find((row) => row.id === operation.id);
       if (!current) throw new Error("Stripe operation identity missing");
-      const rank = { pending: 0, unknown: 1, failed: 2, succeeded: 3 };
+      const rank = { pending: 0, failed: 1, unknown: 2, succeeded: 3 };
       if (rank[status] < rank[current.status] || current.status === "succeeded") return clone(current);
       const stage = atomic.createStage(), fields = { status, updatedAt: now(), attempts: Number(current.attempts || 0) + 1 };
       if (result.providerRef !== undefined) fields.providerRef = result.providerRef == null ? null : String(result.providerRef).slice(0, 200);
@@ -87,16 +87,19 @@ module.exports = function createOperations(ctx) {
     });
   }
   const unknownError = (error) => !!error && (["ETIMEDOUT", "ECONNRESET", "ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN", "StripeConnectionError", "StripeAPIError"].includes(error.code) || ["StripeConnectionError", "StripeAPIError"].includes(error.type) || Number(error.statusCode) >= 500 || /timeout|timed out|socket hang up|connection reset/i.test(String(error.message || "")));
-  async function call(operation, work, providerType) {
+  async function call(operation, work, providerType, options = {}) {
+    let result;
     try {
-      const result = await work(operation.idempotencyKey);
-      const ref = result?.id;
-      await outcome(operation, { status: "succeeded", providerRef: ref, providerType });
-      return result;
+      result = await work(operation.idempotencyKey);
     } catch (error) {
       try { await outcome(operation, { status: unknownError(error) ? "unknown" : "failed", errorCode: unknownError(error) ? "provider_timeout" : "provider_rejected" }); } catch {}
       throw error;
     }
+    // An accepted provider request is not rejected because local persistence failed.
+    // Monetary callers publish success only with the linked financial stage.
+    const persisted = await outcome(operation, { status: options.deferSuccess ? "unknown" : "succeeded", providerRef: result?.id, providerType });
+    Object.assign(operation, persisted);
+    return result;
   }
   return { ensure, get, record, stageAdd, stageOutcome, reserve, outcome, call, unknownError, operationId, idempotencyKey };
 };
