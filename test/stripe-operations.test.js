@@ -83,3 +83,19 @@ test("T283b1 first reference publication failure retains pending intent and retr
   assert.deepEqual(keys, [original.idempotencyKey, original.idempotencyKey]);
   assert.equal(f.db.stripeOperations[0].status, "unknown"); assert.equal(f.db.stripeOperations[0].providerRef, "re_accepted");
 });
+
+test('T283c2 staged outcomes cannot regress succeeded or unknown operations', async () => {
+  for (const [before, after] of [['succeeded', 'unknown'], ['succeeded', 'failed'], ['unknown', 'failed']]) {
+    const f = fixture(), op = await f.operations.reserve({ kind: 'refund', logicalKey: `monotonic:${before}:${after}`, ownerId: 'buyer', amountMinor: 100 });
+    await f.operations.outcome(op, { status: before, providerRef: 're_original', providerType: 'refund' });
+    const current = f.operations.get(`monotonic:${before}:${after}`), stage = atomic.createStage();
+    f.operations.stageOutcome(stage, current, { status: after, providerRef: 're_original', providerType: 'refund' });
+    atomic.validate(f.db, stage); atomic.publish(f.db, stage); assert.equal(f.db.stripeOperations[0].status, before); assert.equal(f.db.stripeOperations[0].providerRef, 're_original');
+  }
+  const existing = fixture(), reserved = await existing.operations.reserve({ kind: 'refund', logicalKey: 'existing-staged', ownerId: 'buyer', amountMinor: 100 }), updates = atomic.createStage();
+  existing.operations.stageOutcome(updates, reserved, { status: 'succeeded', providerRef: 're_existing' }); existing.operations.stageOutcome(updates, reserved, { status: 'unknown', providerRef: 're_existing' });
+  atomic.validate(existing.db, updates); atomic.publish(existing.db, updates); assert.equal(existing.db.stripeOperations[0].status, 'succeeded');
+  const f = fixture(), stage = atomic.createStage(), op = f.operations.record({ kind: 'refund', logicalKey: 'staged-new', ownerId: 'buyer', amountMinor: 100 });
+  f.operations.stageAdd(stage, op); f.operations.stageOutcome(stage, op, { status: 'succeeded', providerRef: 're_staged' }); f.operations.stageOutcome(stage, op, { status: 'failed' });
+  atomic.validate(f.db, stage); atomic.publish(f.db, stage); assert.equal(f.db.stripeOperations[0].status, 'succeeded');
+});

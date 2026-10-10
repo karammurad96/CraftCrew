@@ -142,17 +142,19 @@ test("T272c verifies Checkout associations before atomically fulfilling paid, pe
     ],
     suppliers: [{ id: "supplier" }],
     invoices: [{ id: "invoice", number: "INV-1", customerId: "owner", supplierId: "supplier", projectId: "project", status: "Approved", amount: 1190, grossAmount: 1190, netAmount: 1000 }],
-    payments: [{ id: "payment", invoiceId: "invoice", status: "Scheduled", amount: 119000, netAmount: 100000,
+    payments: [{ id: "payment", invoiceId: "invoice", status: "Scheduled", amount: 1190, netAmount: 1000, platformFee: 30, platformFeePercent: 3,
       stripe: { checkout: { attemptId: "attempt", sessionId: "cs_test_1", customerId: "cus_1", amount: 119000, status: "open" } } }],
     notifications: [],
   };
+  db.payments[0].stripe.checkout.invoiceBinding = JSON.parse(JSON.stringify(db.invoices[0]));
+  delete db.payments[0].stripe.checkout.invoiceBinding.id; delete db.payments[0].stripe.checkout.invoiceBinding.number;
   const session = { id: "cs_test_1", object: "checkout.session", mode: "payment", livemode: false, currency: "eur", amount_total: 119000,
     customer: "cus_1", client_reference_id: "invoice", integration_identifier: "craftcrew-invoice",
     metadata: { invoiceId: "invoice", projectId: "project", supplierId: "supplier", paymentId: "payment", customerId: "owner", checkoutAttemptId: "attempt" },
     status: "complete", payment_status: "paid", payment_intent: "pi_test_1" };
   const intent = { id: "pi_test_1", object: "payment_intent", livemode: false, amount: 119000, currency: "eur", customer: "cus_1", status: "succeeded",
     metadata: session.metadata, latest_charge: "ch_test_1" };
-  const charge = { id: "ch_test_1", object: "charge", livemode: false, payment_intent: "pi_test_1", amount: 119000, currency: "eur", paid: true, status: "succeeded" };
+  const charge = { id: "ch_test_1", object: "charge", livemode: false, payment_intent: "pi_test_1", amount: 119000, amount_captured: 119000, customer: "cus_1", currency: "eur", paid: true, status: "succeeded" };
   const handlers = new Map(), gate = atomic.createGate();
   const ctx = { getDb: () => db, client: {
     checkout: { sessions: { retrieve: async () => structuredClone(session) } },
@@ -170,6 +172,7 @@ test("T272c verifies Checkout associations before atomically fulfilling paid, pe
 
   const pending = structuredClone(db);
   pending.invoices[0].status = "Approved"; pending.payments[0].status = "Scheduled";
+  delete pending.payments[0].stripe.checkout.paymentIntentId; delete pending.payments[0].stripe.checkout.chargeId;
   pending.payments[0].stripe.checkout.status = "open"; session.payment_status = "unpaid"; session.payment_intent = null;
   const pendingCtx = { ...ctx, getDb: () => pending }; const pendingHandlers = new Map(); pendingCtx.on = (type, handler) => pendingHandlers.set(type, handler); createCheckout(pendingCtx);
   const pendingEvent = { id: "evt_pending", type: "checkout.session.completed" }, pendingPrepared = await pendingHandlers.get(pendingEvent.type).prepare(session, pendingEvent);
@@ -215,5 +218,29 @@ test('T283c1 published customer reference rejects changed name/address/VAT witho
     customer[field] = field === 'taxIds' ? [{ type: 'eu_vat', value: 'DE987654321' }] : field === 'address' ? { line1: 'Other road' } : 'Other Buyer';
     await assert.rejects(state.checkout.pay('invoice', state.actor), /do not match/);
     assert.equal(state.fake.customers.size, 1); assert.equal(state.fake.checkoutSessions.size, 1);
+  }
+});
+
+test('T283c2 pre-await invoice/payment snapshots refuse financial races while preserving unrelated settings', async () => {
+  for (const change of ['amount', 'customer', 'fee', 'number', 'smtp', 'preexisting gross']) {
+    const db = { invoices: [{ id: 'invoice', customerId: 'owner', supplierId: 'supplier', status: 'Approved', amount: 1190, grossAmount: 1190, netAmount: 1000, number: 'INV-1' }], payments: [{ id: 'payment', invoiceId: 'invoice', status: 'Scheduled', amount: 1190, netAmount: 1000, platformFee: 30, platformFeePercent: 3, stripe: { checkout: { attemptId: 'attempt', sessionId: 'cs_test_1', customerId: 'cus_1', amount: 119000 } } }], users: [], notifications: [], settings: {} };
+    db.payments[0].stripe.checkout.invoiceBinding = JSON.parse(JSON.stringify(db.invoices[0])); delete db.payments[0].stripe.checkout.invoiceBinding.id;
+    const metadata = { invoiceId: 'invoice', projectId: '', supplierId: 'supplier', paymentId: 'payment', customerId: 'owner', checkoutAttemptId: 'attempt' };
+    const session = { id: 'cs_test_1', object: 'checkout.session', integration_identifier: 'craftcrew-invoice', mode: 'payment', livemode: false, customer: 'cus_1', amount_total: 119000, currency: 'eur', status: 'complete', payment_status: 'paid', payment_intent: 'pi_1', client_reference_id: 'invoice', metadata };
+    let release, entered; const blocked = new Promise((r) => { release = r; }), started = new Promise((r) => { entered = r; });
+    const handlers = new Map();
+    createCheckout({ getDb: () => db, client: { checkout: { sessions: { retrieve: async () => { entered(); await blocked; return clone(session); } } }, paymentIntents: { retrieve: async () => ({ id: 'pi_1', livemode: false, amount: 119000, currency: 'eur', customer: 'cus_1', metadata, status: 'succeeded', latest_charge: 'ch_1' }) }, charges: { retrieve: async () => ({ id: 'ch_1', object: 'charge', livemode: false, amount: 119000, amount_captured: 119000, currency: 'eur', customer: 'cus_1', payment_intent: 'pi_1', paid: true, status: 'succeeded' }) } }, enabled: true, on: (type, handler) => handlers.set(type, handler), now: () => '2026-10-10T00:00:00Z' });
+    const event = { id: 'evt_race', type: 'checkout.session.completed' }, handler = handlers.get(event.type);
+    if (change === 'preexisting gross') { db.invoices[0].grossAmount = 1290; db.payments[0].amount = 1290; await assert.rejects(handler.prepare(clone(session), event), /verified/); assert.equal(db.payments[0].status, 'Scheduled'); continue; }
+    const preparing = handler.prepare(clone(session), event);
+    await started;
+    if (change === 'amount') db.invoices[0].grossAmount = 1290;
+    if (change === 'customer') db.invoices[0].customerId = 'other';
+    if (change === 'fee') db.payments[0].platformFee = 40;
+    if (change === 'number') db.invoices[0].number = 'INV-OTHER';
+    if (change === 'smtp') db.settings.smtp = { host: 'updated.example' };
+    release(); const prepared = await preparing, stage = atomic.createStage();
+    if (change === 'smtp') { handler.stage({ stage, prepared, event }); atomic.validate(db, stage); atomic.publish(db, stage); assert.equal(db.payments[0].status, 'Paid'); assert.equal(db.settings.smtp.host, 'updated.example'); }
+    else { assert.throws(() => handler.stage({ stage, prepared, event }), /verified/); assert.equal(db.payments[0].status, 'Scheduled'); assert.equal(db.notifications.length, 0); }
   }
 });

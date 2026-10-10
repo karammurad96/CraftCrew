@@ -104,6 +104,7 @@ LOCALES.de = {
       refunded: "Erstattet",
       disputed: "Angefochten",
       transferred: "Überwiesen",
+      ignored: "Ignoriert",
       unknown: "Unbekannt",
       pending: "Ausstehend",
       pendingApproval: "Freigabe ausstehend",

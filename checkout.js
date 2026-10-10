@@ -67,7 +67,11 @@ module.exports = function createCheckout(ctx) {
         invoice.customerId !== object.metadata.customerId || payment.id !== object.metadata.paymentId ||
         invoice.id !== object.metadata.invoiceId || !exactMetadata(object.metadata, expectedMetadata(invoice, payment, checkout)))
       throw eventFailure("payment_binding");
-    return { payment, invoice, checkout };
+    const frozen = checkout.invoiceBinding;
+    if (!frozen || typeof frozen !== "object" || Object.entries(frozen).some(([key, value]) => key !== "status" && !equal(value, invoice[key])) ||
+        minor(invoice.grossAmount ?? invoice.amount) !== checkout.amount || minor(payment.amount) !== checkout.amount || minor(payment.netAmount) !== minor(invoice.netAmount ?? invoice.amount) ||
+        typeof payment.platformFee !== "number" || typeof payment.platformFeePercent !== "number" || !Number.isFinite(payment.platformFeePercent) || payment.platformFeePercent < 0 || payment.platformFeePercent > 100 || Math.round(payment.netAmount * 100 * payment.platformFeePercent / 100) !== Math.round(payment.platformFee * 100)) throw eventFailure("frozen_invoice_binding");
+    return clone({ payment, invoice, checkout });
   }
   function verifyFulfilmentSession(session, record) {
     const expected = expectedMetadata(record.invoice, record.payment, record.checkout);
@@ -82,16 +86,16 @@ module.exports = function createCheckout(ctx) {
     const intentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent.id;
     if (!/^pi_[A-Za-z0-9_]+$/.test(intentId)) throw eventFailure("payment_intent_identity");
     let intent = typeof session.payment_intent === "object" ? session.payment_intent : null;
-    if (!intent || intent.id !== intentId || !intent.charges) intent = await client.paymentIntents.retrieve(intentId, { expand: ["latest_charge", "charges.data"] });
+    intent = await client.paymentIntents.retrieve(intentId, { expand: ["latest_charge"] });
     const expected = expectedMetadata(record.invoice, record.payment, record.checkout);
     if (!intent || intent.id !== intentId || intent.livemode !== false || intent.amount !== record.checkout.amount ||
         intent.currency !== "eur" || intent.customer !== record.checkout.customerId || !exactMetadata(intent.metadata, expected) || intent.status !== "succeeded")
       throw eventFailure("payment_intent_mismatch");
+    const chargeId = typeof intent.latest_charge === "string" ? intent.latest_charge : intent.latest_charge?.id;
     let charge = intent.latest_charge;
-    if (!charge && intent.charges?.data?.length) charge = intent.charges.data[0];
     if (typeof charge === "string") charge = await client.charges.retrieve(charge);
-    if (!charge || charge.object !== "charge" || charge.livemode !== false || charge.payment_intent !== intent.id ||
-        charge.amount !== intent.amount || charge.currency !== "eur" || charge.paid !== true || charge.status !== "succeeded")
+    if (!charge || charge.id !== chargeId || !/^ch_[A-Za-z0-9_]+$/.test(charge.id || "") || charge.object !== "charge" || charge.livemode !== false || charge.payment_intent !== intent.id ||
+        charge.customer !== record.checkout.customerId || charge.amount_captured !== intent.amount || charge.amount !== intent.amount || charge.currency !== "eur" || charge.paid !== true || charge.status !== "succeeded")
       throw eventFailure("charge_mismatch");
     return { intent, charge };
   }
@@ -111,45 +115,63 @@ module.exports = function createCheckout(ctx) {
   }
   for (const type of fulfilmentTypes) ctx.on(type, {
     async prepare(object, event) {
+      if (object?.integration_identifier !== INTEGRATION) return { ignored: true };
       const record = checkoutRecord(object);
       verifyFulfilmentSession(object, record);
       const session = verifyFulfilmentSession(await client.checkout.sessions.retrieve(object.id, { expand: ["payment_intent"] }), record);
-      if (object.payment_status !== undefined && object.payment_status !== session.payment_status)
+      const terminal = ["Paid", "Refunded", "Disputed"].includes(record.payment.status) || ["Paid", "Refunded", "Disputed"].includes(record.invoice.status);
+      if (!terminal && !(type.endsWith("async_payment_failed") && session.payment_status === "paid") && object.payment_status !== undefined && object.payment_status !== session.payment_status)
         throw eventFailure("event_session_status");
       const failed = type.endsWith("async_payment_failed");
       let provider = null;
-      if (!failed && (type.endsWith("async_payment_succeeded") || session.payment_status !== "unpaid")) provider = await retrievePayment(session, record);
-      if (failed && session.payment_status === "paid") throw eventFailure("failure_after_success");
+      if (!terminal && !failed && (type.endsWith("async_payment_succeeded") || session.payment_status !== "unpaid")) provider = await retrievePayment(session, record);
+      if (!terminal && failed && session.payment_status === "paid") return { record, session, provider: await retrievePayment(session, record), failed: false, eventId: event.id };
       return { record, session, provider, failed, eventId: event.id };
     },
     stage({ stage, prepared, event }) {
+      if (prepared?.ignored) return { status: "ignored" };
       if (!prepared?.record || !fulfilmentTypes.has(event.type)) throw eventFailure("prepared");
-      const { payment, invoice, checkout } = checkoutRecord(prepared.session), current = getDb();
+      const { payment, invoice, checkout } = prepared.record, current = getDb();
       const latestPayment = (current.payments || []).find((row) => row.id === payment.id), latestInvoice = (current.invoices || []).find((row) => row.id === invoice.id);
       if (!latestPayment || !latestInvoice || latestPayment.invoiceId !== latestInvoice.id) throw eventFailure("payment_binding");
+      const financial = (value) => canonical(Object.fromEntries(Object.entries({ ...binding(value), number: value.number }).filter(([key]) => key !== "status")));
+      const paymentFields = (value) => canonical(Object.fromEntries(["invoiceId", "amount", "netAmount", "platformFee", "platformFeePercent"].map((key) => [key, value[key]])));
+      const checkoutFields = (value) => canonical(Object.fromEntries(["attemptId", "sessionId", "customerId", "amount", "currency", "invoiceBinding"].map((key) => [key, value?.[key]])));
+      if (!equal(financial(latestInvoice), financial(invoice)) || !equal(paymentFields(latestPayment), paymentFields(payment)) || !equal(checkoutFields(latestPayment.stripe?.checkout), checkoutFields(checkout))) throw eventFailure("frozen_binding");
+      const sessionIntentId = typeof prepared.session.payment_intent === "string" ? prepared.session.payment_intent : prepared.session.payment_intent?.id;
+      if (latestPayment.stripe?.checkout?.paymentIntentId && sessionIntentId !== latestPayment.stripe.checkout.paymentIntentId) throw eventFailure("terminal_provider_binding");
+      const terminal = ["Paid", "Refunded", "Disputed"].includes(latestPayment.status) || ["Paid", "Refunded", "Disputed"].includes(latestInvoice.status);
+      if (terminal) {
+        if (prepared.provider && ((latestPayment.stripe?.checkout?.chargeId && latestPayment.stripe.checkout.chargeId !== prepared.provider.charge.id) || (latestPayment.stripe?.checkout?.paymentIntentId && latestPayment.stripe.checkout.paymentIntentId !== prepared.provider.intent.id))) throw eventFailure("terminal_provider_binding");
+        const recovery = latestPayment.status === "Paid" && latestInvoice.status === "Paid" && prepared.session.payment_status === "paid" && !latestPayment.stripe?.payout?.transferId && !latestPayment.stripe?.payout?.disputeId;
+        stage.patch("payments", payment.id, recovery ? { status: "Paid" } : {}, { status: latestPayment.status, stripe: latestPayment.stripe, ...paymentFields(latestPayment) });
+        stage.patch("invoices", invoice.id, {}, { ...binding(latestInvoice), number: latestInvoice.number });
+        return { status: "ignored", invoiceId: invoice.id, duplicate: true };
+      }
+      if (latestPayment.status !== payment.status || latestInvoice.status !== invoice.status) throw eventFailure("frozen_status");
       if (prepared.failed) {
         if (latestPayment.status === "Paid" || latestInvoice.status === "Paid") throw eventFailure("failure_after_success");
-        stage.patch("payments", payment.id, { stripe: { ...latestPayment.stripe, checkout: { ...checkout, status: "failed", failedAt: now(), failureCode: "async_payment_failed" } } }, { status: latestPayment.status, stripe: latestPayment.stripe });
-        stage.patch("invoices", invoice.id, {}, { status: latestInvoice.status });
+        stage.patch("payments", payment.id, { stripe: { ...latestPayment.stripe, checkout: { ...checkout, status: "failed", failedAt: now(), failureCode: "async_payment_failed" } } }, { status: payment.status, stripe: latestPayment.stripe, ...paymentFields(payment) });
+        stage.patch("invoices", invoice.id, {}, { ...binding(invoice) });
         notificationStage(stage, invoice, "invoicePaymentFailed", event, { number: invoice.number || invoice.id });
         return { status: "failed", invoiceId: invoice.id };
       }
       if (prepared.session.payment_status === "unpaid") {
         if (latestPayment.status === "Paid" || latestInvoice.status === "Paid") throw eventFailure("paid_session_unpaid");
-        stage.patch("payments", payment.id, { stripe: { ...latestPayment.stripe, checkout: { ...checkout, status: "pending", pendingAt: now() } } }, { status: latestPayment.status, stripe: latestPayment.stripe });
-        stage.patch("invoices", invoice.id, {}, { status: latestInvoice.status });
+        stage.patch("payments", payment.id, { stripe: { ...latestPayment.stripe, checkout: { ...checkout, status: "pending", pendingAt: now() } } }, { status: payment.status, stripe: latestPayment.stripe, ...paymentFields(payment) });
+        stage.patch("invoices", invoice.id, {}, { ...binding(invoice) });
         return { status: "pending", invoiceId: invoice.id };
       }
       if (!prepared.provider) throw eventFailure("payment_missing");
       if (latestPayment.status === "Paid" || latestInvoice.status === "Paid") {
         if (latestPayment.status !== "Paid" || latestInvoice.status !== "Paid") throw eventFailure("paid_binding");
         stage.patch("payments", payment.id, {}, { status: latestPayment.status });
-        stage.patch("invoices", invoice.id, {}, { status: latestInvoice.status });
+        stage.patch("invoices", invoice.id, {}, { ...binding(invoice) });
         return { status: "paid", invoiceId: invoice.id, duplicate: true };
       }
       const paidAt = now();
-      stage.patch("payments", payment.id, { status: "Paid", paidAt, stripe: { ...latestPayment.stripe, checkout: { ...checkout, status: "paid", paidAt, paymentIntentId: prepared.provider.intent.id, chargeId: prepared.provider.charge.id } } }, { status: latestPayment.status, stripe: latestPayment.stripe });
-      stage.patch("invoices", invoice.id, { status: "Paid", paymentDate: paidAt, updatedAt: paidAt }, { status: latestInvoice.status });
+      stage.patch("payments", payment.id, { status: "Paid", paidAt, stripe: { ...latestPayment.stripe, checkout: { ...checkout, status: "paid", paidAt, paymentIntentId: prepared.provider.intent.id, chargeId: prepared.provider.charge.id } } }, { status: payment.status, stripe: latestPayment.stripe, ...paymentFields(payment) });
+      stage.patch("invoices", invoice.id, { status: "Paid", paymentDate: paidAt, updatedAt: paidAt }, { ...binding(invoice) });
       notificationStage(stage, invoice, "invoicePaid", event, { number: invoice.number || invoice.id });
       return { status: "paid", invoiceId: invoice.id };
     },
