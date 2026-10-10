@@ -22,7 +22,32 @@ function applied(data, event) {
   const r = receipt(event), records = data?.meta?.stripe?.appliedReceipts;
   return match(records && Object.hasOwn(records, r.id) ? records[r.id] : null, r);
 }
+const OPERATION_BINDINGS = ['id', 'logicalKeyHash', 'idempotencyKey', 'kind', 'ownerId', 'amountMinor', 'currency', 'metadata', 'createdAt'];
+const OPERATION_RANK = { pending: 0, failed: 1, unknown: 2, succeeded: 3 };
+function operationRows(data) {
+  const rows = data?.stripeOperations;
+  if (rows !== undefined && !Array.isArray(rows)) throw new Error('Invalid Stripe operation retention');
+  const records = new Map();
+  for (const row of rows || []) {
+    if (!row || typeof row.id !== 'string' || !row.id || records.has(row.id) || !Object.hasOwn(OPERATION_RANK, row.status) ||
+        (row.attempts !== undefined && (!Number.isSafeInteger(row.attempts) || row.attempts < 0))) throw new Error('Invalid Stripe operation retention');
+    records.set(row.id, row);
+  }
+  return records;
+}
+function retainOperations(previous, next) {
+  const before = operationRows(previous), after = operationRows(next);
+  for (const [id, old] of before) {
+    const kept = after.get(id);
+    if (!kept || OPERATION_BINDINGS.some((key) => !equal(old[key], kept[key])) ||
+        (old.providerRef != null && old.providerRef !== kept.providerRef) ||
+        (old.providerType != null && old.providerType !== kept.providerType) ||
+        OPERATION_RANK[kept.status] < OPERATION_RANK[old.status] || Number(kept.attempts || 0) < Number(old.attempts || 0))
+      throw new Error('Stripe operation identities and outcomes cannot be removed or regressed');
+  }
+}
 function retain(previous, next) {
+  retainOperations(previous, next);
   for (const old of previous?.stripeFinancialRecords || []) {
     const kept = (next?.stripeFinancialRecords || []).find((row) => row.id === old.id);
     if (!kept || !equal(kept, old)) throw new Error('Stripe financial history cannot be removed or changed');
