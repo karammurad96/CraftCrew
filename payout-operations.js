@@ -79,11 +79,12 @@ module.exports = function createPayoutOperations(ctx) {
       amount: breakdown.supplierMinor, metadata: { craftcrew: "T273", invoiceId: invoice.id, paymentId: payment.id, supplierId: invoice.supplierId } };
     try {
       const transferOperation = await operations.reserve({ kind: "transfer", logicalKey: `transfer:${payment.id}`, ownerId: invoice.supplierId, amountMinor: breakdown.supplierMinor, currency: breakdown.currency, metadata: { invoiceId: invoice.id, paymentId: payment.id, supplierId: invoice.supplierId } });
-      const transfer = transferOperation.providerRef
-        ? await client.transfers.retrieve(transferOperation.providerRef)
-        : await operations.call(transferOperation, (key) => payouts.transfer(invoice.supplierId, common, { idempotencyKey: key }), "transfer", { deferSuccess: true });
-      if (!transfer?.id || transfer.amount !== breakdown.supplierMinor || transfer.currency !== "eur" || transfer.source_transaction !== chargeId || transfer.transfer_group !== invoice.id || transfer.destination !== data().suppliers?.find((s) => s.id === invoice.supplierId)?.stripeAccount?.id)
-        throw new Error("The Stripe payment could not be verified for this operation.");
+      const destination = data().suppliers?.find((s) => s.id === invoice.supplierId)?.stripeAccount?.id;
+      const transfer = await operations.resolve(transferOperation, { type: "transfer",
+        create: (key) => payouts.transfer(invoice.supplierId, common, { idempotencyKey: key }),
+        retrieve: (ref) => client.transfers.retrieve(ref), list: (page) => client.transfers.list({ ...page, destination }),
+        match: (tr) => !!tr?.id && tr.livemode === false && tr.amount === breakdown.supplierMinor && tr.currency === "eur" && tr.source_transaction === chargeId && tr.transfer_group === invoice.id && tr.destination === destination &&
+          Object.entries(common.metadata).every(([key, value]) => tr.metadata?.[key] === String(value)) });
       const latest = paymentForInvoice(invoice.id);
       if (!latest) return;
       await financialCommit(payment, invoice, { stripe: { ...payment.stripe, payout: {
@@ -103,10 +104,13 @@ module.exports = function createPayoutOperations(ctx) {
     if (!transferId || amountMinor === 0) return null;
     if (!client?.transfers?.createReversal) throw new Error("The Stripe payment could not be verified for this operation.");
     const reversalOperation = operation || await operations.reserve({ kind: "transfer_reversal", logicalKey: `reversal:${payment.id}:${key}`, ownerId: payment.id, amountMinor, currency: "eur", metadata });
-    const reversal = reversalOperation.providerRef
-      ? await client.transfers.retrieveReversal(transferId, reversalOperation.providerRef)
-      : await operations.call(reversalOperation, (idempotency) => client.transfers.createReversal(transferId, { amount: amountMinor, metadata }, { idempotencyKey: idempotency }), "transfer_reversal", { deferSuccess: true });
-    if (!reversal?.id || Number(reversal.amount) !== amountMinor || reversal.currency !== "eur" || reversal.transfer !== transferId) throw new Error("Stripe returned an invalid transfer reversal");
+    const parent = await client.transfers.retrieve(transferId);
+    if (parent?.id !== transferId || parent.livemode !== false || parent.currency !== "eur") throw new Error("The Stripe payment could not be verified for this operation.");
+    const reversal = await operations.resolve(reversalOperation, { type: "transfer_reversal",
+      create: (key) => client.transfers.createReversal(transferId, { amount: amountMinor, metadata }, { idempotencyKey: key }),
+      retrieve: (ref) => client.transfers.retrieveReversal(transferId, ref), list: (page) => client.transfers.listReversals(transferId, page),
+      match: (r) => !!r?.id && r.amount === amountMinor && r.currency === "eur" && r.transfer === transferId &&
+        Object.entries(metadata).every(([key, value]) => r.metadata?.[key] === String(value)) });
     return { ...reversal, operation: reversalOperation };
   }
   function refundInvoice(invoiceId, reason, amount, requestId) {
@@ -132,10 +136,13 @@ module.exports = function createPayoutOperations(ctx) {
     if (payment.status !== "Paid" || already !== before) throw new Error("The refund amount is invalid.");
     const refundMetadata = { craftcrew: "T273", invoiceId, paymentId: payment.id, reason: reason.trim(), chargeId: checkout.chargeId, originalMinor: original, refundedBeforeMinor: before };
     const refundOperation = await operations.reserve({ kind: "refund", logicalKey: `refund:${refundKey}`, ownerId: invoice.customerId, amountMinor: refundMinor, currency: "eur", metadata: refundMetadata });
-    const refund = refundOperation.providerRef
-      ? await client.refunds.retrieve(refundOperation.providerRef)
-      : await operations.call(refundOperation, (key) => client.refunds.create({ charge: checkout.chargeId, amount: refundMinor, metadata: refundMetadata }, { idempotencyKey: key }), "refund", { deferSuccess: true });
-    if (!refund?.id || Number(refund.amount) !== refundMinor || refund.status !== "succeeded" || refund.currency !== "eur" || refund.charge !== checkout.chargeId) throw new Error("The Stripe payment could not be verified for this operation.");
+    const charge = await client.charges.retrieve(checkout.chargeId);
+    if (charge?.id !== checkout.chargeId || charge.livemode !== false || charge.currency !== "eur") throw new Error("The Stripe payment could not be verified for this operation.");
+    const refund = await operations.resolve(refundOperation, { type: "refund",
+      create: (key) => client.refunds.create({ charge: checkout.chargeId, amount: refundMinor, metadata: refundMetadata }, { idempotencyKey: key }),
+      retrieve: (ref) => client.refunds.retrieve(ref), list: (page) => client.refunds.list({ ...page, charge: checkout.chargeId }),
+      match: (r) => !!r?.id && r.amount === refundMinor && r.currency === "eur" && r.charge === checkout.chargeId && r.status === "succeeded" &&
+        Object.entries(refundMetadata).every(([key, value]) => r.metadata?.[key] === String(value)) });
     const supplierMinor = payment.stripe?.payout?.breakdown?.supplierMinor ?? transferBreakdown(invoice).supplierMinor;
     const reversalMinor = Math.round(supplierMinor * total / original) - Math.round(supplierMinor * before / original);
     const reversalKey = refundKey;

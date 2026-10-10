@@ -30,12 +30,20 @@ async function startFakeStripe(routes = {}) {
     configuration: { recipient: { applied: true, capabilities: { stripe_balance: { stripe_transfers: { requested: true, status: a.transfers, status_details: [] } } } } },
     requirements: { entries: [], summary: a.transfers === "active" ? {} : { minimum_deadline: { status: "currently_due" } } },
   });
+  const created = () => Math.floor(Date.now() / 1000);
+  const list = (values, req, accept = () => true) => {
+    const query = new URL(req.url, 'http://fake').searchParams;
+    const rows = [...new Map([...values].map((row) => [row.id, row])).values()].filter((row) => accept(row, query));
+    const start = query.get('starting_after'), index = start ? rows.findIndex((row) => row.id === start) + 1 : 0;
+    const count = Math.min(100, Number(query.get('limit') || 10));
+    return { object: 'list', data: rows.slice(index, index + count), has_more: index + count < rows.length };
+  };
   const all = {
     "GET /v1/account": () => ({ id: "acct_platform", object: "account", country: "DE", settings: { dashboard: { display_name: "CraftCrew Test" } } }),
     "POST /v1/customers": (b, p, req) => {
       const key = req.headers['idempotency-key'];
       if (key && customerKeys.has(key)) return customers.get(customerKeys.get(key));
-      const customer = { id: 'cus_fake' + (customers.size + 1), object: 'customer', name: b.name, email: b.email, metadata: metadata(b), livemode: false };
+      const customer = { id: 'cus_fake' + (customers.size + 1), object: 'customer', name: b.name, email: b.email, metadata: metadata(b), address: b['address[line1]'] ? { line1: b['address[line1]'] } : null, taxIds: b['tax_id_data[0][value]'] ? [{ type: b['tax_id_data[0][type]'], value: b['tax_id_data[0][value]'] }] : [], created: created(), livemode: false };
       customers.set(customer.id, customer); if (key) customerKeys.set(key, customer.id); return customer;
     },
     "GET /v1/customers/:id": (b, p) => customers.get(last(p)) || notFound('customer'),
@@ -44,7 +52,7 @@ async function startFakeStripe(routes = {}) {
       if (key && checkoutKeys.has(key)) return checkoutSessions.get(checkoutKeys.get(key));
       const session = { id: 'cs_test_fake' + (checkoutSessions.size + 1), object: 'checkout.session', mode: b.mode, customer: b.customer,
         client_reference_id: b.client_reference_id, integration_identifier: b.integration_identifier, currency: b['line_items[0][price_data][currency]'],
-        amount_total: Number(b['line_items[0][price_data][unit_amount]']), metadata: metadata(b), payment_intent: null, livemode: false,
+        created: created(), amount_total: Number(b['line_items[0][price_data][unit_amount]']), metadata: metadata(b), payment_intent: null, livemode: false,
         status: 'open', payment_status: 'unpaid', url: 'https://checkout.stripe.com/c/pay/fake' + (checkoutSessions.size + 1) };
       checkoutSessions.set(session.id, session); if (key) checkoutKeys.set(key, session.id); return session;
     },
@@ -66,7 +74,7 @@ async function startFakeStripe(routes = {}) {
     "POST /v1/transfers": (b, p, req) => {
       const key = req.headers["idempotency-key"], prior = key && transferKeys.get(key);
       if (prior) return transfers.get(prior);
-      const tr = { id: "tr_fake" + (transfers.size + 1), object: "transfer", amount: Number(b.amount), currency: b.currency, destination: b.destination, transfer_group: b.transfer_group || null, source_transaction: b.source_transaction || null, metadata: b.metadata || {}, reversed: false, amount_reversed: 0 };
+      const tr = { id: "tr_fake" + (transfers.size + 1), object: "transfer", amount: Number(b.amount), currency: b.currency, destination: b.destination, transfer_group: b.transfer_group || null, source_transaction: b.source_transaction || null, metadata: metadata(b), livemode: false, created: created(), reversed: false, amount_reversed: 0 };
       transfers.set(tr.id, tr);
       if (key) transferKeys.set(key, tr.id);
       return tr;
@@ -74,7 +82,7 @@ async function startFakeStripe(routes = {}) {
     "POST /v1/refunds": (b, p, req) => {
       const key = req.headers["idempotency-key"], prior = key && refunds.get(key);
       if (prior) return prior;
-      const refund = { id: "re_fake" + (refunds.size + 1), object: "refund", charge: b.charge, amount: Number(b.amount), currency: b.currency || "eur", status: "succeeded", metadata: b.metadata || {} };
+      const refund = { id: "re_fake" + (refunds.size + 1), object: "refund", charge: b.charge, amount: Number(b.amount), currency: b.currency || "eur", status: "succeeded", created: created(), metadata: metadata(b) };
       if (key) refunds.set(key, refund); else refunds.set(refund.id, refund);
       return refund;
     },
@@ -86,13 +94,20 @@ async function startFakeStripe(routes = {}) {
       const amount = Number(b.amount || (transfer.amount - transfer.amount_reversed));
       if (amount <= 0 || amount > transfer.amount - transfer.amount_reversed) return { status: 400, error: { type: "invalid_request_error", message: "invalid reversal amount" } };
       transfer.amount_reversed += amount; transfer.reversed = transfer.amount_reversed === transfer.amount;
-      const reversal = { id: "trr_fake" + (reversals.size + 1), object: "transfer_reversal", transfer: transfer.id, amount, currency: transfer.currency, metadata: b.metadata || {} };
+      const reversal = { id: "trr_fake" + (reversals.size + 1), object: "transfer_reversal", transfer: transfer.id, amount, currency: transfer.currency, created: created(), metadata: metadata(b) };
       if (key) reversals.set(key, reversal); else reversals.set(reversal.id, reversal);
       return reversal;
     },
     "GET /v1/transfers/:id": (b, p) => transfers.get(p.split("/")[3]) || notFound("transfer"),
     "GET /v1/transfers/:id/reversals/:reversal": (b, p) => [...reversals.values()].find((r) => r.id === last(p)) || notFound("transfer reversal"),
     "GET /v1/refunds/:id": (b, p) => [...refunds.values()].find((r) => r.id === p.split("/")[3]) || notFound("refund"),
+    "GET /v1/customers": (b, p, req) => list(customers.values(), req, (row, query) => !query.get('email') || row.email === query.get('email')),
+    "GET /v1/customers/:id/tax_ids": (b, p) => ({ object: 'list', data: customers.get(p.split('/')[3])?.taxIds || [], has_more: false }),
+    "GET /v1/checkout/sessions": (b, p, req) => list(checkoutSessions.values(), req, (row, query) => !query.get('customer') || row.customer === query.get('customer')),
+    "GET /v1/transfers": (b, p, req) => list(transfers.values(), req, (row, query) => !query.get('destination') || row.destination === query.get('destination')),
+    "GET /v1/refunds": (b, p, req) => list(refunds.values(), req, (row, query) => !query.get('charge') || row.charge === query.get('charge')),
+    "GET /v1/transfers/:id/reversals": (b, p, req) => list(reversals.values(), req, (row) => row.transfer === p.split('/')[3]),
+    "GET /v1/charges/:id": (b, p) => ({ id: last(p), object: 'charge', currency: 'eur', livemode: false }),
     ...routes,
   };
   const server = http.createServer((req, res) => {
