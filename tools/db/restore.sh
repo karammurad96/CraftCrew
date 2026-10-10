@@ -8,6 +8,10 @@
 #   PG_RESTORE, PSQL  the pg_restore and psql commands (default pg_restore and psql)
 #   NODE_ENV      passed to verify.js: production (default) for live backups, development for demo data
 #
+# An older snapshot cannot reveal Stripe operations accepted after its snapshot. Before payment
+# reuse, reconcile provider objects and newer operation/history records; scratch verification alone
+# does not authorize replay of monetary work whose history was lost.
+#
 # The data folder of the backup is unpacked into a temporary folder for the check and removed afterwards.
 set -eu
 
@@ -43,3 +47,5 @@ else
   echo "restore: no database dump in $DIR (STORE=json backup); checking db.json"
   node "$ROOT/tools/db/verify.js" --data-dir "$WORK/data" --json ${EXPECT:+--expect "$EXPECT"}
 fi
+
+echo "restore: scratch validation cannot detect Stripe operations omitted by an older snapshot; reconcile provider and newer operation records before payment reuse."

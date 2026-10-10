@@ -739,7 +739,8 @@ function postgresStore({ url = process.env.DATABASE_URL } = {}) {
       const existing = !job.ordinary && atomic.applied({ meta: prior.rows[0]?.data }, job.event);
       if (existing) { await client.query('rollback'); return { receipt: existing, applied: false }; }
       input = job.ordinary ? atomic.prepareStage(job.getDb(), job.stage) : atomic.prepare(job.getDb(), job.stage, job.event);
-      atomic.retain({ meta: prior.rows[0]?.data }, input.snapshot);
+      const operations = await client.query("select data from records where collection='stripeOperations'");
+      atomic.retain({ meta: prior.rows[0]?.data, stripeOperations: operations.rows.map((row) => row.data) }, input.snapshot);
       c = changes(input.snapshot, saved);
       await write(client, c);
       if (!job.ordinary) {

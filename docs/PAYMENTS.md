@@ -26,8 +26,31 @@ treatment requires accountant review and this task creates no automatic accounti
 A new refund request cannot bypass an unresolved prior refund/reversal; exact retries keep their
 original identity. Unresolved original supplier transfers also block refunds (and unlinked dispute
 reversal decisions) until verified recovery publishes the original transfer. Staged operation outcomes
-cannot regress, and linked strict-stage failures retain provider references for retry. T283c3 backup/
-import retention and live activation remain open.
+cannot regress, and linked strict-stage failures retain provider references for retry. Known-operation backup/import retention is described below. Live activation remains open.
+
+## Known-operation retention and restore boundary (T283c3)
+
+Supported JSON/native PostgreSQL saves, strict stages, backups and imports preserve every operation
+already known to the current database. IDs, logical identities, idempotency keys, kind/owner, amount,
+currency, original metadata and creation time are immutable. Published provider references/types
+cannot be removed or replaced; outcomes and attempt counts cannot regress. Duplicate operation IDs
+are refused. Existing monetary history and applied receipts retain their independent protections.
+Strict refusals publish no linked changes; native ordinary-save refusals restore the refused in-memory
+record while retaining the existing explicit flush error and unrelated-save behavior.
+
+Migration 010 protects native operation rows against direct SQL identity mutation, collection/key
+moves and deletion, while permitting position-only ordering and valid outcome/reference publication.
+The database's `craftcrew.replace_all` session flag is a privileged tooling deletion bypass, not an
+application-level guarantee against unrestricted SQL administrators. The supported JSON-to-PostgreSQL
+`--replace` importer validates the complete current operation/history/receipt state before activating
+that transactional boundary; a failed import cannot discard known records.
+
+An older snapshot restored into an empty or lost database cannot reveal operations omitted from
+that snapshot. Scratch restore verification proves backup integrity and consistency, not absence of
+later accepted Stripe work. Before payment reuse, operators must reconcile the snapshot with provider
+objects and newer operation/history records, retaining original keys and references. No blind monetary
+replay or global exactly-once recovery is promised for lost history; unresolved cases remain held for
+T284 operator/provider reconciliation. Live keys remain refused.
 
 ## Bounded operation recovery (T283c1)
 
@@ -51,7 +74,7 @@ parent transfer. Refund/reversal test mode is checked through canonical parent c
 because Stripe's child object schemas do not expose livemode. Provider I/O remains outside the shared
 gate; reference publication rechecks uniqueness and refuses changing an existing reference atomically.
 Local reference-publication failure retains the durable intent/key; after expiry recovery uses lookup
-instead of replay. Event ordering is described above; broad operation backup/import guards remain T283c3.
+instead of replay. Event ordering is described above; known-operation backup/import guards are described in the retention section above.
 
 ## Atomic fee statements and credits (T283b2)
 
@@ -83,7 +106,7 @@ excess credit balance after a refund; this feature does not claim that cash was 
 Legacy offline statements and actions retain their existing behavior. Invoice creation and all fee
 counter writers share the payment gate; Checkout owns its short staged sections.
 
-Event ordering is described above; backup/import protection remains T283c3 and operator reconciliation T284. Live keys remain
+Event ordering is described above; backup/import protection is described in the retention section above and operator reconciliation remains T284. Live keys remain
 refused; test success does not authorize activation.
 
 ## Atomic monetary records (T283b1)
@@ -130,8 +153,8 @@ The signed Checkout dispatcher derives the settlement listener's transition from
 staged payment, so supplier transfer execution is covered by an end-to-end HTTP regression.
 
 This child supplies operation identities, not complete atomic financial settlement or event
-ordering. T283b links outcomes and all local financial records in one strict commit; T283c1 adds bounded lookup and T283c2 above guards monotonic event handling; T283c3 must still complete backup/import retention. Multiple application servers and live payments remain
-unsupported pending those tasks and the other launch gates.
+ordering. T283b links outcomes and all local financial records in one strict commit; T283c1 adds bounded lookup and T283c2 above guards monotonic event handling; T283c3 above protects known operations during saves and imports. Multiple application servers and live payments remain
+unsupported; the supported runtime remains single-server and live activation requires the remaining launch gates.
 
 ## Windows local demo storage (T287)
 
