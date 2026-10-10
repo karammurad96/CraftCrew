@@ -18,7 +18,7 @@ function fixture(fake, afterTransfer = () => {}) {
   } },
     on: (type, handler) => handlers.set(type, handler), gate, now: () => "2026-10-09T00:00:00.000Z", send() {}, body: async () => ({}), activity() {},
     commitStage: async ({ stage }) => { atomic.validate(db, stage); atomic.publish(db, stage); } };
-  return { db, handlers, ops: createPayoutOperations(ctx) };
+  return { db, handlers, ctx, ops: createPayoutOperations(ctx) };
 }
 
 test("T273 transfers the supplier share with source charge and pinned fee breakdown", async (t) => {
@@ -146,4 +146,47 @@ test("T283b2 approved payment fee changes during transfer refuse linked settleme
   await f.ops.settle(f.db.payments[0], f.db.invoices[0], "ch_1");
   assert.equal(fake.transfers.size, 1); assert.equal(f.db.stripeOperations[0].status, "unknown");
   assert.equal(f.db.payments[0].stripe.payout?.transferId, undefined); assert.equal(f.db.stripeFinancialRecords?.length || 0, 0);
+});
+
+for (const type of ['transfer', 'refund', 'transfer_reversal']) test(`T283c1 expired ${type} first-reference refusal retrieves accepted provider object without another POST`, async (t) => {
+  const fake = await startFakeStripe(); t.after(() => fake.stop()); const f = fixture(fake);
+  if (type !== 'transfer') await f.ops.settle(f.db.payments[0], f.db.invoices[0], 'ch_1');
+  let clock = '2026-10-09T00:00:00.000Z', refusing = true;
+  f.ctx.now = () => clock;
+  const commit = f.ctx.commitStage;
+  f.ctx.commitStage = async (input) => {
+    if (refusing && input.stage.patches.some((p) => p.collection === 'stripeOperations' && p.fields.providerType === type)) throw new Error('first reference storage refused');
+    return commit(input);
+  };
+  let ops = createPayoutOperations(f.ctx);
+  if (type === 'transfer') await ops.settle(f.db.payments[0], f.db.invoices[0], 'ch_1');
+  else await assert.rejects(ops.refundInvoice('invoice', 'Cancellation'), /storage refused/);
+  const op = f.db.stripeOperations.find((row) => row.kind === type);
+  assert.equal(op.status, 'pending'); assert.equal(op.providerRef, null);
+  const identity = op.id, key = op.idempotencyKey;
+  refusing = false; clock = '2026-10-10T00:00:00.000Z'; ops = createPayoutOperations(f.ctx);
+  if (type === 'transfer') await ops.settle(f.db.payments[0], f.db.invoices[0], 'ch_1');
+  else assert.equal((await ops.refundInvoice('invoice', 'Cancellation')).status, 'Refunded');
+  const recovered = f.db.stripeOperations.find((row) => row.id === identity);
+  assert.equal(recovered.status, 'succeeded'); assert.equal(recovered.idempotencyKey, key);
+  const path = type === 'transfer' ? '/v1/transfers' : type === 'refund' ? '/v1/refunds' : '/v1/transfers/tr_fake1/reversals';
+  assert.equal(fake.calls.filter((call) => call.method === 'POST' && call.path === path).length, 1);
+  assert.equal(fake.transfers.size, 1);
+});
+test('T283c1 indistinguishable pending partial refunds cannot claim one remote refund after expiry', async (t) => {
+  const fake = await startFakeStripe(); t.after(() => fake.stop()); const f = fixture(fake);
+  await f.ops.settle(f.db.payments[0], f.db.invoices[0], 'ch_1');
+  let clock = '2026-10-09T00:00:00.000Z', fail = true; f.ctx.now = () => clock;
+  const commit = f.ctx.commitStage;
+  f.ctx.commitStage = async (input) => { if (fail && input.stage.patches.some((p) => p.collection === 'stripeOperations' && p.fields.providerType === 'refund')) throw new Error('reference refused'); return commit(input); };
+  let ops = createPayoutOperations(f.ctx);
+  await assert.rejects(ops.refundInvoice('invoice', 'Partial cancellation', 100, 'request-first'), /reference refused/);
+  const first = f.db.stripeOperations.find((row) => row.kind === 'refund');
+  const operations = require('../stripe-operations')(f.ctx);
+  await operations.reserve({ ...first, logicalKey: 'refund:payment:request-second' });
+  fail = false; clock = '2026-10-10T00:00:00.000Z'; ops = createPayoutOperations(f.ctx);
+  await assert.rejects(ops.refundInvoice('invoice', 'Partial cancellation', 100, 'request-first'), /reconciliation/);
+  assert.equal(f.db.payments[0].status, 'Paid'); assert.equal(f.db.payments[0].stripe.payout.refundedMinor, undefined);
+  assert.equal(fake.calls.filter((c) => c.method === 'POST' && c.path === '/v1/refunds').length, 1);
+  assert.equal(first.providerRef, null); assert.equal(fake.reversals.size, 0);
 });

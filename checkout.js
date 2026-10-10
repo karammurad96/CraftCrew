@@ -226,11 +226,6 @@ module.exports = function createCheckout(ctx) {
         ownerId: found.owner.id, billing: clone(billing), checkout: clone(checkout), amount: found.amount, customerOperation, checkoutOperation };
     });
   }
-  function recent(startedAt) {
-    const age = Date.parse(now()) - Date.parse(startedAt);
-    if (!Number.isFinite(age) || age < 0 || age > 23 * 3600000)
-      throw new Error("Checkout needs reconciliation before a new payment attempt. Contact an administrator.");
-  }
   function metadata(prepared) {
     return { invoiceId: prepared.invoiceId, projectId: prepared.invoiceBinding.projectId || "", supplierId: prepared.invoiceBinding.supplierId || "",
       paymentId: prepared.paymentId, customerId: prepared.ownerId, checkoutAttemptId: prepared.checkout.attemptId };
@@ -244,14 +239,20 @@ module.exports = function createCheckout(ctx) {
   }
   async function run(invoiceId, actor) {
     let prepared = await reserve(invoiceId, actor);
+    const params = prepared.billing.params;
+    const matchesCustomer = async (customer) => {
+      if (!/^cus_[A-Za-z0-9]+$/.test(customer?.id || "") || customer.deleted || customer.livemode !== false || customer.metadata?.craftcrewCustomerId !== prepared.ownerId || customer.name !== params.name || customer.email !== params.email ||
+          (params.address && customer.address?.line1 !== params.address.line1)) return false;
+      if (params.tax_id_data?.length) {
+        const taxes = await client.customers.listTaxIds(customer.id, { limit: 100 });
+        if (taxes.has_more !== false || !Array.isArray(taxes.data) || !params.tax_id_data.every((tax) => taxes.data.some((t) => t.type === tax.type && t.value === tax.value))) return false;
+      }
+      return true;
+    };
     if (!prepared.billing.customerId) {
-      recent(prepared.billing.startedAt);
       const customerOperation = prepared.customerOperation;
-      let customer;
-      if (customerOperation.status === "succeeded" && customerOperation.providerRef) customer = await client.customers.retrieve(customerOperation.providerRef);
-      else customer = await client.customers.create(prepared.billing.params, { idempotencyKey: customerOperation.idempotencyKey });
-      if (!/^cus_[A-Za-z0-9]+$/.test(customer?.id || "") || customer.livemode !== false || customer.metadata?.craftcrewCustomerId !== prepared.ownerId)
-        throw new Error("Stripe returned payment details that do not match this invoice. Contact an administrator.");
+      const customer = await operations.resolve(customerOperation, { type: "customer", startedAt: prepared.billing.startedAt, create: (key) => client.customers.create(params, { idempotencyKey: key }),
+        retrieve: (ref) => client.customers.retrieve(ref), list: (page) => client.customers.list({ ...page, email: params.email }), match: matchesCustomer });
       prepared = await gate.run(async () => {
         const latest = current(prepared, actor), stage = atomic.createStage();
         const billing = { ...prepared.billing, customerId: customer.id }, checkout = { ...prepared.checkout, customerId: customer.id };
@@ -264,21 +265,22 @@ module.exports = function createCheckout(ctx) {
       });
     }
     const customer = await client.customers.retrieve(prepared.billing.customerId);
-    if (customer.id !== prepared.billing.customerId || customer.deleted || customer.livemode !== false || customer.metadata?.craftcrewCustomerId !== prepared.ownerId)
+    if (customer.id !== prepared.billing.customerId || !(await matchesCustomer(customer)))
       throw new Error("Stripe returned payment details that do not match this invoice. Contact an administrator.");
     let session, sessionOperation = prepared.checkoutOperation;
     if (prepared.checkout.sessionId) session = await client.checkout.sessions.retrieve(prepared.checkout.sessionId);
     else {
-      recent(prepared.checkout.startedAt);
       const back = prepared.checkout.returnUrl;
-      if (sessionOperation.status === "succeeded" && sessionOperation.providerRef) session = await client.checkout.sessions.retrieve(sessionOperation.providerRef);
-      else session = await client.checkout.sessions.create({ mode: "payment", customer: prepared.billing.customerId,
+      const params = { mode: "payment", customer: prepared.billing.customerId,
         client_reference_id: invoiceId, integration_identifier: INTEGRATION, metadata: metadata(prepared),
         line_items: [{ quantity: 1, price_data: { currency: "eur", unit_amount: prepared.amount, product_data: { name: prepared.checkout.productName } } }],
         payment_intent_data: { transfer_group: invoiceId, metadata: metadata(prepared) },
         payment_method_options: { customer_balance: { funding_type: "bank_transfer", bank_transfer: { type: "eu_bank_transfer", eu_bank_transfer: { country: prepared.checkout.bankTransferCountry } } } },
         success_url: back + "?checkout=success", cancel_url: back + "?checkout=cancel",
-      }, { idempotencyKey: sessionOperation.idempotencyKey });
+      };
+      session = await operations.resolve(sessionOperation, { type: "checkout_session", startedAt: prepared.checkout.startedAt, create: (key) => client.checkout.sessions.create(params, { idempotencyKey: key }),
+        retrieve: (ref) => client.checkout.sessions.retrieve(ref), list: (page) => client.checkout.sessions.list({ ...page, customer: prepared.billing.customerId }),
+        match: (value) => { try { verifySession(value, prepared); return true; } catch { return false; } } });
     }
     verifySession(session, prepared);
     if (session.status !== "open" || session.payment_status !== "unpaid")

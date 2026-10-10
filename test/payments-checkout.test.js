@@ -89,7 +89,7 @@ test("durable attempt refusal occurs before external requests, without live publ
 });
 test("publication refusal retries the frozen same provider attempt without duplicate session", async (t) => {
   let fail = true;
-  const state = await fixture(t, { commit: (stage, commits) => { if (commits === 3 && fail) throw new Error("disk refused"); } });
+  const state = await fixture(t, { commit: (stage, commits) => { if (fail && stage.patches.some((patch) => patch.collection === "stripeOperations" && patch.fields.providerType === "checkout_session")) throw new Error("disk refused"); } });
   await assert.rejects(state.checkout.pay("invoice", state.actor), /disk refused/);
   assert.equal(state.fake.checkoutSessions.size, 1); assert.equal(state.db.payments[0].stripe.checkout.sessionId, null);
   fail = false;
@@ -131,7 +131,7 @@ test("unapproved currency/totals, aged uncertain attempts and live mode fail clo
   await assert.rejects(live.pay("invoice", state.actor), /Live payments/);
   state.db.users[0].stripeBilling = { attemptId: "old", customerId: null, startedAt: "2020-01-01T00:00:00Z", params: { name: "Buyer", email: "owner@example.com", metadata: { craftcrewCustomerId: "owner" } } };
   await assert.rejects(state.checkout.pay("invoice", state.actor), /reconciliation/);
-  assert.equal(state.fake.calls.length, 0);
+  assert.ok(state.fake.calls.every((call) => call.method !== "POST"));
 });
 
 test("T272c verifies Checkout associations before atomically fulfilling paid, pending and failed events", async () => {
@@ -184,4 +184,36 @@ test("T272c verifies Checkout associations before atomically fulfilling paid, pe
 
   const forged = structuredClone(session); forged.amount_total = 1;
   await assert.rejects(handlers.get("checkout.session.completed").prepare(forged, { id: "evt_forged", type: "checkout.session.completed" }), /verified/);
+});
+
+for (const type of ['customer', 'checkout_session']) test(`T283c1 expired ${type} local-reference refusal recovers frozen object without duplicate creation`, async (t) => {
+  let refuse = true, clock = '2026-10-09T00:00:00.000Z';
+  const state = await fixture(t, { commit: (stage) => { if (refuse && stage.patches.some((p) => p.collection === 'stripeOperations' && p.fields.providerType === type)) throw new Error('first reference refused'); } });
+  state.ctx.now = () => clock; let checkout = createCheckout(state.ctx);
+  await assert.rejects(checkout.pay('invoice', state.actor), /first reference refused/);
+  const operation = state.db.stripeOperations.find((op) => op.kind === type);
+  assert.equal(operation.status, 'pending'); assert.equal(operation.providerRef, null);
+  refuse = false; clock = '2026-10-10T00:00:00.000Z'; checkout = createCheckout(state.ctx);
+  if (type === 'customer') {
+    await assert.rejects(checkout.pay('invoice', state.actor), /reconciliation/);
+    assert.equal(state.fake.checkoutSessions.size, 0, 'the separate expired session intent has no remote match and must not POST');
+    assert.equal(state.db.users[0].stripeBilling.customerId, [...state.fake.customers.keys()][0]);
+  } else {
+    assert.match((await checkout.pay('invoice', state.actor)).url, /^https:\/\/checkout.stripe.com/);
+    assert.equal(state.fake.checkoutSessions.size, 1);
+  }
+  assert.equal(state.fake.customers.size, 1);
+  const path = type === 'customer' ? '/v1/customers' : '/v1/checkout/sessions';
+  assert.equal(state.fake.calls.filter((c) => c.path === path && c.method === 'POST').length, 1);
+  assert.equal(state.db.stripeOperations.find((op) => op.id === operation.id).status, 'succeeded');
+});
+test('T283c1 published customer reference rejects changed name/address/VAT without creating another customer', async (t) => {
+  for (const field of ['name', 'address', 'taxIds']) {
+    const state = await fixture(t); state.db.users[0].companyProfile = { legalName: 'Buyer', address: 'Road 1', vatId: 'DE123456789' };
+    await state.checkout.pay('invoice', state.actor);
+    const customer = [...state.fake.customers.values()][0];
+    customer[field] = field === 'taxIds' ? [{ type: 'eu_vat', value: 'DE987654321' }] : field === 'address' ? { line1: 'Other road' } : 'Other Buyer';
+    await assert.rejects(state.checkout.pay('invoice', state.actor), /do not match/);
+    assert.equal(state.fake.customers.size, 1); assert.equal(state.fake.checkoutSessions.size, 1);
+  }
 });

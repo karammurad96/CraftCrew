@@ -5,6 +5,30 @@ Stripe remains a sandbox-only development integration pending the payment launch
 The runtime refuses both secret and restricted live keys before constructing the SDK, even
 with `PAYMENTS_LIVE=1`. T280 prepares checklist/tooling only and does not remove this refusal.
 
+## Bounded operation recovery (T283c1)
+
+[Stripe may prune v1 idempotency keys after at least 24 hours](https://docs.stripe.com/api/idempotent_requests).
+Reusing a pruned key creates a new request. CraftCrew therefore stops creating unresolved operations
+at 23 hours from the durable operation or older frozen Checkout attempt, leaving a one-hour margin.
+It never changes the original parameters or metadata for that key. Known references are retrieved
+regardless of local outcome and must return the same canonical ID and exact business bindings.
+
+An expired operation without a reference scans scoped provider lists, at most ten pages of 100
+objects. Every page must be complete and well-formed; one unique binding match is retrieved again
+before its reference is published. Zero/multiple matches, truncated or repeated pagination,
+indistinguishable local operations, foreign reference associations and mismatches require administrator
+reconciliation. A complete zero-match scan does not authorize a new POST. Partial recovery may
+publish a verified customer while refusing a separately expired session with no remote match.
+
+Customer name/email/address and explicit VAT IDs are verified against frozen billing inputs. Checkout
+sessions bind customer, invoice, amount/currency and attempt metadata. Transfers bind destination,
+source charge and invoice group; refunds bind charge and frozen refund inputs; reversals bind their
+parent transfer. Refund/reversal test mode is checked through canonical parent charge/transfer objects
+because Stripe's child object schemas do not expose livemode. Provider I/O remains outside the shared
+gate; reference publication rechecks uniqueness and refuses changing an existing reference atomically.
+Local reference-publication failure retains the durable intent/key; after expiry recovery uses lookup
+instead of replay. Event ordering and broad operation backup/import guards remain T283c2/T283c3.
+
 ## Atomic fee statements and credits (T283b2)
 
 Stripe payouts use the approved payment's net amount, platform fee and percentage, rather than
@@ -35,7 +59,7 @@ excess credit balance after a refund; this feature does not claim that cash was 
 Legacy offline statements and actions retain their existing behavior. Invoice creation and all fee
 counter writers share the payment gate; Checkout owns its short staged sections.
 
-General recovery/event ordering remains T283c and operator reconciliation T284. Live keys remain
+Event ordering and backup/import protection remain T283c2/T283c3 and operator reconciliation T284. Live keys remain
 refused; test success does not authorize activation.
 
 ## Atomic monetary records (T283b1)
@@ -55,7 +79,7 @@ list-position changes. `Disputed` invoices retain their financial-field lock. Wi
 refuse saved monetary operations/history because directory durability is unavailable.
 
 T283b1 alone excluded fee statements/commission credits; T283b2 above supplies that boundary and
-removes the Stripe post-refund callback. Broad event ordering and reconciliation remain T283c/T284;
+removes the Stripe post-refund callback. Broad event ordering and operator reconciliation remain T283c2/T284;
 this task does not establish live-payment readiness.
 
 ## Monetary operation identities (T283a)
@@ -65,8 +89,7 @@ customer/session creation, supplier transfers, refunds and transfer reversals. T
 contain bounded metadata and provider references, not raw Stripe payloads or credentials.
 Existing successful transfer/refund/reversal objects are retrieved by reference on retry;
 failed or uncertain attempts retain their original identity. Checkout still refuses uncertain
-creation attempts older than 23 hours. General recovery beyond the provider idempotency window
-remains T283c and must not be replaced by blind replay or a newly generated key.
+creation attempts older than 23 hours without complete bounded lookup. T283c1 above recovers verified provider objects beyond the idempotency window; incomplete or ambiguous lookup must never be replaced by blind replay or a newly generated key.
 
 Admin full-refund retries reuse one full-refund identity per payment. Partial refunds require
 a `requestId` (8–100 ASCII letters, digits, `_` or `-`) on the existing admin invoice Refund
@@ -83,7 +106,7 @@ The signed Checkout dispatcher derives the settlement listener's transition from
 staged payment, so supplier transfer execution is covered by an end-to-end HTTP regression.
 
 This child supplies operation identities, not complete atomic financial settlement or event
-ordering. T283b links outcomes and all local financial records in one strict commit; T283c adds
+ordering. T283b links outcomes and all local financial records in one strict commit; T283c1 adds bounded lookup; T283c2/T283c3 complete
 recovery and monotonic state handling. Multiple application servers and live payments remain
 unsupported pending those tasks and the other launch gates.
 
@@ -153,8 +176,7 @@ gross/net minor-unit totals and supplier/project associations from current recor
 amounts, currencies and IDs cannot override them. Customer and Checkout attempt inputs are
 strictly persisted before provider calls, with stable per-attempt idempotency keys. Customer
 and Session IDs are published only after ownership, billing, invoice and payment data are
-rechecked. Restart reuses those identities; uncertain attempts older than 23 hours and expired
-or completed Sessions require reconciliation rather than automatic replacement.
+rechecked. Restart reuses those identities; uncertain attempts older than 23 hours use T283c1 bounded lookup, with administrator reconciliation if no unique verified match exists. Expired or completed Sessions require reconciliation rather than automatic replacement.
 
 Checkout uses the platform's Dashboard-managed methods without `payment_method_types`,
 an existing verified Stripe Customer association, invoice gross only, and matching Session /
