@@ -9,7 +9,7 @@ function fixture(fake, afterTransfer = () => {}) {
   const db = { settings: { platformFeePercent: 3 }, users: [{ id: "buyer", role: "customer" }],
     suppliers: [{ id: "supplier", stripeAccount: { id: "acct_fake1", transfers: "active" } }],
     invoices: [{ id: "invoice", projectId: "project", customerId: "buyer", supplierId: "supplier", status: "Paid", amount: 1190, grossAmount: 1190, netAmount: 1000, vatMode: "standard", vatRate: 19 }],
-    payments: [{ id: "payment", invoiceId: "invoice", status: "Paid", amount: 1190, netAmount: 1000, platformFee: 30, platformFeePercent: 3, stripe: { checkout: { chargeId: "ch_1", paymentIntentId: "pi_1" } } }], disputes: [], meta: {} };
+    payments: [{ id: "payment", invoiceId: "invoice", status: "Paid", amount: 1190, netAmount: 1000, platformFee: 30, platformFeePercent: 3, stripe: { checkout: { chargeId: "ch_1", paymentIntentId: "pi_1", customerId: "cus_1" } } }], disputes: [], meta: {} };
   const url = new URL(fake.base), client = new Stripe("sk_test_fake", { host: url.hostname, port: Number(url.port), protocol: "http", maxNetworkRetries: 0 });
   const handlers = new Map(), gate = atomic.createGate();
   const ctx = { getDb: () => db, client, enabled: true, payouts: { transfer: async (supplierId, params, options) => {
@@ -116,6 +116,8 @@ test("T273 disputes reverse the transfer and create an admin escalation", async 
   const fake = await startFakeStripe(); t.after(() => fake.stop()); const f = fixture(fake);
   await f.handlers.get("checkout.session.completed").afterCommit({ status: "paid", invoiceId: "invoice" });
   const event = { id: "evt_dispute_1", type: "charge.dispute.created" }, object = { id: "dp_1", charge: "ch_1", amount: 116000, status: "needs_response" };
+  fake.disputes.set(object.id, { ...object, object: "dispute", currency: "eur", livemode: false, payment_intent: "pi_1" });
+  fake.charges.set("ch_1", { id: "ch_1", livemode: false, currency: "eur", amount: 119000, amount_captured: 119000, paid: true, status: "succeeded", customer: "cus_1", payment_intent: "pi_1" });
   const prepared = await f.handlers.get(event.type).prepare(object, event); const stage = atomic.createStage();
   f.handlers.get(event.type).stage({ stage, prepared, event }); atomic.validate(f.db, stage); atomic.publish(f.db, stage);
   assert.equal(f.db.invoices[0].status, "Disputed"); assert.equal(f.db.disputes[0].status, "Open");
@@ -185,7 +187,7 @@ test('T283c1 indistinguishable pending partial refunds cannot claim one remote r
   const operations = require('../stripe-operations')(f.ctx);
   await operations.reserve({ ...first, logicalKey: 'refund:payment:request-second' });
   fail = false; clock = '2026-10-10T00:00:00.000Z'; ops = createPayoutOperations(f.ctx);
-  await assert.rejects(ops.refundInvoice('invoice', 'Partial cancellation', 100, 'request-first'), /reconciliation/);
+  await assert.rejects(ops.refundInvoice('invoice', 'Partial cancellation', 100, 'request-first'), /could not be verified/);
   assert.equal(f.db.payments[0].status, 'Paid'); assert.equal(f.db.payments[0].stripe.payout.refundedMinor, undefined);
   assert.equal(fake.calls.filter((c) => c.method === 'POST' && c.path === '/v1/refunds').length, 1);
   assert.equal(first.providerRef, null); assert.equal(fake.reversals.size, 0);

@@ -22,7 +22,7 @@ async function fixture(kind, work) {
     const open = () => openStore({ kind, dataDir: dir, url }); store = open(); store.loadSync();
     let db = { settings: { platformFeePercent: 3 }, users: [], suppliers: [{ id: 'supplier', stripeAccount: { id: 'acct_fake1', transfers: 'active' } }],
       invoices: [{ id: 'invoice', supplierId: 'supplier', customerId: 'buyer', status: 'Paid', amount: 1190, grossAmount: 1190, netAmount: 1000 }],
-      payments: [{ id: 'payment', invoiceId: 'invoice', status: 'Paid', amount: 1190, netAmount: 1000, platformFee: 30, platformFeePercent: 3, stripe: { checkout: { chargeId: 'ch_1' } } }],
+      payments: [{ id: 'payment', invoiceId: 'invoice', status: 'Paid', amount: 1190, netAmount: 1000, platformFee: 30, platformFeePercent: 3, stripe: { checkout: { chargeId: 'ch_1', paymentIntentId: 'pi_1', customerId: 'cus_1' } } }],
       disputes: [], stripeFinancialRecords: [], stripeOperations: [], meta: {} };
     store.save(db); await store.flush();
     const endpoint = new URL(fake.base), client = new Stripe('sk_test_fake', { host: endpoint.hostname, port: Number(endpoint.port), protocol: 'http', maxNetworkRetries: 0 });
@@ -36,7 +36,7 @@ async function fixture(kind, work) {
         return store.commitStage(input);
       }, send() {}, body: async () => ({}) });
     let ops = build();
-    await work({ fake, admin, schema, handlers, get db() { return db; }, get ops() { return ops; }, get store() { return store; },
+    await work({ dir, fake, admin, schema, handlers, get db() { return db; }, get ops() { return ops; }, get store() { return store; },
       async refuse() {
         refusing = true;
         if (kind === 'postgres') await admin.query(`create function ${schema}.refuse_money() returns trigger language plpgsql as $$ begin if new.collection='stripeFinancialRecords' then raise exception 'injected money constraint'; end if; return new; end $$; create trigger refuse_money before insert on ${schema}.records for each row execute function ${schema}.refuse_money()`);
@@ -90,9 +90,17 @@ for (const kind of ['json', 'postgres']) {
   test(`T283b1 ${kind} dispute commits reversal history and locks disputed invoice amounts`, options, async () => fixture(kind, async (f) => {
     await f.ops.settle(f.db.payments[0], f.db.invoices[0], 'ch_1');
     const handler = f.handlers.get('charge.dispute.created');
-    const prepared = await handler.prepare({ id: 'dp_1', charge: 'ch_1', status: 'needs_response' });
+    f.fake.disputes.set('dp_1', { id: 'dp_1', object: 'dispute', charge: 'ch_1', status: 'needs_response', amount: 119000, currency: 'eur', livemode: false, payment_intent: 'pi_1' });
+    f.fake.charges.set('ch_1', { id: 'ch_1', amount: 119000, amount_captured: 119000, paid: true, status: 'succeeded', customer: 'cus_1', currency: 'eur', livemode: false, payment_intent: f.db.payments[0].stripe.checkout.paymentIntentId });
+    const prepared = await handler.prepare({ id: 'dp_1', charge: 'ch_1', status: 'needs_response' }, { type: 'charge.dispute.created' });
     const stage = atomic.createStage(); handler.stage({ stage, prepared });
-    await f.store.commitStage({ getDb: () => f.db, stage });
+    await f.refuse(); if (kind === 'json') fs.mkdirSync(path.join(f.dir, 'db.json.tmp')); await assert.rejects(f.store.commitStage({ getDb: () => f.db, stage }));
+    assert.equal(f.db.invoices[0].status, 'Paid'); assert.equal(f.db.disputes.length, 0); assert.equal(f.db.stripeFinancialRecords.length, 1);
+    assert.equal(f.fake.reversals.size, 1);
+    await f.recover();
+    const retryPrepared = await f.handlers.get('charge.dispute.created').prepare({ id: 'dp_1', charge: 'ch_1', status: 'needs_response' }, { type: 'charge.dispute.created' });
+    const retry = atomic.createStage(); f.handlers.get('charge.dispute.created').stage({ stage: retry, prepared: retryPrepared });
+    await f.store.commitStage({ getDb: () => f.db, stage: retry }); assert.equal(f.fake.reversals.size, 1);
     assert.equal(f.db.invoices[0].status, 'Disputed'); assert.equal(f.db.stripeFinancialRecords.length, 2);
     assert.ok(f.db.stripeOperations.every((o) => o.status === 'succeeded'));
     if (kind === 'postgres') await assert.rejects(f.admin.query(`update ${f.schema}.invoices set gross_amount=1 where id='invoice'`), /approved/);

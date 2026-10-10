@@ -12,7 +12,7 @@ async function startFakeStripe(routes = {}) {
   const calls = [];
   // T271: connected accounts (Accounts v2); `transfers` is the stripe_transfers capability's status
   const accountKeys = new Map(), accounts = new Map(), transferKeys = new Map(),
-    transfers = new Map(), refunds = new Map(), reversals = new Map(), customers = new Map(), checkoutSessions = new Map(), customerKeys = new Map(), checkoutKeys = new Map();
+    charges = new Map(), disputes = new Map(), transfers = new Map(), refunds = new Map(), reversals = new Map(), customers = new Map(), checkoutSessions = new Map(), customerKeys = new Map(), checkoutKeys = new Map();
   const metadata = (body) => Object.fromEntries(Object.entries(body).filter(([key]) => key.startsWith("metadata[")).map(([key, value]) => [key.slice(9, -1), value]));
   const notFound = (what) => ({ status: 404, error: { type: "invalid_request_error", message: "No such " + what } });
   const last = (p) => decodeURIComponent(p.split("/").filter(Boolean).at(-1));
@@ -107,19 +107,20 @@ async function startFakeStripe(routes = {}) {
     "GET /v1/transfers": (b, p, req) => list(transfers.values(), req, (row, query) => !query.get('destination') || row.destination === query.get('destination')),
     "GET /v1/refunds": (b, p, req) => list(refunds.values(), req, (row, query) => !query.get('charge') || row.charge === query.get('charge')),
     "GET /v1/transfers/:id/reversals": (b, p, req) => list(reversals.values(), req, (row) => row.transfer === p.split('/')[3]),
-    "GET /v1/charges/:id": (b, p) => ({ id: last(p), object: 'charge', currency: 'eur', livemode: false }),
+    "GET /v1/disputes/:id": (b, p) => disputes.get(last(p)) || notFound("dispute"),
+    "GET /v1/charges/:id": (b, p) => charges.get(last(p)) || ({ id: last(p), object: 'charge', currency: 'eur', livemode: false }),
     ...routes,
   };
   const server = http.createServer((req, res) => {
     let raw = "";
     req.on("data", (c) => (raw += c));
-    req.on("end", () => {
+    req.on("end", async () => {
       const p = req.url.split("?")[0],
         query = Object.fromEntries(new URLSearchParams(req.url.split("?")[1] || "")),
         body = req.headers["content-type"]?.includes("json") ? JSON.parse(raw || "{}") : Object.fromEntries(new URLSearchParams(raw));
       calls.push({ method: req.method, path: p, query, body, headers: req.headers });
       const fn = all[`${req.method} ${p}`] || Object.entries(all).find(([k]) => k.includes(":") && new RegExp("^" + k.replace(/:[a-z]+/g, "[^/]+") + "$").test(`${req.method} ${p}`))?.[1];
-      const out = fn ? fn(body, p, req) : { status: 404, error: { type: "invalid_request_error", message: "No such route in the fake Stripe: " + p } };
+      const out = fn ? await fn(body, p, req) : { status: 404, error: { type: "invalid_request_error", message: "No such route in the fake Stripe: " + p } };
       const status = typeof out?.status === "number" ? out.status : 200;
       res.writeHead(status, { "Content-Type": "application/json", "Request-Id": "req_fake" });
       res.end(JSON.stringify(out?.error ? { error: out.error } : out));
@@ -133,6 +134,8 @@ async function startFakeStripe(routes = {}) {
     calls,
     accounts,
     transfers,
+    charges,
+    disputes,
     refunds,
     reversals,
     customers,

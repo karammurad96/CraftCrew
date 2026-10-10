@@ -70,6 +70,12 @@ module.exports = function createOperations(ctx) {
     referenceBinding(ensure().find((row) => row.id === operation.id) || operation, result);
     const status = String(result.status || "");
     if (!statuses.has(status)) throw new Error("Invalid Stripe operation outcome");
+    const staged = stage.additions.find((item) => item.collection === "stripeOperations" && item.record.id === operation.id)?.record;
+    const original = ensure().find((row) => row.id === operation.id) || operation;
+    const current = staged || stage.patches.filter((item) => item.collection === "stripeOperations" && item.id === operation.id).reduce((record, patch) => ({ ...record, ...patch.fields }), original);
+    referenceBinding(current, result);
+    const rank = { pending: 0, failed: 1, unknown: 2, succeeded: 3 };
+    if (rank[status] < rank[current.status] || (current.status === "succeeded" && !staged)) return;
     const fields = { status, updatedAt: now(), attempts: Number(operation.attempts || 0) + 1 };
     if (result.providerRef !== undefined) fields.providerRef = result.providerRef == null ? null : String(result.providerRef).slice(0, 200);
     if (result.providerType !== undefined) fields.providerType = String(result.providerType).slice(0, 80);

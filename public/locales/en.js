@@ -105,6 +105,7 @@ LOCALES.en = {
       refunded: "Refunded",
       disputed: "Disputed",
       transferred: "Transferred",
+      ignored: "Ignored",
       unknown: "Unknown",
       pending: "Pending",
       pendingApproval: "Pending approval",

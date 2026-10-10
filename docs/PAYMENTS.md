@@ -5,6 +5,30 @@ Stripe remains a sandbox-only development integration pending the payment launch
 The runtime refuses both secret and restricted live keys before constructing the SDK, even
 with `PAYMENTS_LIVE=1`. T280 prepares checklist/tooling only and does not remove this refusal.
 
+## Payment event ordering (T283c2)
+
+Checkout preparation freezes invoice/payment/party financial inputs before provider awaits and checks
+current records against the original durable Checkout amounts and invoice binding. PaymentIntent
+verification uses canonical latest_charge only, including charge customer/captured gross and exact
+provider identities. Foreign integrations receive no-op receipts. Delayed unpaid/failure/success events
+cannot resurrect Paid/Refunded/Disputed states or duplicate notices. Verified canonical-paid events can
+recover an outstanding original supplier transfer with its original operation/key/reference; canonical
+unpaid and disputed/refunded events never release supplier funds.
+
+The signed dispatcher serializes the entire dispute prepare/strict-commit attempt with refunds on
+that invoice, without holding the shared writer gate during provider I/O. Canonical disputes bind
+charge, PaymentIntent, customer, captured gross, amount/currency/test mode and stable dispute identity.
+Reversals use actual remaining supplier transfer funds after prior reversals. Closed-before-created
+and late-created deliveries preserve terminal history, and winning closure never automatically
+re-transfers funds. Invoices remain held as Disputed for T284 operator reconciliation; disputed fee/VAT
+treatment requires accountant review and this task creates no automatic accounting credit policy.
+
+A new refund request cannot bypass an unresolved prior refund/reversal; exact retries keep their
+original identity. Unresolved original supplier transfers also block refunds (and unlinked dispute
+reversal decisions) until verified recovery publishes the original transfer. Staged operation outcomes
+cannot regress, and linked strict-stage failures retain provider references for retry. T283c3 backup/
+import retention and live activation remain open.
+
 ## Bounded operation recovery (T283c1)
 
 [Stripe may prune v1 idempotency keys after at least 24 hours](https://docs.stripe.com/api/idempotent_requests).
@@ -27,7 +51,7 @@ parent transfer. Refund/reversal test mode is checked through canonical parent c
 because Stripe's child object schemas do not expose livemode. Provider I/O remains outside the shared
 gate; reference publication rechecks uniqueness and refuses changing an existing reference atomically.
 Local reference-publication failure retains the durable intent/key; after expiry recovery uses lookup
-instead of replay. Event ordering and broad operation backup/import guards remain T283c2/T283c3.
+instead of replay. Event ordering is described above; broad operation backup/import guards remain T283c3.
 
 ## Atomic fee statements and credits (T283b2)
 
@@ -59,7 +83,7 @@ excess credit balance after a refund; this feature does not claim that cash was 
 Legacy offline statements and actions retain their existing behavior. Invoice creation and all fee
 counter writers share the payment gate; Checkout owns its short staged sections.
 
-Event ordering and backup/import protection remain T283c2/T283c3 and operator reconciliation T284. Live keys remain
+Event ordering is described above; backup/import protection remains T283c3 and operator reconciliation T284. Live keys remain
 refused; test success does not authorize activation.
 
 ## Atomic monetary records (T283b1)
@@ -79,7 +103,7 @@ list-position changes. `Disputed` invoices retain their financial-field lock. Wi
 refuse saved monetary operations/history because directory durability is unavailable.
 
 T283b1 alone excluded fee statements/commission credits; T283b2 above supplies that boundary and
-removes the Stripe post-refund callback. Broad event ordering and operator reconciliation remain T283c2/T284;
+removes the Stripe post-refund callback. Event ordering is described above; operator reconciliation remains T284;
 this task does not establish live-payment readiness.
 
 ## Monetary operation identities (T283a)
@@ -106,8 +130,7 @@ The signed Checkout dispatcher derives the settlement listener's transition from
 staged payment, so supplier transfer execution is covered by an end-to-end HTTP regression.
 
 This child supplies operation identities, not complete atomic financial settlement or event
-ordering. T283b links outcomes and all local financial records in one strict commit; T283c1 adds bounded lookup; T283c2/T283c3 complete
-recovery and monotonic state handling. Multiple application servers and live payments remain
+ordering. T283b links outcomes and all local financial records in one strict commit; T283c1 adds bounded lookup and T283c2 above guards monotonic event handling; T283c3 must still complete backup/import retention. Multiple application servers and live payments remain
 unsupported pending those tasks and the other launch gates.
 
 ## Windows local demo storage (T287)

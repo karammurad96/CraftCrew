@@ -126,7 +126,7 @@ module.exports = function createPayments(ctx) {
       const result = await pending.result;
       return send(res, result.status, { ...result.body, ...(result.status === 200 ? { duplicate: true } : {}) });
     }
-    const result = Promise.resolve().then(() => processEvent(event, identity, thin))
+    const result = Promise.resolve().then(() => payoutOperations.withEvent(event, () => processEvent(event, identity, thin)))
       .catch(() => ({ status: 503, body: { error: "Could not save. Please try again." } }));
     active.set(identity.id, { identity, result });
     try {

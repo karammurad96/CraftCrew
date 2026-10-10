@@ -58,6 +58,7 @@ module.exports = function createPayoutOperations(ctx) {
   const paymentForInvoice = (invoiceId) => (data().payments || []).find((payment) => payment.invoiceId === invoiceId);
   const invoiceForPayment = (payment) => (data().invoices || []).find((invoice) => invoice.id === payment?.invoiceId);
   const transferBreakdown = (invoice, payment = paymentForInvoice(invoice.id)) => fees.breakdown(invoice, payment);
+  const unresolvedTransfer = (payment) => (data().stripeOperations || []).some((row) => row.kind === "transfer" && row.metadata?.paymentId === payment.id && (["pending", "unknown"].includes(row.status) || (row.providerRef && !payment.stripe?.payout?.transferId)));
   const accountReason = (error) => error?.reason || "provider";
   async function persist(payment, fields, expected = payment) {
     const binding = { status: expected.status, stripe: clone(expected.stripe) };
@@ -120,12 +121,16 @@ module.exports = function createPayoutOperations(ctx) {
     if (!enabled || !client) throw new Error("Payments are off: no Stripe key is set.");
     const invoice = clone((data().invoices || []).find((row) => row.id === invoiceId)), payment = clone(paymentForInvoice(invoiceId));
     const checkout = payment?.stripe?.checkout;
-    if (!invoice || !payment || !["Paid", "Refunded"].includes(payment.status) || !checkout?.chargeId) throw new Error("Only a verified Stripe payment can be refunded.");
+    if (payment && unresolvedTransfer(payment)) throw new Error("The Stripe payment could not be verified for this operation.");
+    if (!invoice || !payment || invoice.status === "Disputed" || payment.stripe?.payout?.disputeId || !["Paid", "Refunded"].includes(payment.status) || !checkout?.chargeId) throw new Error("Only a verified Stripe payment can be refunded.");
     if (typeof reason !== "string" || !reason.trim() || reason.length > 500) throw new Error("A refund reason is required");
     if (amount !== undefined && (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0)) throw new Error("The refund amount is invalid.");
     if ((amount !== undefined && !requestId) || (requestId !== undefined && (typeof requestId !== "string" || !/^[A-Za-z0-9_-]{8,100}$/.test(requestId)))) throw new Error("Use a unique request ID for each partial refund and reuse it when retrying.");
     const refundKey = `${payment.id}:${requestId || "full"}`, logicalKey = `refund:${refundKey}`;
     const previous = operations.get(logicalKey);
+    const unresolved = (data().stripeOperations || []).some((row) => ["pending", "unknown"].includes(row.status) && row.metadata?.paymentId === payment.id &&
+      ((row.kind === "refund" && row.id !== previous?.id) || (row.kind === "transfer_reversal" && (!previous || row.metadata?.refundId !== previous.providerRef))));
+    if (unresolved) throw new Error("The Stripe payment could not be verified for this operation.");
     const original = minor(invoice.grossAmount ?? invoice.amount), already = Number(payment.stripe?.payout?.refundedMinor || 0);
     const before = previous ? Number(previous.metadata.refundedBeforeMinor) : already;
     const refundMinor = previous ? previous.amountMinor : amount === undefined ? original - already : minor(amount);
@@ -164,7 +169,7 @@ module.exports = function createPayoutOperations(ctx) {
     const patches = stage.patches.filter((patch) => patch.collection === "payments" && patch.id === payment.id);
     const status = patches.reduce((value, patch) => patch.fields.status ?? value, payment.status);
     const stripe = patches.reduce((value, patch) => patch.fields.stripe ?? value, payment.stripe);
-    if (status !== "Paid" || !stripe?.checkout?.chargeId || stripe.checkout.sessionId !== object.id) return;
+    if (!patches.some((patch) => patch.fields.status === "Paid") || status !== "Paid" || !stripe?.checkout?.chargeId || stripe.checkout.sessionId !== object.id) return;
     return { status: "paid", invoiceId: payment.invoiceId };
   }
   on("checkout.session.completed", { stage: settlementTransition, async afterCommit(transition) {
@@ -177,29 +182,61 @@ module.exports = function createPayoutOperations(ctx) {
     const payment = paymentForInvoice(transition.invoiceId), invoice = invoiceForPayment(payment);
     if (payment && invoice) await settle(payment, invoice, payment.stripe?.checkout?.chargeId);
   } });
-  on("charge.dispute.created", {
-    async prepare(object, event) {
-      const payment = clone(paymentForDispute(object)), invoice = clone(invoiceForPayment(payment));
-      if (!payment || !invoice) throw new Error("Dispute payment binding failed");
-      const transfer = payment.stripe?.payout?.transferId, amount = transfer ? transferBreakdown(invoice).supplierMinor : 0;
-      const reversal = transfer ? await reverseTransfer(payment, amount, `dispute:${object.id}`, { craftcrew: "T273", invoiceId: invoice.id, paymentId: payment.id, disputeId: object.id }) : null;
-      return { payment, invoice, object, reversal };
-    },
-    stage({ stage, prepared, event }) {
-      const current = paymentForInvoice(prepared.invoice.id); if (!current) throw new Error("Dispute payment binding failed");
-      const existing = (data().disputes || []).find((d) => d.stripeDisputeId === prepared.object.id);
-      if (!existing) stage.add("disputes", { id: `stripe-dispute-${prepared.object.id}`, stripeDisputeId: prepared.object.id, projectId: prepared.invoice.projectId, customerId: prepared.invoice.customerId, supplierId: prepared.invoice.supplierId, createdBy: "stripe", type: "Payment", description: "Stripe payment dispute requires review.", status: "Open", createdAt: now(), updatedAt: now() });
-      stage.patch("payments", current.id, { stripe: { ...prepared.payment.stripe, payout: { ...prepared.payment.stripe?.payout, disputeId: prepared.object.id, disputeReversalId: prepared.reversal?.id || null, disputeStatus: "open" } } }, { status: prepared.payment.status, stripe: clone(prepared.payment.stripe), invoiceId: prepared.invoice.id, amount: prepared.payment.amount });
-      stage.patch("invoices", prepared.invoice.id, { status: "Disputed", updatedAt: now() }, invoiceBinding(prepared.invoice));
-      if (prepared.reversal) history(stage, prepared.reversal.operation, current, prepared.invoice, prepared.reversal);
-      return { status: "disputed" };
-    },
-  });
-  on("charge.dispute.closed", { stage({ stage, object }) {
-    const payment = paymentForDispute(object), invoice = invoiceForPayment(payment); if (!payment || !invoice) return;
-    const dispute = (data().disputes || []).find((d) => d.stripeDisputeId === object.id); if (dispute) stage.patch("disputes", dispute.id, { status: ["won", "won_for_merchant"].includes(object.status) ? "Resolved" : "Closed", resolution: String(object.status || "closed").slice(0, 80), updatedAt: now() }, { status: dispute.status });
-    stage.patch("payments", payment.id, { stripe: { ...payment.stripe, payout: { ...payment.stripe?.payout, disputeStatus: object.status || "closed" } } }, { status: payment.status, stripe: clone(payment.stripe) });
+  on("checkout.session.async_payment_failed", { stage: settlementTransition, async afterCommit(transition) {
+    if (transition?.status !== "paid") return;
+    const payment = paymentForInvoice(transition.invoiceId), invoice = invoiceForPayment(payment);
+    if (payment && invoice) await settle(payment, invoice, payment.stripe?.checkout?.chargeId);
   } });
+  const terminalDispute = (value) => ["won", "won_for_merchant", "lost", "warning_closed", "closed"].includes(value);
+  async function prepareDispute(object, event) {
+    const payment = clone(paymentForDispute(object)), invoice = clone(invoiceForPayment(payment));
+    if (!payment || !invoice || !/^dp_[A-Za-z0-9_]+$/.test(object?.id || "")) throw new Error("Dispute payment binding failed");
+    if (unresolvedTransfer(payment)) throw new Error("Dispute payment binding failed");
+    const canonical = await client.disputes.retrieve(object.id);
+    const chargeId = typeof canonical?.charge === "string" ? canonical.charge : canonical?.charge?.id;
+    const charge = await client.charges.retrieve(chargeId);
+    const objectCharge = typeof object.charge === "string" ? object.charge : object.charge?.id;
+    if (canonical?.id !== object.id || canonical.object !== "dispute" || canonical.livemode !== false || canonical.currency !== "eur" || !Number.isSafeInteger(canonical.amount) || canonical.amount <= 0 || canonical.amount > minor(invoice.grossAmount ?? invoice.amount) ||
+        objectCharge !== chargeId || (object.amount !== undefined && object.amount !== canonical.amount) || (object.currency !== undefined && object.currency !== canonical.currency) ||
+        charge?.id !== payment.stripe?.checkout?.chargeId || charge.id !== chargeId || charge.livemode !== false || charge.currency !== "eur" || charge.amount !== minor(invoice.grossAmount ?? invoice.amount) ||
+        charge.customer !== payment.stripe?.checkout?.customerId || charge.paid !== true || charge.status !== "succeeded" || charge.amount_captured !== minor(invoice.grossAmount ?? invoice.amount) ||
+        (typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id) !== payment.stripe?.checkout?.paymentIntentId || (typeof canonical.payment_intent === "string" ? canonical.payment_intent : canonical.payment_intent?.id) !== payment.stripe?.checkout?.paymentIntentId) throw new Error("Dispute payment binding failed");
+    const existing = (data().disputes || []).find((row) => row.stripeDisputeId === canonical.id);
+    if (existing && ((existing.stripeChargeId && existing.stripeChargeId !== chargeId) || (existing.amountMinor !== undefined && existing.amountMinor !== canonical.amount) || (existing.currency && existing.currency !== canonical.currency))) throw new Error("Dispute payment binding failed");
+    const closed = event.type === "charge.dispute.closed" || terminalDispute(canonical.status) || (existing && existing.status !== "Open");
+    if (event.type === "charge.dispute.closed" && !terminalDispute(canonical.status)) throw new Error("Dispute payment binding failed");
+    let reversal = null;
+    const transferId = payment.stripe?.payout?.transferId;
+    if (!closed && transferId) {
+      const transfer = await client.transfers.retrieve(transferId), breakdown = transferBreakdown(invoice, payment);
+      if (transfer.id !== transferId || transfer.livemode !== false || transfer.currency !== "eur" || transfer.amount !== breakdown.supplierMinor || transfer.source_transaction !== chargeId || transfer.transfer_group !== invoice.id || transfer.destination !== data().suppliers?.find((s) => s.id === invoice.supplierId)?.stripeAccount?.id || !Number.isSafeInteger(transfer.amount_reversed) || transfer.amount_reversed < 0 || transfer.amount_reversed > transfer.amount) throw new Error("Dispute payment binding failed");
+      const prior = operations.get(`reversal:${payment.id}:dispute:${canonical.id}`);
+      const amount = prior?.amountMinor ?? transfer.amount - transfer.amount_reversed;
+      if (amount) reversal = await reverseTransfer(payment, amount, `dispute:${canonical.id}`, { craftcrew: "T273", invoiceId: invoice.id, paymentId: payment.id, disputeId: canonical.id });
+    }
+    return { payment, invoice, object: canonical, chargeId, closed, reversal };
+  }
+  function stageDispute({ stage, prepared }) {
+    const current = paymentForInvoice(prepared.invoice.id), invoice = invoiceForPayment(current);
+    if (!current || !invoice) throw new Error("Dispute payment binding failed");
+    const existing = (data().disputes || []).find((row) => row.stripeDisputeId === prepared.object.id);
+    const identity = { stripeDisputeId: prepared.object.id, stripeChargeId: prepared.chargeId, amountMinor: prepared.object.amount, currency: prepared.object.currency };
+    const closed = prepared.closed || (existing && existing.status !== "Open");
+    const status = closed ? (["won", "won_for_merchant"].includes(prepared.object.status) ? "Resolved" : "Closed") : "Open";
+    if (!existing) stage.add("disputes", { id: `stripe-dispute-${prepared.object.id}`, ...identity, projectId: prepared.invoice.projectId, customerId: prepared.invoice.customerId, supplierId: prepared.invoice.supplierId, createdBy: "stripe", type: "Payment", description: "Stripe payment dispute requires review.", status, resolution: closed ? prepared.object.status : undefined, createdAt: now(), updatedAt: now() });
+    else if (existing.status === "Open") stage.patch("disputes", existing.id, { ...identity, status, ...(closed ? { resolution: prepared.object.status } : {}), updatedAt: now() }, { status: existing.status, stripeDisputeId: existing.stripeDisputeId, stripeChargeId: existing.stripeChargeId, amountMinor: existing.amountMinor, currency: existing.currency });
+    stage.patch("payments", current.id, { stripe: { ...prepared.payment.stripe, payout: { ...prepared.payment.stripe?.payout, disputeId: prepared.object.id, disputeReversalId: prepared.reversal?.id || prepared.payment.stripe?.payout?.disputeReversalId || null, disputeStatus: closed ? existing?.resolution || prepared.object.status : "open" } } }, { status: prepared.payment.status, stripe: clone(prepared.payment.stripe), invoiceId: prepared.invoice.id, amount: prepared.payment.amount, netAmount: prepared.payment.netAmount, platformFee: prepared.payment.platformFee, platformFeePercent: prepared.payment.platformFeePercent, commissionStatementId: prepared.payment.commissionStatementId, commissionCreditId: prepared.payment.commissionCreditId, commissionCreditIds: clone(prepared.payment.commissionCreditIds) });
+    stage.patch("invoices", prepared.invoice.id, { status: prepared.invoice.status === "Refunded" ? "Refunded" : "Disputed", updatedAt: now() }, invoiceBinding(prepared.invoice));
+    if (prepared.reversal) history(stage, prepared.reversal.operation, current, prepared.invoice, prepared.reversal);
+    return { status: closed ? "closed" : "disputed" };
+  }
+  on("charge.dispute.created", { prepare: prepareDispute, stage: stageDispute });
+  on("charge.dispute.closed", { prepare: prepareDispute, stage: stageDispute });
+  function withEvent(event, work) {
+    if (!["charge.dispute.created", "charge.dispute.closed"].includes(event.type)) return work();
+    const payment = paymentForDispute(event.data?.object);
+    return payment ? serialized(payment.invoiceId, work) : work();
+  }
   async function handle(req, res, url, parts, actor) {
     if (!(parts[1] === "admin" && parts[2] === "invoices" && parts[3] && req.method === "PATCH" && actor?.role === "admin")) return false;
     const input = await body(req); if (input.action !== "Refund") return false;
@@ -212,5 +249,5 @@ module.exports = function createPayoutOperations(ctx) {
       return (send(res, known.includes(error.message) ? 409 : 502, { error: known.includes(error.message) ? error.message : "The Stripe payment could not be verified for this operation." }), true);
     }
   }
-  return { handle, refundInvoice, settle, transferBreakdown };
+  return { handle, refundInvoice, settle, transferBreakdown, withEvent };
 };
